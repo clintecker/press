@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "press"
-version = "1.1.0"
+version = "1.2.0"
 description = "Book production pipeline: pandoc/LuaLaTeX builds, editorial checks, and artifact verification"
 requires-python = ">=3.10"
 dependencies = [
