@@ -24,30 +24,52 @@ from pathlib import Path
 
 from . import booklib
 
-OPENAI_MODEL = "gpt-image-1"
-GEMINI_MODEL = "gemini-3.1-flash-image"
+# Model choices are print-driven, researched 2026-07: a 6 x 9 cover at
+# 300dpi needs ~1800x2700px, so drafts-at-1K models cannot serve finals.
+# gpt-image-2 takes arbitrary sizes (multiples of 16, max edge 3840,
+# max ~8.3MP) but dropped transparent backgrounds, so the logomark
+# stays on gpt-image-1 where transparency is supported and proven.
+# On Gemini, gemini-3-pro-image (best text rendering) takes the cover;
+# gemini-3.1-flash-image (the workhorse) takes plates and portrait;
+# both accept imageConfig {aspectRatio, imageSize} up to 4K.
+OPENAI_FLAGSHIP = "gpt-image-2"
+OPENAI_TRANSPARENT = "gpt-image-1"
+GEMINI_FLAGSHIP = "gemini-3-pro-image"
+GEMINI_WORKHORSE = "gemini-3.1-flash-image"
 
-# Target shapes: (openai size, gemini aspectRatio). The cover matches the
-# book trim's orientation; plates declare their own composition in the
-# prompt; the logomark is square; the portrait is upright.
+# (openai model, size, quality, transparent), (gemini model, aspect, imageSize)
 SHAPES = {
-    "portrait": ("1024x1536", "3:4"),
-    "landscape": ("1536x1024", "4:3"),
-    "square": ("1024x1024", "1:1"),
+    "cover": ((OPENAI_FLAGSHIP, "2304x3456", "high", False),
+              (GEMINI_FLAGSHIP, "2:3", "4K")),
+    "portrait-plate": ((OPENAI_FLAGSHIP, "2304x3456", "high", False),
+                       (GEMINI_WORKHORSE, "2:3", "2K")),
+    "landscape-plate": ((OPENAI_FLAGSHIP, "3456x2304", "high", False),
+                        (GEMINI_WORKHORSE, "3:2", "2K")),
+    "square-plate": ((OPENAI_FLAGSHIP, "2048x2048", "high", False),
+                     (GEMINI_WORKHORSE, "1:1", "2K")),
+    "logomark": ((OPENAI_TRANSPARENT, "1024x1024", "high", True),
+                 (GEMINI_WORKHORSE, "1:1", "1K")),
+    "author-portrait": ((OPENAI_FLAGSHIP, "2304x3456", "high", False),
+                        (GEMINI_WORKHORSE, "2:3", "2K")),
 }
 
 
-def shape_for(target: str, prompt: str) -> tuple[str, str]:
+def shape_for(target: str, prompt: str) -> tuple[tuple, tuple]:
     if target == "logomark":
-        return SHAPES["square"]
-    if target.startswith("plate:"):
+        key = "logomark"
+    elif target == "cover":
+        key = "cover"
+    elif target == "portrait":
+        key = "author-portrait"
+    else:
         lowered = prompt.lower()
         if "landscape composition" in lowered:
-            return SHAPES["landscape"]
-        if "portrait composition" in lowered:
-            return SHAPES["portrait"]
-        return SHAPES["square"]
-    return SHAPES["portrait"]  # cover and author portrait
+            key = "landscape-plate"
+        elif "portrait composition" in lowered:
+            key = "portrait-plate"
+        else:
+            key = "square-plate"
+    return SHAPES[key]
 
 
 def parse_commissions(path: Path) -> dict[str, str]:
@@ -113,8 +135,10 @@ def key_for(model: str) -> str:
     return value
 
 
-def generate_openai(prompt: str, size: str, count: int, transparent: bool) -> list[bytes]:
-    payload = {"model": OPENAI_MODEL, "prompt": prompt, "size": size, "n": count}
+def generate_openai(prompt: str, spec: tuple, count: int) -> list[bytes]:
+    model, size, quality, transparent = spec
+    payload = {"model": model, "prompt": prompt, "size": size,
+               "quality": quality, "n": count}
     if transparent:
         payload["background"] = "transparent"
     body = post_json(
@@ -125,18 +149,19 @@ def generate_openai(prompt: str, size: str, count: int, transparent: bool) -> li
     return [base64.b64decode(item["b64_json"]) for item in body.get("data", [])]
 
 
-def generate_gemini(prompt: str, aspect: str, count: int) -> list[bytes]:
+def generate_gemini(prompt: str, spec: tuple, count: int) -> list[bytes]:
     # The Imagen predict endpoint is closed to new API users; the Gemini
     # image models answer generateContent with inline image parts.
+    model, aspect, image_size = spec
     images: list[bytes] = []
     for _ in range(count):
         body = post_json(
             "https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{GEMINI_MODEL}:generateContent",
+            f"{model}:generateContent",
             {"contents": [{"parts": [{"text": prompt}]}],
              "generationConfig": {
                  "responseModalities": ["TEXT", "IMAGE"],
-                 "imageConfig": {"aspectRatio": aspect},
+                 "imageConfig": {"aspectRatio": aspect, "imageSize": image_size},
              }},
             {"x-goog-api-key": key_for("gemini")},
         )
@@ -162,14 +187,13 @@ def commission(targets: list[str], models: list[str], count: int) -> int:
 
     saved = 0
     for target, prompt in chosen.items():
-        size, aspect = shape_for(target, prompt)
+        openai_spec, gemini_spec = shape_for(target, prompt)
         directory = root / "art" / "candidates" / target.replace(":", "-")
         directory.mkdir(parents=True, exist_ok=True)
         for model in models:
             images = (
-                generate_openai(prompt, size, count, transparent=(target == "logomark"))
-                if model == "openai"
-                else generate_gemini(prompt, aspect, count)
+                generate_openai(prompt, openai_spec, count) if model == "openai"
+                else generate_gemini(prompt, gemini_spec, count)
             )
             if not images:
                 print(f"  {target} <- {model}: no image returned")
