@@ -36,6 +36,10 @@ def main() -> int:
         if not metadata.get(required):
             failures.append(f"metadata missing {required}:")
 
+    from . import registrations
+
+    failures.extend(registrations.failures())
+
     # A plate on disk that no manuscript file references ships in every
     # archive and the site while appearing in no book; orphans are
     # mistakes. The match is path-anchored so raven.jpg cannot hide

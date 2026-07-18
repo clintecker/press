@@ -48,12 +48,24 @@ def verify_html(path: Path) -> None:
 
 
 def verify_epub(path: Path) -> None:
+    from . import registrations
+
     with zipfile.ZipFile(path) as archive:
         names = archive.namelist()
         if "mimetype" not in names or archive.read("mimetype") != b"application/epub+zip":
             raise SystemExit("EPUB has invalid mimetype")
         if "META-INF/container.xml" not in names:
             raise SystemExit("EPUB missing container.xml")
+        epub_isbn = registrations.isbn("epub")
+        if epub_isbn:
+            opf = "\n".join(
+                archive.read(name).decode("utf-8", errors="ignore")
+                for name in names if name.endswith(".opf")
+            )
+            if epub_isbn not in opf:
+                raise SystemExit(
+                    f"EPUB metadata is missing the registered ISBN {epub_isbn}"
+                )
         raw = "\n".join(
             archive.read(name).decode("utf-8", errors="ignore")
             for name in names

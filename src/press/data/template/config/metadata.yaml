@@ -26,6 +26,14 @@ verify-min-pages: 1
 
 # The print pack reads these when building the interior and cover wrap.
 # print: {paper: cream}          # or white; or {page-thickness: 0.0025}
+
+# Registrations: validated by press check, injected into the colophon,
+# EPUB metadata, and the wrap barcode. "pending" is the one honest
+# placeholder; retail: true refuses to pass check while any placeholder
+# remains. See the registrations skill for the actual processes.
 # registrations:
 #   isbn:
-#     print: "979-..."           # check digit is validated; drives the barcode
+#     print: "pending"           # check digit validated when real
+#     epub: "pending"
+#   lccn: "pending"
+#   retail: false

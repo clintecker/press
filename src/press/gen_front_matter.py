@@ -126,6 +126,16 @@ def generate(include_cover: bool = True) -> Path | None:
     logo = root / "assets" / "press-logo.png"
     epigraph = front.get("epigraph") or {}
 
+    from . import registrations
+
+    registration_lines = []
+    for edition, label in (("print", "ISBN (print)"), ("epub", "ISBN (ebook)")):
+        display = registrations.isbn_display(edition)
+        if display:
+            registration_lines.append(f"{label} {display}")
+    if registrations.lccn_display():
+        registration_lines.append(f"LCCN {registrations.lccn_display()}")
+
     text = (booklib.DATA / "tex" / "front-matter.tex").read_text(encoding="utf-8")
     for name, keep in [
         ("cover", cover_on_page),
@@ -133,6 +143,7 @@ def generate(include_cover: bool = True) -> Path | None:
         ("rights-notice", bool(front.get("rights-notice"))),
         ("contact", bool(front.get("contact"))),
         ("motto", bool(front.get("motto"))),
+        ("registrations", bool(registration_lines)),
         ("logo", logo.is_file()),
         ("epigraph", bool(epigraph.get("quote"))),
     ]:
@@ -150,6 +161,7 @@ def generate(include_cover: bool = True) -> Path | None:
         "{{PUBLISHER}}": escape(meta["publisher"]),
         "{{PUBLISHER_PLACE}}": escape(meta["publisher-place"]),
         "{{CONTACT}}": escape(front.get("contact", "")),
+        "{{REGISTRATION_LINES}}": "\\\\ ".join(escape(line) for line in registration_lines),
         "{{MOTTO}}": escape(front.get("motto", "")),
         "{{EPIGRAPH}}": escape(epigraph.get("quote", "")),
         "{{EPIGRAPH_ATTRIBUTION}}": escape(epigraph.get("attribution", "")),

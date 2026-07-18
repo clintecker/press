@@ -47,7 +47,8 @@ book repository that consumes this package.
 - `src/press/data/skills/` holds the authoring guides (four prose skills,
   the overused-jargon skill whose `references/watchlist.csv` is the one
   watchlist the jargon lint reads, design skills for covers, plates, and
-  logomarks). They are package data: `press skills` lists them with
+  logomarks, and the registrations skill: the ISBN/LCCN/ISSN paperwork
+  end to end). They are package data: `press skills` lists them with
   installed paths, `press workflows` prints paste-ready workflow
   invocations, and workflows resolve skills through `press skills` before
   falling back to a checkout. Read the relevant ones before composing

@@ -288,12 +288,18 @@ def build_target(target: str) -> None:
     elif target == "print":
         pandoc_build("print", f"dist/{slug}-interior.pdf")
     elif target == "epub":
+        from . import registrations
+
         meta = booklib.metadata()
         rights = (
             f"{meta['copyright']} Published by {meta['publisher']}, "
             f"{meta['publisher-place']}."
         )
-        pandoc_build("epub", f"dist/{slug}.epub", extra=["--metadata", f"rights={rights}"])
+        extra = ["--metadata", f"rights={rights}"]
+        epub_isbn = registrations.isbn("epub")
+        if epub_isbn:
+            extra += ["--metadata", f"identifier=urn:isbn:{epub_isbn}"]
+        pandoc_build("epub", f"dist/{slug}.epub", extra=extra)
     elif target == "html":
         pandoc_build("html", f"dist/{slug}.html")
     elif target == "markdown":

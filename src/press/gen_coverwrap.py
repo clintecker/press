@@ -46,9 +46,9 @@ def spine_width(pages: int) -> float:
 
 
 def isbn_for_print() -> str | None:
-    registrations = booklib.metadata().get("registrations") or {}
-    isbn = (registrations.get("isbn") or {}).get("print")
-    return str(isbn) if isbn else None
+    from . import registrations
+
+    return registrations.isbn("print")
 
 
 def barcode_tex(isbn: str | None) -> str:
