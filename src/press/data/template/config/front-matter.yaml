@@ -1,0 +1,17 @@
+# Front matter facts. The presence of this file asks the press to
+# generate the PDF's title page, colophon, and epigraph from config
+# (delete it, or supply tex/title-page.tex, to opt out). The title page
+# stacks the subtitle's OR clauses when the subtitle is written as
+# "OR, ...; OR, ..."; everything below is optional.
+
+# epigraph:
+#   quote: "The devil did it."
+#   attribution: "Every printer, since printing began"
+
+# rights-notice: >-
+#   All rights reserved. No part of this book may be reproduced without
+#   permission of the publisher.
+
+# contact: "you@example.com"
+
+# motto: "A line of the press, set in italics at the colophon's foot."

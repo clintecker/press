@@ -20,6 +20,7 @@ import yaml
 
 from . import booklib
 from . import gen_authorities
+from . import gen_front_matter
 from . import gen_index
 
 
@@ -112,6 +113,7 @@ def render_defaults(name: str) -> Path:
         # An empty List of Plates is worse than none; only figure-bearing
         # books get the list.
         defaults.setdefault("variables", {})["lof"] = woodcut_count() > 0
+        gen_front_matter.generate()
 
     resolved = _resolve_paths(defaults)
     out = root / "build" / "defaults" / f"{name}.yaml"

@@ -1,0 +1,84 @@
+% House front matter, generated from config: cover plate, stacked
+% Victorian title page, colophon, epigraph. A book that wants a wholly
+% different design supplies tex/title-page.tex and this file is never
+% generated. Blocks between %<<if name>> and %<<end name>> are kept or
+% dropped by the generator; {{PLACEHOLDERS}} are LaTeX-escaped values.
+%
+% Scars honored here: the cover plate is capped below the text block
+% height so LuaLaTeX cannot ship empty pages forever; everything renders
+% inside one \maketitle so no third titlepage can stack.
+\usepackage{graphicx}
+\newcommand{\ornrule}{{\color{muted}\rule[0.5ex]{0.9in}{0.4pt}}}
+\makeatletter
+\renewcommand{\maketitle}{%
+%<<if cover>>
+  \begin{titlepage}
+    \centering
+    \vspace*{\fill}
+    \includegraphics[width=5.6in,height=7.1in,keepaspectratio]{"{{COVER_PATH}}"}%
+    \par\vspace*{\fill}
+  \newpage
+%<<end cover>>
+%<<if nocover>>
+  \begin{titlepage}
+%<<end nocover>>
+    \thispagestyle{empty}%
+    \centering
+    \vspace*{0.55in}
+    {\fontsize{30}{34}\selectfont\bfseries {{TITLE}}\par}
+    \vspace{0.16in}
+    \ornrule\par
+    \vspace{0.3in}
+{{SUBTITLE_STACK}}
+    \vspace{0.28in}
+    \ornrule\par
+    \vfill
+    {\scshape by\par}
+    \vspace{0.05in}
+    {\Large\scshape {{AUTHOR}}\par}
+    \vfill
+    {\scshape {{PLACE}}\\ {{YEAR}}\par}
+    \vspace*{0.3in}
+  \end{titlepage}
+  \thispagestyle{empty}%
+  \begin{center}
+    \vspace*{0.45in}
+    {\scshape {{EDITION}}\par}
+    \vspace{0.25in}
+%<<if rights-notice>>
+    {\small\parbox{3.4in}{\centering {{RIGHTS_NOTICE}}}\par}
+    \vspace{0.2in}
+    \ornrule\par
+    \vspace{0.2in}
+%<<end rights-notice>>
+    {\small {{COPYRIGHT}}\par}
+    \vspace{0.08in}
+    {\small Published by {{PUBLISHER}}\par}
+    \vspace{0.12in}
+    {\small {{PUBLISHER_PLACE}}\par}
+%<<if contact>>
+    \vspace{0.08in}
+    {\small {{CONTACT}}\par}
+%<<end contact>>
+%<<if motto>>
+    \vspace{0.2in}
+    {\small\itshape {{MOTTO}}\par}
+%<<end motto>>
+%<<if logo>>
+    \vspace{0.14in}
+    \includegraphics[width=1.7in]{"{{LOGO_PATH}}"}\par
+%<<end logo>>
+  \end{center}
+  \clearpage
+%<<if epigraph>>
+  \thispagestyle{empty}%
+  \vspace*{1.7in}
+  \begin{center}
+    {\parbox{3.1in}{\centering\Large\itshape {{EPIGRAPH}}}\par}
+    \vspace{0.4in}
+    {\small\color{muted}\itshape {{EPIGRAPH_ATTRIBUTION}}\par}
+  \end{center}
+  \clearpage
+%<<end epigraph>>
+}
+\makeatother

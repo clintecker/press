@@ -81,7 +81,12 @@ requirements pin in the template to the new major, commit, tag, push.
   build; a claim whose sentence has left the text fails the run. Populate
   it with the `authorities-research` workflow (extract, research with web
   sources, adversarial audit, ledger write).
-- `tex/title-page.tex` (optional): cover plate, title page, colophon.
+- `config/front-matter.yaml` (optional): epigraph, rights-notice,
+  contact, motto. Its presence asks the press to generate the PDF title
+  page, colophon, and epigraph from config; the title page stacks the
+  subtitle's OR clauses.
+- `tex/title-page.tex` (optional): cover plate, title page, colophon,
+  overriding the generated front matter entirely.
 - `assets/cover.jpg`, `assets/press-logo.png`, `assets/woodcuts/*.jpg`
   (all optional; every consumer degrades gracefully when absent).
 - `tests/known-bad/` (optional): fixtures for the book's own house rules;

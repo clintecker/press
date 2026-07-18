@@ -73,8 +73,12 @@ The treatise title page, colophon, and epigraph become a generator.
   title, subtitle (split on its OR clauses), author, place, and year; the
   colophon from copyright, imprint, contact, registration numbers, and an
   optional rights-notice and motto in config. A book may still supply
-  tex/title-page.tex to override entirely; most books supply nothing.
-- Epigraph moves to `config/front-matter.yaml` (quote, attribution).
+  tex/title-page.tex to override entirely.
+- Activation is the presence of `config/front-matter.yaml` (which also
+  holds the epigraph: quote, attribution). The scaffold includes the
+  file, so new books get generated front matter by supplying nothing
+  else; pinned books keep their rendered output, as the contract
+  requires, until they add the file.
 - The imprint device and cover plate slot in automatically when the assets
   exist (both already optional in the pipeline).
 

@@ -22,7 +22,13 @@ RENDER_SCRIPT = Path("/home/oai/skills/pdfs/scripts/render_pdf.py")
 
 
 def sentinels() -> list[str]:
-    return [booklib.metadata()["title"], *booklib.sentinels()]
+    """Prose sentinels are exact; the title is checked separately.
+
+    House title pages set the title in caps with a closing point, so the
+    title probe folds case while prose fragments must survive verbatim.
+    """
+
+    return list(booklib.sentinels())
 
 
 def verify_plate_links(pdf: Path) -> None:
@@ -187,6 +193,14 @@ def main(argv: list[str] | None = None) -> int:
     for sentinel in required:
         if " ".join(sentinel.split()) not in normalized_text:
             raise SystemExit(f"missing text sentinel in PDF: {sentinel}")
+    if args.sentinels is None:
+        # Case folds because house title pages set the title in caps;
+        # quotes normalize because pandoc's smart extension curls the
+        # straight quotes the metadata states.
+        straighten = str.maketrans("‘’“”", "''\"\"")
+        title = " ".join(booklib.metadata()["title"].split()).casefold().translate(straighten)
+        if title not in normalized_text.casefold().translate(straighten):
+            raise SystemExit(f"missing title in PDF text: {booklib.metadata()['title']}")
 
     verify_fonts(pdf)
     verify_plate_links(pdf)
