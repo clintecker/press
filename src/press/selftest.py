@@ -84,6 +84,27 @@ def check_source_policy() -> None:
             booklib.metadata.cache_clear()
 
 
+def check_registry() -> None:
+    """The artifact graph is acyclic, outputs are unique, and every
+    published artifact resolves to concrete filenames."""
+
+    from . import registry
+
+    order = registry.build_order(list(registry.ARTIFACTS))
+    assert len(order) == len(registry.ARTIFACTS), "build order lost artifacts"
+    for name, artifact in registry.ARTIFACTS.items():
+        for prerequisite in artifact.prerequisites:
+            assert order.index(prerequisite) < order.index(name), (
+                f"{name} builds before its prerequisite {prerequisite}"
+            )
+    outputs = [o for a in registry.ARTIFACTS.values() for o in a.outputs]
+    assert len(outputs) == len(set(outputs)), "duplicate artifact outputs"
+    assert set(registry.FORMATS) <= set(registry.ARTIFACTS)
+    resolved = [o.format(slug="proof") for a in registry.ARTIFACTS.values()
+                if a.published for o in a.outputs]
+    assert all("{" not in n for n in resolved), resolved
+
+
 def check_book_model() -> None:
     """The typed model normalizes what has two spellings and refuses
     what the v1 design cannot honor, with locatable errors."""
@@ -220,6 +241,7 @@ def main() -> int:
     check_pages_verifier()
     check_scaffold_neutrality()
     check_book_model()
+    check_registry()
     check_docs()
     print(f"Selftest passed: {len(modules())} modules import, arithmetic agrees "
           "with the canonical examples, usage and README name every target")

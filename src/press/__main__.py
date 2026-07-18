@@ -13,7 +13,7 @@ import sys
 
 from . import booklib
 
-FORMATS = ["pdf", "epub", "html", "markdown", "site", "txt", "docx"]
+from .registry import FORMATS
 
 USAGE = """usage: press <target>
 
@@ -126,19 +126,10 @@ def main(argv: list[str] | None = None) -> int:
         from . import package_source
 
         return package_source.main()
-    if target == "pages":
-        from . import package_source, verify_pages
+    if target in ("pages", "verify-pages"):
+        from . import registry, verify_pages
 
-        package_source.main()
-        build.build_target("pages")
-        return verify_pages.main()
-    if target == "verify-pages":
-        from . import package_source, verify_pages
-
-        for name in ["epub", "html", "markdown", "site", "txt", "docx", "pdf"]:
-            build.build_target(name)
-        package_source.main()
-        build.build_target("pages")
+        registry.build("pages")
         return verify_pages.main()
     if target == "check":
         return check()
@@ -150,15 +141,9 @@ def main(argv: list[str] | None = None) -> int:
         build.build_target("pdf")
         return verify_built()
     if target == "coverwrap":
-        from . import gen_coverwrap
+        from . import registry
 
-        build.build_target("print")
-        root = booklib.root()
-        slug = booklib.slug()
-        gen_coverwrap.generate(
-            root / "dist" / f"{slug}-interior.pdf",
-            root / "dist" / f"{slug}-coverwrap.pdf",
-        )
+        registry.build("coverwrap")
         return 0
     if target == "publish":
         from . import publish

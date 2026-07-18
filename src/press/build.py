@@ -232,20 +232,9 @@ def site_build(output_dir: str) -> None:
 
 
 def download_names() -> list[str]:
-    slug = booklib.slug()
-    names = [
-        f"{slug}.pdf",
-        f"{slug}.epub",
-        f"{slug}.html",
-        f"{slug}.md",
-        f"{slug}.txt",
-        f"{slug}.docx",
-        f"{slug}-site.zip",
-        f"{slug}-source.zip",
-    ]
-    if (booklib.root() / "config" / "authorities.yaml").is_file():
-        names.append(f"{slug}-sources.md")
-    return names
+    from . import registry
+
+    return registry.download_names()
 
 
 EDITION_DESCRIPTIONS = [
