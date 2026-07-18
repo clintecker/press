@@ -76,7 +76,10 @@ requirements pin in the template to the new major, commit, tag, push.
 
 - `config/metadata.yaml`: identity plus press facts (`slug`, `repository`,
   `site-url`) and verification knobs (`verify-sentinels`,
-  `verify-min-pages`, optional `trim`).
+  `verify-min-pages`, optional `trim`). The print pack reads optional
+  `print:` (`paper: white|cream` or `page-thickness:`) for spine math
+  and `registrations: {isbn: {print: ...}}` for the wrap barcode; a
+  missing ISBN renders an honest placeholder.
 - `config/house-rules.yaml` (optional): `banned-patterns` (regex -> label),
   `jargon-allow`, `audit-dirs`.
 - `config/index-terms.yaml` (optional): curated subject-index terms; the

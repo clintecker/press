@@ -108,6 +108,59 @@ def edge_has_ink(image: Image.Image, border: int = 2) -> bool:
     return any(strip.getextrema()[0] < 245 for strip in strips)
 
 
+def ink_bbox(image: Image.Image) -> tuple[int, int, int, int] | None:
+    """Bounding box of dark pixels; None for an effectively empty page."""
+
+    mask = image.convert("L").point(lambda v: 255 if v < 160 else 0)
+    return mask.getbbox()
+
+
+def verify_mirrored_margins(images: list[Path]) -> None:
+    """Print interiors bind: the inner margin must exceed the outer, and
+    the excess must swap sides between recto and verso."""
+
+    start = max(2, int(len(images) * 0.2))
+    left_edges: dict[int, list[int]] = {0: [], 1: []}
+    for index in range(start, len(images)):
+        with Image.open(images[index]) as image:
+            box = ink_bbox(image)
+        if box is not None:
+            left_edges[(index + 1) % 2].append(box[0])
+    if not left_edges[0] or not left_edges[1]:
+        raise SystemExit("print profile: too few body pages to judge margin mirroring")
+    median_recto = sorted(left_edges[1])[len(left_edges[1]) // 2]
+    median_verso = sorted(left_edges[0])[len(left_edges[0]) // 2]
+    # inner minus outer is 0.3in = 36px at 120dpi; demand at least half.
+    if median_recto - median_verso < 18:
+        raise SystemExit(
+            "print profile: margins do not mirror (recto left edge "
+            f"{median_recto}px, verso {median_verso}px); the gutter is missing"
+        )
+
+
+def verify_black_ink(images: list[Path]) -> None:
+    """No colored ink in a print interior: links print black, plates are
+    engravings. JPEG chroma noise is tolerated; a colored region is not."""
+
+    from PIL import ImageChops
+
+    offenders = []
+    for index, path in enumerate(images, start=1):
+        with Image.open(path) as image:
+            r, g, b = image.convert("RGB").split()
+            spread = ImageChops.lighter(
+                ImageChops.difference(r, g), ImageChops.difference(g, b)
+            )
+        if sum(spread.histogram()[48:]) > 200:
+            offenders.append(index)
+    if offenders:
+        raise SystemExit(
+            f"print profile: colored ink on pages {offenders} (a colored "
+            "cover plate in a hand-authored tex/title-page.tex belongs on "
+            "the wrap; supply tex/title-page-print.tex without it)"
+        )
+
+
 def verify_fonts(pdf: Path) -> None:
     if shutil.which("pdffonts") is None:
         raise SystemExit("required verification tool missing: pdffonts")
@@ -154,6 +207,12 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         default=root / "build" / "verify-render",
         help="Directory used for verification renders.",
+    )
+    parser.add_argument(
+        "--profile",
+        choices=["reading", "print"],
+        default="reading",
+        help="print adds the interior checks: mirrored margins, black ink only.",
     )
     args = parser.parse_args(argv)
     pdf = args.pdf.resolve()
@@ -237,6 +296,21 @@ def main(argv: list[str] | None = None) -> int:
                 dimensions = image.size
             elif image.size != dimensions:
                 inconsistent.append(index)
+    if args.profile == "print":
+        # A bound book may carry ONE structural blank verso (KOMA's
+        # \mainmatter clears to a recto to keep folio and leaf parity
+        # aligned). A blank recto, adjacent blanks, or a second isolated
+        # blank verso is still the empty-pages failure and dies here; the
+        # cap exists because a render cannot tell the mainmatter blank
+        # from a plate that silently failed to ship.
+        blank_set = set(blank_pages)
+        structural = [
+            page for page in blank_pages
+            if page % 2 == 0
+            and (page - 1) not in blank_set
+            and (page + 1) not in blank_set
+        ][:1]
+        blank_pages = [page for page in blank_pages if page not in structural]
     if blank_pages:
         raise SystemExit(f"apparently blank rendered pages: {blank_pages}")
     if edge_pages:
@@ -244,10 +318,17 @@ def main(argv: list[str] | None = None) -> int:
     if inconsistent:
         raise SystemExit(f"inconsistent rendered page dimensions: {inconsistent}")
 
+    profile_note = ""
+    if args.profile == "print":
+        verify_mirrored_margins(images)
+        verify_black_ink(images)
+        profile_note = ", mirrored margins, black ink only"
+
     print(
         f"Verified {pdf.name}: {expected_pages} pages, "
         f"{trim_width:g} x {trim_height:g} trim, embedded fonts, "
-        "text sentinels present, every rendered page contains ink, no edge clipping"
+        "text sentinels present, every rendered page contains ink, "
+        f"no edge clipping{profile_note}"
     )
     return 0
 

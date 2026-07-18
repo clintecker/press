@@ -109,11 +109,17 @@ def render_defaults(name: str) -> Path:
                 'box-shadow:0 2px 12px rgba(0,0,0,0.35);"/></p>\n',
                 encoding="utf-8",
             )
-    if name == "pdf":
+    if name in ("pdf", "print"):
         # An empty List of Plates is worse than none; only figure-bearing
         # books get the list.
         defaults.setdefault("variables", {})["lof"] = woodcut_count() > 0
-        gen_front_matter.generate()
+        gen_front_matter.generate(include_cover=(name == "pdf"))
+    if name == "print" and (root / "tex" / "title-page-print.tex").is_file():
+        # The print variant replaces the reading title page; never stack.
+        defaults["include-in-header"] = [
+            entry for entry in defaults["include-in-header"]
+            if entry != "@book/tex/title-page.tex?optional"
+        ]
 
     resolved = _resolve_paths(defaults)
     out = root / "build" / "defaults" / f"{name}.yaml"
@@ -279,6 +285,8 @@ def build_target(target: str) -> None:
     slug = booklib.slug()
     if target == "pdf":
         pandoc_build("pdf", f"dist/{slug}.pdf")
+    elif target == "print":
+        pandoc_build("print", f"dist/{slug}-interior.pdf")
     elif target == "epub":
         meta = booklib.metadata()
         rights = (

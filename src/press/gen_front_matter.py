@@ -82,8 +82,12 @@ def keep_block(text: str, name: str, keep: bool) -> str:
     return pattern.sub(lambda m: m.group(1) if keep else "", text)
 
 
-def generate() -> Path | None:
-    """Write build/front-matter.tex; None when the book does not opt in."""
+def generate(include_cover: bool = True) -> Path | None:
+    """Write build/front-matter.tex; None when the book does not opt in.
+
+    The print interior drops the cover plate (the cover lives on the
+    wrap); the reading PDF leads with it when the asset exists.
+    """
 
     root = booklib.root()
     out = root / "build" / "front-matter.tex"
@@ -118,14 +122,14 @@ def generate() -> Path | None:
     year = roman(int(year_match.group(1))) if year_match else escape(date.lower())
     edition = escape((date.split(",")[0] if "," in date else date).lower())
 
-    cover = root / "assets" / "cover.jpg"
+    cover_on_page = include_cover and (root / "assets" / "cover.jpg").is_file()
     logo = root / "assets" / "press-logo.png"
     epigraph = front.get("epigraph") or {}
 
     text = (booklib.DATA / "tex" / "front-matter.tex").read_text(encoding="utf-8")
     for name, keep in [
-        ("cover", cover.is_file()),
-        ("nocover", not cover.is_file()),
+        ("cover", cover_on_page),
+        ("nocover", not cover_on_page),
         ("rights-notice", bool(front.get("rights-notice"))),
         ("contact", bool(front.get("contact"))),
         ("motto", bool(front.get("motto"))),

@@ -23,3 +23,9 @@ site-url: "https://clintecker.github.io/{{SLUG}}"
 verify-sentinels: []
 verify-min-pages: 1
 # trim: {width: 6, height: 9}
+
+# The print pack reads these when building the interior and cover wrap.
+# print: {paper: cream}          # or white; or {page-thickness: 0.0025}
+# registrations:
+#   isbn:
+#     print: "979-..."           # check digit is validated; drives the barcode

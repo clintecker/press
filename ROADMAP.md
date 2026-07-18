@@ -66,6 +66,12 @@ Press holds the prompts; the book holds only the accepted images.
 - Plate placement stays manual or agent-driven (captions are prose), but
   `press check` flags plates on disk that no manuscript file references;
   cover, logomark, and portrait are unreferenced by prose by design.
+- `press art commission` (next): submit the finished prompts, and
+  variations of them, to image models (GPT Image, Gemini) at the target
+  aspect ratios, and collect the candidates under `art/candidates/` for
+  review; the chosen file then goes through `press art accept` as
+  usual. API keys come from the environment; the press never stores
+  them, and a book repo never holds a rejected candidate.
 
 ## M3: front matter from metadata
 
@@ -133,10 +139,11 @@ only inside a live Claude Code session hosting the Workflow tool.
   headlessly through the Claude Code CLI or Agent SDK, so "process this
   directory for prose quality" and "research the claims and build the
   bibliography" are shell commands, not session rituals.
-- A report mode for the editorial machine: suggestions gathered and
-  written to `build/editorial-report.md` (what to add, cut, soften,
-  strengthen, revoice) without applying them, for the author who wants
-  the counsel but not the hand on the manuscript.
+- Report first is the default: `press improve` writes
+  `build/editorial-report.md` (what to add, cut, soften, strengthen,
+  revoice) and touches nothing; applying is the flag, not the default.
+  The counsel is always safe to ask for; the hand on the manuscript is
+  always deliberate.
 - `press publish <channel>` stays a checklist generator (M4); the
   self-service platforms have no upload APIs worth trusting, so the
   press prepares everything and the author clicks.

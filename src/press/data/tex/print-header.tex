@@ -1,0 +1,10 @@
+% Print-profile geometry: the same 1.46in total horizontal margin as the
+% reading PDF (the measure must not change between profiles), shifted
+% toward the binding. With the twoside class option, geometry mirrors
+% inner/outer across the spread and the KOMA page styles follow.
+\geometry{inner=0.88in,outer=0.58in}
+% KOMA's \mainmatter clears to a recto unconditionally. Leave it: the
+% folio resets to 1 there, LaTeX mirrors margins by folio parity, and a
+% main matter starting on a physical verso puts every margin in the book
+% on the wrong side of the leaf. The single structural blank verso is
+% the price of aligned parity; the print verifier knows the exception.

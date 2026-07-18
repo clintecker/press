@@ -19,6 +19,7 @@ USAGE = """usage: press <target>
 
 building        pdf epub html markdown site txt docx pages source all
 checking        check style verify verify-formats
+print pack      print verify-print coverwrap publish kdp|ingram
 utilities       render wordcount clean new <directory>
 instruments     skills workflows
 art             art accept <file> --as cover|plate:<name>|logomark|portrait
@@ -101,7 +102,7 @@ def main(argv: list[str] | None = None) -> int:
 
     from . import build
 
-    if target in FORMATS:
+    if target in FORMATS or target == "print":
         build.build_target(target)
         return 0
     if target == "source":
@@ -123,6 +124,31 @@ def main(argv: list[str] | None = None) -> int:
     if target == "verify":
         build.build_target("pdf")
         return verify_built()
+    if target == "coverwrap":
+        from . import gen_coverwrap
+
+        build.build_target("print")
+        root = booklib.root()
+        slug = booklib.slug()
+        gen_coverwrap.generate(
+            root / "dist" / f"{slug}-interior.pdf",
+            root / "dist" / f"{slug}-coverwrap.pdf",
+        )
+        return 0
+    if target == "publish":
+        from . import publish
+
+        if len(args) != 2:
+            print("usage: press publish kdp|ingram")
+            return 2
+        return publish.main(args[1])
+    if target == "verify-print":
+        from . import verify_pdf
+
+        build.build_target("print")
+        return verify_pdf.main(
+            [f"dist/{booklib.slug()}-interior.pdf", "--profile", "print"]
+        )
     if target == "verify-formats":
         for name in ["epub", "html", "markdown", "site", "txt", "docx"]:
             build.build_target(name)

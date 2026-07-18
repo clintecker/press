@@ -1,0 +1,41 @@
+# The print interior profile: twoside with mirrored margins and a
+# gutter, every link printed in black, no cover plate (the cover lives
+# on the wrap, not in the interior). open=any is deliberate (and must be
+# spelled the KOMA way; the standard-class spelling openany is silently
+# ignored under twoside): open=right would ship genuinely blank versos
+# and the verifier's no-blank-pages law is worth more than the
+# convention.
+from: markdown+smart+yaml_metadata_block+fenced_divs+footnotes
+standalone: true
+toc: true
+toc-depth: 1
+number-sections: true
+top-level-division: chapter
+pdf-engine: latexmk
+pdf-engine-opts:
+  - -lualatex
+metadata-file: "@book/config/metadata.yaml"
+# tex/title-page-print.tex is the print variant of a hand-authored title
+# page (typically the reading design minus the colored cover plate); when
+# a book supplies it, the reading title-page.tex entry is dropped by the
+# build so the two can never stack.
+include-in-header:
+  - "@press/tex/book-header.tex"
+  - "@press/tex/print-header.tex"
+  - "@book/build/front-matter.tex?optional"
+  - "@book/tex/title-page-print.tex?optional"
+  - "@book/tex/title-page.tex?optional"
+variables:
+  documentclass: scrbook
+  classoption:
+    - twoside
+    - open=any
+    - headings=small
+  fontsize: 10pt
+  colorlinks: true
+  linkcolor: black
+  urlcolor: black
+  citecolor: black
+  toc-title: Contents
+  lot: false
+  thanks: ""
