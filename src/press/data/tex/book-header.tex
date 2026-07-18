@@ -76,9 +76,25 @@
 \usepackage{float}
 \floatplacement{figure}{H}
 % A figure taller than the text block makes LuaLaTeX ship empty pages
-% forever, silently. The cap leaves room for the caption below the image;
-% never raise it near \textheight. Never upscales (maxwidth <= natural).
-\AtBeginDocument{\setkeys{Gin}{width=\maxwidth,height=6.3in,keepaspectratio}}
+% forever, silently. Rebind pandoc's image bounding with caption headroom:
+% cap at 6.3in tall, never wider than the line, never upscaled. Never
+% raise the cap near \textheight.
+\makeatletter
+\AtBeginDocument{%
+  \ifdefined\pandocbounded
+    \renewcommand*\pandocbounded[1]{%
+      \sbox\pandoc@box{#1}%
+      \Gscale@div\@tempa{6.3in}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+      \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+      \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi
+      \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+      \else\usebox{\pandoc@box}%
+      \fi}%
+  \else
+    \providecommand{\maxwidth}{\linewidth}%
+    \setkeys{Gin}{width=\maxwidth,height=6.3in,keepaspectratio}%
+  \fi}
+\makeatother
 
 % Render Markdown blockquotes as quiet, book-like callouts.
 \renewenvironment{quote}
