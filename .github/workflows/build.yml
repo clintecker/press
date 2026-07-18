@@ -23,14 +23,14 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/clintecker/press-toolchain:latest
+      image: ghcr.io/clintecker/press-toolchain:sha-6d1edf88532914d5cb793df54feeccc260d34111
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
     steps:
       - uses: actions/checkout@v4
       - name: Build and verify
-        uses: clintecker/press@v1
+        uses: clintecker/press@v1.4.0
       - name: Read book identity
         id: book
         run: |
