@@ -205,11 +205,19 @@ def generate_gemini(prompt: str, spec: tuple, count: int,
              }},
             {"x-goog-api-key": key_for("gemini")},
         )
+        found = len(images)
         for candidate in body.get("candidates", []):
             for part in (candidate.get("content") or {}).get("parts", []):
                 data = (part.get("inlineData") or {}).get("data")
                 if data:
                     images.append(base64.b64decode(data))
+        if len(images) == found:
+            # A refusal explains itself in text or finishReason; relay it.
+            for candidate in body.get("candidates", []):
+                reason = candidate.get("finishReason", "")
+                texts = [p.get("text", "") for p in (candidate.get("content") or {}).get("parts", [])]
+                note = " ".join(t for t in texts if t)[:300]
+                print(f"    gemini returned no image ({reason}): {note or 'no explanation'}")
     return images
 
 
@@ -229,8 +237,30 @@ def author_photo(root: Path) -> tuple[bytes, str] | None:
                     f"{path} is empty (an interrupted copy?); "
                     "re-save the photograph and rerun"
                 )
-            return data, mime
+            return normalize_reference(data, path), "image/jpeg"
     return None
+
+
+def normalize_reference(data: bytes, path: Path) -> bytes:
+    """A likeness reference needs face detail, not a 24MP camera file;
+    full-size exports also overflow the APIs' inline request caps.
+    Anything over 2048px or ~4MB is resized and re-encoded in memory;
+    the author's file on disk is never touched."""
+
+    import io
+
+    from PIL import Image, ImageOps
+
+    if len(data) <= 4_000_000:
+        image = Image.open(io.BytesIO(data))
+        if max(image.size) <= 2048:
+            return data
+    image = ImageOps.exif_transpose(Image.open(io.BytesIO(data)))
+    image.thumbnail((2048, 2048))
+    out = io.BytesIO()
+    image.convert("RGB").save(out, format="JPEG", quality=90)
+    print(f"  reference normalized: {path.name} -> {image.size[0]}x{image.size[1]} jpeg")
+    return out.getvalue()
 
 
 LIKENESS_PREAMBLE = (
@@ -245,7 +275,8 @@ LIKENESS_PREAMBLE = (
 )
 
 
-def commission(targets: list[str], models: list[str], count: int) -> int:
+def commission(targets: list[str], models: list[str], count: int,
+               photo_path: str | None = None) -> int:
     root = booklib.root()
     prompts = parse_commissions(root / "art" / "commissions.md")
     chosen = {t: p for t, p in prompts.items() if not targets or t in targets}
@@ -257,7 +288,16 @@ def commission(targets: list[str], models: list[str], count: int) -> int:
     plan = ", ".join(f"{t} -> {'+'.join(models)}" for t in chosen)
     print(f"submitting {len(chosen)} commissions ({count} image(s) each): {plan}")
 
-    photo = author_photo(root)
+    if photo_path:
+        chosen_photo = Path(photo_path)
+        if not chosen_photo.is_absolute():
+            chosen_photo = root / chosen_photo
+        if not chosen_photo.is_file():
+            raise SystemExit(f"no such photograph: {chosen_photo}")
+        photo = (normalize_reference(chosen_photo.read_bytes(), chosen_photo),
+                 "image/jpeg")
+    else:
+        photo = author_photo(root)
     saved = 0
     for target, prompt in chosen.items():
         openai_spec, gemini_spec = shape_for(target, prompt)
@@ -276,7 +316,10 @@ def commission(targets: list[str], models: list[str], count: int) -> int:
             if not images:
                 print(f"  {target} <- {model}: no image returned")
                 continue
-            for index, blob in enumerate(images, start=1):
+            index = 1
+            for blob in images:
+                while (directory / f"{model}-{index}.png").exists():
+                    index += 1
                 out = directory / f"{model}-{index}.png"
                 out.write_bytes(blob)
                 print(f"  {target} <- {model}: {out.relative_to(root)} ({len(blob)//1024}kB)")
@@ -300,5 +343,8 @@ def main(argv: list[str]) -> int:
                         dest="models", help="repeatable; default both")
     parser.add_argument("--count", type=int, default=1,
                         help="images per target per model (default 1)")
+    parser.add_argument("--photo", default=None,
+                        help="portrait reference photograph (default art/author-photo.*)")
     args = parser.parse_args(argv)
-    return commission(args.targets, args.models or ["openai", "gemini"], args.count)
+    return commission(args.targets, args.models or ["openai", "gemini"],
+                      args.count, args.photo)

@@ -37,7 +37,8 @@ from the repo root:
   engraves you rather than an invented author. The photograph is the
   reference an engraver works from: head and shoulders filling the
   frame, no hat, no sunglasses, even light, and no other face in the
-  shot (including faces printed on clothing).
+  shot (including faces printed on clothing). Try alternates with
+  `--photo <path>`; candidates number upward and never overwrite.
 - `press skills` — the installed authoring skills with absolute paths.
   Read the four prose skills before composing or revising prose; read the
   design skills before art direction.
