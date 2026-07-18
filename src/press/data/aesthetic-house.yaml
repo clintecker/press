@@ -65,6 +65,15 @@ web-palette:
   ink: "#23201a"
   ink-soft: "#4d463a"
 
+# The dark theme's values for the same tokens, applied inside the
+# dark-mode media query.
+web-palette-dark:
+  cloth: "#141a0e"
+  paper: "#1d1b15"
+  paper-warm: "#26231b"
+  ink: "#e8e0cc"
+  ink-soft: "#b5ab93"
+
 typography:
   web-family: '"Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif'
   # pdf-family unset means the packaged Libertinus; name any font the
