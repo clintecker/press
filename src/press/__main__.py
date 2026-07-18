@@ -63,17 +63,20 @@ def check() -> int:
 def verify_built() -> int:
     from . import verify_pdf
 
-    return verify_pdf.main([f"dist/{booklib.slug()}.pdf"])
+    # Anchored to the book root so BOOK_ROOT from any directory
+    # verifies the book's artifacts, not the caller's.
+    return verify_pdf.main([str(booklib.root() / "dist" / f"{booklib.slug()}.pdf")])
 
 
 def verify_formats_built() -> int:
     from . import verify_formats
 
+    dist = booklib.root() / "dist"
     slug = booklib.slug()
     return verify_formats.main([
-        f"dist/{slug}.html", f"dist/{slug}.epub",
-        "--markdown", f"dist/{slug}.md", "--text", f"dist/{slug}.txt",
-        "--docx", f"dist/{slug}.docx", "--site", "dist/site",
+        str(dist / f"{slug}.html"), str(dist / f"{slug}.epub"),
+        "--markdown", str(dist / f"{slug}.md"), "--text", str(dist / f"{slug}.txt"),
+        "--docx", str(dist / f"{slug}.docx"), "--site", str(dist / "site"),
     ])
 
 
@@ -157,7 +160,8 @@ def main(argv: list[str] | None = None) -> int:
 
         build.build_target("print")
         return verify_pdf.main(
-            [f"dist/{booklib.slug()}-interior.pdf", "--profile", "print"]
+            [str(booklib.root() / "dist" / f"{booklib.slug()}-interior.pdf"),
+             "--profile", "print"]
         )
     if target == "verify-formats":
         for name in ["epub", "html", "markdown", "site", "txt", "docx"]:
