@@ -33,6 +33,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     latexmk \
     && rm -rf /var/lib/apt/lists/*
 
+# Ubuntu's epubcheck launcher runs the jar through binfmt_misc, which is
+# not registered inside containers: the command exists but dies with
+# "Exec format error". A plain java wrapper keeps the toolchain's
+# promise honest.
+RUN printf '#!/bin/sh\nexec java -jar /usr/share/java/epubcheck.jar "$@"\n' \
+    > /usr/local/bin/epubcheck && chmod +x /usr/local/bin/epubcheck
+
 RUN python3 -m pip install --break-system-packages --no-cache-dir \
     "Pillow>=10.0" "PyYAML>=6.0" "pypdf>=4.0"
 

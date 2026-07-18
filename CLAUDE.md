@@ -112,6 +112,11 @@ requirements pin in the template to the new major, commit, tag, push.
 - Ubuntu has no `fonts-libertinus` package, and `--no-install-recommends`
   drops the Libertine keyboard face; the Dockerfile states
   `fonts-linuxlibertine` explicitly.
+- Ubuntu's `epubcheck` launcher runs the jar through binfmt_misc, which
+  containers do not register: the command exists, `which` finds it, and
+  it dies with "Exec format error" only at execution. The Dockerfile
+  ships a plain `java -jar` wrapper, and the verifier reports a
+  present-but-unrunnable tool as a toolchain fault, not an EPUB fault.
 - The PDF builds through latexmk so multi-pass lists converge; plain
   lualatex under pandoc does not run enough passes. `toc-depth: 1` sets
   tocdepth 0, which silently empties the List of Plates; the TeX header

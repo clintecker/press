@@ -103,7 +103,16 @@ def epubcheck(path: Path) -> None:
             "(brew install epubcheck)"
         )
         return
-    result = subprocess.run(["epubcheck", str(path)], capture_output=True, text=True)
+    try:
+        result = subprocess.run(
+            ["epubcheck", str(path)], capture_output=True, text=True
+        )
+    except OSError as exc:
+        # A tool that exists but cannot execute (a container without
+        # binfmt jar support, a broken wrapper) is a toolchain fault,
+        # not an EPUB fault; say so instead of a traceback.
+        raise SystemExit(f"epubcheck is present but cannot run ({exc}); "
+                         "the toolchain image is broken") from exc
     if result.returncode != 0:
         raise SystemExit(
             f"epubcheck failed on {path} (exit {result.returncode}):\n"
