@@ -116,7 +116,26 @@ The paperwork becomes config plus a skill, not tribal knowledge.
 - Placeholders stay honest: `[ISBN pending]` renders until the real
   number lands in config, exactly as today.
 
-## M6: the catalog (later)
+## M6: the operator
+
+The whole publisher behind one installed command, no session required.
+`press new` already initializes; the builds already produce; the gap is
+that the agent machinery (editorial passes, authorities research) runs
+only inside a live Claude Code session hosting the Workflow tool.
+
+- `press improve` and `press research` drive the packaged workflows
+  headlessly through the Claude Code CLI or Agent SDK, so "process this
+  directory for prose quality" and "research the claims and build the
+  bibliography" are shell commands, not session rituals.
+- A report mode for the editorial machine: suggestions gathered and
+  written to `build/editorial-report.md` (what to add, cut, soften,
+  strengthen, revoice) without applying them, for the author who wants
+  the counsel but not the hand on the manuscript.
+- `press publish <channel>` stays a checklist generator (M4); the
+  self-service platforms have no upload APIs worth trusting, so the
+  press prepares everything and the author clicks.
+
+## M7: the catalog (later)
 
 One press site listing every book with covers and download links, built
 from the books' own metadata. Optional; single-book Pages sites already
@@ -124,11 +143,12 @@ work.
 
 ## Untangling notes (current entanglements to dissolve)
 
-- The prose/design skills currently live only in the press repo checkout;
-  M1 packages them. Until then, workflows fall back to `~/code/press/skills`.
-- Books' `.claude/workflows/` are copies from press data; after M1 the
-  copies remain (books pin behavior) but `press new` stamps the press
-  version into them so drift is visible.
+- Done on main (ships as v1.1.0): skills are package data under
+  `src/press/data/skills/` and workflows resolve them through
+  `press skills` before any checkout fallback.
+- Done on main: books' `.claude/workflows/` are copies from press data
+  (books pin behavior); `press new` stamps the press version into them so
+  drift is visible.
 - The local build venv for make-ready lives in a session scratchpad and
   points at the press checkout via editable install; a plain
   `pip install -e ~/code/press` in any environment replaces it.
@@ -141,6 +161,7 @@ work.
 M1 and M3 are small and unlock the "content-only book" promise; do them
 first. M2 is a workflow plus an intake command. M4 is the largest (new
 TeX profile, spine math, barcode, wrap layout) and should land behind its
-own verify gates. M5 is mostly config plumbing plus one skill. Each
+own verify gates. M5 is mostly config plumbing plus one skill. M6 rides
+on M1's packaged workflows and can land any time after them. Each
 milestone ships as a minor tag; anything that changes a pinned book's
 rendered output waits for v2.
