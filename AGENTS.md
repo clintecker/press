@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 This repository is a small press: the build, check, and verify pipeline for
 books, extracted from the production of one so the next starts with the
@@ -32,7 +32,7 @@ book repository that consumes this package.
   repetition, and arc passes producing suggestions; per-chapter
   synthesizers applying them; `press check` closing each round, iterating
   until suggestions dry up). The scaffold lays it into every book's
-  `.claude/workflows/`, stamped with the press version so drift is
+  `.Codex/workflows/`, stamped with the press version so drift is
   visible; run it with the Workflow tool by name (`editorial-passes`)
   from inside a book. It hard-codes the named diseases
   of agent prose (epigram compulsion with a two-maxim quota, uniform
@@ -43,9 +43,7 @@ book repository that consumes this package.
   with paste-ready image-model prompts; results come back in through
   `press art accept <file> --as cover|plate:<name>|logomark|portrait`,
   which converts to house format, enforces the geometry scars, and
-  updates the commission record). An author photograph supplied at
-  `art/author-photo.jpg` makes the portrait commission engrave the
-  actual author.
+  updates the commission record).
 - `src/press/data/skills/` holds the authoring guides (four prose skills,
   the overused-jargon skill whose `references/watchlist.csv` is the one
   watchlist the jargon lint reads, design skills for covers, plates, and
@@ -114,11 +112,6 @@ requirements pin in the template to the new major, commit, tag, push.
 - Ubuntu has no `fonts-libertinus` package, and `--no-install-recommends`
   drops the Libertine keyboard face; the Dockerfile states
   `fonts-linuxlibertine` explicitly.
-- Ubuntu's `epubcheck` launcher runs the jar through binfmt_misc, which
-  containers do not register: the command exists, `which` finds it, and
-  it dies with "Exec format error" only at execution. The Dockerfile
-  ships a plain `java -jar` wrapper, and the verifier reports a
-  present-but-unrunnable tool as a toolchain fault, not an EPUB fault.
 - The PDF builds through latexmk so multi-pass lists converge; plain
   lualatex under pandoc does not run enough passes. `toc-depth: 1` sets
   tocdepth 0, which silently empties the List of Plates; the TeX header

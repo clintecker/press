@@ -135,30 +135,70 @@ def key_for(model: str) -> str:
     return value
 
 
-def generate_openai(prompt: str, spec: tuple, count: int) -> list[bytes]:
+def generate_openai(prompt: str, spec: tuple, count: int,
+                    reference: tuple[bytes, str] | None = None) -> list[bytes]:
     model, size, quality, transparent = spec
-    payload = {"model": model, "prompt": prompt, "size": size,
-               "quality": quality, "n": count}
-    if transparent:
-        payload["background"] = "transparent"
-    body = post_json(
-        "https://api.openai.com/v1/images/generations",
-        payload,
-        {"Authorization": f"Bearer {key_for('openai')}"},
+    headers = {"Authorization": f"Bearer {key_for('openai')}"}
+    if reference is None:
+        payload = {"model": model, "prompt": prompt, "size": size,
+                   "quality": quality, "n": count}
+        if transparent:
+            payload["background"] = "transparent"
+        body = post_json(
+            "https://api.openai.com/v1/images/generations", payload, headers
+        )
+        return [base64.b64decode(item["b64_json"]) for item in body.get("data", [])]
+
+    # Reference-image work goes through images/edits, a multipart form.
+    photo, mime = reference
+    boundary = "pressart" + base64.urlsafe_b64encode(photo[:9]).decode().strip("=")
+    fields = {"model": model, "prompt": prompt, "size": size,
+              "quality": quality, "n": str(count)}
+    parts = []
+    for name, value in fields.items():
+        parts.append(
+            f"--{boundary}\r\nContent-Disposition: form-data; "
+            f'name="{name}"\r\n\r\n{value}\r\n'.encode()
+        )
+    parts.append(
+        f"--{boundary}\r\nContent-Disposition: form-data; "
+        f'name="image[]"; filename="author.{mime.split("/")[1]}"\r\n'
+        f"Content-Type: {mime}\r\n\r\n".encode() + photo + b"\r\n"
     )
+    parts.append(f"--{boundary}--\r\n".encode())
+    request = urllib.request.Request(
+        "https://api.openai.com/v1/images/edits",
+        data=b"".join(parts),
+        headers={**headers,
+                 "Content-Type": f"multipart/form-data; boundary={boundary}"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=300) as response:
+            body = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")[:500]
+        raise SystemExit(f"api.openai.com refused ({exc.code}): {detail}")
     return [base64.b64decode(item["b64_json"]) for item in body.get("data", [])]
 
 
-def generate_gemini(prompt: str, spec: tuple, count: int) -> list[bytes]:
+def generate_gemini(prompt: str, spec: tuple, count: int,
+                    reference: tuple[bytes, str] | None = None) -> list[bytes]:
     # The Imagen predict endpoint is closed to new API users; the Gemini
     # image models answer generateContent with inline image parts.
     model, aspect, image_size = spec
+    parts: list[dict] = [{"text": prompt}]
+    if reference is not None:
+        photo, mime = reference
+        parts.append({"inlineData": {
+            "mimeType": mime,
+            "data": base64.b64encode(photo).decode("ascii"),
+        }})
     images: list[bytes] = []
     for _ in range(count):
         body = post_json(
             "https://generativelanguage.googleapis.com/v1beta/models/"
             f"{model}:generateContent",
-            {"contents": [{"parts": [{"text": prompt}]}],
+            {"contents": [{"parts": parts}],
              "generationConfig": {
                  "responseModalities": ["TEXT", "IMAGE"],
                  "imageConfig": {"aspectRatio": aspect, "imageSize": image_size},
@@ -173,6 +213,26 @@ def generate_gemini(prompt: str, spec: tuple, count: int) -> list[bytes]:
     return images
 
 
+def author_photo(root: Path) -> tuple[bytes, str] | None:
+    """The author's own photograph, when supplied: art/author-photo.jpg
+    or .png. Its presence turns the portrait commission into an
+    engraving of the actual author instead of an invented one."""
+
+    for suffix, mime in (("jpg", "image/jpeg"), ("jpeg", "image/jpeg"), ("png", "image/png")):
+        path = root / "art" / f"author-photo.{suffix}"
+        if path.is_file():
+            return path.read_bytes(), mime
+    return None
+
+
+LIKENESS_PREAMBLE = (
+    "The attached photograph is the author. Engrave this actual person: "
+    "hold their real features, hair, and expression faithfully while "
+    "rendering them entirely in the style directed below. Do not idealize "
+    "or substitute a different face.\n\n"
+)
+
+
 def commission(targets: list[str], models: list[str], count: int) -> int:
     root = booklib.root()
     prompts = parse_commissions(root / "art" / "commissions.md")
@@ -185,15 +245,21 @@ def commission(targets: list[str], models: list[str], count: int) -> int:
     plan = ", ".join(f"{t} -> {'+'.join(models)}" for t in chosen)
     print(f"submitting {len(chosen)} commissions ({count} image(s) each): {plan}")
 
+    photo = author_photo(root)
     saved = 0
     for target, prompt in chosen.items():
         openai_spec, gemini_spec = shape_for(target, prompt)
+        reference = photo if target == "portrait" else None
+        if reference:
+            prompt = LIKENESS_PREAMBLE + prompt
+            print(f"  {target}: engraving the supplied author photograph")
         directory = root / "art" / "candidates" / target.replace(":", "-")
         directory.mkdir(parents=True, exist_ok=True)
         for model in models:
             images = (
-                generate_openai(prompt, openai_spec, count) if model == "openai"
-                else generate_gemini(prompt, gemini_spec, count)
+                generate_openai(prompt, openai_spec, count, reference)
+                if model == "openai"
+                else generate_gemini(prompt, gemini_spec, count, reference)
             )
             if not images:
                 print(f"  {target} <- {model}: no image returned")

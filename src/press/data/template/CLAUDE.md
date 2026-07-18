@@ -31,7 +31,10 @@ from the repo root:
   verifies stale artifacts; the rebuild is deliberate).
 - `press art accept <file> --as cover|plate:<name>|logomark|portrait` —
   take a commissioned image into the book in house format; prompts come
-  from the `art-direction` workflow's `art/commissions.md`.
+  from the `art-direction` workflow's `art/commissions.md`, and
+  `press art commission` submits them to image models. Supply your
+  photograph at `art/author-photo.jpg` and the portrait commission
+  engraves you rather than an invented author.
 - `press skills` — the installed authoring skills with absolute paths.
   Read the four prose skills before composing or revising prose; read the
   design skills before art direction.

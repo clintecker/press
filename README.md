@@ -45,10 +45,11 @@ settings before its first CI run can pull the image.
   `press publish kdp|ingram` channel checklists.
 - Art: `art` -- `press art commission` submits the prompts the
   `art-direction` workflow wrote to image models (GPT Image, Gemini) at
-  the right aspect ratios, collecting candidates under
-  `art/candidates/`; `press art accept <file> --as
-  cover|plate:<name>|logomark|portrait` takes a chosen image into the
-  book in house format.
+  print-grade sizes, collecting candidates under `art/candidates/`; an
+  author photograph at `art/author-photo.jpg` turns the portrait
+  commission into an engraving of the actual author. `press art accept
+  <file> --as cover|plate:<name>|logomark|portrait` takes a chosen
+  image into the book in house format.
 - Operator: `improve research` -- the agent workflows as shell
   commands, driven headlessly through the Claude Code CLI.
   `press improve` writes `build/editorial-report.md` and touches
