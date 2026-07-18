@@ -10,11 +10,13 @@ export const meta = {
   ],
 }
 
-const ROOT = (args && args.root) || '.'
-const ROUNDS = (args && args.rounds) || 2
-const MAXIMS = (args && args.maxims) ?? 2
-const SKILLS_HINT = (args && args.skillsDir) || ''
+const ROOT = A.root || '.'
+const A = (typeof args === 'string') ? JSON.parse(args) : (args || {})
+const ROUNDS = A.rounds || 2
+const MAXIMS = A.maxims ?? 2
+const SKILLS_HINT = A.skillsDir || ''
 
+if (ROOT === '.') throw new Error('args.root is required: pass the absolute path of the book repository')
 phase('Scout')
 const scout = await agent(
 `The book repository is at ${ROOT} (work there, not in the session directory). Report its shape:

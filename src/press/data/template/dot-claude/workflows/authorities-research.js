@@ -10,10 +10,12 @@ export const meta = {
   ],
 }
 
-const CAP = (args && args.maxClaimsPerFile) || 8
-const ROOT = (args && args.root) || '.'
-const PRESS = (args && args.press) || 'press'
+const A = (typeof args === 'string') ? JSON.parse(args) : (args || {})
+const CAP = A.maxClaimsPerFile || 8
+const ROOT = A.root || '.'
+const PRESS = A.press || 'press'
 
+if (ROOT === '.') throw new Error('args.root is required: pass the absolute path of the book repository')
 phase('Extract')
 const scout = await agent(
 `The book repository is at ${ROOT} (work there, not in the session directory). List every manuscript file under its book/chapters/ and book/appendices/ in filename order (relative paths).`,
