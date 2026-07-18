@@ -33,11 +33,14 @@ book repository that consumes this package.
 
 ## The contract
 
-Books pin a tag (`@v1`). Design is part of the contract: a pinned book must
-render byte-for-byte the same layout on every rebuild, so typography and
-template changes require a new major tag, not a patch. To release: update
-the action ref in build.yml and the requirements pin in the template to the
-new tag name, commit, tag, push the tag.
+Books pin a tag (`@v1`). Tags follow the GitHub Actions convention: `vN` is
+a floating major that moves to the latest compatible `vN.x.y`; the
+three-part tags are immutable. Design is part of the contract: within a
+major, fixes may correct broken output but must not change typography or
+layout of a valid book; design and template changes require a new major.
+To release a fix: commit, tag `vN.x.y`, force-move `vN` to it, push both.
+To release a new major: update the action ref in build.yml and the
+requirements pin in the template to the new major, commit, tag, push.
 
 ## Config a book supplies
 

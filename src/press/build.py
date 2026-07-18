@@ -11,6 +11,7 @@ the same defaults.
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -124,6 +125,26 @@ def pandoc_build(defaults_name: str, output: str, extra: list[str] | None = None
     run(command)
 
 
+def strip_heading_attrs(text: str) -> str:
+    """Drop pandoc heading attributes ({-}, {.unnumbered}) from stitched output.
+
+    The stitched Markdown is raw source, not a pandoc render, so attribute
+    blocks would ship as literal text. Fence tracking keeps shell comments
+    inside code blocks untouched.
+    """
+
+    lines = []
+    fence = ""
+    for line in text.splitlines():
+        stripped = line.lstrip()
+        if stripped.startswith(("```", "~~~")):
+            fence = "" if fence == stripped[:3] else (fence or stripped[:3])
+        elif not fence:
+            line = re.sub(r"^(#{1,6}\s.*?)\s*\{[^}]*\}\s*$", r"\1", line)
+        lines.append(line)
+    return "\n".join(lines)
+
+
 def markdown_build(output: str) -> None:
     """Stitch the canonical Markdown chapters into one distributable file."""
 
@@ -140,7 +161,8 @@ def markdown_build(output: str) -> None:
     parts = [header]
     inputs = book_inputs()
     for rel in inputs:
-        parts.append((root / rel).read_text(encoding="utf-8").strip() + "\n")
+        text = strip_heading_attrs((root / rel).read_text(encoding="utf-8"))
+        parts.append(text.strip() + "\n")
     (root / output).write_text("\n".join(parts), encoding="utf-8")
     print(f"+ stitched {len(inputs)} files -> {output}")
 
