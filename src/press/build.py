@@ -209,7 +209,7 @@ def site_build(output_dir: str) -> None:
 
 def download_names() -> list[str]:
     slug = booklib.slug()
-    return [
+    names = [
         f"{slug}.pdf",
         f"{slug}.epub",
         f"{slug}.html",
@@ -219,6 +219,9 @@ def download_names() -> list[str]:
         f"{slug}-site.zip",
         f"{slug}-source.zip",
     ]
+    if (booklib.root() / "config" / "authorities.yaml").is_file():
+        names.append(f"{slug}-sources.md")
+    return names
 
 
 def pages_build(output_dir: str) -> None:

@@ -101,28 +101,35 @@ def generate() -> Path | None:
             + " (the text moved out from under its citations; update the ledger)"
         )
 
-    letter = next_letter(taken_letters())
+    # The full table of authorities is published as its own document rather
+    # than bloating the book; enforcement still runs above on every build.
+    meta = booklib.metadata()
     lines = [
-        f"# Appendix {letter.upper()}: sources and authorities {{-}}",
+        f"# {meta['title']}: sources and authorities",
         "",
-        "Where this book states a matter of fact about the printing trade or",
-        "anything else it did not invent, the statement is listed here against",
-        "the authority for it. Each claim is checked against the text on every",
-        "build; a citation whose sentence has left the book fails the run.",
+        f"*Companion to {meta['title']} by {', '.join(meta['author'])}, "
+        f"{meta['publisher']}, {meta['date']}.*",
+        "",
+        "Where the book states a matter of fact it did not invent, the",
+        "statement is listed here against the authority for it. Each claim is",
+        "checked against the text of the book on every build, so a citation",
+        "whose sentence has left the book fails the run and cannot rot here",
+        "unnoticed.",
         "",
     ]
     located.sort(key=lambda item: item[0])
     current = None
     for filename, label, entry in located:
         if label != current:
-            lines.append(f"**In {label}**")
+            lines.append(f"## In {label}")
             lines.append("")
             current = label
         note = f" {print_safe(entry['note'])}" if entry.get("note") else ""
         lines.append(f'- "{print_safe(entry["claim"])}": {print_safe(entry["authority"])}.{note}')
-    lines.append("")
+        lines.append("")
 
-    output = booklib.root() / "build" / "generated" / f"{letter}-sources-and-authorities.md"
+    output = booklib.root() / "dist" / f"{booklib.slug()}-sources.md"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text("\n".join(lines), encoding="utf-8")
-    return output
+    # Not appended to the book: the bibliography is a separate document.
+    return None
