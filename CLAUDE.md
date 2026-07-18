@@ -20,6 +20,13 @@ book repository that consumes this package.
 - `.github/workflows/build.yml` is the reusable workflow books call. It
   hardcodes the press action ref and the toolchain image tag; they are part
   of the pinned contract.
+- The toolchain image `ghcr.io/clintecker/press-toolchain` is private by
+  Clint's decision. Every new book repo must be granted read access once,
+  by hand, under the package's Manage Actions access settings
+  (https://github.com/users/clintecker/packages/container/press-toolchain/settings);
+  until then its builds die at "Initialize containers" with a pull denial.
+  The workflow already authenticates with the calling repo's token, so the
+  grant is the only step.
 - `skills/` holds the authoring guides (four prose skills, jargon watchlist
   documentation, design skills for covers, plates, and logomarks). Read the
   relevant ones before composing prose or art direction for any book.

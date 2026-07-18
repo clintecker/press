@@ -18,8 +18,11 @@ cd my-book && git init && make all
 
 Everything the pipeline knows about a book comes from the book's own
 `config/` (see CLAUDE.md for the full contract). The scaffolded workflow
-calls this repo's reusable build at a pinned tag; grant Actions access
-"repositories owned by clintecker" on this repo so private books can use it.
+calls this repo's reusable build at a pinned tag. Two one-time grants per
+setup: this repo's Actions access is set to "repositories owned by
+clintecker" (done once, already set), and each new book repo needs read
+access to the private toolchain package under its Manage Actions access
+settings before its first CI run can pull the image.
 
 ## Targets
 
