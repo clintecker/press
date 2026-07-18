@@ -1,12 +1,12 @@
 title: "{{SLUG}}"
 subtitle: "A subtitle"
 author:
-  - Clint Ecker
+  - "{{AUTHOR}}"
 date: "First edition, 2026"
 lang: en-US
 copyright: "Copyright 2026."
-publisher: "LGTM Publishing"
-publisher-place: "Chicago, Illinois"
+publisher: "{{PUBLISHER}}"
+publisher-place: "{{PLACE}}"
 description: >-
   One honest paragraph on what this book is.
 keywords:
@@ -15,8 +15,8 @@ keywords:
 # Press facts: artifact basename, canonical repo, and the public Pages URL
 # release notes link to (omit site-url to skip public download links).
 slug: "{{SLUG}}"
-repository: "https://github.com/clintecker/{{SLUG}}"
-site-url: "https://clintecker.github.io/{{SLUG}}"
+{{REPOSITORY_LINE}}
+{{SITE_URL_LINE}}
 
 # Verification knobs. Sentinels are prose fragments every rendered format
 # must contain; pick phrases that would only survive a real build.

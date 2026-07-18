@@ -84,6 +84,34 @@ def check_source_policy() -> None:
             booklib.metadata.cache_clear()
 
 
+def check_scaffold_neutrality() -> None:
+    """A scaffolded book carries no personal identity: the press's
+    author must never become the book's author. The only permitted
+    'clintecker' strings are the canonical press machinery references."""
+
+    import tempfile
+
+    from . import scaffold
+
+    with tempfile.TemporaryDirectory() as tmp:
+        book = Path(tmp) / "neutrality-proof"
+        scaffold.main([str(book), "--author", "Neutral Tester"])
+        machinery = {"requirements.txt", "book.yml"}
+        for path in book.rglob("*"):
+            if not path.is_file():
+                continue
+            text = path.read_text(encoding="utf-8", errors="replace")
+            assert "Clint Ecker" not in text, path
+            assert "LGTM" not in text, path
+            if "clintecker" in text:
+                assert path.name in machinery, (
+                    f"personal owner leaked into {path}"
+                )
+        meta = (book / "config" / "metadata.yaml").read_text(encoding="utf-8")
+        assert "Neutral Tester" in meta
+        assert '# repository: "https://github.com/OWNER/' in meta
+
+
 def check_pages_verifier() -> None:
     """The pages crawler must reject a broken site and pass a sound one."""
 
@@ -156,6 +184,7 @@ def main() -> int:
     check_slug_invariant()
     check_source_policy()
     check_pages_verifier()
+    check_scaffold_neutrality()
     check_docs()
     print(f"Selftest passed: {len(modules())} modules import, arithmetic agrees "
           "with the canonical examples, usage and README name every target")
