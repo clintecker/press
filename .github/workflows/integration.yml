@@ -1,0 +1,73 @@
+name: Press integration gate
+
+# The consumer's proof: build the wheel (not an editable checkout),
+# scaffold a stranger's book inside the supported toolchain, run the
+# whole gauntlet, and then tamper with a public artifact to prove the
+# verifier can refuse. Releases wait for this gate: tag only from a
+# commit whose integration run is green.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  consumer:
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/clintecker/press-toolchain:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and install the wheel
+        run: |
+          python3 -m pip install --break-system-packages --no-cache-dir build
+          python3 -m build --wheel --outdir /tmp/wheels .
+          python3 -m pip install --break-system-packages /tmp/wheels/press-*.whl
+      - name: Wheel carries the package data
+        run: |
+          cd /tmp
+          test "$(press skills | wc -l)" -ge 8
+          press workflows | grep -q editorial-passes
+          python3 -c "import press.aesthetic, pathlib; assert pathlib.Path(press.aesthetic.HOUSE).is_file()"
+      - name: Scaffold a stranger's book
+        run: |
+          cd /tmp
+          press new gate-proof --author "Gate Proof" --publisher "Gate Press" --place "Nowhere"
+          cd gate-proof
+          git init -q && git add -A
+          python3 - <<'PY'
+          import pathlib
+          p = pathlib.Path("config/metadata.yaml")
+          t = p.read_text().replace(
+              "verify-sentinels: []",
+              'verify-sentinels:\n  - "the gate remembers what it refused"',
+          )
+          p.write_text(t)
+          c = pathlib.Path("book/chapters/00-preface.md")
+          c.write_text(c.read_text() + "\n\nEvery build ends the same way: "
+                       "the gate remembers what it refused.\n")
+          PY
+      - name: The whole gauntlet
+        run: cd /tmp/gate-proof && press all
+      - name: No original-book identity in public artifacts
+        run: |
+          cd /tmp/gate-proof
+          ! grep -ri "mostly done\|mostly-done" dist/pages dist/site
+      - name: Tampering turns the verifier red
+        run: |
+          cd /tmp/gate-proof
+          rm dist/pages/downloads/gate-proof.pdf
+          # The CLI target rebuilds before verifying (the anti-stale
+          # law), which would resurrect the file; the crawler itself
+          # must see the tampered site.
+          if python3 -c "from press import verify_pages; raise SystemExit(verify_pages.main())" >/dev/null 2>&1; then
+            echo "verifier blessed a tampered site" && exit 1
+          fi
+          echo "verifier refused the tampered site, as it must"
