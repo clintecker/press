@@ -43,6 +43,26 @@ def normalize(text: str) -> str:
     return " ".join(text.split())
 
 
+def print_safe(text: str) -> str:
+    """Make researched source text safe for the print fonts and for LaTeX.
+
+    Web sources arrive with em/en dashes, curly quotes, and the occasional
+    literal control sequence (a citation that mentions \\tracinglostchars).
+    The house bans dashes and exotic glyphs in prose; generated appendices
+    obey the same law, and a stray backslash must not reach the engine as a
+    command.
+    """
+
+    replacements = {
+        "\u2014": ", ", "\u2013": ", ", "\u2012": ", ", "\u2212": "-",
+        "\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"',
+        "\u2026": "...", "\u00a0": " ", "\\": " ",
+    }
+    for bad, good in replacements.items():
+        text = text.replace(bad, good)
+    return normalize(text)
+
+
 def chapter_label(path: Path) -> str:
     name = path.name
     if name.startswith("00-"):
@@ -98,8 +118,8 @@ def generate() -> Path | None:
             lines.append(f"**In {label}**")
             lines.append("")
             current = label
-        note = f" {normalize(entry['note'])}" if entry.get("note") else ""
-        lines.append(f'- "{normalize(entry["claim"])}": {normalize(entry["authority"])}.{note}')
+        note = f" {print_safe(entry['note'])}" if entry.get("note") else ""
+        lines.append(f'- "{print_safe(entry["claim"])}": {print_safe(entry["authority"])}.{note}')
     lines.append("")
 
     output = booklib.root() / "build" / "generated" / f"{letter}-sources-and-authorities.md"
