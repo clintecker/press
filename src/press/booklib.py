@@ -51,13 +51,33 @@ def house_rules() -> dict:
         return yaml.safe_load(handle) or {}
 
 
+SLUG_PATTERN = re.compile(r"[a-z0-9][a-z0-9-]*")
+
+
+def validate_slug(value: str) -> str:
+    """The artifact-basename invariant: lowercase kebab, nothing else.
+
+    The slug names every file the press writes and every download link
+    it publishes; separators, dot segments, spaces, or shell- and
+    HTML-active characters would let configuration redirect outputs
+    outside dist or inject into CI outputs and markup.
+    """
+
+    if not SLUG_PATTERN.fullmatch(value):
+        raise SystemExit(
+            f"slug {value!r} is not a valid artifact basename: lowercase "
+            "kebab-case ([a-z0-9-], starting with a letter or digit)"
+        )
+    return value
+
+
 def slug() -> str:
     """Artifact basename, e.g. dist/<slug>.pdf."""
 
     value = metadata().get("slug")
     if not value:
         raise SystemExit("config/metadata.yaml must set slug: (artifact basename)")
-    return value
+    return validate_slug(str(value))
 
 
 def sentinels() -> list[str]:

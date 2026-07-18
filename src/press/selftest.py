@@ -29,6 +29,20 @@ def check_imports() -> None:
         importlib.import_module(name)
 
 
+def check_slug_invariant() -> None:
+    from . import booklib
+
+    for good in ("make-ready", "a", "book-2", "9lives"):
+        assert booklib.validate_slug(good) == good
+    for bad in ("../escape", "a/b", "a\\b", "A-Cap", "spa ce", "", "-lead",
+                "dot.seg", "semi;colon", "tick`", "new\nline", "<tag>"):
+        try:
+            booklib.validate_slug(bad)
+        except SystemExit:
+            continue
+        raise AssertionError(f"slug invariant admitted {bad!r}")
+
+
 def check_arithmetic() -> None:
     from . import barcode, registrations
 
@@ -64,6 +78,7 @@ def check_docs() -> None:
 def main() -> int:
     check_imports()
     check_arithmetic()
+    check_slug_invariant()
     check_docs()
     print(f"Selftest passed: {len(modules())} modules import, arithmetic agrees "
           "with the canonical examples, usage and README name every target")

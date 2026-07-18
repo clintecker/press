@@ -35,11 +35,18 @@ jobs:
         id: book
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
-          import yaml
+          import re, yaml
           meta = yaml.safe_load(open("config/metadata.yaml"))
-          print(f"slug={meta['slug']}")
-          print(f"title={meta['title']}")
-          print(f"site_url={meta.get('site-url', '')}")
+          slug = str(meta["slug"])
+          if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", slug):
+              raise SystemExit(f"invalid slug for CI outputs: {slug!r}")
+          # Values are flattened to one line so metadata cannot inject
+          # additional workflow outputs.
+          title = " ".join(str(meta["title"]).split())
+          site = " ".join(str(meta.get("site-url", "")).split())
+          print(f"slug={slug}")
+          print(f"title={title}")
+          print(f"site_url={site}")
           PY
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

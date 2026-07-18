@@ -35,6 +35,9 @@ def main(args: list[str]) -> int:
     destination = Path(args[0]).resolve()
     if destination.exists():
         raise SystemExit(f"refusing to scaffold into existing path: {destination}")
+    # The directory name becomes the slug; a name that cannot be a slug
+    # must fail before a single file is copied.
+    booklib.validate_slug(destination.name)
     shutil.copytree(TEMPLATE, destination)
     for path in sorted(destination.rglob("dot-*"), reverse=True):
         path.rename(path.with_name("." + path.name[len("dot-") :]))
