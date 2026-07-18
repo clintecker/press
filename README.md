@@ -38,10 +38,14 @@ settings before its first CI run can pull the image.
   `press all` runs the full gauntlet: editorial checks (including
   proving the checkers can fail), every format, source archive, Pages
   assembly, then structural verification of every artifact.
-- Checking: `check style verify verify-formats` -- `check` is the
-  editorial law (source checks, checker self-test, style audit, jargon
-  lint, registrations arithmetic, orphaned plates); the verify targets
-  rebuild before verifying so a stale artifact can never be blessed.
+- Checking: `check style verify verify-formats verify-pages` --
+  `check` is the editorial law (source checks, checker self-test,
+  style audit, jargon lint, registrations arithmetic, orphaned
+  plates); the verify targets rebuild before verifying so a stale
+  artifact can never be blessed, and `verify-pages` crawls the public
+  site: every local reference must resolve, every declared download
+  must exist and be linked, and the book's sentinels must appear on
+  the public reading surface.
 - Print pack: `print verify-print coverwrap publish` -- a twoside
   interior with mirrored margins and black ink (verified from the
   rendered pages), a cover wrap whose spine width is computed from the

@@ -18,7 +18,7 @@ FORMATS = ["pdf", "epub", "html", "markdown", "site", "txt", "docx"]
 USAGE = """usage: press <target>
 
 building        pdf epub html markdown site txt docx pages source all
-checking        check style verify verify-formats
+checking        check style verify verify-formats verify-pages
 print pack      print verify-print coverwrap publish kdp|ingram
 utilities       render wordcount clean new <directory> selftest
 instruments     skills workflows
@@ -127,11 +127,19 @@ def main(argv: list[str] | None = None) -> int:
 
         return package_source.main()
     if target == "pages":
-        from . import package_source
+        from . import package_source, verify_pages
 
         package_source.main()
         build.build_target("pages")
-        return 0
+        return verify_pages.main()
+    if target == "verify-pages":
+        from . import package_source, verify_pages
+
+        for name in ["epub", "html", "markdown", "site", "txt", "docx", "pdf"]:
+            build.build_target(name)
+        package_source.main()
+        build.build_target("pages")
+        return verify_pages.main()
     if target == "check":
         return check()
     if target == "style":
@@ -180,6 +188,11 @@ def main(argv: list[str] | None = None) -> int:
 
         package_source.main()
         build.build_target("pages")
+        from . import verify_pages
+
+        code = verify_pages.main()
+        if code:
+            return code
         code = verify_built()
         if code:
             return code

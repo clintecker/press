@@ -84,6 +84,40 @@ def check_source_policy() -> None:
             booklib.metadata.cache_clear()
 
 
+def check_pages_verifier() -> None:
+    """The pages crawler must reject a broken site and pass a sound one."""
+
+    import tempfile
+
+    from . import verify_pages
+
+    with tempfile.TemporaryDirectory() as tmp:
+        pages = Path(tmp)
+        (pages / "read").mkdir()
+        (pages / "downloads").mkdir()
+        (pages / "downloads" / "proof.pdf").write_text("x", encoding="utf-8")
+        (pages / "index.html").write_text(
+            '<html><body>Proof Book <a href="read/index.html">read</a> '
+            '<a href="downloads/proof.pdf">pdf</a></body></html>',
+            encoding="utf-8",
+        )
+        (pages / "read" / "index.html").write_text(
+            "<html><body>the sentinel phrase lives here</body></html>",
+            encoding="utf-8",
+        )
+        clean = verify_pages.crawl(pages, ["sentinel phrase"], ["proof.pdf"], "Proof Book")
+        assert clean == [], clean
+        (pages / "index.html").write_text(
+            '<html><body>Proof Book <a href="read/missing.html">dead</a> '
+            '<img src="woodcuts/ghost.jpg"> '
+            '<a href="downloads/proof.pdf">pdf</a></body></html>',
+            encoding="utf-8",
+        )
+        broken = verify_pages.crawl(pages, ["sentinel phrase"], ["proof.pdf"], "Proof Book")
+        assert any("missing.html" in f for f in broken), broken
+        assert any("ghost.jpg" in f for f in broken), broken
+
+
 def check_arithmetic() -> None:
     from . import barcode, registrations
 
@@ -121,6 +155,7 @@ def main() -> int:
     check_arithmetic()
     check_slug_invariant()
     check_source_policy()
+    check_pages_verifier()
     check_docs()
     print(f"Selftest passed: {len(modules())} modules import, arithmetic agrees "
           "with the canonical examples, usage and README name every target")
