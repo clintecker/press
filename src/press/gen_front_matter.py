@@ -118,8 +118,8 @@ def generate(include_cover: bool = True) -> Path | None:
     if isinstance(authors, str):
         authors = [authors]
     date = str(meta.get("date") or "")
-    year_match = re.search(r"\b(1\d{3}|2\d{3})\b", date)
-    year = roman(int(year_match.group(1))) if year_match else escape(date.lower())
+    numeric_year = booklib.year()
+    year = roman(int(numeric_year)) if numeric_year else escape(date.lower())
     edition = escape((date.split(",")[0] if "," in date else date).lower())
 
     cover_on_page = include_cover and (root / "assets" / "cover.jpg").is_file()

@@ -10,6 +10,7 @@ time anywhere else.
 from __future__ import annotations
 
 import os
+import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -67,6 +68,18 @@ def sentinels() -> list[str]:
     """
 
     return list(metadata().get("verify-sentinels") or [])
+
+
+def year() -> str | None:
+    """The publication year inside the human-readable date, if any.
+
+    The date field is prose ("First edition, 2026"); the machines that
+    need a real date (EPUB dc:date, the title page's roman numerals)
+    extract the year from this one stated copy.
+    """
+
+    match = re.search(r"\b(1\d{3}|2\d{3})\b", str(metadata().get("date") or ""))
+    return match.group(1) if match else None
 
 
 def chapter_files() -> list[Path]:

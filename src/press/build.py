@@ -299,6 +299,16 @@ def build_target(target: str) -> None:
         epub_isbn = registrations.isbn("epub")
         if epub_isbn:
             extra += ["--metadata", f"identifier=urn:isbn:{epub_isbn}"]
+        year = booklib.year()
+        if year:
+            # The prose date ("First edition, 2026") is not a date to
+            # pandoc, which then emits an empty dc:date that epubcheck
+            # rejects (RSC-005). The extracted year is a valid dc:date
+            # and leaves the displayed date untouched.
+            epub_meta = booklib.root() / "build" / "epub-metadata.xml"
+            epub_meta.parent.mkdir(parents=True, exist_ok=True)
+            epub_meta.write_text(f"<dc:date>{year}</dc:date>\n", encoding="utf-8")
+            extra += [f"--epub-metadata={epub_meta}"]
         pandoc_build("epub", f"dist/{slug}.epub", extra=extra)
     elif target == "html":
         pandoc_build("html", f"dist/{slug}.html")

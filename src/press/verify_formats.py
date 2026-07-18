@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import html.parser
 import os
+import re
 import shutil
 import subprocess
 import zipfile
@@ -56,16 +57,20 @@ def verify_epub(path: Path) -> None:
             raise SystemExit("EPUB has invalid mimetype")
         if "META-INF/container.xml" not in names:
             raise SystemExit("EPUB missing container.xml")
-        epub_isbn = registrations.isbn("epub")
-        if epub_isbn:
-            opf = "\n".join(
-                archive.read(name).decode("utf-8", errors="ignore")
-                for name in names if name.endswith(".opf")
+        opf = "\n".join(
+            archive.read(name).decode("utf-8", errors="ignore")
+            for name in names if name.endswith(".opf")
+        )
+        if re.search(r"<dc:date[^>]*/>|<dc:date[^>]*>\s*</dc:date>", opf):
+            raise SystemExit(
+                "EPUB carries an empty dc:date (retail validators reject "
+                "it); the date field should contain a four-digit year"
             )
-            if epub_isbn not in opf:
-                raise SystemExit(
-                    f"EPUB metadata is missing the registered ISBN {epub_isbn}"
-                )
+        epub_isbn = registrations.isbn("epub")
+        if epub_isbn and epub_isbn not in opf:
+            raise SystemExit(
+                f"EPUB metadata is missing the registered ISBN {epub_isbn}"
+            )
         raw = "\n".join(
             archive.read(name).decode("utf-8", errors="ignore")
             for name in names
