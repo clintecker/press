@@ -228,10 +228,14 @@ def author_photo(root: Path) -> tuple[bytes, str] | None:
 
 
 LIKENESS_PREAMBLE = (
-    "The attached photograph is the author. Engrave this actual person: "
+    "The attached photograph is the author: the person facing the camera. "
+    "Ignore every other face in the frame, including faces printed on "
+    "clothing, posters, or in the background. Engrave this actual person: "
     "hold their real features, hair, and expression faithfully while "
     "rendering them entirely in the style directed below. Do not idealize "
-    "or substitute a different face.\n\n"
+    "or substitute a different face. If a feature is hidden in the "
+    "photograph (a hat over the hair, sunglasses over the eyes), say so "
+    "in one line of text instead of inventing it.\n\n"
 )
 
 

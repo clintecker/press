@@ -34,7 +34,10 @@ from the repo root:
   from the `art-direction` workflow's `art/commissions.md`, and
   `press art commission` submits them to image models. Supply your
   photograph at `art/author-photo.jpg` and the portrait commission
-  engraves you rather than an invented author.
+  engraves you rather than an invented author. The photograph is the
+  reference an engraver works from: head and shoulders filling the
+  frame, no hat, no sunglasses, even light, and no other face in the
+  shot (including faces printed on clothing).
 - `press skills` — the installed authoring skills with absolute paths.
   Read the four prose skills before composing or revising prose; read the
   design skills before art direction.
