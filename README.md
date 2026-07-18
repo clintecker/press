@@ -12,6 +12,10 @@ Extracted from the production of *Mostly Done.* so the next book
 inherits the pipeline, the design, the editorial enforcement, and the
 scars.
 
+MIT licensed, code and bundled content alike (the authoring skills,
+templates, and design files ship under the same terms; see LICENSE).
+A book you make with the press is yours entirely.
+
 ## Start a book
 
 ```sh

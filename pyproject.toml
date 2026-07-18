@@ -6,6 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "press"
 version = "1.2.0"
 description = "Book production pipeline: pandoc/LuaLaTeX builds, editorial checks, and artifact verification"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"
 dependencies = [
     "PyYAML>=6.0",
