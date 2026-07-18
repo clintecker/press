@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="$lang$" xml:lang="$lang$"$if(dir)$ dir="$dir$"$endif$>
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+$for(author-meta)$
+  <meta name="author" content="$author-meta$" />
+$endfor$
+$if(date-meta)$
+  <meta name="dcterms.date" content="$date-meta$" />
+$endif$
+$if(keywords)$
+  <meta name="keywords" content="$for(keywords)$$keywords$$sep$, $endfor$" />
+$endif$
+$if(description-meta)$
+  <meta name="description" content="$description-meta$" />
+$endif$
+  <title>$if(title-prefix)$$title-prefix$ – $endif$$pagetitle$</title>
+  <style>
+    $styles.html()$
+  </style>
+$for(css)$
+  <link rel="stylesheet" href="$css$" />
+$endfor$
+$if(next.url)$
+  <link rel="next" href="$next.url$" />
+  <link rel="prefetch" href="$next.url$" />
+$endif$
+$if(previous.url)$
+  <link rel="prev" href="$previous.url$" />
+$endif$
+$for(header-includes)$
+  $header-includes$
+$endfor$
+$if(math)$
+  $math$
+$endif$
+</head>
+<body>
+$for(include-before)$
+$include-before$
+$endfor$
+<a class="skip" href="#content">Skip to chapter</a>
+$if(top)$
+<header class="masthead">
+  <a class="masthead-title" href="$top.url$" accesskey="u" rel="up top">Mostly Done.</a>
+  <details class="contents-drawer">
+    <summary>Contents</summary>
+    <nav aria-label="Table of contents">
+$table-of-contents$
+    </nav>
+  </details>
+  <nav class="masthead-pager" aria-label="Adjacent chapters">
+    $if(previous.url)$<a href="$previous.url$" accesskey="p" rel="previous" aria-label="Previous: $previous.title$">&#8592;</a>$endif$
+    $if(next.url)$<a href="$next.url$" accesskey="n" rel="next" aria-label="Next: $next.title$">&#8594;</a>$endif$
+  </nav>
+</header>
+$else$
+$if(title)$
+<header id="title-block-header">
+  <h1 class="title">$title$</h1>
+  <hr class="rule" />
+$if(subtitle)$
+  <p class="subtitle">$subtitle$</p>
+$endif$
+$for(author)$
+  <p class="author">$author$</p>
+$endfor$
+$if(date)$
+  <p class="date">$date$</p>
+$endif$
+  <div class="cover-plate">
+    <img src="cover.jpg" alt="Green cloth cover of Mostly Done., gold-stamped, showing a scaffolded tower" width="1024" height="1536" />
+  </div>
+</header>
+$endif$
+$endif$
+$if(toc)$
+<nav id="$idprefix$TOC" role="doc-toc">
+$if(toc-title)$
+<h2 id="$idprefix$toc-title">$toc-title$</h2>
+$endif$
+$table-of-contents$
+</nav>
+$endif$
+<main id="content">
+$body$
+</main>
+$if(top)$
+<nav class="pager" aria-label="Chapter navigation">
+$if(previous.url)$
+  <a class="pager-card pager-prev" href="$previous.url$" rel="previous">
+    <span class="pager-label">Previous</span>
+    <span class="pager-title">$previous.title$</span>
+  </a>
+$endif$
+$if(next.url)$
+  <a class="pager-card pager-next" href="$next.url$" rel="next">
+    <span class="pager-label">Next</span>
+    <span class="pager-title">$next.title$</span>
+  </a>
+$endif$
+</nav>
+<p class="kbd-hint">use &#8592; and &#8594; to turn pages</p>
+$endif$
+<footer class="colophon">
+  <hr class="rule" />
+  $if(homeurl)$<a class="press" href="$homeurl$">2389 Research Press</a>$else$<span class="press">2389 Research Press</span>$endif$
+</footer>
+<script>
+(function () {
+  document.addEventListener("keydown", function (e) {
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    var el = document.activeElement;
+    if (el && el.matches("input, textarea, select, summary, [contenteditable]")) return;
+    var sel = e.key === "ArrowRight" ? "a[rel~=next]"
+            : e.key === "ArrowLeft" ? "a[rel~=previous]" : null;
+    if (!sel) return;
+    var a = document.querySelector(sel);
+    if (a && a.href) location.href = a.href;
+  });
+  var links = document.querySelectorAll(".contents-drawer a[href]");
+  for (var i = 0; i < links.length; i++) {
+    var a = links[i];
+    if (new URL(a.href).pathname !== location.pathname) continue;
+    a.setAttribute("aria-current", "page");
+    var li = a.closest("li");
+    while (li) {
+      var parentLi = li.parentElement && li.parentElement.closest("li");
+      if (!parentLi) break;
+      li = parentLi;
+    }
+    if (li) li.classList.add("current-chapter");
+  }
+})();
+</script>
+$for(include-after)$
+$include-after$
+$endfor$
+</body>
+</html>

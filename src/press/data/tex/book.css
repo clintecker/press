@@ -1,0 +1,33 @@
+:root {
+  --ink: #171717;
+  --muted: #5c5c5c;
+  --paper: #fbfbf8;
+  --panel: #f1f1ed;
+  --rule: #c8c8c8;
+  --accent: #4b3e8a;
+}
+html { background: var(--paper); }
+body {
+  color: var(--ink);
+  background: var(--paper);
+  font-family: Charter, "Bitstream Charter", Georgia, serif;
+  font-size: 19px;
+  line-height: 1.58;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 3rem 1.4rem 8rem;
+}
+h1, h2, h3 { line-height: 1.15; margin-top: 2.2em; }
+h1 { font-size: 2.3rem; }
+h2 { font-size: 1.55rem; }
+h3 { font-size: 1.18rem; }
+a { color: var(--accent); }
+blockquote {
+  background: var(--panel);
+  border-left: 3px solid var(--rule);
+  margin: 1.4rem 0;
+  padding: 0.75rem 1rem;
+}
+code, pre { font-family: "SFMono-Regular", Consolas, monospace; }
+pre { overflow-x: auto; background: #efefeb; padding: 1rem; }
+#TOC { border-bottom: 1px solid var(--rule); padding-bottom: 1.5rem; }

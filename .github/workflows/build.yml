@@ -1,0 +1,113 @@
+# Reusable build for any book repository. A book's entire workflow is:
+#
+#   jobs:
+#     book:
+#       uses: clintecker/press/.github/workflows/build.yml@v1
+#
+# The version tag pins the pipeline, the pandoc defaults, the design, and
+# the toolchain image together. The press action reference below must match
+# this file's own release tag; the press release script keeps them in step.
+
+name: Build book
+
+on:
+  workflow_call: {}
+
+permissions:
+  contents: write
+  packages: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/clintecker/press-toolchain:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.github_token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and verify
+        uses: clintecker/press@v1
+      - name: Read book identity
+        id: book
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import yaml
+          meta = yaml.safe_load(open("config/metadata.yaml"))
+          print(f"slug={meta['slug']}")
+          print(f"title={meta['title']}")
+          print(f"site_url={meta.get('site-url', '')}")
+          PY
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.book.outputs.slug }}
+          path: |
+            dist/*
+            !dist/site
+            !dist/pages
+          if-no-files-found: error
+      - name: Upload pages artifact
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && github.event_name == 'push'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/pages
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: ${{ steps.book.outputs.title }}
+          SITE_URL: ${{ steps.book.outputs.site_url }}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          default_branch="${{ github.event.repository.default_branch }}"
+          git fetch origin "$default_branch" --quiet
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" "origin/$default_branch"; then
+            echo "refusing to release a commit that is not on $default_branch"
+            exit 1
+          fi
+          version="${GITHUB_REF_NAME#v}"
+          awk -v ver="$version" '
+            $0 ~ "^## \\[" ver "\\]" {p=1; next}
+            p && /^## \[/ {exit}
+            p {print}
+          ' CHANGELOG.md > release-notes.md
+          if ! test -s release-notes.md; then
+            echo "no CHANGELOG section for $version; roll [Unreleased] before tagging"
+            exit 1
+          fi
+          if [ -n "$SITE_URL" ]; then
+            {
+              echo ""
+              echo "## Public downloads"
+              echo ""
+              echo "Direct links (no login required):"
+              echo ""
+              for f in dist/*.pdf dist/*.epub dist/*.html dist/*.md dist/*.txt dist/*.docx dist/*.zip; do
+                name=$(basename "$f")
+                echo "- [$name](${SITE_URL%/}/downloads/$name)"
+              done
+            } >> release-notes.md
+          fi
+          gh release create "$GITHUB_REF_NAME" \
+            $(find dist -maxdepth 1 -type f | sort) \
+            --title "$TITLE $GITHUB_REF_NAME" \
+            --notes-file release-notes.md
+
+  deploy-pages:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

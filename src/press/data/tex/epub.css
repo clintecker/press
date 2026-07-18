@@ -1,0 +1,4 @@
+body { font-family: serif; line-height: 1.45; }
+h1, h2, h3 { page-break-after: avoid; }
+blockquote { border-left: 0.18em solid #888; padding-left: 0.8em; }
+code, pre { font-family: monospace; }

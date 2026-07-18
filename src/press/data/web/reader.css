@@ -1,0 +1,185 @@
+/* Mostly Done. reading edition.
+   One leaf of the green-cloth book: cream paper, foil ornament, serif voice.
+   Generated pages come from pandoc chunkedhtml via web/chunked-template.html;
+   customization lives here and in the template only. */
+
+/* 1. Tokens */
+:root {
+  --cloth: #5a7d2a;  --cloth-deep: #46621f;
+  --foil: #b8963f;   --foil-bright: #c9a961;  --foil-deep: #8f7226;
+  --paper: #f4efe3;  --paper-warm: #ece5d3;
+  --ink: #23201a;    --ink-soft: #4d463a;
+  --link: var(--cloth-deep);
+  --ornament: var(--foil-deep);
+  --hairline: var(--foil);
+  color-scheme: light dark;
+}
+
+/* 2. Base and page frame */
+* { box-sizing: border-box; }
+html { background: var(--cloth); }
+body {
+  margin: 2.5rem auto; max-width: 48rem;
+  background: var(--paper); color: var(--ink);
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: 1.25rem; line-height: 1.62;
+  text-rendering: optimizeLegibility; font-kerning: normal;
+  border: 1px solid var(--foil);
+  outline: 4px solid var(--paper); outline-offset: -9px;
+  box-shadow: 0 1.2rem 3rem rgba(0,0,0,.45);
+  padding: 3rem 3rem 3.5rem;
+}
+@media (max-width: 56rem) {
+  body { margin: 0; max-width: none; border: none; outline: none;
+         box-shadow: none; padding: 1.6rem 1.25rem 3rem; }
+}
+a { color: var(--link); text-decoration: none; border-bottom: 1px solid var(--hairline); }
+a:hover { color: var(--ink); }
+:focus-visible { outline: 3px solid var(--cloth-deep); outline-offset: 2px; border-radius: 1px; }
+.skip { position: absolute; left: -999px; }
+.skip:focus { position: static; display: inline-block; padding: .4rem .8rem; }
+
+/* 3. Ornament primitives */
+hr, hr.rule {
+  width: min(15rem, 65%); height: auto; background: none;
+  border: none; margin: 2.6rem auto;
+}
+hr::after { content: "\25C6"; display: block; text-align: center;
+  color: var(--ornament); font-size: .78rem; line-height: 1;
+  background:
+    linear-gradient(var(--ornament), var(--ornament)) left center / calc(50% - 1.3em) 1px no-repeat,
+    linear-gradient(var(--ornament), var(--ornament)) right center / calc(50% - 1.3em) 1px no-repeat; }
+
+/* 4. Chapter openers and section heads */
+h1 { text-align: center; font-size: clamp(1.9rem, 5.5vw, 2.5rem);
+     line-height: 1.12; font-weight: 700; letter-spacing: .02em;
+     margin: 1.6rem 0 2.6rem; }
+h1 .header-section-number {
+  display: block; font-size: .9rem; font-weight: 600;
+  font-variant: small-caps; letter-spacing: .3em;
+  color: var(--ink-soft); margin-bottom: .9rem; }
+h1 .header-section-number::before { content: "Chapter "; }
+h1::after {
+  content: "\25C6"; display: block; width: min(13rem, 65%);
+  margin: 1.6rem auto 0; text-align: center;
+  color: var(--ornament); font-size: .78rem; line-height: 1;
+  background:
+    linear-gradient(var(--ornament), var(--ornament)) left center / calc(50% - 1.3em) 1px no-repeat,
+    linear-gradient(var(--ornament), var(--ornament)) right center / calc(50% - 1.3em) 1px no-repeat; }
+h2 { font-variant: small-caps; letter-spacing: .12em; font-weight: 600;
+     font-size: 1.25rem; line-height: 1.2; margin-top: 2.6em; }
+h2 .header-section-number, h3 .header-section-number { color: var(--ink-soft); margin-right: .5em; }
+h3 { font-size: 1.05rem; font-style: italic; font-weight: 600; margin-top: 2em; }
+
+/* 5. Prose finishing */
+p { margin: 0 0 1em; }
+h1 + p::first-line,
+h1 + figure + p::first-line { font-variant: small-caps; letter-spacing: .05em; }
+ol, ul { padding-left: 1.6rem; }
+li { margin: .3em 0; }
+li::marker { color: var(--ornament); font-weight: 600; }
+
+/* 6. Quotations */
+blockquote { background: none; border-left: 2px solid var(--foil);
+  margin: 1.7rem 0 1.7rem .2rem; padding: .15rem 0 .15rem 1.2rem;
+  color: var(--ink-soft); font-size: .97em; }
+blockquote p { margin: .6em 0; }
+
+/* 7. Code */
+code, pre, kbd { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+pre { font-size: .8em; line-height: 1.5; background: var(--paper-warm);
+  border: 1px solid rgba(184,150,63,.35); padding: .9rem 1.1rem;
+  overflow-x: auto; tab-size: 4; }
+code { font-size: .85em; background: var(--paper-warm); padding: .08em .3em; }
+pre code { font-size: inherit; background: none; padding: 0; }
+
+/* 8. Plates */
+figure { margin: 2.4rem auto; text-align: center; }
+figure img { max-width: 100%; height: auto; aspect-ratio: 2 / 3;
+  background: var(--paper-warm);
+  border: 1px solid var(--foil); padding: 6px;
+  box-shadow: 0 .8rem 2rem rgba(0,0,0,.18); }
+figcaption { margin: .85rem auto 0; font-size: .88rem; line-height: 1.5;
+  color: var(--ink-soft); max-width: 26rem; }
+
+/* 9. Masthead and contents drawer */
+.masthead { display: flex; align-items: baseline; gap: 1.2rem;
+  font-variant: small-caps; letter-spacing: .12em; font-size: .85rem;
+  border-bottom: 1px dotted var(--foil); padding-bottom: .8rem; margin-bottom: 2rem; }
+.masthead a { border-bottom: none; }
+.masthead-title { font-weight: 700; margin-right: auto; }
+.masthead-pager a { padding: .2rem .55rem; font-size: 1rem; }
+.contents-drawer { position: relative; }
+.contents-drawer summary { cursor: pointer; color: var(--link); }
+.contents-drawer nav { position: absolute; right: 0; z-index: 1; min-width: 17rem; max-height: 70vh; overflow-y: auto;
+  background: var(--paper); border: 1px solid var(--foil); box-shadow: 0 .6rem 1.6rem rgba(0,0,0,.25);
+  padding: 1rem 1.2rem; font-variant: normal; letter-spacing: 0; font-size: .92rem; text-align: left; }
+.contents-drawer ul { list-style: none; padding-left: 0; }
+.contents-drawer li { margin: .35em 0; }
+.contents-drawer li ul { display: none; padding-left: 1.1rem; font-size: .88em; font-style: italic; }
+.contents-drawer li.current-chapter > ul { display: block; }
+.contents-drawer a[aria-current="page"] { color: var(--ink); font-weight: 700; }
+.contents-drawer .toc-section-number { color: var(--ink-soft); margin-right: .45em; }
+@media (max-width: 40rem) { .contents-drawer nav { position: fixed; left: 1rem; right: 1rem; } }
+
+/* 10. Bottom pager and colophon */
+.pager { display: flex; gap: 1rem; margin: 3.5rem 0 0; }
+.pager-card { flex: 1; display: block; border: 1px solid var(--foil);
+  padding: .9rem 1.1rem; min-height: 44px; background: var(--paper-warm); }
+.pager-card:hover { background: var(--paper); }
+.pager-next { text-align: right; margin-left: auto; }
+.pager-label { display: block; font-variant: small-caps; letter-spacing: .18em;
+  font-size: .75rem; color: var(--ink-soft); }
+.pager-title { font-weight: 700; }
+.pager-prev .pager-title::before { content: "\2190\00a0"; }
+.pager-next .pager-title::after  { content: "\00a0\2192"; }
+@media (max-width: 40rem) { .pager { flex-direction: column; } .pager-next { text-align: left; } }
+.kbd-hint { text-align: center; font-size: .78rem; font-style: italic;
+  color: var(--ink-soft); margin-top: .8rem; }
+@media (max-width: 56rem) { .kbd-hint { display: none; } }
+.colophon { text-align: center; margin-top: 2.6rem; }
+.colophon .press { font-variant: small-caps; letter-spacing: .14em;
+  font-size: .8rem; color: var(--ink); border-bottom: none; }
+
+/* 11. Index title page and contents leaf */
+#title-block-header { text-align: center; }
+h1.title { font-size: clamp(2.4rem, 8vw, 3.4rem); margin: 0; }
+h1.title::after { content: none; }
+p.subtitle { font-variant: small-caps; letter-spacing: .06em; font-size: .92rem;
+  color: var(--ink-soft); max-width: 26rem; margin: .8rem auto; line-height: 1.55; }
+p.author, p.date { font-variant: small-caps; letter-spacing: .16em;
+  font-size: .9rem; margin: .3rem 0; }
+.cover-plate { margin: 2rem 0 .5rem; }
+.cover-plate img { width: min(17rem, 70%); height: auto; border: 1px solid var(--foil);
+  box-shadow: 0 .8rem 2rem rgba(0,0,0,.28); }
+#TOC { border-bottom: none; margin-top: 2.2rem; }
+#TOC h2 { text-align: center; letter-spacing: .18em; font-size: 1.15rem; }
+#TOC > ul { list-style: none; padding-left: 0; max-width: 30rem; margin: 1.2rem auto; }
+#TOC > ul > li { border-bottom: 1px dotted var(--foil); margin: 0; }
+#TOC > ul > li > a { display: block; padding: .55rem .2rem; border-bottom: none; }
+#TOC .toc-section-number { color: var(--ink-soft); display: inline-block; min-width: 1.9em; }
+#TOC ul ul { display: none; }
+
+/* 12. Dark mode */
+@media (prefers-color-scheme: dark) {
+  :root { --cloth: #141a0e; --paper: #1d1b15; --paper-warm: #26231b;
+          --ink: #e8e0cc; --ink-soft: #b5ab93;
+          --link: var(--foil-bright);
+          --ornament: var(--foil); --hairline: var(--foil-deep); }
+  body { box-shadow: 0 1.2rem 3rem rgba(0,0,0,.7); }
+  figure img { filter: brightness(.87) contrast(.98); }
+  pre { border-color: rgba(184,150,63,.3); }
+}
+
+/* 13. Print and reduced motion */
+@media print {
+  html, body { background: #fff; color: #000; max-width: none;
+    border: none; outline: none; box-shadow: none; padding: 0; }
+  .masthead, .pager, .kbd-hint, .skip, .contents-drawer { display: none; }
+  figure { break-inside: avoid; }
+  a { color: #000; border-bottom: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+  html { scroll-behavior: auto; }
+}

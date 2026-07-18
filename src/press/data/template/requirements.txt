@@ -1,0 +1,4 @@
+# Local builds. CI does not read this file; the press action installs itself
+# from its own checkout. For day-to-day work prefer an editable install of
+# your press clone: pip install -e ~/path/to/press
+press @ git+https://github.com/clintecker/press@v1

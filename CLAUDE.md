@@ -1,0 +1,83 @@
+# CLAUDE.md
+
+This repository is a small press: the build, check, and verify pipeline for
+books, extracted from the production of one so the next starts with the
+scars already paid for. There is no book in here. Every book-specific fact
+(title, slug, sentinels, banned vocabulary, front matter, art) lives in the
+book repository that consumes this package.
+
+## Layout
+
+- `src/press/` is the pip-installable pipeline. `python -m press <target>`
+  (or `press <target>`) runs from inside a book repository.
+- `src/press/data/` carries the house design (TeX header, CSS, reader
+  templates), pandoc defaults templates, the jargon watchlist, universal
+  known-bad fixtures, and the new-book template.
+- `action.yml` is a composite action: a book's CI does
+  `uses: clintecker/press@v1` and the press installs itself from the
+  action's own checkout. That is what lets a private book use the private
+  press with no cross-repo token; do not replace it with pip-from-git.
+- `.github/workflows/build.yml` is the reusable workflow books call. It
+  hardcodes the press action ref and the toolchain image tag; they are part
+  of the pinned contract.
+- `skills/` holds the authoring guides (four prose skills, jargon watchlist
+  documentation, design skills for covers, plates, and logomarks). Read the
+  relevant ones before composing prose or art direction for any book.
+
+## The contract
+
+Books pin a tag (`@v1`). Design is part of the contract: a pinned book must
+render byte-for-byte the same layout on every rebuild, so typography and
+template changes require a new major tag, not a patch. To release: update
+the action ref in build.yml and the requirements pin in the template to the
+new tag name, commit, tag, push the tag.
+
+## Config a book supplies
+
+- `config/metadata.yaml`: identity plus press facts (`slug`, `repository`,
+  `site-url`) and verification knobs (`verify-sentinels`,
+  `verify-min-pages`, optional `trim`).
+- `config/house-rules.yaml` (optional): `banned-patterns` (regex -> label),
+  `jargon-allow`, `audit-dirs`.
+- `config/index-terms.yaml` (optional): curated subject-index terms; the
+  index appendix generates on every build and zero-hit terms fail it.
+- `tex/title-page.tex` (optional): cover plate, title page, colophon.
+- `assets/cover.jpg`, `assets/press-logo.png`, `assets/woodcuts/*.jpg`
+  (all optional; every consumer degrades gracefully when absent).
+- `tests/known-bad/` (optional): fixtures for the book's own house rules;
+  every fixture must be rejected by a checker on every build.
+
+## Scars (carried from the first book; do not relearn them)
+
+- A figure taller than the text block makes LuaLaTeX ship empty pages
+  forever, silently, at 100% CPU. Cap images at 7.1in on a 9in trim; never
+  stack a third `titlepage`.
+- Ubuntu has no `fonts-libertinus` package, and `--no-install-recommends`
+  drops the Libertine keyboard face; the Dockerfile states
+  `fonts-linuxlibertine` explicitly.
+- The PDF builds through latexmk so multi-pass lists converge; plain
+  lualatex under pandoc does not run enough passes. `toc-depth: 1` sets
+  tocdepth 0, which silently empties the List of Plates; the TeX header
+  raises the depth inside the lof file itself.
+- hyperref anchors floats at the caption, not the image; list-of-plates
+  links overshoot without `hypcap` (loaded in the hyperref after-hook).
+  When touching PDF links, verify destinations with pypdf.
+- pandoc's chunked writer copies referenced media itself; site assembly
+  must tolerate existing directories.
+- PNG barely compresses engraving grain; woodcut plates are JPEG q88 on
+  purpose.
+- Verifying `dist/` without rebuilding blesses stale artifacts; the CLI's
+  dependency edges exist so that cannot happen. Keep them.
+- The verify scripts render with `pdftoppm` when the authoring sandbox's
+  renderer is absent. Keep that fallback working.
+- First LuaLaTeX run on a fresh machine triggers a several-minute font scan
+  that looks like a hang. It is not a hang.
+- Never pipe a check command into grep before `&&` in a commit chain; the
+  pipeline exit code is grep's, and a red check once shipped as green.
+
+## Verifying changes here
+
+The press has no book of its own, so prove changes against a real one:
+clone a consuming book, `pip install -e` this checkout into it, run
+`press all`, and confirm every verifier passes before tagging. A green
+`pip install` is not a working pipeline.

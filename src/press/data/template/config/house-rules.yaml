@@ -1,0 +1,12 @@
+# Per-book style law, enforced by `press check` on top of the universal
+# rules (no em/en dashes, straight quotes, sentence-case headings, no manual
+# heading numbers, print-font glyphs only).
+
+# Regex -> label. Words and names that must never appear in the manuscript.
+banned-patterns: {}
+
+# Watchlist terms this book is allowed to use despite rewrite severity.
+jargon-allow: []
+
+# Directories beyond book/ that the style audit should read (lighter rules).
+audit-dirs: []

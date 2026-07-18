@@ -1,0 +1,19 @@
+name: press
+description: >-
+  Install the press from this action's own checkout and run a press target
+  against the calling book repository. Because GitHub materializes the action
+  repository onto the runner, a private book can use the private press with
+  no cross-repo token.
+inputs:
+  command:
+    description: press target to run (default builds and verifies everything)
+    default: all
+runs:
+  using: composite
+  steps:
+    - name: Install press
+      shell: bash
+      run: python3 -m pip install --quiet --break-system-packages "$GITHUB_ACTION_PATH"
+    - name: Run press ${{ inputs.command }}
+      shell: bash
+      run: python3 -m press ${{ inputs.command }}

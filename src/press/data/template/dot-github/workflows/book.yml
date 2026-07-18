@@ -1,0 +1,18 @@
+name: Build book
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: read
+  pages: write
+  id-token: write
+
+jobs:
+  book:
+    uses: clintecker/press/.github/workflows/build.yml@v1

@@ -1,0 +1,27 @@
+from: markdown+smart+yaml_metadata_block+fenced_divs+footnotes
+standalone: true
+toc: true
+toc-depth: 1
+number-sections: true
+top-level-division: chapter
+pdf-engine: latexmk
+pdf-engine-opts:
+  - -lualatex
+metadata-file: "@book/config/metadata.yaml"
+include-in-header:
+  - "@press/tex/book-header.tex"
+  - "@book/tex/title-page.tex?optional"
+variables:
+  documentclass: scrbook
+  classoption:
+    - oneside
+    - openany
+    - headings=small
+  fontsize: 10pt
+  colorlinks: true
+  linkcolor: black
+  urlcolor: linkgreen
+  citecolor: black
+  toc-title: Contents
+  lot: false
+  thanks: ""

@@ -1,0 +1,122 @@
+% Book trim and typography.
+\usepackage[
+  paperwidth=6in,
+  paperheight=9in,
+  inner=0.78in,
+  outer=0.68in,
+  top=0.72in,
+  bottom=0.78in,
+  headsep=0.20in,
+  footskip=0.38in
+]{geometry}
+\usepackage{libertinus}
+\usepackage[scaled=0.86]{sourcecodepro}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{scrlayer-scrpage}
+\usepackage{mdframed}
+\usepackage{needspace}
+\usepackage{titlesec}
+\usepackage{etoolbox}
+
+% Pandoc's hypersetup partial wraps pdfkeywords in \xmpquote, which only some
+% hyperref/hyperxmp combinations define. Provide it if hyperref does not.
+\AddToHook{package/hyperref/after}{%
+  \providecommand{\xmpquote}[1]{#1}%
+  \usepackage[figure]{hypcap}%
+}
+
+\definecolor{ink}{HTML}{171717}
+\definecolor{muted}{HTML}{5C5C5C}
+\definecolor{rulegray}{HTML}{C8C8C8}
+\definecolor{papergray}{HTML}{F4F4F1}
+\definecolor{accent}{HTML}{4B3E8A}
+\definecolor{linkgreen}{HTML}{46621F}
+
+\color{ink}
+\setlength{\parindent}{1.1em}
+\setlength{\parskip}{0pt}
+\linespread{1.045}
+\setlist[itemize]{leftmargin=1.25em,itemsep=0.18em,topsep=0.35em}
+\setlist[enumerate]{leftmargin=1.35em,itemsep=0.18em,topsep=0.35em}
+
+\clearpairofpagestyles
+\makeatletter
+\ihead{\footnotesize\color{muted}\itshape\@title}
+\makeatother
+\ohead{\footnotesize\color{muted}\leftmark}
+\cfoot{\footnotesize\thepage}
+\renewcommand*{\chapterpagestyle}{plain.scrheadings}
+\automark[section]{chapter}
+
+\addtokomafont{chapter}{\normalfont\bfseries\color{ink}}
+\addtokomafont{section}{\normalfont\bfseries\color{ink}}
+\addtokomafont{subsection}{\normalfont\bfseries\color{ink}}
+\addtokomafont{disposition}{\raggedright}
+\RedeclareSectionCommand[beforeskip=0pt,afterskip=1.25\baselineskip]{chapter}
+\RedeclareSectionCommand[beforeskip=1.6\baselineskip,afterskip=0.55\baselineskip]{section}
+\RedeclareSectionCommand[beforeskip=1.2\baselineskip,afterskip=0.35\baselineskip]{subsection}
+
+% The figure list prints as a Victorian "List of Plates". The book's
+% contents show chapters only (tocdepth 0), which would also suppress the
+% depth-1 figure lines, so the list file raises the depth for itself.
+\AddToHook{begindocument/end}{%
+  \renewcommand*{\listfigurename}{List of plates}%
+  \addtocontents{lof}{\protect\setcounter{tocdepth}{1}}%
+}
+
+% Woodcut figures: no "Figure N" labels, quiet small italic captions,
+% pinned where the source places them rather than floated.
+\renewcommand*{\figureformat}{}
+\renewcommand*{\captionformat}{}
+\setkomafont{caption}{\small\itshape}
+\setcapindent{0pt}
+\usepackage{graphicx}
+\usepackage{float}
+\floatplacement{figure}{H}
+
+% Render Markdown blockquotes as quiet, book-like callouts.
+\renewenvironment{quote}
+  {\begin{mdframed}[
+      backgroundcolor=papergray,
+      linecolor=rulegray,
+      linewidth=0.4pt,
+      leftmargin=0pt,
+      rightmargin=0pt,
+      innerleftmargin=0.8em,
+      innerrightmargin=0.8em,
+      innertopmargin=0.55em,
+      innerbottommargin=0.55em,
+      skipabove=0.8em,
+      skipbelow=0.8em
+    ]\small\itshape}
+  {\end{mdframed}}
+
+% Keep headings from being stranded at page bottoms.
+\pretocmd{\section}{\Needspace{5\baselineskip}}{}{}
+\pretocmd{\subsection}{\Needspace{4\baselineskip}}{}{}
+
+% Better code blocks in narrow trim.
+\usepackage{fvextra}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\}}
+
+% Plain title page driven by document metadata (books that want the
+% treatise front matter include tex/title-page.tex after this file).
+\makeatletter
+\renewcommand{\maketitle}{%
+  \begin{titlepage}
+    \raggedright
+    \vspace*{0.8in}
+    {\fontsize{25}{29}\selectfont\bfseries \@title\par}
+    \vspace{0.35in}
+    {\Large\color{muted} \@subtitle\par}
+    \vfill
+    {\large \@author\par}
+    \vspace{0.12in}
+    {\small\color{muted} \@date\par}
+    \vspace{0.45in}
+    {\small\color{muted} 2389 Research Press\par}
+  \end{titlepage}
+}
+\makeatother

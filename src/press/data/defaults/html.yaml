@@ -1,0 +1,12 @@
+from: markdown+smart+yaml_metadata_block+fenced_divs+footnotes
+standalone: true
+self-contained: true
+toc: true
+toc-depth: 1
+number-sections: true
+metadata-file: "@book/config/metadata.yaml"
+include-before-body:
+  - "@book/build/cover-fragment.html?optional"
+css:
+  - "@press/tex/book.css"
+html-q-tags: true
