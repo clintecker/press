@@ -24,6 +24,19 @@ files, and the placement rules the pipeline enforces.
   ridiculous scene engraved earnestly is the house voice.
 - Ask for a landscape or portrait composition deliberately; a square plate
   wastes the trim.
+- State the drawing discipline or the model will improvise it: correct
+  architectural perspective, level floor, true verticals, one
+  consistent vanishing point, eye-level or gently raised vantage. The
+  skew of a careless plate reads as error, not style.
+- State the presentation: the image fills its rectangle to the edge (or
+  sits in one plain thin rule); never a torn-paper mat, never a tilted
+  or rotated "print" laid on a background, never drop shadows.
+- Placard and signage text renders letter for letter WITHOUT quotation
+  marks around it; models add quotes when the prompt quotes.
+- The shop's machines are compact brass apparatus in the
+  nineteenth-century instrument tradition: armatures, gears, a lens
+  where sight is needed. Never humanoid skeletal robots; an android in
+  a woodcut breaks the century.
 
 ## File preparation
 
