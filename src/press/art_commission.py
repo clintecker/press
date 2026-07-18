@@ -136,10 +136,10 @@ def key_for(model: str) -> str:
 
 
 def generate_openai(prompt: str, spec: tuple, count: int,
-                    reference: tuple[bytes, str] | None = None) -> list[bytes]:
+                    references: list[tuple[bytes, str]] | None = None) -> list[bytes]:
     model, size, quality, transparent = spec
     headers = {"Authorization": f"Bearer {key_for('openai')}"}
-    if reference is None:
+    if not references:
         payload = {"model": model, "prompt": prompt, "size": size,
                    "quality": quality, "n": count}
         if transparent:
@@ -150,8 +150,7 @@ def generate_openai(prompt: str, spec: tuple, count: int,
         return [base64.b64decode(item["b64_json"]) for item in body.get("data", [])]
 
     # Reference-image work goes through images/edits, a multipart form.
-    photo, mime = reference
-    boundary = "pressart" + base64.urlsafe_b64encode(photo[:9]).decode().strip("=")
+    boundary = "pressart" + base64.urlsafe_b64encode(references[0][0][:9]).decode().strip("=")
     fields = {"model": model, "prompt": prompt, "size": size,
               "quality": quality, "n": str(count)}
     parts = []
@@ -160,11 +159,12 @@ def generate_openai(prompt: str, spec: tuple, count: int,
             f"--{boundary}\r\nContent-Disposition: form-data; "
             f'name="{name}"\r\n\r\n{value}\r\n'.encode()
         )
-    parts.append(
-        f"--{boundary}\r\nContent-Disposition: form-data; "
-        f'name="image[]"; filename="author.{mime.split("/")[1]}"\r\n'
-        f"Content-Type: {mime}\r\n\r\n".encode() + photo + b"\r\n"
-    )
+    for index, (blob, mime) in enumerate(references):
+        parts.append(
+            f"--{boundary}\r\nContent-Disposition: form-data; "
+            f'name="image[]"; filename="ref{index}.{mime.split("/")[1]}"\r\n'
+            f"Content-Type: {mime}\r\n\r\n".encode() + blob + b"\r\n"
+        )
     parts.append(f"--{boundary}--\r\n".encode())
     request = urllib.request.Request(
         "https://api.openai.com/v1/images/edits",
@@ -182,16 +182,15 @@ def generate_openai(prompt: str, spec: tuple, count: int,
 
 
 def generate_gemini(prompt: str, spec: tuple, count: int,
-                    reference: tuple[bytes, str] | None = None) -> list[bytes]:
+                    references: list[tuple[bytes, str]] | None = None) -> list[bytes]:
     # The Imagen predict endpoint is closed to new API users; the Gemini
     # image models answer generateContent with inline image parts.
     model, aspect, image_size = spec
     parts: list[dict] = [{"text": prompt}]
-    if reference is not None:
-        photo, mime = reference
+    for blob, mime in references or []:
         parts.append({"inlineData": {
             "mimeType": mime,
-            "data": base64.b64encode(photo).decode("ascii"),
+            "data": base64.b64encode(blob).decode("ascii"),
         }})
     images: list[bytes] = []
     for _ in range(count):
@@ -263,6 +262,28 @@ def normalize_reference(data: bytes, path: Path) -> bytes:
     return out.getvalue()
 
 
+STYLE_PREAMBLE = (
+    "STYLE REFERENCES: the attached engravings are earlier accepted "
+    "plates from this same book. Match their hand exactly: line weight, "
+    "hatching density, black distribution, and framing. The new plate "
+    "must look cut by the same engraver.\n\n"
+)
+
+
+def style_references(root: Path, target: str) -> list[tuple[bytes, str]]:
+    """Up to two accepted plates, excluding the one being regenerated,
+    so every new plate is held to the book's existing hand."""
+
+    if not target.startswith("plate:"):
+        return []
+    own = target.split(":", 1)[1] + ".jpg"
+    plates = [
+        p for p in sorted((root / "assets" / "woodcuts").glob("*.jpg"))
+        if p.name != own
+    ][:2]
+    return [(normalize_reference(p.read_bytes(), p), "image/jpeg") for p in plates]
+
+
 LIKENESS_PREAMBLE = (
     "The attached photograph is the author: the person facing the camera. "
     "Ignore every other face in the frame, including faces printed on "
@@ -301,17 +322,23 @@ def commission(targets: list[str], models: list[str], count: int,
     saved = 0
     for target, prompt in chosen.items():
         openai_spec, gemini_spec = shape_for(target, prompt)
-        reference = photo if target == "portrait" else None
-        if reference:
+        references: list[tuple[bytes, str]] = []
+        if target == "portrait" and photo:
+            references = [photo]
             prompt = LIKENESS_PREAMBLE + prompt
             print(f"  {target}: engraving the supplied author photograph")
+        else:
+            references = style_references(root, target)
+            if references:
+                prompt = STYLE_PREAMBLE + prompt
+                print(f"  {target}: holding to {len(references)} accepted plate(s)")
         directory = root / "art" / "candidates" / target.replace(":", "-")
         directory.mkdir(parents=True, exist_ok=True)
         for model in models:
             images = (
-                generate_openai(prompt, openai_spec, count, reference)
+                generate_openai(prompt, openai_spec, count, references)
                 if model == "openai"
-                else generate_gemini(prompt, gemini_spec, count, reference)
+                else generate_gemini(prompt, gemini_spec, count, references)
             )
             if not images:
                 print(f"  {target} <- {model}: no image returned")

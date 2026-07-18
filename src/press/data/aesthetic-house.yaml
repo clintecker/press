@@ -50,3 +50,30 @@ portrait:
   style: >-
     An engraved oval trade-journal portrait of a valued tradesman,
     dense hatching, single ink, solemn and respectful.
+
+# The web surfaces: the reading site and the landing page. Values are
+# the CSS custom-property tokens both stylesheets declare; a book
+# overrides any subset and the builders substitute at assembly.
+web-palette:
+  cloth: "#5a7d2a"
+  cloth-deep: "#46621f"
+  foil: "#b8963f"
+  foil-bright: "#c9a961"
+  foil-deep: "#8f7226"
+  paper: "#f4efe3"
+  paper-warm: "#ece5d3"
+  ink: "#23201a"
+  ink-soft: "#4d463a"
+
+typography:
+  web-family: '"Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif'
+  # pdf-family unset means the packaged Libertinus; name any font the
+  # toolchain image carries to override the book's body face.
+  pdf-family: ""
+
+# The printed page's named inks; hex without the hash, TeX-style.
+book-colors:
+  ink: "171717"
+  muted: "5C5C5C"
+  accent: "4B3E8A"
+  link: "46621F"

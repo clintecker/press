@@ -109,11 +109,20 @@ def render_defaults(name: str) -> Path:
                 'box-shadow:0 2px 12px rgba(0,0,0,0.35);"/></p>\n',
                 encoding="utf-8",
             )
+    if name == "chunked":
+        # The reader shows a cover only when the book has one; the
+        # template must not reference an image that does not exist.
+        defaults.setdefault("variables", {})["cover"] = (
+            root / "assets" / "cover.jpg"
+        ).is_file()
     if name in ("pdf", "print"):
         # An empty List of Plates is worse than none; only figure-bearing
         # books get the list.
         defaults.setdefault("variables", {})["lof"] = woodcut_count() > 0
         gen_front_matter.generate(include_cover=(name == "pdf"))
+        from . import aesthetic
+
+        aesthetic.write_tex_overrides()
     if name == "print" and (root / "tex" / "title-page-print.tex").is_file():
         # The print variant replaces the reading title page; never stack.
         defaults["include-in-header"] = [
@@ -201,7 +210,14 @@ def site_build(output_dir: str) -> None:
     if out.exists():
         shutil.rmtree(out)
     pandoc_build("chunked", output_dir, extra=["--to=chunkedhtml"])
-    shutil.copy(booklib.DATA / "web" / "reader.css", out / "reader.css")
+    from . import aesthetic
+
+    (out / "reader.css").write_text(
+        aesthetic.substitute_web(
+            (booklib.DATA / "web" / "reader.css").read_text(encoding="utf-8")
+        ),
+        encoding="utf-8",
+    )
     cover = root / "assets" / "cover.jpg"
     if cover.is_file():
         shutil.copy(cover, out / "cover.jpg")
@@ -232,8 +248,53 @@ def download_names() -> list[str]:
     return names
 
 
+EDITION_DESCRIPTIONS = [
+    (".pdf", "Print edition", "{trim}, typeset by LuaLaTeX, suitable for paper"),
+    (".epub", "Circulating edition", "EPUB, for readers of every size"),
+    (".html", "Single-leaf edition", "the whole book in one self-contained HTML file"),
+    (".md", "Manuscript edition", "plain Markdown, agreeable to machines and their agents"),
+    (".txt", "Telegraphic edition", "plain text at eighty columns, for terminals"),
+    (".docx", "Office edition", "DOCX, for reviewers armed with tracked changes"),
+    ("-site.zip", "Chapter edition, boxed", "the reading site, zipped for carrying"),
+    ("-source.zip", "Source edition", "the manuscript and its configuration, archived"),
+    ("-sources.md", "Table of authorities", "every factual claim mapped to its source"),
+]
+
+
+def subtitle_stack_html(subtitle: str) -> str:
+    """The landing page's OR stack, mirroring the title page's seams."""
+
+    import html as html_mod
+
+    leading_or = bool(re.match(r"\s*or,", subtitle, re.IGNORECASE))
+    clauses = [
+        c.strip(" ;.")
+        for c in re.split(r";?\s*\bor,\s*", subtitle, flags=re.IGNORECASE)
+        if c.strip(" ;.")
+    ]
+    if not clauses:
+        return ""
+    lines = []
+    for index, clause in enumerate(clauses):
+        if index > 0 or leading_or:
+            lines.append('      <span class="or sc">or,</span><br>')
+        tag = "strong" if index == 0 else "span"
+        close = "<br>" if index < len(clauses) - 1 else ""
+        lines.append(
+            f'      <{tag} class="sc">{html_mod.escape(clause)}</{tag}>{close}'
+        )
+    return "\n".join(lines)
+
+
 def pages_build(output_dir: str) -> None:
-    """Assemble the GitHub Pages site: landing page, chapters, downloads."""
+    """Assemble the GitHub Pages site: landing page, chapters, downloads.
+
+    Every fact on the landing page derives from metadata and the
+    artifacts actually produced; optional blocks render only when their
+    asset or config exists, and all metadata is HTML-escaped.
+    """
+
+    import html as html_mod
 
     root = booklib.root()
     out = root / output_dir
@@ -242,20 +303,71 @@ def pages_build(output_dir: str) -> None:
     out.mkdir(parents=True)
 
     meta = booklib.metadata()
+    title = html_mod.escape(str(meta["title"]))
+    trim = meta.get("trim") or {}
+    trim_text = f"{trim.get('width', 6):g} by {trim.get('height', 9):g} inches"
+
+    rows = [
+        '    <tr><td><a href="read/index.html">Chapter edition</a></td>\n'
+        '        <td class="desc">the book as a small website, one chapter per page</td></tr>'
+    ]
+    for name in download_names():
+        for suffix, label, desc in EDITION_DESCRIPTIONS:
+            if name.endswith(suffix):
+                description = desc.format(trim=trim_text)
+                rows.append(
+                    f'    <tr><td><a href="downloads/{html_mod.escape(name)}">'
+                    f"{label}</a></td>\n"
+                    f'        <td class="desc">{html_mod.escape(description)}</td></tr>'
+                )
+                break
+
+    cover_block = ""
+    if (root / "assets" / "cover.jpg").is_file():
+        cover_block = (
+            '    <div class="cover-plate">\n'
+            f'      <a href="read/index.html"><img src="cover.jpg" '
+            f'alt="Cover of {title}"></a>\n'
+            "    </div>"
+        )
+    logo_block = ""
+    if (root / "assets" / "press-logo.png").is_file():
+        publisher = html_mod.escape(str(meta["publisher"]))
+        logo_block = (
+            f'    <img class="press-logo" src="press-logo.png" '
+            f'alt="Imprint device of {publisher}">'
+        )
+    repo_paragraph = ""
+    repository = str(meta.get("repository") or "")
+    if repository:
+        repo = html_mod.escape(repository)
+        repo_paragraph = (
+            "    <p>The source lives in "
+            f'<a href="{repo}">a public build system</a>; versions and their\n'
+            f'    contents are recorded in the <a href="{repo}/blob/main/CHANGELOG.md">changelog</a>,\n'
+            f'    and finished releases live on the <a href="{repo}/releases">releases page</a>.</p>'
+        )
+
     template = (booklib.DATA / "web" / "index-template.html").read_text(encoding="utf-8")
     replacements = {
-        "{{TITLE}}": meta["title"],
-        "{{SUBTITLE}}": meta["subtitle"],
-        "{{AUTHOR}}": ", ".join(meta["author"]),
-        "{{DATE}}": meta["date"],
-        "{{COPYRIGHT}}": meta["copyright"],
-        "{{PUBLISHER}}": meta["publisher"],
-        "{{PLACE}}": meta["publisher-place"],
-        "{{REPO_URL}}": meta.get("repository", ""),
+        "{{TITLE}}": title,
+        "{{DESCRIPTION}}": html_mod.escape(str(meta.get("description", "")).strip()),
+        "{{SUBTITLE_STACK}}": subtitle_stack_html(str(meta.get("subtitle") or "")),
+        "{{COVER_BLOCK}}": cover_block,
+        "{{EDITION_ROWS}}": "\n".join(rows),
+        "{{REPO_PARAGRAPH}}": repo_paragraph,
+        "{{LOGO_BLOCK}}": logo_block,
+        "{{DATE}}": html_mod.escape(str(meta["date"])),
+        "{{COPYRIGHT}}": html_mod.escape(str(meta["copyright"])),
+        "{{PUBLISHER}}": html_mod.escape(str(meta["publisher"])),
+        "{{PLACE}}": html_mod.escape(str(meta["publisher-place"])),
     }
     page = template
     for key, value in replacements.items():
         page = page.replace(key, value)
+    from . import aesthetic
+
+    page = aesthetic.substitute_web(page)
     (out / "index.html").write_text(page, encoding="utf-8")
 
     for optional in ("cover.jpg", "press-logo.png"):

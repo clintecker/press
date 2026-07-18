@@ -22,6 +22,7 @@ metadata-file: "@book/config/metadata.yaml"
 include-in-header:
   - "@press/tex/book-header.tex"
   - "@press/tex/print-header.tex"
+  - "@book/build/aesthetic.tex?optional"
   - "@book/build/front-matter.tex?optional"
   - "@book/tex/title-page-print.tex?optional"
   - "@book/tex/title-page.tex?optional"

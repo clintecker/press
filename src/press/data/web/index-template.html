@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{TITLE}}</title>
-<meta name="description" content="{{SUBTITLE}}">
+<meta name="description" content="{{DESCRIPTION}}">
 <style>
   :root {
     --cloth: #5a7d2a;
@@ -93,8 +93,6 @@
   .built p { margin: 0.85rem 0; font-size: 0.97rem; }
   .built a { color: var(--cloth-deep); border-bottom: 1px solid var(--foil); text-decoration: none; }
   .built a:hover { color: var(--ink); }
-  .built .plate { float: right; width: 10.5rem; margin: 0.3rem 0 0.8rem 1.4rem; border: 1px solid var(--foil); }
-  @media (max-width: 40rem) { .built .plate { float: none; display: block; width: 60%; margin: 1rem auto; } }
   footer {
     text-align: center; margin-top: 2.8rem; font-size: 0.8rem; color: var(--ink-soft);
   }
@@ -110,16 +108,9 @@
     <h1>{{TITLE}}</h1>
     <hr class="rule">
     <p class="subtitle-stack">
-      <span class="or sc">or,</span><br>
-      A Brief Treatise on the Several Conditions under which<br>
-      <strong class="sc">Software may be Declared Finished;</strong><br>
-      <span class="or sc">or,</span><br>
-      Why the Agent, the Test Suite, the Pull Request, the Release Workflow,
-      and the Actual Application are Rarely Speaking of the Same Thing
+{{SUBTITLE_STACK}}
     </p>
-    <div class="cover-plate">
-      <a href="read/index.html"><img src="cover.jpg" alt="Green cloth cover of {{TITLE}}, gold-stamped, showing a scaffolded tower"></a>
-    </div>
+{{COVER_BLOCK}}
     <div class="cta">
       <a href="read/index.html">Read the Book</a>
       <span class="aside">one chapter to a page, as is proper</span>
@@ -128,51 +119,27 @@
 
   <h2>Table of Editions</h2>
   <table class="editions">
-    <tr><td><a href="read/index.html">Chapter edition</a></td>
-        <td class="desc">the book as a small website, one chapter per page</td></tr>
-    <tr><td><a href="downloads/mostly-done.pdf">Print edition</a></td>
-        <td class="desc">6 by 9 inches, typeset by LuaLaTeX, suitable for paper</td></tr>
-    <tr><td><a href="downloads/mostly-done.epub">Circulating edition</a></td>
-        <td class="desc">EPUB, cover included, for readers of every size</td></tr>
-    <tr><td><a href="downloads/mostly-done.html">Single-leaf edition</a></td>
-        <td class="desc">the whole book in one self-contained HTML file</td></tr>
-    <tr><td><a href="downloads/mostly-done.md">Manuscript edition</a></td>
-        <td class="desc">plain Markdown, agreeable to machines and their agents</td></tr>
-    <tr><td><a href="downloads/mostly-done.txt">Telegraphic edition</a></td>
-        <td class="desc">plain text at eighty columns, for terminals</td></tr>
-    <tr><td><a href="downloads/mostly-done.docx">Office edition</a></td>
-        <td class="desc">DOCX, for reviewers armed with tracked changes</td></tr>
+{{EDITION_ROWS}}
   </table>
 
   <h2>How This Book Was Built</h2>
   <div class="built">
-    <img class="plate" src="woodcuts/frontispiece-mostly-done.jpg" alt="Wood engraving of a ship christening; the stern is unfinished">
-    <p>The book practices its own advice. The source is plain Markdown in
-    <a href="{{REPO_URL}}">a public build system</a>; every edition above is
-    compiled from the same files by Pandoc and LuaLaTeX, in one command, on
-    every push. No format is edited by hand, and nothing is stated in two
-    places.</p>
-    <p>Each build must survive a gauntlet before it may call itself a book:
-    structural checks on the source, an editorial audit for synthetic prose
-    and forbidden punctuation, a jargon linter with a maintained watchlist,
-    and a rendered-page inspection that verifies trim size, embedded fonts,
-    expected text, and that every page contains ink. Releases are cut by tag;
-    the artifacts you see here were attached by the same continuous
-    integration that refused earlier, worse versions.</p>
-    <p>It was written and typeset by its author in collaboration with LLM
-    coding agents, which is the subject of the book, and revised through the
-    adversarial review it recommends. The claims inside were checked against
-    real project artifacts before printing, and where checking shrank a
-    claim, the smaller claim is what got printed. Versions and their
-    contents are recorded in the
-    <a href="{{REPO_URL}}/blob/main/CHANGELOG.md">changelog</a>;
-    finished releases live on the
-    <a href="{{REPO_URL}}/releases">releases page</a>.</p>
+    <p>Every edition above is compiled from the same plain Markdown
+    source by Pandoc and LuaLaTeX, in one command, on every push. No
+    format is edited by hand, and nothing is stated in two places.</p>
+    <p>Each build must survive a gauntlet before it may call itself a
+    book: structural checks on the source, an editorial audit for
+    synthetic prose and forbidden punctuation, a jargon linter with a
+    maintained watchlist, and a rendered-page inspection that verifies
+    trim size, embedded fonts, expected text, and that every page
+    contains ink. The artifacts here were attached by the same
+    continuous integration that refused earlier, worse versions.</p>
+{{REPO_PARAGRAPH}}
   </div>
 
   <hr class="rule">
   <footer>
-    <img class="press-logo" src="press-logo.png" alt="2389 Research Press, Chicago, Ill.: an engraved contraption of pipes, gauges, horns, and a telescope">
+{{LOGO_BLOCK}}
     <p class="press">{{PUBLISHER}}</p>
     <p>{{PLACE}}</p>
     <p>{{COPYRIGHT}}</p>

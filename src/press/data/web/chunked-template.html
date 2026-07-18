@@ -44,7 +44,7 @@ $endfor$
 <a class="skip" href="#content">Skip to chapter</a>
 $if(top)$
 <header class="masthead">
-  <a class="masthead-title" href="$top.url$" accesskey="u" rel="up top">Mostly Done.</a>
+  <a class="masthead-title" href="$top.url$" accesskey="u" rel="up top">$title$</a>
   <details class="contents-drawer">
     <summary>Contents</summary>
     <nav aria-label="Table of contents">
@@ -70,9 +70,11 @@ $endfor$
 $if(date)$
   <p class="date">$date$</p>
 $endif$
+$if(cover)$
   <div class="cover-plate">
-    <img src="cover.jpg" alt="Green cloth cover of Mostly Done., gold-stamped, showing a scaffolded tower" width="1024" height="1536" />
+    <img src="cover.jpg" alt="Cover of $title$" />
   </div>
+$endif$
 </header>
 $endif$
 $endif$
