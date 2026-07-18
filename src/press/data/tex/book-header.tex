@@ -46,7 +46,10 @@
 \ihead{\footnotesize\color{muted}\itshape\@title}
 \makeatother
 \ohead{\footnotesize\color{muted}\leftmark}
-\cfoot{\footnotesize\thepage}
+% The optional argument styles plain pages (chapter openers) as well:
+% without it they carry no folio at all, and a short appendix becomes
+% an entirely unnumbered section the table of contents points into.
+\cfoot[\footnotesize\thepage]{\footnotesize\thepage}
 \renewcommand*{\chapterpagestyle}{plain.scrheadings}
 \automark[section]{chapter}
 

@@ -56,6 +56,10 @@
     {\small Published by {{PUBLISHER}}\par}
     \vspace{0.12in}
     {\small {{PUBLISHER_PLACE}}\par}
+%<<if manufacture>>
+    \vspace{0.08in}
+    {\small {{MANUFACTURE}}\par}
+%<<end manufacture>>
 %<<if registrations>>
     \vspace{0.08in}
     {\small {{REGISTRATION_LINES}}\par}
@@ -64,6 +68,10 @@
     \vspace{0.08in}
     {\small {{CONTACT}}\par}
 %<<end contact>>
+%<<if colophon-note>>
+    \vspace{0.2in}
+    {\small\itshape\parbox{3.4in}{\centering {{COLOPHON_NOTE}}}\par}
+%<<end colophon-note>>
 %<<if motto>>
     \vspace{0.2in}
     {\small\itshape {{MOTTO}}\par}
@@ -74,6 +82,14 @@
 %<<end logo>>
   \end{center}
   \clearpage
+%<<if dedication>>
+  \thispagestyle{empty}%
+  \vspace*{2.1in}
+  \begin{center}
+    {\parbox{3.1in}{\centering\itshape {{DEDICATION}}}\par}
+  \end{center}
+  \clearpage
+%<<end dedication>>
 %<<if epigraph>>
   \thispagestyle{empty}%
   \vspace*{1.7in}
@@ -84,5 +100,15 @@
   \end{center}
   \clearpage
 %<<end epigraph>>
+%<<if acknowledgements>>
+  \thispagestyle{empty}%
+  \vspace*{1.2in}
+  \begin{center}
+    {\scshape acknowledgements\par}
+    \vspace{0.3in}
+    {\small\parbox{3.6in}{{{ACKNOWLEDGEMENTS}}}\par}
+  \end{center}
+  \clearpage
+%<<end acknowledgements>>
 }
 \makeatother

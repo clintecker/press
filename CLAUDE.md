@@ -102,10 +102,13 @@ requirements pin in the template to the new major, commit, tag, push.
   interview (book-aesthetics skill) or `press aesthetic "<brief>"`;
   `press aesthetic` shows the effective merge. Craft laws (verbatim
   text, flat plates, single-ink interiors) are not configurable.
-- `config/front-matter.yaml` (optional): epigraph, rights-notice,
-  contact, motto. Its presence asks the press to generate the PDF title
-  page, colophon, and epigraph from config; the title page stacks the
-  subtitle's OR clauses.
+- `config/front-matter.yaml` (optional): everything book-variable on
+  the generated front matter: dedication, epigraph, acknowledgements,
+  and the colophon knobs (edition-note, manufacture, colophon-note,
+  rights-notice, contact, motto). Its presence asks the press to
+  generate the PDF title page and surrounding pages from config; the
+  title page stacks the subtitle's OR clauses; absent keys simply do
+  not render.
 - `tex/title-page.tex` (optional): cover plate, title page, colophon,
   overriding the generated front matter entirely.
 - `assets/cover.jpg`, `assets/press-logo.png`, `assets/woodcuts/*.jpg`

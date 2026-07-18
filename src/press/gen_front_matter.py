@@ -120,7 +120,10 @@ def generate(include_cover: bool = True) -> Path | None:
     date = str(meta.get("date") or "")
     numeric_year = booklib.year()
     year = roman(int(numeric_year)) if numeric_year else escape(date.lower())
-    edition = escape((date.split(",")[0] if "," in date else date).lower())
+    edition = escape(
+        str(front.get("edition-note") or "").lower()
+        or (date.split(",")[0] if "," in date else date).lower()
+    )
 
     cover_on_page = include_cover and (root / "assets" / "cover.jpg").is_file()
     logo = root / "assets" / "press-logo.png"
@@ -129,8 +132,8 @@ def generate(include_cover: bool = True) -> Path | None:
     from . import registrations
 
     registration_lines = []
-    for edition, label in (("print", "ISBN (print)"), ("epub", "ISBN (ebook)")):
-        display = registrations.isbn_display(edition)
+    for isbn_edition, label in (("print", "ISBN (print)"), ("epub", "ISBN (ebook)")):
+        display = registrations.isbn_display(isbn_edition)
         if display:
             registration_lines.append(f"{label} {display}")
     if registrations.lccn_display():
@@ -143,6 +146,10 @@ def generate(include_cover: bool = True) -> Path | None:
         ("rights-notice", bool(front.get("rights-notice"))),
         ("contact", bool(front.get("contact"))),
         ("motto", bool(front.get("motto"))),
+        ("manufacture", bool(front.get("manufacture"))),
+        ("colophon-note", bool(front.get("colophon-note"))),
+        ("dedication", bool(front.get("dedication"))),
+        ("acknowledgements", bool(front.get("acknowledgements"))),
         ("registrations", bool(registration_lines)),
         ("logo", logo.is_file()),
         ("epigraph", bool(epigraph.get("quote"))),
@@ -163,6 +170,10 @@ def generate(include_cover: bool = True) -> Path | None:
         "{{CONTACT}}": escape(front.get("contact", "")),
         "{{REGISTRATION_LINES}}": "\\\\ ".join(escape(line) for line in registration_lines),
         "{{MOTTO}}": escape(front.get("motto", "")),
+        "{{MANUFACTURE}}": escape(front.get("manufacture", "")),
+        "{{COLOPHON_NOTE}}": escape(front.get("colophon-note", "")),
+        "{{DEDICATION}}": escape(front.get("dedication", "")),
+        "{{ACKNOWLEDGEMENTS}}": escape(front.get("acknowledgements", "")),
         "{{EPIGRAPH}}": escape(epigraph.get("quote", "")),
         "{{EPIGRAPH_ATTRIBUTION}}": escape(epigraph.get("attribution", "")),
         "{{COVER_PATH}}": "assets/cover.jpg",
