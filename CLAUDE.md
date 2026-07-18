@@ -61,6 +61,12 @@ requirements pin in the template to the new major, commit, tag, push.
   `jargon-allow`, `audit-dirs`.
 - `config/index-terms.yaml` (optional): curated subject-index terms; the
   index appendix generates on every build and zero-hit terms fail it.
+- `config/authorities.yaml` (optional): the table of authorities, a ledger
+  mapping exact text fragments (claims of fact) to the sources that
+  warrant them. The "Sources and authorities" appendix generates on every
+  build; a claim whose sentence has left the text fails the run. Populate
+  it with the `authorities-research` workflow (extract, research with web
+  sources, adversarial audit, ledger write).
 - `tex/title-page.tex` (optional): cover plate, title page, colophon.
 - `assets/cover.jpg`, `assets/press-logo.png`, `assets/woodcuts/*.jpg`
   (all optional; every consumer degrades gracefully when absent).
@@ -70,8 +76,10 @@ requirements pin in the template to the new major, commit, tag, push.
 ## Scars (carried from the first book; do not relearn them)
 
 - A figure taller than the text block makes LuaLaTeX ship empty pages
-  forever, silently, at 100% CPU. Cap images at 7.1in on a 9in trim; never
-  stack a third `titlepage`.
+  forever, silently, at 100% CPU. The TeX header now caps every included
+  image at 6.3in tall (caption room included) so markdown figures cannot
+  trigger it; the cap in tex/title-page.tex covers the cover plate; never
+  stack a third `titlepage`. Do not raise either cap near \textheight.
 - Ubuntu has no `fonts-libertinus` package, and `--no-install-recommends`
   drops the Libertine keyboard face; the Dockerfile states
   `fonts-linuxlibertine` explicitly.

@@ -19,6 +19,7 @@ from pathlib import Path
 import yaml
 
 from . import booklib
+from . import gen_authorities
 from . import gen_index
 
 
@@ -33,13 +34,16 @@ def run(command: list[str]) -> None:
 
 
 def book_inputs() -> list[str]:
-    """Chapter files plus the generated subject-index appendix, if curated."""
+    """Chapters, then appendices merged with generated appendices in letter order."""
 
-    inputs = booklib.chapter_args()
-    generated = gen_index.generate()
-    if generated is not None:
-        inputs.append(str(generated.relative_to(booklib.root())))
-    return inputs
+    root = booklib.root()
+    chapters = [a for a in booklib.chapter_args() if "/chapters/" in a.replace("\\", "/")]
+    appendices = [a for a in booklib.chapter_args() if "/appendices/" in a.replace("\\", "/")]
+    for generated in (gen_index.generate(), gen_authorities.generate()):
+        if generated is not None:
+            appendices.append(str(generated.relative_to(root)))
+    appendices.sort(key=lambda a: Path(a).name)
+    return chapters + appendices
 
 
 def woodcut_count() -> int:

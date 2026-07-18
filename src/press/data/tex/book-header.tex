@@ -75,6 +75,10 @@
 \usepackage{graphicx}
 \usepackage{float}
 \floatplacement{figure}{H}
+% A figure taller than the text block makes LuaLaTeX ship empty pages
+% forever, silently. The cap leaves room for the caption below the image;
+% never raise it near \textheight. Never upscales (maxwidth <= natural).
+\AtBeginDocument{\setkeys{Gin}{width=\maxwidth,height=6.3in,keepaspectratio}}
 
 % Render Markdown blockquotes as quiet, book-like callouts.
 \renewenvironment{quote}

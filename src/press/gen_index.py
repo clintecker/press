@@ -44,9 +44,9 @@ def generate() -> Path | None:
     with terms_path.open(encoding="utf-8") as handle:
         entries = yaml.safe_load(handle)
 
-    # The index files in as the next appendix letter after those on disk.
-    existing = len(list((booklib.root() / "book" / "appendices").glob("[a-z]-*.md")))
-    letter = chr(ord("a") + existing)
+    # The index takes the first free appendix letter.
+    from .gen_authorities import next_letter, taken_letters
+    letter = next_letter(taken_letters())
     output = booklib.root() / "build" / "generated" / f"{letter}-index-of-subjects.md"
 
     sources = [
