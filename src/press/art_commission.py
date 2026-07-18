@@ -223,7 +223,13 @@ def author_photo(root: Path) -> tuple[bytes, str] | None:
     for path in sorted((root / "art").glob("author-photo.*")):
         mime = mimes.get(path.suffix.lower())
         if mime and path.is_file():
-            return path.read_bytes(), mime
+            data = path.read_bytes()
+            if not data:
+                raise SystemExit(
+                    f"{path} is empty (an interrupted copy?); "
+                    "re-save the photograph and rerun"
+                )
+            return data, mime
     return None
 
 
