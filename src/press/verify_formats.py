@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import argparse
 import html.parser
+import os
+import shutil
+import subprocess
 import zipfile
 from pathlib import Path
 
@@ -64,6 +67,39 @@ def verify_epub(path: Path) -> None:
                 raise SystemExit(f"EPUB missing sentinel: {sentinel}")
 
 
+def epubcheck(path: Path) -> None:
+    """Validate the EPUB with epubcheck, the validator retail channels run.
+
+    Retail channels reject invalid EPUBs, so the press must reject them
+    first. The toolchain image carries epubcheck; an authoring sandbox may
+    not (it needs a Java runtime).
+    """
+
+    if shutil.which("epubcheck") is None:
+        # Strictness keys on the toolchain's own promise (PRESS_TOOLCHAIN,
+        # set in the image), not the ambient CI variable: CI=false would
+        # read truthy, and an image predating epubcheck must degrade to
+        # this warning rather than fail every book while :latest catches up.
+        if os.environ.get("PRESS_TOOLCHAIN"):
+            raise SystemExit(
+                "epubcheck missing from the press toolchain image; the "
+                "retail-format gate cannot be skipped where releases are cut"
+            )
+        print(
+            "WARNING: epubcheck not installed; EPUB validated structurally "
+            "only. The press toolchain runs the full check in CI. "
+            "(brew install epubcheck)"
+        )
+        return
+    result = subprocess.run(["epubcheck", str(path)], capture_output=True, text=True)
+    if result.returncode != 0:
+        raise SystemExit(
+            f"epubcheck failed on {path} (exit {result.returncode}):\n"
+            f"{result.stdout}{result.stderr}"
+        )
+    print(f"epubcheck passed: {path.name}")
+
+
 def verify_plaintext(path: Path, label: str) -> None:
     text = " ".join(path.read_text(encoding="utf-8").split())
     for sentinel in booklib.sentinels():
@@ -120,6 +156,7 @@ def main(argv: list[str] | None = None) -> int:
             raise SystemExit(f"missing or suspicious artifact: {path}")
     verify_html(args.html)
     verify_epub(args.epub)
+    epubcheck(args.epub)
     verified = [args.html.name, args.epub.name]
     if args.markdown:
         verify_plaintext(args.markdown, "markdown")

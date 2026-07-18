@@ -20,6 +20,7 @@ USAGE = """usage: press <target>
 building        pdf epub html markdown site txt docx pages source all
 checking        check style verify verify-formats
 utilities       render wordcount clean new <directory>
+instruments     skills workflows
 """
 
 
@@ -84,6 +85,14 @@ def main(argv: list[str] | None = None) -> int:
         from . import scaffold
 
         return scaffold.main(args[1:])
+    if target == "skills":
+        from . import instruments
+
+        return instruments.list_skills()
+    if target == "workflows":
+        from . import instruments
+
+        return instruments.list_workflows()
 
     from . import build
 

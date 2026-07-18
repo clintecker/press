@@ -11,6 +11,12 @@ FROM ubuntu:24.04
 # face in for you.
 
 ENV DEBIAN_FRONTEND=noninteractive
+# The toolchain's promise, stated as an env var: every tool the verifiers
+# gate on is present here. Verifiers hard-fail on a missing tool only where
+# this is set, so an outdated image degrades to a warning instead of
+# failing every book, and a regression in this image cannot silently
+# drop a gate.
+ENV PRESS_TOOLCHAIN=1
 RUN apt-get update && apt-get install -y --no-install-recommends \
     make \
     git \
@@ -19,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     poppler-utils \
+    epubcheck \
     texlive-luatex \
     texlive-latex-extra \
     texlive-fonts-extra \

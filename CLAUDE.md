@@ -32,14 +32,20 @@ book repository that consumes this package.
   repetition, and arc passes producing suggestions; per-chapter
   synthesizers applying them; `press check` closing each round, iterating
   until suggestions dry up). The scaffold lays it into every book's
-  `.claude/workflows/`; run it with the Workflow tool by name
-  (`editorial-passes`) from inside a book. It hard-codes the named diseases
+  `.claude/workflows/`, stamped with the press version so drift is
+  visible; run it with the Workflow tool by name (`editorial-passes`)
+  from inside a book. It hard-codes the named diseases
   of agent prose (epigram compulsion with a two-maxim quota, uniform
   rhetorical rhythm, self-annotation) because "apply the skills" alone
   produces locally-obedient, globally-patterned prose.
-- `skills/` holds the authoring guides (four prose skills, jargon watchlist
-  documentation, design skills for covers, plates, and logomarks). Read the
-  relevant ones before composing prose or art direction for any book.
+- `src/press/data/skills/` holds the authoring guides (four prose skills,
+  the overused-jargon skill whose `references/watchlist.csv` is the one
+  watchlist the jargon lint reads, design skills for covers, plates, and
+  logomarks). They are package data: `press skills` lists them with
+  installed paths, `press workflows` prints paste-ready workflow
+  invocations, and workflows resolve skills through `press skills` before
+  falling back to a checkout. Read the relevant ones before composing
+  prose or art direction for any book.
 
 ## Where this is going
 

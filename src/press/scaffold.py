@@ -9,8 +9,23 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-TEMPLATE = Path(__file__).resolve().parent / "data" / "template"
+from . import booklib, instruments, version
+
+TEMPLATE = booklib.DATA / "template"
 TEMPLATE_MARKER = "{{SLUG}}"
+
+
+def stamp_workflows(destination: Path) -> None:
+    """Copy packaged workflows into .claude/workflows/, stamped with the
+    press version so a book can see when its pinned copies drift."""
+
+    target = destination / ".claude" / "workflows"
+    target.mkdir(parents=True, exist_ok=True)
+    stamp = f"// scaffolded by press {version()}; source of truth: press data/workflows\n"
+    for name, path in instruments.workflow_paths().items():
+        (target / f"{name}.js").write_text(
+            stamp + path.read_text(encoding="utf-8"), encoding="utf-8"
+        )
 
 
 def main(args: list[str]) -> int:
@@ -23,6 +38,7 @@ def main(args: list[str]) -> int:
     shutil.copytree(TEMPLATE, destination)
     for path in sorted(destination.rglob("dot-*"), reverse=True):
         path.rename(path.with_name("." + path.name[len("dot-") :]))
+    stamp_workflows(destination)
     slug = destination.name
     for path in destination.rglob("*"):
         if path.is_file():

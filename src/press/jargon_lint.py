@@ -18,6 +18,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
 
+from . import instruments
+
 
 # Higher numbers are stricter findings.
 STATUS_LEVEL = {
@@ -60,7 +62,7 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     """Parse command-line arguments."""
 
     default_watchlist = (
-        Path(__file__).resolve().parent / "data" / "jargon" / "watchlist.csv"
+        instruments.SKILLS / "overused-jargon" / "references" / "watchlist.csv"
     )
 
     parser = argparse.ArgumentParser(

@@ -1,7 +1,7 @@
 export const meta = {
   name: 'editorial-passes',
   description: 'Iterative editorial machine: per-chapter skill passes and whole-book passes produce suggestions, synthesizers apply them, mechanical law closes each round',
-  whenToUse: 'args: {root: absolute path to the book repository}. Run against a book repository after composing or substantially revising chapters. args: {rounds?: number (default 2), skillsDir?: string, maxims?: number (default 2)}',
+  whenToUse: 'args: {root: absolute path to the book repository}. Run against a book repository after composing or substantially revising chapters. args: {rounds?: number (default 2), maxims?: number (default 2)}',
   phases: [
     { title: 'Scout', detail: 'find the manuscript and the skills' },
     { title: 'Suggest', detail: 'per-chapter skill lenses + whole-book lenses, suggestions only' },
@@ -10,18 +10,17 @@ export const meta = {
   ],
 }
 
-const ROOT = A.root || '.'
 const A = (typeof args === 'string') ? JSON.parse(args) : (args || {})
+const ROOT = A.root || '.'
 const ROUNDS = A.rounds || 2
 const MAXIMS = A.maxims ?? 2
-const SKILLS_HINT = A.skillsDir || ''
 
 if (ROOT === '.') throw new Error('args.root is required: pass the absolute path of the book repository')
 phase('Scout')
 const scout = await agent(
 `The book repository is at ${ROOT} (work there, not in the session directory). Report its shape:
 1. List every manuscript file under its book/chapters/ and book/appendices/, in filename order (paths relative to ${ROOT}).
-2. Find the four prose skills (humanizer, onwritingwell, elems_of_style, hemingway). Look, in order: ${SKILLS_HINT ? SKILLS_HINT + ', then ' : ''}a skills/ directory in this repo, ../press/skills, ~/code/press/skills. Report the absolute paths of the four files.
+2. Find the four prose skills (humanizer, onwritingwell, elems_of_style, hemingway): run \`press skills\` (or \`python3 -m press skills\`) from ${ROOT} and use the paths it prints. Only if the press is not installed, look under a press checkout's src/press/data/skills. Report the absolute paths of the four files.
 3. Read ${ROOT}/config/metadata.yaml and report the verify-sentinels list (exact strings that must survive any revision).
 4. Read ${ROOT}/config/house-rules.yaml if present and report banned-patterns labels and jargon-allow.`,
   { label: 'scout', phase: 'Scout', schema: { type: 'object', properties: {
