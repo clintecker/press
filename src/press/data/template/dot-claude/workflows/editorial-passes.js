@@ -1,7 +1,7 @@
 export const meta = {
   name: 'editorial-passes',
   description: 'Iterative editorial machine: per-chapter skill passes and whole-book passes produce suggestions, synthesizers apply them, mechanical law closes each round',
-  whenToUse: 'Run from a book repository after composing or substantially revising chapters. args: {rounds?: number (default 2), skillsDir?: string, maxims?: number (default 2)}',
+  whenToUse: 'args: {root: absolute path to the book repository}. Run against a book repository after composing or substantially revising chapters. args: {rounds?: number (default 2), skillsDir?: string, maxims?: number (default 2)}',
   phases: [
     { title: 'Scout', detail: 'find the manuscript and the skills' },
     { title: 'Suggest', detail: 'per-chapter skill lenses + whole-book lenses, suggestions only' },
@@ -10,17 +10,18 @@ export const meta = {
   ],
 }
 
+const ROOT = (args && args.root) || '.'
 const ROUNDS = (args && args.rounds) || 2
 const MAXIMS = (args && args.maxims) ?? 2
 const SKILLS_HINT = (args && args.skillsDir) || ''
 
 phase('Scout')
 const scout = await agent(
-`You are in a book repository built by the press. Report its shape:
-1. List every manuscript file under book/chapters/ and book/appendices/, in filename order (relative paths).
+`The book repository is at ${ROOT} (work there, not in the session directory). Report its shape:
+1. List every manuscript file under its book/chapters/ and book/appendices/, in filename order (paths relative to ${ROOT}).
 2. Find the four prose skills (humanizer, onwritingwell, elems_of_style, hemingway). Look, in order: ${SKILLS_HINT ? SKILLS_HINT + ', then ' : ''}a skills/ directory in this repo, ../press/skills, ~/code/press/skills. Report the absolute paths of the four files.
-3. Read config/metadata.yaml and report the verify-sentinels list (exact strings that must survive any revision).
-4. Read config/house-rules.yaml if present and report banned-patterns labels and jargon-allow.`,
+3. Read ${ROOT}/config/metadata.yaml and report the verify-sentinels list (exact strings that must survive any revision).
+4. Read ${ROOT}/config/house-rules.yaml if present and report banned-patterns labels and jargon-allow.`,
   { label: 'scout', phase: 'Scout', schema: { type: 'object', properties: {
       files: { type: 'array', items: { type: 'string' } },
       skills: { type: 'array', items: { type: 'string' } },
@@ -52,7 +53,7 @@ ${scout.skills.map(s => '- ' + s).join('\n')}
 ${DISEASES}
 ${LAW}
 
-Now read ${f} closely and produce SUGGESTIONS ONLY (do not edit the file): each with the exact current text (short quote), the proposed replacement or 'delete', and which skill or disease motivates it. Suggest nothing that changes facts, practices, rules, headings, image lines, or captions. Quality over quantity; an empty list is an acceptable answer for clean prose. Cap at 12.`,
+Now read ${ROOT}/${f} closely and produce SUGGESTIONS ONLY (do not edit the file): each with the exact current text (short quote), the proposed replacement or 'delete', and which skill or disease motivates it. Suggest nothing that changes facts, practices, rules, headings, image lines, or captions. Quality over quantity; an empty list is an acceptable answer for clean prose. Cap at 12.`,
     { label: `suggest:${f.split('/').pop()}`, phase: 'Suggest',
       schema: { type: 'object', properties: { file: { type: 'string' }, suggestions: { type: 'array', items: { type: 'object', properties: { current: { type: 'string' }, proposed: { type: 'string' }, reason: { type: 'string' } }, required: ['current', 'proposed', 'reason'] } } }, required: ['file', 'suggestions'] } }
   ).then(r => ({ ...r, file: f })))
@@ -62,7 +63,7 @@ Now read ${f} closely and produce SUGGESTIONS ONLY (do not edit the file): each 
     { key: 'repetition', prompt: 'Hunt whole-book repetition: the same fact, joke, image, or lesson introduced as new in two places; the same distinctive phrase reused; two chapters claiming the same example.' },
     { key: 'arc', prompt: 'Judge the book as one argument: does each chapter earn its place and order, do transitions land, does any chapter contradict another in doctrine or detail, does the conceit (if the book sustains one) stay load-bearing rather than decorative?' },
   ].map(lens => () => agent(
-`Whole-book ${lens.key} pass, round ${round}. Read EVERY file in order: ${scout.files.join(', ')}.
+`Whole-book ${lens.key} pass, round ${round}. Read EVERY file in order under ${ROOT}: ${scout.files.join(', ')}.
 ${lens.prompt}
 ${DISEASES}
 ${LAW}
@@ -86,7 +87,7 @@ Produce SUGGESTIONS ONLY (no edits): each names the file, quotes the exact curre
 
   phase('Synthesize')
   const applied = await parallel(Object.entries(byFile).map(([file, suggestions]) => () => agent(
-`You are the synthesizer for ${file}. Below are editorial suggestions from independent per-chapter and whole-book passes. Apply them with Edit, exercising judgment: adopt what improves the prose, reconcile conflicts, skip anything that would change facts, rules, headings, image lines, captions, or violate the law. Preserve the author's voice; do not add length.
+`You are the synthesizer for ${ROOT}/${file}. Below are editorial suggestions from independent per-chapter and whole-book passes. Apply them with Edit, exercising judgment: adopt what improves the prose, reconcile conflicts, skip anything that would change facts, rules, headings, image lines, captions, or violate the law. Preserve the author's voice; do not add length.
 ${LAW}
 
 SUGGESTIONS:
@@ -102,7 +103,7 @@ Return the count you applied and the count you rejected with a one-line reason f
 
   phase('Law')
   await agent(
-`In the book repository, run the mechanical law and settle it: execute \`press check\` (or \`python3 -m press check\`) from the repo root. Fix every violation it reports by rewriting sentences (never by substituting other punctuation), rerun until green. Verify each sentinel string still exists in the manuscript: ${JSON.stringify(scout.sentinels)}. If one is missing, restore it faithfully in its original location. Return the final check output's last line.`,
+`In the book repository at ${ROOT}, run the mechanical law and settle it: execute \`press check\` (or \`python3 -m press check\`) from ${ROOT}. Fix every violation it reports by rewriting sentences (never by substituting other punctuation), rerun until green. Verify each sentinel string still exists in the manuscript: ${JSON.stringify(scout.sentinels)}. If one is missing, restore it faithfully in its original location. Return the final check output's last line.`,
     { label: `law:round${round}`, phase: 'Law' }
   )
   if (appliedCount < 5) break

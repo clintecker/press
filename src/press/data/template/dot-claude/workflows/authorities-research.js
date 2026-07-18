@@ -1,7 +1,7 @@
 export const meta = {
   name: 'authorities-research',
   description: 'Extract every claim of fact from the manuscript, research real sources for each, adversarially verify, and write config/authorities.yaml for the build to enforce',
-  whenToUse: 'Run from a book repository whose chapters assert facts (historical, technical, numerical) that deserve attribution. args: {maxClaimsPerFile?: number (default 8)}',
+  whenToUse: 'args: {root: absolute path to the book repository}. Run against a book repository whose chapters assert facts (historical, technical, numerical) that deserve attribution. args: {maxClaimsPerFile?: number (default 8)}',
   phases: [
     { title: 'Extract', detail: 'per-chapter claim harvest' },
     { title: 'Research', detail: 'find a real authority for each claim' },
@@ -11,15 +11,16 @@ export const meta = {
 }
 
 const CAP = (args && args.maxClaimsPerFile) || 8
+const ROOT = (args && args.root) || '.'
 
 phase('Extract')
 const scout = await agent(
-`In this book repository, list every manuscript file under book/chapters/ and book/appendices/ in filename order (relative paths).`,
+`The book repository is at ${ROOT} (work there, not in the session directory). List every manuscript file under its book/chapters/ and book/appendices/ in filename order (relative paths).`,
   { label: 'scout', phase: 'Extract',
     schema: { type: 'object', properties: { files: { type: 'array', items: { type: 'string' } } }, required: ['files'] } }
 )
 const harvested = await parallel(scout.files.map(f => () => agent(
-`Read ${f} closely. Extract every CLAIM OF FACT the text asserts about the real world: historical practices, trade customs, terminology origins, dates, numbers, technical assertions about how things worked. NOT the author's own opinions, doctrines, or workshop practices; only statements a skeptical reader could ask "says who?" about.
+`Read ${ROOT}/${f} closely. Extract every CLAIM OF FACT the text asserts about the real world: historical practices, trade customs, terminology origins, dates, numbers, technical assertions about how things worked. NOT the author's own opinions, doctrines, or workshop practices; only statements a skeptical reader could ask "says who?" about.
 
 For each claim return:
 - fragment: a SHORT exact quote from the file (5-15 words, verbatim, no ellipses) that pins the claim to the text
@@ -36,7 +37,7 @@ const researched = await parallel(claims.map(c => () => agent(
 `You are sourcing one factual claim from a book about the printing trade and modern software.
 
 CLAIM (as the text asserts it): ${c.assertion}
-EXACT TEXT FRAGMENT: "${c.fragment}" (in ${c.file})
+EXACT TEXT FRAGMENT: "${c.fragment}" (in ${ROOT}/${c.file})
 
 Use web search to find a real, checkable authority: a published book, scholarly article, museum or archive page, or standard reference that supports the claim. Prefer primary or classic sources (e.g. Moxon's Mechanick Exercises, trade histories, OED etymologies) over blogs. Then judge honestly:
 - If the claim is supported: give the authority as a short citation (author, title, year; add publisher or archive only if needed to find it) and one dry line on what it establishes.
@@ -68,14 +69,14 @@ log(`${good.length} attributions hold; ${unsourced.length} claims lack support`)
 
 phase('Ledger')
 const result = await agent(
-`Write the book's table of authorities and prove the build accepts it.
+`Work in the book repository at ${ROOT}. Write its table of authorities and prove the build accepts it.
 
-1. Write config/authorities.yaml as a YAML list; for each entry below use keys claim (the exact fragment), authority, and note (omit note if empty). Keep the fragments EXACTLY as given; the build verifies them against the text and fails on any mismatch. If a fragment does not appear verbatim in its file (check with grep after whitespace-normalizing), shorten it to a substring that does.
+1. Write ${ROOT}/config/authorities.yaml as a YAML list; for each entry below use keys claim (the exact fragment), authority, and note (omit note if empty). Keep the fragments EXACTLY as given; the build verifies them against the text and fails on any mismatch. If a fragment does not appear verbatim in its file (check with grep after whitespace-normalizing), shorten it to a substring that does.
 
 ENTRIES:
 ${JSON.stringify(good.map(x => ({ claim: x.fragment, file: x.file, authority: x.authority, note: x.note || '' })), null, 2)}
 
-2. Run \`press pdf\` (or \`python3 -m press pdf\`) from the repo root. If the authorities generator rejects a claim, fix that entry's fragment and rerun until the build passes.
+2. Run \`press pdf\` (or \`python3 -m press pdf\`) from ${ROOT}. If the authorities generator rejects a claim, fix that entry's fragment and rerun until the build passes.
 
 3. Report the claims that could NOT be sourced (below). Do NOT put them in the ledger; instead list them in your return so the author can decide whether to soften or cut those sentences:
 ${JSON.stringify(unsourced.map(x => ({ file: x.file, fragment: x.fragment, assertion: x.assertion })), null, 2)}
