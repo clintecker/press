@@ -28,4 +28,9 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/clintecker/press-toolchain:latest
+          # :latest floats for development; the sha tag is immutable and
+          # is what a release's build.yml pins, so a three-part press
+          # tag resolves the same toolchain bytes forever.
+          tags: |
+            ghcr.io/clintecker/press-toolchain:latest
+            ghcr.io/clintecker/press-toolchain:sha-${{ github.sha }}
