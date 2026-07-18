@@ -84,6 +84,24 @@ def check_source_policy() -> None:
             booklib.metadata.cache_clear()
 
 
+def check_format_witnesses() -> None:
+    """The DOCX extractor reads visible text across split runs, and the
+    witness normalization folds case and smart quotes."""
+
+    from .verify_formats import docx_visible_text, normalized
+
+    xml = (b'<?xml version="1.0"?>'
+           b'<w:document xmlns:w="http://schemas.openxmlformats.org/'
+           b'wordprocessingml/2006/main"><w:body><w:p>'
+           b'<w:r><w:t>the witness </w:t></w:r>'
+           b'<w:r><w:t>line survives across runs</w:t></w:r>'
+           b'</w:p></w:body></w:document>')
+    assert "the witness line survives across runs" in docx_visible_text(xml)
+    corrupted = xml.replace(b"survives", b"vanished from")
+    assert "line survives" not in docx_visible_text(corrupted)
+    assert normalized("The \u201cWitness\u201d") == 'the "witness"'
+
+
 def check_registry() -> None:
     """The artifact graph is acyclic, outputs are unique, and every
     published artifact resolves to concrete filenames."""
@@ -242,6 +260,7 @@ def main() -> int:
     check_scaffold_neutrality()
     check_book_model()
     check_registry()
+    check_format_witnesses()
     check_docs()
     print(f"Selftest passed: {len(modules())} modules import, arithmetic agrees "
           "with the canonical examples, usage and README name every target")

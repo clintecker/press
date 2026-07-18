@@ -33,6 +33,45 @@ class VisibleText(html.parser.HTMLParser):
             self.parts.append(data)
 
 
+
+STRAIGHTEN = str.maketrans("\u2018\u2019\u201c\u201d", "''\"\"")
+
+
+def normalized(text: str) -> str:
+    return " ".join(text.split()).casefold().translate(STRAIGHTEN)
+
+
+def manuscript_witness() -> str:
+    """One long plain line of the manuscript, markup-free, that every
+    format must carry: content survival proven even with an empty
+    sentinel list."""
+
+    best = ""
+    for path in booklib.chapter_files():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if len(line) <= len(best) or len(line) < 40:
+                continue
+            if any(ch in line for ch in "*_`[]()<>\"'&#!|"):
+                continue
+            best = line
+    return normalized(best)
+
+
+def require_witnesses(text: str, label: str) -> None:
+    """Title and manuscript witness, normalized, in every format."""
+
+    haystack = normalized(text)
+    title = normalized(booklib.book().title)
+    if title and title not in haystack:
+        raise SystemExit(f"{label} does not carry the book title: {booklib.book().title}")
+    witness = manuscript_witness()
+    if witness and witness not in haystack:
+        raise SystemExit(
+            f"{label} lost the manuscript witness line: {witness[:60]}..."
+        )
+
+
 def plate_count() -> int:
     return len(list((booklib.root() / "assets" / "woodcuts").glob("*.jpg")))
 
@@ -46,6 +85,7 @@ def verify_html(path: Path) -> None:
             raise SystemExit(f"HTML missing sentinel: {sentinel}")
     if "<html" not in path.read_text(encoding="utf-8", errors="ignore").lower():
         raise SystemExit("HTML output has no html element")
+    require_witnesses(text, "HTML")
 
 
 def verify_epub(path: Path) -> None:
@@ -82,6 +122,7 @@ def verify_epub(path: Path) -> None:
         for sentinel in booklib.sentinels():
             if " ".join(sentinel.split()) not in text:
                 raise SystemExit(f"EPUB missing sentinel: {sentinel}")
+        require_witnesses(text, "EPUB")
 
 
 def epubcheck(path: Path) -> None:
@@ -131,17 +172,32 @@ def verify_plaintext(path: Path, label: str) -> None:
     for sentinel in booklib.sentinels():
         if sentinel not in text:
             raise SystemExit(f"{label} missing sentinel: {sentinel}")
+    require_witnesses(text, label)
+
+
+def docx_visible_text(document: bytes) -> str:
+    """The w:t node text, joined: what a reader sees, not the markup."""
+
+    import xml.etree.ElementTree as ET
+
+    w = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t"
+    root_el = ET.fromstring(document)
+    return " ".join("".join(node.text or "" for node in root_el.iter(w)).split())
 
 
 def verify_docx(path: Path) -> None:
     with zipfile.ZipFile(path) as archive:
         with archive.open("word/document.xml") as handle:
-            document = handle.read().decode("utf-8", errors="replace")
+            document = handle.read()
         media = [name for name in archive.namelist() if name.startswith("word/media/")]
-    flattened = " ".join(document.split())
+    # Visible text is the w:t nodes, not the raw markup: a sentinel
+    # split across runs or containing markup-active characters used to
+    # defeat a raw substring search.
+    flattened = docx_visible_text(document)
     for sentinel in booklib.sentinels():
-        if sentinel not in flattened:
+        if " ".join(sentinel.split()) not in flattened:
             raise SystemExit(f"docx missing sentinel: {sentinel}")
+    require_witnesses(flattened, "docx")
     expected_plates = plate_count()
     if len(media) < expected_plates:
         raise SystemExit(
@@ -166,6 +222,14 @@ def verify_site(path: Path) -> None:
         woodcuts = list((path / "assets" / "woodcuts").glob("*.jpg"))
         if len(woodcuts) < source_plates:
             raise SystemExit(f"site carries {len(woodcuts)} plates; expected {source_plates}")
+    aggregate = VisibleText()
+    for page in sorted(path.glob("*.html")):
+        aggregate.feed(page.read_text(encoding="utf-8", errors="replace"))
+    site_text = " ".join(" ".join(aggregate.parts).split())
+    for sentinel in booklib.sentinels():
+        if " ".join(sentinel.split()) not in site_text:
+            raise SystemExit(f"reader site missing sentinel: {sentinel}")
+    require_witnesses(site_text, "reader site")
 
 
 def main(argv: list[str] | None = None) -> int:

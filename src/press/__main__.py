@@ -164,9 +164,15 @@ def main(argv: list[str] | None = None) -> int:
              "--profile", "print"]
         )
     if target == "verify-formats":
+        from . import package_source, verify_archives
+
         for name in ["epub", "html", "markdown", "site", "txt", "docx"]:
             build.build_target(name)
-        return verify_formats_built()
+        package_source.main()
+        code = verify_formats_built()
+        if code:
+            return code
+        return verify_archives.main()
     if target == "all":
         code = check()
         if code:
@@ -185,7 +191,12 @@ def main(argv: list[str] | None = None) -> int:
         code = verify_built()
         if code:
             return code
-        return verify_formats_built()
+        code = verify_formats_built()
+        if code:
+            return code
+        from . import verify_archives
+
+        return verify_archives.main()
     if target == "render":
         build.build_target("pdf")
         out = booklib.root() / "build" / "rendered-book"
