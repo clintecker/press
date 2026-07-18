@@ -27,6 +27,16 @@ book repository that consumes this package.
   until then its builds die at "Initialize containers" with a pull denial.
   The workflow already authenticates with the calling repo's token, so the
   grant is the only step.
+- `src/press/data/workflows/editorial-passes.js` is the editorial machine:
+  an agent workflow (per-chapter skill passes plus whole-book cadence,
+  repetition, and arc passes producing suggestions; per-chapter
+  synthesizers applying them; `press check` closing each round, iterating
+  until suggestions dry up). The scaffold lays it into every book's
+  `.claude/workflows/`; run it with the Workflow tool by name
+  (`editorial-passes`) from inside a book. It hard-codes the named diseases
+  of agent prose (epigram compulsion with a two-maxim quota, uniform
+  rhetorical rhythm, self-annotation) because "apply the skills" alone
+  produces locally-obedient, globally-patterned prose.
 - `skills/` holds the authoring guides (four prose skills, jargon watchlist
   documentation, design skills for covers, plates, and logomarks). Read the
   relevant ones before composing prose or art direction for any book.
