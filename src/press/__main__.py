@@ -20,9 +20,10 @@ USAGE = """usage: press <target>
 building        pdf epub html markdown site txt docx pages source all
 checking        check style verify verify-formats
 print pack      print verify-print coverwrap publish kdp|ingram
-utilities       render wordcount clean new <directory>
+utilities       render wordcount clean new <directory> selftest
 instruments     skills workflows
-art             art accept <file> --as cover|plate:<name>|logomark|portrait
+art             art commission [targets] | art accept <file> --as <target>
+operator        improve [--apply] | research
 """
 
 
@@ -87,10 +88,22 @@ def main(argv: list[str] | None = None) -> int:
         from . import scaffold
 
         return scaffold.main(args[1:])
+    if target == "selftest":
+        from . import selftest
+
+        return selftest.main()
     if target == "art":
         from . import art
 
         return art.main(args[1:])
+    if target == "improve":
+        from . import operator
+
+        return operator.improve(args[1:])
+    if target == "research":
+        from . import operator
+
+        return operator.research(args[1:])
     if target == "skills":
         from . import instruments
 

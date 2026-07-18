@@ -1,7 +1,7 @@
 export const meta = {
   name: 'editorial-passes',
   description: 'Iterative editorial machine: per-chapter skill passes and whole-book passes produce suggestions, synthesizers apply them, mechanical law closes each round',
-  whenToUse: 'args: {root: absolute path to the book repository}. Run against a book repository after composing or substantially revising chapters. args: {rounds?: number (default 2), maxims?: number (default 2)}',
+  whenToUse: 'args: {root: absolute path to the book repository}. Run against a book repository after composing or substantially revising chapters. args: {rounds?: number (default 2), maxims?: number (default 2), report?: boolean (suggestions written to build/editorial-report.md, nothing applied)}',
   phases: [
     { title: 'Scout', detail: 'find the manuscript and the skills' },
     { title: 'Suggest', detail: 'per-chapter skill lenses + whole-book lenses, suggestions only' },
@@ -12,7 +12,8 @@ export const meta = {
 
 const A = (typeof args === 'string') ? JSON.parse(args) : (args || {})
 const ROOT = A.root || '.'
-const ROUNDS = A.rounds || 2
+const REPORT = !!A.report
+const ROUNDS = REPORT ? 1 : (A.rounds || 2)
 const MAXIMS = A.maxims ?? 2
 
 if (ROOT === '.') throw new Error('args.root is required: pass the absolute path of the book repository')
@@ -84,6 +85,22 @@ Produce SUGGESTIONS ONLY (no edits): each names the file, quotes the exact curre
   }
   const count = Object.values(byFile).reduce((n, a) => n + a.length, 0)
   log(`round ${round}: ${count} suggestions across ${Object.keys(byFile).length} files`)
+
+  if (REPORT) {
+    phase('Synthesize')
+    await agent(
+`Write ${ROOT}/build/editorial-report.md (create build/ if needed): an editorial report the author reads before deciding anything. Do NOT edit any manuscript file.
+Organize by file in manuscript order; under each file list every suggestion with the exact current text quoted, the proposed replacement or 'delete', and the reason (which skill or disease). Open with a short summary: total counts, the dominant diseases found, and the two or three highest-value changes across the whole book. Close with anything the whole-book passes said about cadence, repetition, or arc that no single edit fixes. If there are zero suggestions, say so plainly: a clean bill of health is the report.
+House law for the report file itself: no em or en dashes, straight quotes, sentence-case headings.
+SUGGESTIONS BY FILE:
+${JSON.stringify(byFile, null, 2)}
+Return the total suggestion count.`,
+      { label: 'report', phase: 'Synthesize' }
+    )
+    log(`report written: ${ROOT}/build/editorial-report.md (nothing applied)`)
+    return { rounds: 1, totalApplied: 0, report: `${ROOT}/build/editorial-report.md`, suggestions: count }
+  }
+
   if (count === 0) break
 
   phase('Synthesize')
