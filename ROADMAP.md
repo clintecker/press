@@ -163,8 +163,13 @@ work.
   (books pin behavior); `press new` stamps the press version into them so
   drift is visible.
 - Done on main (ships as v1.1.0): M2 (art-direction workflow,
-  `press art accept`, orphan-plate check) and M3 (front matter generated
-  from config, activated by `config/front-matter.yaml`).
+  `press art accept`, orphan-plate check, `press art commission`
+  submitting to GPT Image and Gemini), M3 (front matter generated from
+  config, activated by `config/front-matter.yaml`), M4 (print profile,
+  coverwrap with computed spine and EAN-13, channel checklists), M5
+  (registrations ledger with the retail gate), and M6 (`press improve`
+  report-first and `press research`, headless via the Claude Code CLI).
+  `press selftest` guards the documentation mechanically in CI.
 - The local build venv for make-ready lives in a session scratchpad and
   points at the press checkout via editable install; a plain
   `pip install -e ~/code/press` in any environment replaces it.
