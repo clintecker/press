@@ -12,6 +12,7 @@ export const meta = {
 
 const CAP = (args && args.maxClaimsPerFile) || 8
 const ROOT = (args && args.root) || '.'
+const PRESS = (args && args.press) || 'press'
 
 phase('Extract')
 const scout = await agent(
@@ -76,7 +77,7 @@ const result = await agent(
 ENTRIES:
 ${JSON.stringify(good.map(x => ({ claim: x.fragment, file: x.file, authority: x.authority, note: x.note || '' })), null, 2)}
 
-2. Run \`press pdf\` (or \`python3 -m press pdf\`) from ${ROOT}. If the authorities generator rejects a claim, fix that entry's fragment and rerun until the build passes.
+2. Run \`${PRESS} pdf\` from ${ROOT}. If the authorities generator rejects a claim, fix that entry's fragment and rerun until the build passes.
 
 3. Report the claims that could NOT be sourced (below). Do NOT put them in the ledger; instead list them in your return so the author can decide whether to soften or cut those sentences:
 ${JSON.stringify(unsourced.map(x => ({ file: x.file, fragment: x.fragment, assertion: x.assertion })), null, 2)}
