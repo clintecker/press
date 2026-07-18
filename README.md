@@ -1,12 +1,16 @@
 # press
 
-The 2389 Research Press pipeline: everything required to turn a directory
-of Markdown chapters into a verified 6 x 9 print PDF, EPUB, single-file
-HTML, per-chapter reader site, stitched Markdown, plain text, DOCX, a
-GitHub Pages site with public downloads, and gated GitHub releases.
+The 2389 Research Press: everything required to turn a directory of
+Markdown chapters into a publishable book. One `press all` produces a
+verified 6 x 9 PDF, EPUB, single-file HTML, per-chapter reader site,
+stitched Markdown, plain text, DOCX, a GitHub Pages site with public
+downloads, and gated GitHub releases; the print pack adds a
+print-profile interior, a cover wrap with computed spine and EAN-13
+barcode, and retail channel checklists.
 
-Extracted from the production of *Mostly Done.* so the next book inherits
-the pipeline, the design, the editorial enforcement, and the scars.
+Extracted from the production of *Mostly Done.* so the next book
+inherits the pipeline, the design, the editorial enforcement, and the
+scars.
 
 ## Start a book
 
@@ -26,9 +30,34 @@ settings before its first CI run can pull the image.
 
 ## Targets
 
-`press all` runs the full gauntlet: editorial checks (including proving the
-checkers can fail), every format, source archive, Pages assembly, then
-structural verification of the PDF (trim, fonts, sentinels, ink on every
-page, plate-link destinations) and of every other format. Individual
-targets: `pdf epub html markdown site txt docx pages source check style
-verify verify-formats render wordcount clean`.
+- Building: `pdf epub html markdown site txt docx pages source all` --
+  `press all` runs the full gauntlet: editorial checks (including
+  proving the checkers can fail), every format, source archive, Pages
+  assembly, then structural verification of every artifact.
+- Checking: `check style verify verify-formats` -- `check` is the
+  editorial law (source checks, checker self-test, style audit, jargon
+  lint, registrations arithmetic, orphaned plates); the verify targets
+  rebuild before verifying so a stale artifact can never be blessed.
+- Print pack: `print verify-print coverwrap publish` -- a twoside
+  interior with mirrored margins and black ink (verified from the
+  rendered pages), a cover wrap whose spine width is computed from the
+  interior and paper stock with a validated EAN-13 barcode, and
+  `press publish kdp|ingram` channel checklists.
+- Art: `art` -- `press art commission` submits the prompts the
+  `art-direction` workflow wrote to image models (GPT Image, Gemini) at
+  the right aspect ratios, collecting candidates under
+  `art/candidates/`; `press art accept <file> --as
+  cover|plate:<name>|logomark|portrait` takes a chosen image into the
+  book in house format.
+- Operator: `improve research` -- the agent workflows as shell
+  commands, driven headlessly through the Claude Code CLI.
+  `press improve` writes `build/editorial-report.md` and touches
+  nothing (`--apply` is the deliberate hand); `press research` builds
+  the table of authorities.
+- Instruments: `skills workflows` -- the packaged authoring skills and
+  agent workflows, with installed paths, paste-ready invocations, and
+  pinned-copy drift detection inside a book.
+- Utilities: `render wordcount clean new selftest` -- `press selftest`
+  is the press checking itself: module imports, check-digit arithmetic,
+  and that this README and the CLI usage stay honest about every
+  target.
