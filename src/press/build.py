@@ -37,6 +37,9 @@ def book_inputs() -> list[str]:
     """Chapters, then appendices merged with generated appendices in letter order."""
 
     root = booklib.root()
+    generated_dir = root / "build" / "generated"
+    if generated_dir.exists():
+        shutil.rmtree(generated_dir)
     chapters = [a for a in booklib.chapter_args() if "/chapters/" in a.replace("\\", "/")]
     appendices = [a for a in booklib.chapter_args() if "/appendices/" in a.replace("\\", "/")]
     for generated in (gen_index.generate(), gen_authorities.generate()):
