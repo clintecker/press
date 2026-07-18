@@ -30,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build and verify
-        uses: clintecker/press@v1.4.0
+        uses: clintecker/press@v1.5.0
       - name: Read book identity
         id: book
         run: |
