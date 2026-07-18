@@ -116,7 +116,7 @@
     \vspace{0.12in}
     {\small\color{muted} \@date\par}
     \vspace{0.45in}
-    {\small\color{muted} 2389 Research Press\par}
+    {\small\color{muted} \directlua{tex.sprint(-2, os.getenv('BOOK_PUBLISHER') or '')}\par}
   \end{titlepage}
 }
 \makeatother

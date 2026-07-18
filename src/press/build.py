@@ -28,6 +28,7 @@ def run(command: list[str]) -> None:
     env = os.environ.copy()
     env.setdefault("SOURCE_DATE_EPOCH", "1784160000")
     env["BOOK_ROOT"] = str(booklib.root())
+    env["BOOK_PUBLISHER"] = str(booklib.metadata().get("publisher") or "")
     subprocess.run(command, cwd=booklib.root(), env=env, check=True)
 
 
