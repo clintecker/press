@@ -43,6 +43,47 @@ def check_slug_invariant() -> None:
         raise AssertionError(f"slug invariant admitted {bad!r}")
 
 
+def check_source_policy() -> None:
+    """The source packager refuses secrets, skips symlinks without
+    dereferencing, and actually deflates its members."""
+
+    import os
+    import tempfile
+    import zipfile
+
+    from . import booklib, package_source, scaffold
+
+    with tempfile.TemporaryDirectory() as tmp:
+        book = Path(tmp) / "policy-proof"
+        scaffold.main([str(book)])
+        outside = Path(tmp) / "outside-secret.txt"
+        outside.write_text("leak", encoding="utf-8")
+        (book / "escape.txt").symlink_to(outside)
+        (book / ".env").write_text("KEY=1", encoding="utf-8")
+        os.environ["BOOK_ROOT"] = str(book)
+        booklib.root.cache_clear()
+        booklib.metadata.cache_clear()
+        try:
+            try:
+                package_source.main()
+            except SystemExit as exc:
+                assert ".env" in str(exc), exc
+            else:
+                raise AssertionError("secret file did not block the archive")
+            (book / ".env").unlink()
+            package_source.main()
+            with zipfile.ZipFile(book / "dist" / "policy-proof-source.zip") as archive:
+                names = archive.namelist()
+                assert not any("escape" in n for n in names), "symlink archived"
+                deflated = [i for i in archive.infolist()
+                            if i.compress_type == zipfile.ZIP_DEFLATED]
+                assert deflated, "no member was deflated"
+        finally:
+            del os.environ["BOOK_ROOT"]
+            booklib.root.cache_clear()
+            booklib.metadata.cache_clear()
+
+
 def check_arithmetic() -> None:
     from . import barcode, registrations
 
@@ -79,6 +120,7 @@ def main() -> int:
     check_imports()
     check_arithmetic()
     check_slug_invariant()
+    check_source_policy()
     check_docs()
     print(f"Selftest passed: {len(modules())} modules import, arithmetic agrees "
           "with the canonical examples, usage and README name every target")
