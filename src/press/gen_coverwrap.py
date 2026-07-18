@@ -122,9 +122,7 @@ def generate(interior: Path, output: Path) -> Path:
     if not cover.is_file():
         raise SystemExit("coverwrap needs assets/cover.jpg (the front board art)")
     logo = tex_safe_path(root / "assets" / "press-logo.png")
-    authors = meta["author"]
-    if isinstance(authors, str):
-        authors = [authors]
+    authors = list(booklib.book().authors)
 
     def esc(value: str) -> str:
         from .gen_front_matter import escape

@@ -84,6 +84,40 @@ def check_source_policy() -> None:
             booklib.metadata.cache_clear()
 
 
+def check_book_model() -> None:
+    """The typed model normalizes what has two spellings and refuses
+    what the v1 design cannot honor, with locatable errors."""
+
+    from . import bookmodel
+
+    root = Path("/nowhere")
+    minimal = {"title": "Proof", "author": "One Writer", "slug": "proof",
+               "date": "First edition, 2026"}
+    book = bookmodel.load(root, minimal)
+    assert book.authors == ("One Writer",), "string author not normalized"
+    assert book.year == "2026"
+    assert (book.trim_width, book.trim_height) == (6.0, 9.0)
+
+    listed = bookmodel.load(root, {**minimal, "author": ["A", "B"]})
+    assert listed.authors == ("A", "B")
+
+    try:
+        bookmodel.load(root, {**minimal, "trim": {"width": 5, "height": 8}})
+    except SystemExit as exc:
+        assert "v2" in str(exc) and "5 x 8" in str(exc), exc
+    else:
+        raise AssertionError("5 x 8 trim accepted; the v1 design is 6 x 9")
+
+    try:
+        bookmodel.load(root, {"title": "", "author": [], "slug": "Bad Slug"})
+    except SystemExit as exc:
+        message = str(exc)
+        assert "metadata.yaml" in message
+        assert "title" in message and "author" in message and "slug" in message.lower()
+    else:
+        raise AssertionError("defective configuration accepted")
+
+
 def check_scaffold_neutrality() -> None:
     """A scaffolded book carries no personal identity: the press's
     author must never become the book's author. The only permitted
@@ -185,6 +219,7 @@ def main() -> int:
     check_source_policy()
     check_pages_verifier()
     check_scaffold_neutrality()
+    check_book_model()
     check_docs()
     print(f"Selftest passed: {len(modules())} modules import, arithmetic agrees "
           "with the canonical examples, usage and README name every target")

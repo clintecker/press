@@ -75,7 +75,7 @@ def main(channel: str) -> int:
         f"- [{'x' if isbn else ' '}] Print ISBN: {isbn or '[ISBN pending] in config registrations block'}",
         f"- [x] Title: {meta['title']}",
         f"- [x] Subtitle: {meta.get('subtitle', '')}",
-        f"- [x] Author: {', '.join(meta['author'] if isinstance(meta['author'], list) else [meta['author']])}",
+        f"- [x] Author: {', '.join(booklib.book().authors)}",
         f"- [x] Description: {meta.get('description', '').strip()}",
         f"- [x] Keywords: {', '.join(meta.get('keywords') or [])}",
         "",

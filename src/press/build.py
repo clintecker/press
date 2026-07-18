@@ -176,7 +176,7 @@ def markdown_build(output: str) -> None:
     root = booklib.root()
     (root / "dist").mkdir(parents=True, exist_ok=True)
     meta = booklib.metadata()
-    authors = ", ".join(meta["author"])
+    authors = ", ".join(booklib.book().authors)
     header = (
         f"# {meta['title']}\n\n"
         f"*{meta['subtitle']}*\n\n"

@@ -114,9 +114,7 @@ def generate(include_cover: bool = True) -> Path | None:
     title = str(meta["title"]).upper()
     if not title.endswith((".", "!", "?")):
         title += "."
-    authors = meta["author"]
-    if isinstance(authors, str):
-        authors = [authors]
+    authors = list(booklib.book().authors)
     date = str(meta.get("date") or "")
     numeric_year = booklib.year()
     year = roman(int(numeric_year)) if numeric_year else escape(date.lower())

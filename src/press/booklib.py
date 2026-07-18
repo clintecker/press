@@ -41,6 +41,15 @@ def metadata() -> dict:
 
 
 @lru_cache(maxsize=1)
+def book():
+    """The one typed, normalized model of the book being built."""
+
+    from . import bookmodel
+
+    return bookmodel.load(root(), metadata())
+
+
+@lru_cache(maxsize=1)
 def house_rules() -> dict:
     """Parsed config/house-rules.yaml, or an empty ruleset if absent."""
 
@@ -74,10 +83,7 @@ def validate_slug(value: str) -> str:
 def slug() -> str:
     """Artifact basename, e.g. dist/<slug>.pdf."""
 
-    value = metadata().get("slug")
-    if not value:
-        raise SystemExit("config/metadata.yaml must set slug: (artifact basename)")
-    return validate_slug(str(value))
+    return book().slug
 
 
 def sentinels() -> list[str]:
@@ -87,7 +93,7 @@ def sentinels() -> list[str]:
     writers place metadata titles differently across versions.
     """
 
-    return list(metadata().get("verify-sentinels") or [])
+    return list(book().sentinels)
 
 
 def year() -> str | None:
@@ -98,8 +104,7 @@ def year() -> str | None:
     extract the year from this one stated copy.
     """
 
-    match = re.search(r"\b(1\d{3}|2\d{3})\b", str(metadata().get("date") or ""))
-    return match.group(1) if match else None
+    return book().year
 
 
 def chapter_files() -> list[Path]:
