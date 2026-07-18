@@ -57,13 +57,15 @@ Press holds the prompts; the book holds only the accepted images.
   writes `art/commissions.md`: finished, paste-ready prompts for an image
   model, covering cover, interior plates keyed to chapters, logomark, and
   author portrait, with every visible word named verbatim per the skill.
-- `press art accept <file> --as cover|plate:<name>|logomark`: intake that
-  converts to house format (JPEG q88 for grain, PNG for line art),
-  enforces the geometry scars (text-block height cap, trim aspect),
-  places the file, and updates the commission record to describe the
-  accepted image so it can be reproofed if lost.
+- `press art accept <file> --as cover|plate:<name>|logomark|portrait`:
+  intake that converts to house format (JPEG q88 for grain, PNG for line
+  art), enforces the cover's trim aspect (the text-block height cap is
+  enforced at typeset time by the TeX header), places the file, and
+  records the acceptance beside its commission prompt so a lost original
+  can be recommissioned.
 - Plate placement stays manual or agent-driven (captions are prose), but
-  `press check` learns to flag images on disk that no chapter references.
+  `press check` flags plates on disk that no manuscript file references;
+  cover, logomark, and portrait are unreferenced by prose by design.
 
 ## M3: front matter from metadata
 
@@ -153,6 +155,9 @@ work.
 - Done on main: books' `.claude/workflows/` are copies from press data
   (books pin behavior); `press new` stamps the press version into them so
   drift is visible.
+- Done on main (ships as v1.1.0): M2 (art-direction workflow,
+  `press art accept`, orphan-plate check) and M3 (front matter generated
+  from config, activated by `config/front-matter.yaml`).
 - The local build venv for make-ready lives in a session scratchpad and
   points at the press checkout via editable install; a plain
   `pip install -e ~/code/press` in any environment replaces it.

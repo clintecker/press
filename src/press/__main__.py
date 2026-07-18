@@ -21,6 +21,7 @@ building        pdf epub html markdown site txt docx pages source all
 checking        check style verify verify-formats
 utilities       render wordcount clean new <directory>
 instruments     skills workflows
+art             art accept <file> --as cover|plate:<name>|logomark|portrait
 """
 
 
@@ -85,6 +86,10 @@ def main(argv: list[str] | None = None) -> int:
         from . import scaffold
 
         return scaffold.main(args[1:])
+    if target == "art":
+        from . import art
+
+        return art.main(args[1:])
     if target == "skills":
         from . import instruments
 

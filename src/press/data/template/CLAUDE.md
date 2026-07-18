@@ -29,6 +29,9 @@ from the repo root:
 - `press pdf` / `epub` / `html` / `site` / ... — one format.
 - `press verify` / `press verify-formats` — rebuild and verify (never
   verifies stale artifacts; the rebuild is deliberate).
+- `press art accept <file> --as cover|plate:<name>|logomark|portrait` —
+  take a commissioned image into the book in house format; prompts come
+  from the `art-direction` workflow's `art/commissions.md`.
 - `press skills` — the installed authoring skills with absolute paths.
   Read the four prose skills before composing or revising prose; read the
   design skills before art direction.
@@ -41,7 +44,9 @@ Copies scaffolded into `.claude/workflows/` (pinned; the header comment
 records the press version they came from). `editorial-passes` is the
 iterative editorial machine for after composing or revising chapters;
 `authorities-research` builds `config/authorities.yaml`, the table of
-authorities, from researched sources. Run `press workflows` from this
+authorities, from researched sources; `art-direction` writes
+`art/commissions.md` with finished image-model prompts for the cover,
+chapter plates, logomark, and author portrait. Run `press workflows` from this
 repo for the exact paste-ready invocations and current args; it also
 reports whether the pinned copies have drifted from the installed press.
 

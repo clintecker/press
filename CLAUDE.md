@@ -37,7 +37,13 @@ book repository that consumes this package.
   from inside a book. It hard-codes the named diseases
   of agent prose (epigram compulsion with a two-maxim quota, uniform
   rhetorical rhythm, self-annotation) because "apply the skills" alone
-  produces locally-obedient, globally-patterned prose.
+  produces locally-obedient, globally-patterned prose. Its siblings:
+  `authorities-research` (the sources ledger) and `art-direction` (reads
+  the manuscript, applies the design skills, writes `art/commissions.md`
+  with paste-ready image-model prompts; results come back in through
+  `press art accept <file> --as cover|plate:<name>|logomark|portrait`,
+  which converts to house format, enforces the geometry scars, and
+  updates the commission record).
 - `src/press/data/skills/` holds the authoring guides (four prose skills,
   the overused-jargon skill whose `references/watchlist.csv` is the one
   watchlist the jargon lint reads, design skills for covers, plates, and

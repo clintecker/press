@@ -36,6 +36,19 @@ def main() -> int:
         if not metadata.get(required):
             failures.append(f"metadata missing {required}:")
 
+    # A plate on disk that no manuscript file references ships in every
+    # archive and the site while appearing in no book; orphans are
+    # mistakes. The match is path-anchored so raven.jpg cannot hide
+    # behind a reference to black-raven.jpg.
+    manuscript = "\n".join(
+        path.read_text(encoding="utf-8") for path in seen if path.is_file()
+    )
+    for plate in sorted((root / "assets" / "woodcuts").glob("*.jpg")):
+        if f"woodcuts/{plate.name}" not in manuscript:
+            failures.append(
+                f"plate never referenced by the manuscript: assets/woodcuts/{plate.name}"
+            )
+
     if failures:
         print("Source checks failed:")
         for failure in failures:
