@@ -215,12 +215,14 @@ def generate_gemini(prompt: str, spec: tuple, count: int,
 
 def author_photo(root: Path) -> tuple[bytes, str] | None:
     """The author's own photograph, when supplied: art/author-photo.jpg
-    or .png. Its presence turns the portrait commission into an
-    engraving of the actual author instead of an invented one."""
+    or .png, any case (cameras write .JPG). Its presence turns the
+    portrait commission into an engraving of the actual author instead
+    of an invented one."""
 
-    for suffix, mime in (("jpg", "image/jpeg"), ("jpeg", "image/jpeg"), ("png", "image/png")):
-        path = root / "art" / f"author-photo.{suffix}"
-        if path.is_file():
+    mimes = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}
+    for path in sorted((root / "art").glob("author-photo.*")):
+        mime = mimes.get(path.suffix.lower())
+        if mime and path.is_file():
             return path.read_bytes(), mime
     return None
 
