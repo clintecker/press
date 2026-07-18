@@ -41,6 +41,14 @@ book repository that consumes this package.
   documentation, design skills for covers, plates, and logomarks). Read the
   relevant ones before composing prose or art direction for any book.
 
+## Where this is going
+
+ROADMAP.md is the plan for press as the whole publisher: self-contained
+skills and workflows (M1), the art department (M2), front matter from
+metadata (M3), the print pack for KDP/IngramSpark (M4), registrations
+(M5). Read it before adding capability to a book repo; if a book needs
+machinery, the machinery belongs here.
+
 ## The contract
 
 Books pin a tag (`@v1`). Tags follow the GitHub Actions convention: `vN` is
