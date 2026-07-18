@@ -23,6 +23,13 @@ COVER_ASPECT_TOLERANCE = 0.03
 RECORD_HEADING = "## Acceptance record"
 
 
+def _single_ink_plates() -> bool:
+    from . import aesthetic
+
+    medium = str((aesthetic.effective().get("plates") or {}).get("medium", "")).lower()
+    return "single" in medium and "ink" in medium
+
+
 def trim_aspect() -> float:
     trim = booklib.metadata().get("trim") or {}
     width, height = trim.get("width", 6), trim.get("height", 9)
@@ -66,13 +73,28 @@ def accept(source: Path, target: str) -> Path:
 
     destination.parent.mkdir(parents=True, exist_ok=True)
     if destination.suffix == ".png":
-        image.convert("RGBA").save(destination, optimize=True)
+        rgba = image.convert("RGBA")
+        if target == "logomark" and rgba.getchannel("A").getextrema()[0] >= 250:
+            # An imprint device sits on paper and dark grounds both; an
+            # opaque delivery gets its ink extracted onto transparency,
+            # which is the house format the intake exists to enforce.
+            mask = image.convert("L").point(lambda v: 255 if v < 96 else 0)
+            extracted = Image.new("RGBA", image.size, (0, 0, 0, 0))
+            extracted.paste(Image.new("RGBA", image.size, (23, 23, 23, 255)), mask=mask)
+            rgba = extracted
+            print("logomark arrived opaque; ink extracted to transparency")
+        rgba.save(destination, optimize=True)
     else:
         # Alpha flattens to paper white, never to the default black: line
         # art on transparency is the common shape of engraving output.
         flat = Image.new("RGB", image.size, (255, 255, 255))
         rgba = image.convert("RGBA")
         flat.paste(rgba, mask=rgba.getchannel("A"))
+        if target.startswith("plate:") and _single_ink_plates():
+            # The print interior is black ink only and the verifier
+            # proves it from the rendered pages; a tinted delivery is
+            # grayed at intake when the aesthetic states single ink.
+            flat = flat.convert("L")
         flat.save(destination, quality=JPEG_QUALITY, optimize=True)
 
     record_acceptance(root, target, source, image, destination)

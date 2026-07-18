@@ -42,8 +42,10 @@ book repository that consumes this package.
   the manuscript, applies the design skills, writes `art/commissions.md`
   with paste-ready image-model prompts; results come back in through
   `press art accept <file> --as cover|plate:<name>|logomark|portrait`,
-  which converts to house format, enforces the geometry scars, and
-  updates the commission record). An author photograph supplied at
+  which converts to house format (plates gray to single ink when the
+  aesthetic states it; an opaque logomark gets its ink extracted onto
+  transparency), enforces the geometry scars, and updates the
+  commission record). An author photograph supplied at
   `art/author-photo.jpg` makes the portrait commission engrave the
   actual author.
 - `src/press/data/skills/` holds the authoring guides (four prose skills,
