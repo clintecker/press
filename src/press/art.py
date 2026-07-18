@@ -112,9 +112,14 @@ def record_acceptance(root: Path, target: str, source: Path, image, destination:
 
 
 def main(argv: list[str]) -> int:
+    if argv and argv[0] == "commission":
+        from . import art_commission
+
+        return art_commission.main(argv[1:])
     parser = argparse.ArgumentParser(prog="press art")
     sub = parser.add_subparsers(dest="command", required=True)
     accept_cmd = sub.add_parser("accept", help="take a commissioned image into the book")
+    sub.add_parser("commission", help="submit commissions.md prompts to image models")
     accept_cmd.add_argument("file", type=Path)
     accept_cmd.add_argument(
         "--as", dest="target", required=True,
