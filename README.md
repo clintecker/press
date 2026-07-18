@@ -50,11 +50,14 @@ settings before its first CI run can pull the image.
   commission into an engraving of the actual author. `press art accept
   <file> --as cover|plate:<name>|logomark|portrait` takes a chosen
   image into the book in house format.
-- Operator: `improve research` -- the agent workflows as shell
-  commands, driven headlessly through the Claude Code CLI.
+- Operator: `improve research aesthetic` -- the agent workflows as
+  shell commands, driven headlessly through the Claude Code CLI.
   `press improve` writes `build/editorial-report.md` and touches
   nothing (`--apply` is the deliberate hand); `press research` builds
-  the table of authorities.
+  the table of authorities; `press aesthetic` prints the book's
+  effective visual identity, and `press aesthetic "<brief>"` drafts
+  `config/aesthetic.yaml` from an author's description ("1970s pulp
+  sci-fi paperback"), which every art commission then applies.
 - Instruments: `skills workflows` -- the packaged authoring skills and
   agent workflows, with installed paths, paste-ready invocations, and
   pinned-copy drift detection inside a book.

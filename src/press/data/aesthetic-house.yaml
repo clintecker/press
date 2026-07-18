@@ -1,0 +1,52 @@
+# The house aesthetic: the default visual identity of a press book.
+# A book states its own in config/aesthetic.yaml, which replaces any
+# top-level section it names; a book that supplies nothing gets this
+# file whole. Values are prose because they are prompt material for
+# the art-direction workflow, not switches. Craft laws (text named
+# verbatim, flat plates, single-ink interiors, print resolutions) are
+# NOT aesthetic and cannot be configured away; they live in the design
+# skills and the pipeline.
+
+name: "Victorian treatise"
+
+register: >-
+  Earnest nineteenth-century trade manual. The joke lives in the
+  subject; the style stays dead serious. A ridiculous scene rendered
+  earnestly is the voice.
+
+cover:
+  medium: >-
+    Victorian publisher's bookcloth, everything stamped as if by a
+    brass die, the ink slightly impressed into the cloth.
+  field: >-
+    A solid cloth-colored field with fine woven grain; vary the cloth
+    color per book, keep the grammar.
+  ink: "gilt: metallic gold stamping"
+  type-treatment: >-
+    Stacked centered letterpress capitals; the title largest and
+    wide-spaced; the full subtitle treated as argument, not decoration.
+  ornament: >-
+    A ruled border of two concentric thin rules with a small fleuron
+    at each inner corner.
+  emblem: >-
+    One central engraved medallion drawn from the book's strongest
+    image, cut as a woodcut with hatching, never a gradient.
+
+plates:
+  medium: >-
+    Wood engraving with dense hatching and crosshatching, single black
+    ink, no gray washes, in the manner of a nineteenth-century trade
+    manual plate.
+  composition: >-
+    One idea per plate, composed deliberately landscape or portrait; a
+    square plate wastes the trim.
+
+logomark:
+  tradition: >-
+    A printer's mark: it certifies the maker, it does not advertise.
+    Flat single-ink line art on transparency.
+
+portrait:
+  style: >-
+    An engraved oval trade-journal portrait of a valued tradesman,
+    dense hatching, single ink, solemn and respectful.

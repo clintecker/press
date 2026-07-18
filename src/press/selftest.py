@@ -14,19 +14,18 @@ import importlib
 import re
 from pathlib import Path
 
-MODULES = [
-    "press.art", "press.art_commission", "press.barcode", "press.booklib",
-    "press.build", "press.check_source", "press.check_the_checkers",
-    "press.gen_authorities", "press.gen_coverwrap", "press.gen_front_matter",
-    "press.gen_index", "press.instruments", "press.jargon_lint",
-    "press.operator", "press.package_source", "press.publish",
-    "press.registrations", "press.scaffold", "press.style_audit",
-    "press.verify_formats", "press.verify_pdf", "press.wordcount",
-]
+def modules() -> list[str]:
+    """Every module in the package, derived so the list cannot drift."""
+
+    return sorted(
+        f"press.{path.stem}"
+        for path in Path(__file__).resolve().parent.glob("*.py")
+        if path.stem not in {"__init__", "__main__"}
+    )
 
 
 def check_imports() -> None:
-    for name in MODULES:
+    for name in modules():
         importlib.import_module(name)
 
 
@@ -66,6 +65,6 @@ def main() -> int:
     check_imports()
     check_arithmetic()
     check_docs()
-    print(f"Selftest passed: {len(MODULES)} modules import, arithmetic agrees "
+    print(f"Selftest passed: {len(modules())} modules import, arithmetic agrees "
           "with the canonical examples, usage and README name every target")
     return 0

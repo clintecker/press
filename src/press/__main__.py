@@ -23,7 +23,7 @@ print pack      print verify-print coverwrap publish kdp|ingram
 utilities       render wordcount clean new <directory> selftest
 instruments     skills workflows
 art             art commission [targets] | art accept <file> --as <target>
-operator        improve [--apply] | research
+operator        improve [--apply] | research | aesthetic ["<brief>"]
 """
 
 
@@ -100,6 +100,10 @@ def main(argv: list[str] | None = None) -> int:
         from . import operator
 
         return operator.improve(args[1:])
+    if target == "aesthetic":
+        from . import operator
+
+        return operator.aesthetic(args[1:])
     if target == "research":
         from . import operator
 

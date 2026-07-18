@@ -29,6 +29,11 @@ from the repo root:
 - `press pdf` / `epub` / `html` / `site` / ... — one format.
 - `press verify` / `press verify-formats` — rebuild and verify (never
   verifies stale artifacts; the rebuild is deliberate).
+- `press aesthetic` — the book's effective visual identity;
+  `press aesthetic "<brief>"` drafts `config/aesthetic.yaml` from your
+  description of the look (any era, any shelf), which the art
+  workflows then apply. Without the file the house Victorian idiom
+  applies.
 - `press art accept <file> --as cover|plate:<name>|logomark|portrait` —
   take a commissioned image into the book in house format; prompts come
   from the `art-direction` workflow's `art/commissions.md`, and

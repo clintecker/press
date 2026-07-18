@@ -93,6 +93,13 @@ requirements pin in the template to the new major, commit, tag, push.
   build; a claim whose sentence has left the text fails the run. Populate
   it with the `authorities-research` workflow (extract, research with web
   sources, adversarial audit, ledger write).
+- `config/aesthetic.yaml` (optional): the book's visual identity
+  (cover grammar, plate medium, logomark tradition, portrait style,
+  register), applied by every art commission; absent, the house
+  Victorian idiom in `data/aesthetic-house.yaml` applies. Draft it by
+  interview (book-aesthetics skill) or `press aesthetic "<brief>"`;
+  `press aesthetic` shows the effective merge. Craft laws (verbatim
+  text, flat plates, single-ink interiors) are not configurable.
 - `config/front-matter.yaml` (optional): epigraph, rights-notice,
   contact, motto. Its presence asks the press to generate the PDF title
   page, colophon, and epigraph from config; the title page stacks the

@@ -21,7 +21,8 @@ const scout = await agent(
 1. List every chapter file under ${ROOT}/book/chapters/ in filename order, and for each give a two-sentence summary of its subject and strongest concrete image (a scene, object, or scenario a woodcut could depict).
 2. Read ${ROOT}/config/metadata.yaml and report: title, subtitle, author, publisher, publisher-place, date, description, and trim if set.
 3. Run \`press skills\` (or \`python3 -m press skills\`) from ${ROOT} and report the absolute paths of cover-design, plates-and-woodcuts, and press-logomark. If the press is not installed, look under a press checkout's src/press/data/skills.
-4. List existing art: ${ROOT}/assets/cover.jpg, ${ROOT}/assets/press-logo.png, ${ROOT}/assets/author.jpg, ${ROOT}/assets/woodcuts/*.jpg, and ${ROOT}/art/commissions.md if present.`,
+4. Run \`press aesthetic\` (or \`python3 -m press aesthetic\`) from ${ROOT} and report its complete output verbatim: the book's effective visual identity.
+5. List existing art: ${ROOT}/assets/cover.jpg, ${ROOT}/assets/press-logo.png, ${ROOT}/assets/author.jpg, ${ROOT}/assets/woodcuts/*.jpg, and ${ROOT}/art/commissions.md if present.`,
   { label: 'scout', phase: 'Scout', schema: { type: 'object', properties: {
       chapters: { type: 'array', items: { type: 'object', properties: {
         file: { type: 'string' }, summary: { type: 'string' } }, required: ['file', 'summary'] } },
@@ -29,37 +30,43 @@ const scout = await agent(
       skills: { type: 'object', properties: {
         cover: { type: 'string' }, plates: { type: 'string' }, logomark: { type: 'string' } },
         required: ['cover', 'plates', 'logomark'] },
+      aesthetic: { type: 'string' },
       existingArt: { type: 'array', items: { type: 'string' } },
-    }, required: ['chapters', 'metadata', 'skills'] } }
+    }, required: ['chapters', 'metadata', 'skills', 'aesthetic'] } }
 )
-log(`${scout.chapters.length} chapters, skills found, ${(scout.existingArt || []).length} existing art files`)
+log(`${scout.chapters.length} chapters, skills found, aesthetic loaded, ${(scout.existingArt || []).length} existing art files`)
 
 const BRIEF = `Book metadata (name every visible word from these facts VERBATIM in any prompt that shows text; text a prompt leaves implicit will be misspelled or invented): ${JSON.stringify(scout.metadata)}.`
+const AESTHETIC = `THE BOOK'S AESTHETIC (this defines the look; where the skill describes a house idiom, this configuration overrides it; the skill still governs craft: how to direct an image model, what to name verbatim, the scars):\n${scout.aesthetic}`
 
 phase('Commission')
 const commissions = await parallel([
   () => agent(
-`Commission the COVER for this book. First read in full the cover-design skill at ${scout.skills.cover} and follow its house idiom and its scars exactly.
+`Commission the COVER for this book. First read in full the cover-design skill at ${scout.skills.cover} for the craft of directing a cover (verbatim text, flat plate, the scars).
+${AESTHETIC}
 ${BRIEF}
 Chapters for imagery: ${scout.chapters.map(c => c.summary).join(' | ')}
-Produce ONE finished, paste-ready image-model prompt for the front board: cloth color chosen for this book, ruled gilt border, one central engraved emblem drawn from the book's strongest image, every line of cover text named verbatim in reading order (title, full subtitle with its OR clauses, author). Also state the target aspect ratio from the trim.`,
+Produce ONE finished, paste-ready image-model prompt for the front board applying the aesthetic's cover section exactly: its medium, field, ink, type treatment, and ornament, with the central imagery drawn from the book's strongest image in the aesthetic's stated style, and every line of cover text named verbatim in reading order (title, full subtitle, author). Also state the target aspect ratio from the trim.`,
     { label: 'commission:cover', phase: 'Commission', schema: { type: 'object', properties: {
         prompt: { type: 'string' }, aspect: { type: 'string' }, rationale: { type: 'string' } },
       required: ['prompt', 'aspect'] } }),
   () => agent(
 `Commission the PRESS LOGOMARK (imprint device). First read in full the press-logomark skill at ${scout.skills.logomark} and obey its restraint rules.
+${AESTHETIC}
 ${BRIEF}
-Produce ONE finished, paste-ready image-model prompt for a printer's-mark-tradition imprint device for the publisher named in the metadata: flat single-ink line art on transparency, suited to appear at 2.2in on a colophon. Name any text it carries verbatim (a device may carry none; say so if none).`,
+Produce ONE finished, paste-ready image-model prompt for an imprint device for the publisher named in the metadata, in the aesthetic's logomark tradition, suited to appear at 2.2in on a colophon. Name any text it carries verbatim (a device may carry none; say so if none).`,
     { label: 'commission:logomark', phase: 'Commission', schema: { type: 'object', properties: {
         prompt: { type: 'string' }, rationale: { type: 'string' } }, required: ['prompt'] } }),
   () => agent(
-`Commission the AUTHOR PORTRAIT. First read in full the plates-and-woodcuts skill at ${scout.skills.plates} for the engraving idiom (the portrait uses the same wood-engraving voice: dense hatching, single ink, no gray washes, earnest register).
+`Commission the AUTHOR PORTRAIT. First read in full the plates-and-woodcuts skill at ${scout.skills.plates} for the craft of directing illustration.
+${AESTHETIC}
 ${BRIEF}
-Produce ONE finished, paste-ready image-model prompt for a small engraved author portrait suitable for back matter or the landing page. No text in the image.`,
+Produce ONE finished, paste-ready image-model prompt for a small author portrait in the aesthetic's portrait style, suitable for back matter or the landing page. No text in the image.`,
     { label: 'commission:portrait', phase: 'Commission', schema: { type: 'object', properties: {
         prompt: { type: 'string' }, rationale: { type: 'string' } }, required: ['prompt'] } }),
   ...scout.chapters.map(ch => () => agent(
-`Commission ONE interior PLATE candidate for a single chapter. First read in full the plates-and-woodcuts skill at ${scout.skills.plates} and follow its commissioning rules (one idea per plate, joke in the subject, style dead serious, deliberate portrait or landscape).
+`Commission ONE interior PLATE candidate for a single chapter. First read in full the plates-and-woodcuts skill at ${scout.skills.plates} and follow its commissioning craft (one idea per plate, deliberate composition).
+${AESTHETIC}
 ${BRIEF}
 The chapter: ${ch.file} — ${ch.summary}
 Read the chapter at ${ROOT}/${ch.file} in full. Propose the single strongest plate: a period engraver's brief as a finished paste-ready prompt, a kebab-case filename (no extension), and a one-line caption in the book's voice. If the chapter genuinely offers no image worth engraving, say so and return an empty prompt.`,
@@ -81,7 +88,7 @@ Select at most ${MAX_PLATES}, keeping the strongest and cutting near-duplicates 
 COVER: ${JSON.stringify(cover)}
 LOGOMARK: ${JSON.stringify(logomark)}
 PORTRAIT: ${JSON.stringify(portrait)}
-For each prompt verify: visible words named verbatim and complete (cover must carry title, every OR clause of the subtitle, author exactly as metadata states them); engraving language (hatching, single ink) not "detailed illustration"; flat plate, no mockup or perspective for the cover; one idea per plate. Repair any prompt that fails and return the final set.`,
+For each prompt verify: visible words named verbatim and complete (cover must carry title, the full subtitle, author exactly as metadata states them); the aesthetic applied faithfully (${scout.aesthetic ? 'as scouted' : 'house default'}) with its medium named in concrete craft language, never "detailed illustration"; flat plate, no mockup or perspective for the cover; one idea per plate. THE AESTHETIC:\n${scout.aesthetic}\nRepair any prompt that fails and return the final set.`,
   { label: 'curate', phase: 'Curate', schema: { type: 'object', properties: {
       cover: { type: 'object', properties: { prompt: { type: 'string' }, aspect: { type: 'string' } }, required: ['prompt'] },
       logomark: { type: 'object', properties: { prompt: { type: 'string' } }, required: ['prompt'] },

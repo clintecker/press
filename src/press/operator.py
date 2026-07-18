@@ -88,6 +88,34 @@ def improve(argv: list[str]) -> int:
     return code
 
 
+def aesthetic(argv: list[str]) -> int:
+    """Bare: print the effective visual identity. With a brief: draft
+    config/aesthetic.yaml from it through the aesthetic-brief workflow."""
+
+    import argparse
+
+    from . import aesthetic as aesthetic_config
+
+    if not argv:
+        return aesthetic_config.show()
+    parser = argparse.ArgumentParser(prog="press aesthetic")
+    parser.add_argument("brief", nargs="+",
+                        help="the look, in the author's words")
+    parser.add_argument("--overwrite", action="store_true",
+                        help="replace an existing config/aesthetic.yaml")
+    args = parser.parse_args(argv)
+    workflow_args: dict = {
+        "root": str(booklib.root()),
+        "brief": " ".join(args.brief),
+    }
+    if args.overwrite:
+        workflow_args["overwrite"] = True
+    code = run_workflow("aesthetic-brief", workflow_args, full_bash=False)
+    if code == 0:
+        print("review it: press aesthetic")
+    return code
+
+
 def research(argv: list[str]) -> int:
     import argparse
 
