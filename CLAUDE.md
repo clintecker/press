@@ -70,12 +70,20 @@ machinery, the machinery belongs here.
 
 Books pin a tag (`@v1`). Tags follow the GitHub Actions convention: `vN` is
 a floating major that moves to the latest compatible `vN.x.y`; the
-three-part tags are immutable. Design is part of the contract: within a
-major, fixes may correct broken output but must not change typography or
-layout of a valid book; design and template changes require a new major.
-To release a fix: commit, tag `vN.x.y`, force-move `vN` to it, push both.
-To release a new major: update the action ref in build.yml and the
-requirements pin in the template to the new major, commit, tag, push.
+three-part tags are immutable, and immutability is enforced, not
+promised: a three-part tag's build.yml must pin the press action to
+that exact tag and the toolchain image to an existing immutable
+`sha-` tag (the release-contract workflow turns red otherwise), so a
+pinned book resolves the same pipeline, action, and toolchain bytes
+forever, while `vN` floats normally. Design is part of the contract:
+within a major, fixes may correct broken output but must not change
+typography or layout of a valid book; design and template changes
+require a new major.
+To release: wait for the integration gate to be green on the release
+commit, set build.yml's `uses: clintecker/press@vN.x.y` to the tag
+being cut and its container image to the current toolchain `sha-` tag,
+bump pyproject, commit, tag `vN.x.y`, force-move `vN` to it, push
+both. For a new major, also move the requirements pin in the template.
 
 ## Config a book supplies
 

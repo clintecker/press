@@ -1,7 +1,9 @@
-/* Mostly Done. reading edition.
-   One leaf of the green-cloth book: cream paper, foil ornament, serif voice.
-   Generated pages come from pandoc chunkedhtml via web/chunked-template.html;
-   customization lives here and in the template only. */
+/* The press reading edition.
+   One leaf of the cloth-bound book: paper field, foil ornament, serif
+   voice; every color and face is a token the book's aesthetic may
+   override. Generated pages come from pandoc chunkedhtml via
+   web/chunked-template.html; customization lives in config, here, and
+   in the template only. */
 
 /* 1. Tokens */
 :root {
