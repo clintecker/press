@@ -1,6 +1,6 @@
 # press
 
-The 2389 Research Press: everything required to turn a directory of
+A complete small press: everything required to turn a directory of
 Markdown chapters into a publishable book. One `press all` produces a
 verified 6 x 9 PDF, EPUB, single-file HTML, per-chapter reader site,
 stitched Markdown, plain text, DOCX, a GitHub Pages site with public

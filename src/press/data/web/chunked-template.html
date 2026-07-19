@@ -108,7 +108,8 @@ $endif$
 $endif$
 <footer class="colophon">
   <hr class="rule" />
-  $if(homeurl)$<a class="press" href="$homeurl$">2389 Research Press</a>$else$<span class="press">2389 Research Press</span>$endif$
+$if(publisher)$  $if(homeurl)$<a class="press" href="$homeurl$">$publisher$</a>$else$<span class="press">$publisher$</span>$endif$
+$endif$
 </footer>
 <script>
 (function () {
