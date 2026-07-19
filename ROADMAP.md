@@ -43,6 +43,14 @@ shadow issue tracker.
 
 <!-- BEGIN GENERATED MILESTONES -->
 
+### Active v1 delivery
+
+The current compatible release train, ordered by intended delivery. Each milestone accumulates proof from the milestones before it.
+
+#### [v1.16 — Direct print ordering](https://github.com/clintecker/press/milestone/12) · Open
+
+Post-v1.15 direct-to-reader commerce: immutable release-qualified editions, hosted checkout and tax calculation, provider-neutral print fulfillment, Lulu sandbox/production qualification, idempotent payment-to-print orchestration, privacy-safe order status, deterministic accumulated-trust tests, operational controls, and a physical golden-copy release gate. Milestone/issues: <https://github.com/clintecker/press/milestone/12>. Product and technical plan: <https://github.com/clintecker/press/blob/main/docs/DIRECT-ORDERING-PLAN.md>. Start with merchant/policy ownership <https://github.com/clintecker/press/issues/116>, provider qualification <https://github.com/clintecker/press/issues/117>, edition manifests <https://github.com/clintecker/press/issues/118>, state machines <https://github.com/clintecker/press/issues/119>, provider contracts <https://github.com/clintecker/press/issues/120>, and broker boundary <https://github.com/clintecker/press/issues/121>. Golden-copy proof: <https://github.com/clintecker/press/issues/143>. Release gate: <https://github.com/clintecker/press/issues/144>. Prerequisites: <https://github.com/clintecker/press/milestone/10> and <https://github.com/clintecker/press/milestone/11>. Release identity: <https://github.com/clintecker/press/issues/97>. Architecture: <https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md>. Roadmap: <https://github.com/clintecker/press/blob/main/ROADMAP.md>.
+
 ### Future and breaking horizons
 
 Work deliberately held beyond the current v1 delivery train because it is breaking, optional, or depends on a mature single-book contract.
