@@ -13,6 +13,7 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
+from typing import cast
 
 from PIL import Image, ImageDraw, ImageStat
 
@@ -63,6 +64,8 @@ def verify_plate_links(pdf: Path) -> None:
             target = reader.get_destination_page_number(named)
         else:
             target = reader.get_page_number(dest[0].get_object())
+        if target is None:
+            raise SystemExit(f"plate link {dest!r} resolves to no page")
         checked += 1
         resources = reader.pages[target].get("/Resources") or {}
         if "/XObject" not in resources:
@@ -80,7 +83,7 @@ def run_capture(command: list[str]) -> str:
 def looks_blank(image: Image.Image) -> bool:
     gray = image.convert("L")
     stats = ImageStat.Stat(gray)
-    extrema = gray.getextrema()
+    extrema = cast("tuple[int, int]", gray.getextrema())
     return stats.stddev[0] < 1.2 or (extrema[0] > 249 and stats.mean[0] > 252.5)
 
 
@@ -105,7 +108,9 @@ def edge_has_ink(image: Image.Image, border: int = 2) -> bool:
         gray.crop((0, 0, border, height)),
         gray.crop((width - border, 0, width, height)),
     ]
-    return any(strip.getextrema()[0] < 245 for strip in strips)
+    return any(
+        cast("tuple[int, int]", strip.getextrema())[0] < 245 for strip in strips
+    )
 
 
 def ink_bbox(image: Image.Image) -> tuple[int, int, int, int] | None:
@@ -181,7 +186,7 @@ def verify_fonts(pdf: Path) -> None:
         raise SystemExit(f"unembedded fonts: {sorted(set(unembedded))}")
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:  # noqa: C901
     booklib.require_release_witnesses()
     root = booklib.root()
     meta = booklib.metadata()

@@ -102,7 +102,7 @@ def looks_title_cased(heading: str) -> bool:
     return capitalized / len(candidates) >= 0.8
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:  # noqa: C901
     explicit = list(argv if argv is not None else sys.argv[1:])
     explicit_mode = bool(explicit)
     root = booklib.root()

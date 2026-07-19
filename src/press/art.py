@@ -15,6 +15,7 @@ import argparse
 import re
 from datetime import date
 from pathlib import Path
+from typing import cast
 
 from . import booklib
 
@@ -40,10 +41,12 @@ def accept(source: Path, target: str) -> Path:
     from PIL import Image, ImageOps
 
     root = booklib.root()
-    image = Image.open(source)
+    image: Image.Image = Image.open(source)
     # A rotated photo stores its true orientation in EXIF; measure and
     # save the pixels the reader will actually face.
-    image = ImageOps.exif_transpose(image)
+    transposed = ImageOps.exif_transpose(image)
+    if transposed is not None:
+        image = transposed
 
     if target == "cover":
         aspect = image.height / image.width
@@ -74,7 +77,8 @@ def accept(source: Path, target: str) -> Path:
     destination.parent.mkdir(parents=True, exist_ok=True)
     if destination.suffix == ".png":
         rgba = image.convert("RGBA")
-        if target == "logomark" and rgba.getchannel("A").getextrema()[0] >= 250:
+        alpha_extrema = cast("tuple[int, int]", rgba.getchannel("A").getextrema())
+        if target == "logomark" and alpha_extrema[0] >= 250:
             # An imprint device sits on paper and dark grounds both; an
             # opaque delivery gets its ink extracted onto transparency,
             # which is the house format the intake exists to enforce.

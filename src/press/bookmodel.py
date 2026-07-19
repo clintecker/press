@@ -51,7 +51,7 @@ def _fail(problems: list[str], source: Path) -> None:
     raise SystemExit(f"configuration problems in {source}:\n{lines}")
 
 
-def load(root: Path, raw: dict) -> Book:
+def load(root: Path, raw: dict) -> Book:  # noqa: C901
     """Normalize and validate the parsed metadata into the one model."""
 
     from . import booklib

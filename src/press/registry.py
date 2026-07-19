@@ -104,28 +104,41 @@ def build_order(targets: list[str]) -> list[str]:
 def build(name: str) -> None:
     """Build an artifact and everything it stands on, dependency-first."""
 
+    import time
+
+    timings: list[tuple[str, float]] = []
+    for step in build_order([name]):
+        if not condition_holds(ARTIFACTS[step]):
+            continue
+        started = time.monotonic()
+        _execute(step)
+        timings.append((step, time.monotonic() - started))
+    ran = [(step, elapsed) for step, elapsed in timings if elapsed >= 0.05]
+    if len(ran) > 1:
+        total = sum(elapsed for _, elapsed in timings)
+        stages = "; ".join(f"{step} {elapsed:.1f}s" for step, elapsed in ran)
+        print(f"press timings: {stages}; total {total:.1f}s")
+
+
+def _execute(step: str) -> None:
     from . import booklib, build as builder
 
-    for step in build_order([name]):
-        artifact = ARTIFACTS[step]
-        if not condition_holds(artifact):
-            continue
-        if step == "source":
-            from . import package_source
+    if step == "source":
+        from . import package_source
 
-            package_source.main()
-        elif step == "sources":
-            pass  # generated alongside any pandoc build of the manuscript
-        elif step == "pages":
-            builder.build_target("pages")
-        elif step == "coverwrap":
-            from . import gen_coverwrap
+        package_source.main()
+    elif step == "sources":
+        pass  # generated alongside any pandoc build of the manuscript
+    elif step == "pages":
+        builder.build_target("pages")
+    elif step == "coverwrap":
+        from . import gen_coverwrap
 
-            root = booklib.root()
-            slug = booklib.slug()
-            gen_coverwrap.generate(
-                root / "dist" / f"{slug}-interior.pdf",
-                root / "dist" / f"{slug}-coverwrap.pdf",
-            )
-        else:
-            builder.build_target(step)
+        root = booklib.root()
+        slug = booklib.slug()
+        gen_coverwrap.generate(
+            root / "dist" / f"{slug}-interior.pdf",
+            root / "dist" / f"{slug}-coverwrap.pdf",
+        )
+    else:
+        builder.build_target(step)

@@ -9,7 +9,31 @@ audit).
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- An engineering-quality layer with teeth: ruff lints with a
+  cyclomatic-complexity ceiling of 15 (six pre-existing functions
+  carry `# noqa: C901` as tracked inventory, #66), mypy runs clean
+  over the whole package, and a `quality` CI job plus a
+  `.pre-commit-config.yaml` run the same gates locally and on every
+  PR. `pip install -e '.[dev]'` brings the tools.
+- Build timing metrics: every pipeline command that takes a second or
+  more prints its elapsed time, and dependency-graph builds
+  (`press pages`, `press print`) print a per-stage summary, so a
+  regression in the slow stages is a number, not a feeling.
+
+### Fixed
+
+- The doc-drift selftest now sees tuple routes
+  (`target in ("pages", "verify-pages")`) as well as equality routes,
+  so a routed target can no longer hide from the usage/README check
+  (#41, #49).
+- `gen_authorities.generate` (cyclomatic 35, the worst in the
+  package) decomposed into `_structural_problems`, `_locate`, and
+  `_render_companion` with behavior unchanged; PDF verification and
+  art intake carry precise types where Pillow and pypdf return
+  unions, and an unresolvable plate-link destination is now a named
+  refusal instead of a TypeError.
 
 ## [1.8.2] - 2026-07-19
 

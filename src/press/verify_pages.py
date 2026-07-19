@@ -30,7 +30,7 @@ class RefCollector(html.parser.HTMLParser):
                 self.refs.append(value)
 
 
-def crawl(pages: Path, sentinels: list[str], downloads: list[str],
+def crawl(pages: Path, sentinels: list[str], downloads: list[str],  # noqa: C901
           title: str) -> list[str]:
     """Every defect found, as human-readable failure lines."""
 

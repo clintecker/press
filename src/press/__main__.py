@@ -80,7 +80,7 @@ def verify_formats_built() -> int:
     ])
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:  # noqa: C901
     args = list(argv if argv is not None else sys.argv[1:])
     if not args:
         print(USAGE)

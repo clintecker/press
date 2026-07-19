@@ -14,6 +14,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 import yaml
@@ -31,7 +32,11 @@ def run(command: list[str]) -> None:
     env.setdefault("SOURCE_DATE_EPOCH", "1784160000")
     env["BOOK_ROOT"] = str(booklib.root())
     env["BOOK_PUBLISHER"] = str(booklib.metadata().get("publisher") or "")
+    started = time.monotonic()
     subprocess.run(command, cwd=booklib.root(), env=env, check=True)
+    elapsed = time.monotonic() - started
+    if elapsed >= 1.0:
+        print(f"  {command[0]} took {elapsed:.1f}s")
 
 
 def book_inputs() -> list[str]:

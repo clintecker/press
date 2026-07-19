@@ -17,7 +17,7 @@ import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Iterator, Sequence
+from typing import Any, Iterable, Iterator, Sequence
 
 
 TEXT_SUFFIXES = {
@@ -336,10 +336,10 @@ def rank_candidates(
     smoothing: float,
     known_terms: set[str],
     novel_only: bool,
-) -> list[dict[str, object]]:
+) -> list[dict[str, Any]]:
     """Create ranked rows with smoothed frequency comparisons."""
 
-    rows: list[dict[str, object]] = []
+    rows: list[dict[str, Any]] = []
 
     for term, model_count in model.counts.items():
         if model_count < min_count:
@@ -404,7 +404,7 @@ def rank_candidates(
     )
 
 
-def write_rows(rows: Sequence[dict[str, object]], output: Path | None) -> None:
+def write_rows(rows: Sequence[dict[str, Any]], output: Path | None) -> None:
     """Write candidate rows as CSV."""
 
     fieldnames = [

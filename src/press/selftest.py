@@ -78,11 +78,10 @@ def check_source_policy() -> None:
     """The source packager refuses secrets, skips symlinks without
     dereferencing, and actually deflates its members."""
 
-    import os
     import tempfile
     import zipfile
 
-    from . import booklib, package_source, scaffold
+    from . import package_source, scaffold
 
     with tempfile.TemporaryDirectory() as tmp:
         book = Path(tmp) / "policy-proof"
@@ -131,10 +130,9 @@ def check_authorities_ledger() -> None:
     missing, moved, and ambiguous are named, and a sound ledger yields a
     companion carrying its durable locators."""
 
-    import os
     import tempfile
 
-    from . import booklib, gen_authorities, scaffold
+    from . import gen_authorities, scaffold
 
     with tempfile.TemporaryDirectory() as tmp:
         book = Path(tmp) / "ledger-proof"
@@ -351,6 +349,11 @@ def check_docs() -> None:
     readme = (here.parent.parent / "README.md")
     usage_words = set(re.findall(r"[a-z-]{2,}", cli.USAGE.split("usage:")[1]))
     routed = set(re.findall(r'target == "([a-z-]+)"', source)) | set(cli.FORMATS)
+    # Tuple routes (`target in ("pages", "verify-pages")`) count too; the
+    # first version of this check only saw equality routes and blessed a
+    # usage text that omitted them.
+    for group in re.findall(r"target in \(([^)]*)\)", source):
+        routed |= set(re.findall(r'"([a-z-]+)"', group))
     missing_from_usage = sorted(routed - usage_words)
     if missing_from_usage:
         raise SystemExit(f"targets routed but absent from usage text: {missing_from_usage}")

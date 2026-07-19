@@ -17,7 +17,6 @@ from __future__ import annotations
 import base64
 import json
 import os
-import re
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -250,12 +249,15 @@ def normalize_reference(data: bytes, path: Path) -> bytes:
 
     from PIL import Image, ImageOps
 
-    image = Image.open(io.BytesIO(data))
+    image: Image.Image = Image.open(io.BytesIO(data))
     if (len(data) <= 4_000_000 and max(image.size) <= 2048
             and image.format == "JPEG"):
         # Small and already the format its mime label claims.
         return data
-    image = ImageOps.exif_transpose(Image.open(io.BytesIO(data)))
+    image = Image.open(io.BytesIO(data))
+    transposed = ImageOps.exif_transpose(image)
+    if transposed is not None:
+        image = transposed
     image.thumbnail((2048, 2048))
     out = io.BytesIO()
     image.convert("RGB").save(out, format="JPEG", quality=90)
@@ -316,7 +318,7 @@ def commission(targets: list[str], models: list[str], count: int,
             chosen_photo = root / chosen_photo
         if not chosen_photo.is_file():
             raise SystemExit(f"no such photograph: {chosen_photo}")
-        photo = (normalize_reference(chosen_photo.read_bytes(), chosen_photo),
+        photo: tuple[bytes, str] | None = (normalize_reference(chosen_photo.read_bytes(), chosen_photo),
                  "image/jpeg")
     else:
         photo = author_photo(root)

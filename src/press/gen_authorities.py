@@ -24,7 +24,6 @@ say exactly what they are.
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 import yaml
@@ -80,6 +79,68 @@ def chapter_label(path: Path) -> str:
     return f"chapter {int(name.split('-', 1)[0])}"
 
 
+def _structural_problems(index: int, entry: object) -> list[str]:
+    """Schema defects that make an entry unprocessable."""
+
+    if not isinstance(entry, dict):
+        return [f"entry {index}: malformed (not a mapping)"]
+    problems = []
+    if not isinstance(entry.get("claim"), str) or not entry["claim"].strip():
+        problems.append(f"entry {index}: malformed (claim missing or empty)")
+    if not isinstance(entry.get("authority"), str) or not entry["authority"].strip():
+        problems.append(f"entry {index}: malformed (authority missing or empty)")
+    return problems
+
+
+def _locate(index: int, entry: dict, fragment: str, sources: list,
+            by_relpath: dict):
+    """Where the claim lives, or the one diagnostic explaining why not:
+    unknown file, ambiguous (with counts), moved (with destination), or
+    missing entirely."""
+
+    claim = entry["claim"]
+    hits = [
+        (path, label, text.count(fragment))
+        for path, label, text in sources if fragment in text
+    ]
+    missing = (
+        f'entry {index}: missing, "{claim}" matches nothing in the '
+        "book (the text moved out from under its citation)"
+    )
+    declared = entry.get("file")
+    if not declared:
+        total = sum(n for _, _, n in hits)
+        if total == 1:
+            return hits[0], None
+        if total == 0:
+            return None, missing
+        where = ", ".join(
+            f"{p.relative_to(booklib.root())} x{n}" for p, _, n in hits
+        )
+        return None, (
+            f'entry {index}: ambiguous, "{claim}" matches {total} '
+            f"times ({where}); lengthen the fragment or declare file:"
+        )
+    home = by_relpath.get(str(declared))
+    if home is None:
+        return None, f'entry {index}: declares unknown file "{declared}"'
+    count_here = home[2].count(fragment)
+    if count_here == 1:
+        return home, None
+    if count_here > 1:
+        return None, (
+            f'entry {index}: ambiguous, "{claim}" appears '
+            f"{count_here} times in {declared}; lengthen the fragment"
+        )
+    if hits:
+        where = ", ".join(str(p.relative_to(booklib.root())) for p, _, _ in hits)
+        return None, (
+            f'entry {index}: moved, "{claim}" is no longer in '
+            f"{declared} but appears in {where}; update file:"
+        )
+    return None, missing
+
+
 def generate() -> Path | None:
     ledger = booklib.root() / "config" / "authorities.yaml"
     if not ledger.is_file():
@@ -104,77 +165,23 @@ def generate() -> Path | None:
         for path, label, text in sources
     }
     for index, entry in enumerate(entries, start=1):
-        if not isinstance(entry, dict):
-            diagnostics.append(f"entry {index}: malformed (not a mapping)")
+        problems = _structural_problems(index, entry)
+        if problems:
+            diagnostics.extend(problems)
             continue
-        claim = entry.get("claim")
-        authority = entry.get("authority")
-        structural = False
-        if not isinstance(claim, str) or not claim.strip():
-            diagnostics.append(f"entry {index}: malformed (claim missing or empty)")
-            structural = True
-        if not isinstance(authority, str) or not authority.strip():
-            diagnostics.append(f"entry {index}: malformed (authority missing or empty)")
-            structural = True
-        if structural:
-            continue
-        fragment = normalize(claim)
+        fragment = normalize(entry["claim"])
         if fragment in seen:
             diagnostics.append(
-                f'entry {index}: duplicate claim "{claim}" (first stated at '
-                f"entry {seen[fragment]})"
+                f'entry {index}: duplicate claim "{entry["claim"]}" '
+                f"(first stated at entry {seen[fragment]})"
             )
             continue
         seen[fragment] = index
-
-        counts = [
-            (path, label, text.count(fragment)) for path, label, text in sources
-        ]
-        hits = [(p, l, n) for p, l, n in counts if n]
-        declared = entry.get("file")
-        if declared:
-            home = by_relpath.get(str(declared))
-            if home is None:
-                diagnostics.append(
-                    f'entry {index}: declares unknown file "{declared}"'
-                )
-                continue
-            count_here = home[2].count(fragment)
-            if count_here == 1:
-                located.append((home[0].name, home[1], entry))
-            elif count_here > 1:
-                diagnostics.append(
-                    f'entry {index}: ambiguous, "{claim}" appears '
-                    f"{count_here} times in {declared}; lengthen the fragment"
-                )
-            elif hits:
-                where = ", ".join(str(p.relative_to(booklib.root())) for p, _, _ in hits)
-                diagnostics.append(
-                    f'entry {index}: moved, "{claim}" is no longer in '
-                    f"{declared} but appears in {where}; update file:"
-                )
-            else:
-                diagnostics.append(
-                    f'entry {index}: missing, "{claim}" matches nothing in the '
-                    "book (the text moved out from under its citation)"
-                )
+        home, problem = _locate(index, entry, fragment, sources, by_relpath)
+        if problem:
+            diagnostics.append(problem)
         else:
-            total = sum(n for _, _, n in hits)
-            if total == 1:
-                located.append((hits[0][0].name, hits[0][1], entry))
-            elif total == 0:
-                diagnostics.append(
-                    f'entry {index}: missing, "{claim}" matches nothing in the '
-                    "book (the text moved out from under its citation)"
-                )
-            else:
-                where = ", ".join(
-                    f"{p.relative_to(booklib.root())} x{n}" for p, _, n in hits
-                )
-                diagnostics.append(
-                    f'entry {index}: ambiguous, "{claim}" matches {total} '
-                    f"times ({where}); lengthen the fragment or declare file:"
-                )
+            located.append((home[0].name, home[1], entry))
 
     if diagnostics:
         raise SystemExit(
@@ -182,8 +189,14 @@ def generate() -> Path | None:
             + "\n".join(f"  - {d}" for d in diagnostics)
         )
 
-    # The full table of authorities is published as its own document rather
-    # than bloating the book; enforcement still runs above on every build.
+    _render_companion(located)
+    # Not appended to the book: the bibliography is a separate document.
+    return None
+
+
+def _render_companion(located: list) -> None:
+    """The published companion document, grouped by chapter."""
+
     book = booklib.book()
     imprint = f", {book.publisher}" if book.publisher else ""
     dated = f", {book.date}" if book.date else ""
@@ -218,5 +231,3 @@ def generate() -> Path | None:
     output = booklib.root() / "dist" / f"{booklib.slug()}-sources.md"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text("\n".join(lines), encoding="utf-8")
-    # Not appended to the book: the bibliography is a separate document.
-    return None

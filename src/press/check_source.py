@@ -10,7 +10,7 @@ from . import booklib
 FORBIDDEN = ["TODO: write", "TBD: write", "lorem ipsum"]
 
 
-def main() -> int:
+def main() -> int:  # noqa: C901
     root = booklib.root()
     failures: list[str] = []
     seen: set[Path] = set()
