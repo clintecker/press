@@ -27,7 +27,9 @@ modules:
   aesthetic: {default: normalizer, overrides: {write_tex_overrides: producer}}
   art: presenter
   art_commission: adapter
+  artifact_status: pure
   barcode: pure
+  events: {default: pure, overrides: {parse_line: parser}}
   booklib:
     default: parser
     overrides:
@@ -44,7 +46,8 @@ modules:
   catalog: {default: pure, overrides: {render_usage: producer}}
   check_source: verifier
   check_the_checkers: verifier
-  doctor: {default: presenter, overrides: {tool_runs: adapter}}
+  desk_model: producer
+  doctor: {default: presenter, overrides: {tool_runs: adapter, examine: adapter, render_finding: pure}}
   fixture_provenance: verifier
   gen_authorities: {default: producer, overrides: {print_safe: normalizer, normalize: normalizer, chapter_label: pure, next_letter: pure, taken_letters: pure}}
   gen_coverwrap: {default: producer, overrides: {spine_width: pure, interior_page_count: pure, isbn_for_print: parser, tex_safe_path: pure}}
@@ -55,6 +58,7 @@ modules:
   jargon_lint: verifier
   operator: orchestrator
   package_source: {default: producer, overrides: {publication_members: pure, tracked_paths: adapter}}
+  process_control: {default: orchestrator, overrides: {default_spawn: adapter}}
   publish: {default: orchestrator, overrides: {}}
   receipts: {default: verifier, overrides: {emit: producer, current_inputs: adapter, to_json: pure, from_json: pure}}
   registrations: {default: parser, overrides: {}}
