@@ -9,6 +9,20 @@ audit).
 
 ## [Unreleased]
 
+### Added
+
+- Full CSS freedom for a book's web surfaces: `assets/web/reader.css`
+  replaces the house reader stylesheet outright and
+  `assets/web/extra.css` appends cascade-winning declarations to both
+  the reader and the pages landing page. The aesthetic palette applies
+  to either; a book supplying neither renders byte-identically.
+- The press publishes its own documentation site
+  (https://clintecker.github.io/press/): `scripts/build_site.py`
+  renders README, docs/, CHANGELOG, and CONTRIBUTING through pandoc
+  with the site's own stylesheet, link-checks the result, and the
+  docs-site workflow deploys it on every push to main. No page is
+  hand-written, so the site cannot drift from the repo.
+
 ### Fixed
 
 - The release script's version bump is anchored to the `[project]`

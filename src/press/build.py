@@ -211,6 +211,30 @@ def recompress_images(target: Path) -> None:
         image.save(path, quality=70, optimize=True)
 
 
+def site_stylesheet() -> str:
+    """The reader stylesheet, with the book in charge of every layer.
+
+    A book that supplies assets/web/reader.css replaces the house sheet
+    outright and owns the whole design; one that supplies
+    assets/web/extra.css keeps the house sheet and appends its own
+    declarations last, so they win the cascade. Either way the
+    aesthetic palette substitution applies (a no-op unless the sheet
+    declares the house tokens), and a book that supplies neither
+    renders exactly as before.
+    """
+
+    from . import aesthetic
+
+    root = booklib.root()
+    own = root / "assets" / "web" / "reader.css"
+    base = own if own.is_file() else booklib.DATA / "web" / "reader.css"
+    css = aesthetic.substitute_web(base.read_text(encoding="utf-8"))
+    extra = root / "assets" / "web" / "extra.css"
+    if extra.is_file():
+        css += "\n/* assets/web/extra.css */\n" + extra.read_text(encoding="utf-8")
+    return css
+
+
 def site_build(output_dir: str) -> None:
     """Per-chapter HTML site via pandoc's chunkedhtml writer."""
 
@@ -219,14 +243,7 @@ def site_build(output_dir: str) -> None:
     if out.exists():
         shutil.rmtree(out)
     pandoc_build("chunked", output_dir, extra=["--to=chunkedhtml"])
-    from . import aesthetic
-
-    (out / "reader.css").write_text(
-        aesthetic.substitute_web(
-            (booklib.DATA / "web" / "reader.css").read_text(encoding="utf-8")
-        ),
-        encoding="utf-8",
-    )
+    (out / "reader.css").write_text(site_stylesheet(), encoding="utf-8")
     cover = root / "assets" / "cover.jpg"
     if cover.is_file():
         shutil.copy(cover, out / "cover.jpg")
@@ -366,6 +383,14 @@ def pages_build(output_dir: str) -> None:
     from . import aesthetic
 
     page = aesthetic.substitute_web(page)
+    extra = root / "assets" / "web" / "extra.css"
+    if extra.is_file():
+        overrides = (
+            "<style>\n/* assets/web/extra.css */\n"
+            + extra.read_text(encoding="utf-8")
+            + "\n</style>\n</head>"
+        )
+        page = page.replace("</head>", overrides, 1)
     (out / "index.html").write_text(page, encoding="utf-8")
 
     for optional in ("cover.jpg", "press-logo.png"):

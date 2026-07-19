@@ -68,7 +68,11 @@ settings before its first CI run can pull the image.
   the table of authorities; `press aesthetic` prints the book's
   effective visual identity, and `press aesthetic "<brief>"` drafts
   `config/aesthetic.yaml` from an author's description ("1970s pulp
-  sci-fi paperback"), which every art commission then applies.
+  sci-fi paperback"), which every art commission then applies. For
+  the web surfaces the stylesheet itself is the book's to own:
+  `assets/web/reader.css` replaces the house reader sheet entirely,
+  and `assets/web/extra.css` appends declarations that win the
+  cascade on both the reader and the landing page.
 - Instruments: `skills workflows` -- the packaged authoring skills and
   agent workflows, with installed paths, paste-ready invocations, and
   pinned-copy drift detection inside a book.

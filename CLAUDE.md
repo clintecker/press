@@ -17,6 +17,12 @@ book repository that consumes this package.
   `uses: clintecker/press@v1` and the press installs itself from the
   action's own checkout. That is what lets a private book use the private
   press with no cross-repo token; do not replace it with pip-from-git.
+- `scripts/build_site.py` + `site/press.css` build the press's own
+  documentation site (README, docs/, CHANGELOG, CONTRIBUTING through
+  pandoc, link-checked); `.github/workflows/docs-site.yml` deploys it
+  to https://clintecker.github.io/press/ on every push to main. The
+  site carries no hand-written content, so it cannot drift from the
+  repo.
 - `.github/workflows/build.yml` is the reusable workflow books call. It
   hardcodes the press action ref and the toolchain image tag; they are part
   of the pinned contract.
@@ -121,6 +127,11 @@ both. For a new major, also move the requirements pin in the template.
   overriding the generated front matter entirely.
 - `assets/cover.jpg`, `assets/press-logo.png`, `assets/woodcuts/*.jpg`
   (all optional; every consumer degrades gracefully when absent).
+- `assets/web/reader.css` (optional) replaces the house reader
+  stylesheet outright; `assets/web/extra.css` (optional) appends after
+  it, winning the cascade, and is also injected into the pages landing
+  page. The aesthetic palette applies to either; a book supplying
+  neither renders byte-identically to before.
 - `tests/known-bad/` (optional): fixtures for the book's own house rules;
   every fixture must be rejected by a checker on every build.
 
