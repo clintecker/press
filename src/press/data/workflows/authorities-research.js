@@ -1,7 +1,7 @@
 export const meta = {
   name: 'authorities-research',
-  description: 'Extract every claim of fact from the manuscript, research real sources for each, adversarially verify, and write config/authorities.yaml for the build to enforce',
-  whenToUse: 'args: {root: absolute path to the book repository}. Run against a book repository whose chapters assert facts (historical, technical, numerical) that deserve attribution. args: {maxClaimsPerFile?: number (default 8)}',
+  description: 'Extract the claims of fact from the manuscript (exhaustive by default), research real sources for each, adversarially verify, and write config/authorities.yaml for the build to enforce',
+  whenToUse: 'args: {root: absolute path to the book repository}. Run against a book repository whose chapters assert facts (historical, technical, numerical) that deserve attribution. args: {maxClaimsPerFile?: number (default 0 = exhaustive; a positive cap samples and the accounting discloses omissions)}',
   phases: [
     { title: 'Extract', detail: 'per-chapter claim harvest' },
     { title: 'Research', detail: 'find a real authority for each claim' },
@@ -11,16 +11,16 @@ export const meta = {
 }
 
 const A = (typeof args === 'string') ? JSON.parse(args) : (args || {})
-const CAP = A.maxClaimsPerFile || 8
+const CAP = A.maxClaimsPerFile || 0
 const ROOT = A.root || '.'
 const PRESS = A.press || 'press'
 
 if (ROOT === '.') throw new Error('args.root is required: pass the absolute path of the book repository')
 phase('Extract')
 const scout = await agent(
-`The book repository is at ${ROOT} (work there, not in the session directory). List every manuscript file under its book/chapters/ and book/appendices/ in filename order (relative paths).`,
+`The book repository is at ${ROOT} (work there, not in the session directory). List every manuscript file under its book/chapters/ and book/appendices/ in filename order (relative paths). Then read ${ROOT}/config/metadata.yaml (title, subtitle, description, keywords) and skim the opening paragraphs of the first two chapters, and state: subject, one sentence saying what this book is actually about; and sourceKinds, two to four kinds of authorities appropriate to THIS book's domain (e.g. for a legal history: case reports, statutes, legal encyclopedias). The press ships this workflow to arbitrary books; nothing about any particular trade may be assumed.`,
   { label: 'scout', phase: 'Extract',
-    schema: { type: 'object', properties: { files: { type: 'array', items: { type: 'string' } } }, required: ['files'] } }
+    schema: { type: 'object', properties: { files: { type: 'array', items: { type: 'string' } }, subject: { type: 'string' }, sourceKinds: { type: 'array', items: { type: 'string' } } }, required: ['files', 'subject', 'sourceKinds'] } }
 )
 const harvested = await parallel(scout.files.map(f => () => agent(
 `Read ${ROOT}/${f} closely. Extract every CLAIM OF FACT the text asserts about the real world: historical practices, trade customs, terminology origins, dates, numbers, technical assertions about how things worked. NOT the author's own opinions, doctrines, or workshop practices; only statements a skeptical reader could ask "says who?" about.
@@ -28,23 +28,25 @@ const harvested = await parallel(scout.files.map(f => () => agent(
 For each claim return:
 - fragment: a SHORT exact quote from the file (5-15 words, verbatim, no ellipses) that pins the claim to the text
 - assertion: one sentence stating what the text claims as fact
-Rank by how strong and checkable the assertion is; cap at ${CAP}. An empty list is correct for files that assert nothing.`,
+${CAP ? `Rank by how strong and checkable the assertion is; return at most ${CAP} claims AND totalFound, the full count you identified, so the accounting can disclose what the cap omitted.` : 'Return EVERY claim you identify; exhaustiveness is the contract. Set totalFound to the same count.'} An empty list is correct for files that assert nothing.`,
   { label: `extract:${f.split('/').pop()}`, phase: 'Extract',
-    schema: { type: 'object', properties: { claims: { type: 'array', items: { type: 'object', properties: { fragment: { type: 'string' }, assertion: { type: 'string' } }, required: ['fragment', 'assertion'] } } }, required: ['claims'] } }
-).then(r => (r.claims || []).map(c => ({ ...c, file: f })))))
+    schema: { type: 'object', properties: { claims: { type: 'array', items: { type: 'object', properties: { fragment: { type: 'string' }, assertion: { type: 'string' } }, required: ['fragment', 'assertion'] } }, totalFound: { type: 'number' } }, required: ['claims', 'totalFound'] } }
+).then(r => ({ file: f, claims: (r.claims || []).map(c => ({ ...c, file: f })), totalFound: r.totalFound || (r.claims || []).length }))))
 const missedFiles = scout.files.filter((f, i) => !harvested[i])
 if (missedFiles.length) log(`extraction agents failed for ${missedFiles.length} file(s): ${missedFiles.join(', ')}; their claims are uncounted, rerun to cover them`)
-const claims = harvested.filter(Boolean).flat()
-log(`${claims.length} factual claims harvested`)
+const kept = harvested.filter(Boolean)
+const claims = kept.flatMap(r => r.claims)
+const omittedByCap = kept.reduce((n, r) => n + Math.max(0, r.totalFound - r.claims.length), 0)
+log(`${claims.length} factual claims harvested${CAP ? ` (cap ${CAP}/file; ${omittedByCap} identified claims omitted by the cap)` : ' (exhaustive; nothing omitted)'}`)
 
 phase('Research')
 const researched = await parallel(claims.map(c => () => agent(
-`You are sourcing one factual claim from a book about the printing trade and modern software.
+`You are sourcing one factual claim from a book. SUBJECT: ${scout.subject}
 
 CLAIM (as the text asserts it): ${c.assertion}
 EXACT TEXT FRAGMENT: "${c.fragment}" (in ${ROOT}/${c.file})
 
-Use web search to find a real, checkable authority: a published book, scholarly article, museum or archive page, or standard reference that supports the claim. Prefer primary or classic sources (e.g. Moxon's Mechanick Exercises, trade histories, OED etymologies) over blogs. Then judge honestly:
+Use web search to find a real, checkable authority: a published book, scholarly article, museum or archive page, or standard reference that supports the claim. Prefer primary or classic sources over blogs; for this book's domain that means ${scout.sourceKinds.join(', ')}. Then judge honestly:
 - If the claim is supported: give the authority as a short citation (author, title, year; add publisher or archive only if needed to find it), a stable url (the canonical page, archive record, or DOI; omit only if the work has no durable online locator), and one dry line on what it establishes.
 - If the claim is PARTLY right or commonly repeated but disputed: say so and give the best source with a caveat note.
 - If you cannot find real support: verdict "unsupported". Do not invent citations; an invented authority is worse than none.`,
@@ -96,4 +98,4 @@ ${JSON.stringify(unresolved.map(x => ({ file: x.file, fragment: x.fragment, asse
 Return: entries written, build status, the unsourced list with a one-line suggested edit for each, and the unresolved list verbatim.`,
   { label: 'ledger', phase: 'Ledger' }
 )
-return { claims: claims.length, sourced: good.length, unsourced: unsourced.length, unresolved: unresolved.length, extractionMissedFiles: missedFiles, ledger: result }
+return { subject: scout.subject, claims: claims.length, sourced: good.length, unsourced: unsourced.length, unresolved: unresolved.length, omittedByCap, extractionMissedFiles: missedFiles, ledger: result }

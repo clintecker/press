@@ -24,6 +24,10 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install -y --no-install-recommends pandoc
           python3 scripts/build_site.py
+      - name: Distribution metadata is publishable
+        run: |
+          python3 -m build --sdist --wheel --outdir /tmp/dist-check
+          python3 -m twine check --strict /tmp/dist-check/*
 
   selftest:
     runs-on: ${{ matrix.os }}

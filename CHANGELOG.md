@@ -9,7 +9,43 @@ audit).
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+
+- Workflow coherence (the v1.11 milestone). The packaged workflows
+  stop assuming the first book: authorities research derives its
+  subject and preferred source kinds from the book's own metadata and
+  manuscript, extraction is exhaustive by default with any sampling
+  cap disclosed in the accounting (#76); editorial synthesizer
+  rejections become durable reviewed findings in
+  build/editorial-rejections.md, fed into later rounds so a refuted
+  suggestion is not re-filed unchanged, with staleness resolved
+  against the current text (#77); and the book-aesthetics schema
+  documents the full page-look surface (web palettes, typography,
+  book colors) with a selftest tying the documentation to the keys
+  the aesthetic engine actually consumes (#59).
+- The complexity inventory is empty: the route-table refactor of the
+  CLI dispatch and decompositions of the remaining oversized
+  functions bring every function under the C901 ceiling and remove
+  every noqa; the docs drift checker now derives routed targets from
+  the route table itself instead of regexing source (#66).
+- Contributor contracts are single-source: CLAUDE.md is canonical
+  (release procedure now states scripts/release.sh; the authorities
+  ledger renders a standalone companion, not an appendix) with
+  AGENTS.md as a checked mirror, and the roadmap is
+  registry-authoritative with generated milestone projections (#75).
+
+### Added
+
+- Public reference documents for #33: an invariant matrix and
+  provenance-versus-verification and design-versioning sections in
+  docs/ARCHITECTURE.md, a complete configuration reference in
+  docs/CONFIGURATION.md, and builder/verifier/destination columns in
+  the generated docs/REFERENCE.md, all carried on the documentation
+  site.
+- Package metadata is publishable: README as long description,
+  authors and maintainers stated, and a build-plus-twine-check
+  --strict gate in CI; pip-from-git at a tag remains the one
+  supported channel and the docs say so (#74).
 
 ## [1.10.0] - 2026-07-19
 

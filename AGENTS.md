@@ -20,6 +20,12 @@ book repository that consumes this package.
   fixture), but self-checkout install is still the law: it keeps a
   private book working with no cross-repo token and pins the installed
   press to the exact action ref; do not replace it with pip-from-git.
+- `scripts/build_site.py` + `site/press.css` build the press's own
+  documentation site (README, docs/, CHANGELOG, CONTRIBUTING through
+  pandoc, link-checked); `.github/workflows/docs-site.yml` deploys it
+  to <https://clintecker.github.io/press/> on every push to main. The
+  site carries no hand-written content, so it cannot drift from the
+  repo.
 - `.github/workflows/build.yml` is the reusable workflow books call. It
   hardcodes the press action ref and the toolchain image tag; they are part
   of the pinned contract.
@@ -35,7 +41,7 @@ book repository that consumes this package.
   repetition, and arc passes producing suggestions; per-chapter
   synthesizers applying them; `press check` closing each round, iterating
   until suggestions dry up). The scaffold lays it into every book's
-  `.Codex/workflows/`, stamped with the press version so drift is
+  `.claude/workflows/`, stamped with the press version so drift is
   visible; run it with the Workflow tool by name (`editorial-passes`)
   from inside a book. It hard-codes the named diseases
   of agent prose (epigram compulsion with a two-maxim quota, uniform
@@ -45,8 +51,12 @@ book repository that consumes this package.
   the manuscript, applies the design skills, writes `art/commissions.md`
   with paste-ready image-model prompts; results come back in through
   `press art accept <file> --as cover|plate:<name>|logomark|portrait`,
-  which converts to house format, enforces the geometry scars, and
-  updates the commission record).
+  which converts to house format (plates gray to single ink when the
+  aesthetic states it; an opaque logomark gets its ink extracted onto
+  transparency), enforces the geometry scars, and updates the
+  commission record). An author photograph supplied at
+  `art/author-photo.jpg` makes the portrait commission engrave the
+  actual author.
 - `src/press/data/skills/` holds the authoring guides (four prose skills,
   the overused-jargon skill whose `references/watchlist.csv` is the one
   watchlist the jargon lint reads, design skills for covers, plates, and
@@ -69,12 +79,23 @@ machinery, the machinery belongs here.
 
 Books pin a tag (`@v1`). Tags follow the GitHub Actions convention: `vN` is
 a floating major that moves to the latest compatible `vN.x.y`; the
-three-part tags are immutable. Design is part of the contract: within a
-major, fixes may correct broken output but must not change typography or
-layout of a valid book; design and template changes require a new major.
-To release a fix: commit, tag `vN.x.y`, force-move `vN` to it, push both.
-To release a new major: update the action ref in build.yml and the
-requirements pin in the template to the new major, commit, tag, push.
+three-part tags are immutable, and immutability is enforced, not
+promised: a three-part tag's build.yml must pin the press action to
+that exact tag and the toolchain image to an existing immutable
+`sha-` tag (the release-contract workflow turns red otherwise), so a
+pinned book resolves the same pipeline, action, and toolchain bytes
+forever, while `vN` floats normally. Design is part of the contract:
+within a major, fixes may correct broken output but must not change
+typography or layout of a valid book; design and template changes
+require a new major.
+To release: roll the CHANGELOG's [Unreleased] section into a version
+section, then run `scripts/release.sh vN.x.y`. The script is the one
+release path and a resumable state machine: it validates strict
+SemVer, preflights remote state, pins build.yml and pyproject,
+commits, tags, waits for the tag's release contract to prove, floats
+`vN` only then, and publishes the GitHub Release; rerunning after any
+failure is the recovery procedure. For a new major, also move the
+requirements pin in the template.
 
 ## Config a book supplies
 
@@ -90,18 +111,36 @@ requirements pin in the template to the new major, commit, tag, push.
   index appendix generates on every build and zero-hit terms fail it.
 - `config/authorities.yaml` (optional): the table of authorities, a ledger
   mapping exact text fragments (claims of fact) to the sources that
-  warrant them. The "Sources and authorities" appendix generates on every
-  build; a claim whose sentence has left the text fails the run. Populate
-  it with the `authorities-research` workflow (extract, research with web
+  warrant them. Every build verifies each claim still appears exactly
+  once in its declared file (a claim whose sentence has left the text
+  fails the run) and renders the ledger as a standalone
+  sources-and-authorities companion document published beside the
+  book, not as an appendix inside it. Populate it with the
+  `authorities-research` workflow (extract, research with web
   sources, adversarial audit, ledger write).
-- `config/front-matter.yaml` (optional): epigraph, rights-notice,
-  contact, motto. Its presence asks the press to generate the PDF title
-  page, colophon, and epigraph from config; the title page stacks the
-  subtitle's OR clauses.
+- `config/aesthetic.yaml` (optional): the book's visual identity
+  (cover grammar, plate medium, logomark tradition, portrait style,
+  register), applied by every art commission; absent, the house
+  Victorian idiom in `data/aesthetic-house.yaml` applies. Draft it by
+  interview (book-aesthetics skill) or `press aesthetic "<brief>"`;
+  `press aesthetic` shows the effective merge. Craft laws (verbatim
+  text, flat plates, single-ink interiors) are not configurable.
+- `config/front-matter.yaml` (optional): everything book-variable on
+  the generated front matter: dedication, epigraph, acknowledgements,
+  and the colophon knobs (edition-note, manufacture, colophon-note,
+  rights-notice, contact, motto). Its presence asks the press to
+  generate the PDF title page and surrounding pages from config; the
+  title page stacks the subtitle's OR clauses; absent keys simply do
+  not render.
 - `tex/title-page.tex` (optional): cover plate, title page, colophon,
   overriding the generated front matter entirely.
 - `assets/cover.jpg`, `assets/press-logo.png`, `assets/woodcuts/*.jpg`
   (all optional; every consumer degrades gracefully when absent).
+- `assets/web/reader.css` (optional) replaces the house reader
+  stylesheet outright; `assets/web/extra.css` (optional) appends after
+  it, winning the cascade, and is also injected into the pages landing
+  page. The aesthetic palette applies to either; a book supplying
+  neither renders byte-identically to before.
 - `tests/known-bad/` (optional): fixtures for the book's own house rules;
   every fixture must be rejected by a checker on every build.
 
@@ -115,6 +154,11 @@ requirements pin in the template to the new major, commit, tag, push.
 - Ubuntu has no `fonts-libertinus` package, and `--no-install-recommends`
   drops the Libertine keyboard face; the Dockerfile states
   `fonts-linuxlibertine` explicitly.
+- Ubuntu's `epubcheck` launcher runs the jar through binfmt_misc, which
+  containers do not register: the command exists, `which` finds it, and
+  it dies with "Exec format error" only at execution. The Dockerfile
+  ships a plain `java -jar` wrapper, and the verifier reports a
+  present-but-unrunnable tool as a toolchain fault, not an EPUB fault.
 - The PDF builds through latexmk so multi-pass lists converge; plain
   lualatex under pandoc does not run enough passes. `toc-depth: 1` sets
   tocdepth 0, which silently empties the List of Plates; the TeX header

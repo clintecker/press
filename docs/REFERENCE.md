@@ -21,6 +21,23 @@ file drifts from the machinery it describes.
 | print | {slug}-interior.pdf | - | no |
 | coverwrap | {slug}-coverwrap.pdf | print | no |
 
+## Builders, verifiers, and destinations
+
+| artifact | builder | verifier | publication destination |
+|---|---|---|---|
+| pdf | build (pandoc + latexmk) | verify_pdf | Pages downloads + GitHub Release |
+| epub | build | verify_formats + epubcheck | Pages downloads + GitHub Release |
+| html | build | verify_formats | Pages downloads + GitHub Release |
+| markdown | build | verify_formats | Pages downloads + GitHub Release |
+| txt | build | verify_formats | Pages downloads + GitHub Release |
+| docx | build | verify_formats | Pages downloads + GitHub Release |
+| site | build | verify_formats + verify_archives | Pages downloads + GitHub Release |
+| source | package_source | verify_archives | Pages downloads + GitHub Release |
+| sources | gen_authorities | verify_archives | Pages downloads + GitHub Release (when authorities configured) |
+| pages | build | verify_pages | deployed as the Pages site |
+| print | build (print profile) | verify_pdf (print profile) | GitHub Release when built (print pack) |
+| coverwrap | gen_coverwrap | verify_coverwrap | GitHub Release when built (print pack) |
+
 ## Targets
 
 ```text

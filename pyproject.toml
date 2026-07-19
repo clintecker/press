@@ -6,6 +6,13 @@ build-backend = "setuptools.build_meta"
 name = "press"
 version = "1.10.0"
 description = "Book production pipeline: pandoc/LuaLaTeX builds, editorial checks, and artifact verification"
+readme = "README.md"
+authors = [
+    {name = "Clint Ecker", email = "clint@lgtm.systems"},
+]
+maintainers = [
+    {name = "LGTM Systems, LLC", email = "clint@lgtm.systems"},
+]
 license = "MIT"
 license-files = ["LICENSE"]
 classifiers = [
@@ -30,6 +37,8 @@ dev = [
     "mypy>=1.10",
     "types-PyYAML",
     "pre-commit>=3.5",
+    "build>=1.0",
+    "twine>=5.0",
 ]
 
 [project.scripts]

@@ -12,8 +12,17 @@ Extracted from the production of *Mostly Done.* so the next book
 inherits the pipeline, the design, the editorial enforcement, and the
 scars.
 
-Install with docs/INSTALL.md, understand with
-docs/ARCHITECTURE.md, contribute with CONTRIBUTING.md.
+Install with docs/INSTALL.md; understand the machine with the
+[architecture](https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md),
+configure a book with the
+[configuration reference](https://github.com/clintecker/press/blob/main/docs/CONFIGURATION.md),
+look up any artifact in the generated
+[reference](https://github.com/clintecker/press/blob/main/docs/REFERENCE.md),
+see what is coming in the
+[roadmap](https://github.com/clintecker/press/blob/main/ROADMAP.md) and what
+changed in the
+[changelog](https://github.com/clintecker/press/blob/main/CHANGELOG.md);
+contribute with CONTRIBUTING.md.
 
 MIT licensed, code and bundled content alike (the authoring skills,
 templates, and design files ship under the same terms; see LICENSE).

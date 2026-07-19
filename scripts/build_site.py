@@ -36,6 +36,7 @@ PAGES = [
     ("docs/INSTALL.md", "install.html", "install"),
     ("docs/ARCHITECTURE.md", "architecture.html", "architecture"),
     ("docs/REFERENCE.md", "reference.html", "reference"),
+    ("docs/CONFIGURATION.md", "configuration.html", "configuration"),
     ("ROADMAP.md", "roadmap.html", "roadmap"),
     ("CHANGELOG.md", "changelog.html", "changelog"),
 ]

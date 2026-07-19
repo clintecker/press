@@ -51,59 +51,52 @@ def _fail(problems: list[str], source: Path) -> None:
     raise SystemExit(f"configuration problems in {source}:\n{lines}")
 
 
-def load(root: Path, raw: dict) -> Book:  # noqa: C901
-    """Normalize and validate the parsed metadata into the one model."""
+def _text(
+    raw: dict, problems: list[str], key: str, required: bool = False, default: str = ""
+) -> str:
+    value = raw.get(key)
+    if value is None or (isinstance(value, str) and not value.strip()):
+        if required:
+            problems.append(f"{key}: required and missing or empty")
+        return default
+    if not isinstance(value, (str, int, float)):
+        problems.append(f"{key}: expected text, found {type(value).__name__}")
+        return default
+    return str(value).strip()
 
-    from . import booklib
 
-    source = root / "config" / "metadata.yaml"
-    problems: list[str] = []
-
-    def text(key: str, required: bool = False, default: str = "") -> str:
-        value = raw.get(key)
-        if value is None or (isinstance(value, str) and not value.strip()):
-            if required:
-                problems.append(f"{key}: required and missing or empty")
-            return default
-        if not isinstance(value, (str, int, float)):
-            problems.append(f"{key}: expected text, found {type(value).__name__}")
-            return default
-        return str(value).strip()
-
-    title = text("title", required=True)
-    subtitle = text("subtitle")
-    date = text("date")
-    copyright_ = text("copyright")
-    publisher = text("publisher")
-    publisher_place = text("publisher-place")
-    description = text("description")
-    repository = text("repository")
-    site_url = text("site-url")
-
+def _authors(raw: dict, problems: list[str]) -> tuple[str, ...]:
     authors_raw = raw.get("author")
     if authors_raw is None:
         problems.append("author: required and missing")
-        authors: tuple[str, ...] = ()
-    elif isinstance(authors_raw, str):
+        return ()
+    if isinstance(authors_raw, str):
         authors = (authors_raw.strip(),) if authors_raw.strip() else ()
         if not authors:
             problems.append("author: empty")
-    elif isinstance(authors_raw, list) and all(isinstance(a, str) for a in authors_raw):
+        return authors
+    if isinstance(authors_raw, list) and all(isinstance(a, str) for a in authors_raw):
         authors = tuple(a.strip() for a in authors_raw if a.strip())
         if not authors:
             problems.append("author: empty list")
-    else:
-        problems.append("author: expected a name or a list of names")
-        authors = ()
+        return authors
+    problems.append("author: expected a name or a list of names")
+    return ()
 
-    slug_raw = text("slug", required=True)
-    slug = slug_raw
+
+def _slug(raw: dict, problems: list[str]) -> str:
+    from . import booklib
+
+    slug_raw = _text(raw, problems, "slug", required=True)
     if slug_raw:
         try:
-            slug = booklib.validate_slug(slug_raw)
+            return booklib.validate_slug(slug_raw)
         except SystemExit as exc:
             problems.append(str(exc))
+    return slug_raw
 
+
+def _trim(raw: dict, problems: list[str]) -> tuple[float, float]:
     trim = raw.get("trim") or {}
     if not isinstance(trim, dict):
         problems.append("trim: expected a mapping {width, height}")
@@ -120,7 +113,10 @@ def load(root: Path, raw: dict) -> Book:  # noqa: C901
             "the design is 6 x 9 (omit trim, or state 6 x 9). Configurable "
             "geometry is a v2, breaking-change concern."
         )
+    return trim_width, trim_height
 
+
+def _verification_knobs(raw: dict, problems: list[str]) -> tuple[tuple[str, ...], int]:
     sentinels_raw = raw.get("verify-sentinels") or []
     if not isinstance(sentinels_raw, list) or not all(
         isinstance(s, str) for s in sentinels_raw
@@ -134,20 +130,45 @@ def load(root: Path, raw: dict) -> Book:  # noqa: C901
     except (TypeError, ValueError):
         problems.append("verify-min-pages: expected a number")
         min_pages = 40
+    return sentinels, min_pages
+
+
+def _mapping(raw: dict, problems: list[str], key: str) -> dict:
+    value = raw.get(key) or {}
+    if not isinstance(value, dict):
+        problems.append(f"{key}: expected a mapping")
+        value = {}
+    return value
+
+
+def load(root: Path, raw: dict) -> Book:
+    """Normalize and validate the parsed metadata into the one model."""
+
+    source = root / "config" / "metadata.yaml"
+    problems: list[str] = []
+
+    title = _text(raw, problems, "title", required=True)
+    subtitle = _text(raw, problems, "subtitle")
+    date = _text(raw, problems, "date")
+    copyright_ = _text(raw, problems, "copyright")
+    publisher = _text(raw, problems, "publisher")
+    publisher_place = _text(raw, problems, "publisher-place")
+    description = _text(raw, problems, "description")
+    repository = _text(raw, problems, "repository")
+    site_url = _text(raw, problems, "site-url")
+
+    authors = _authors(raw, problems)
+    slug = _slug(raw, problems)
+    trim_width, trim_height = _trim(raw, problems)
+    sentinels, min_pages = _verification_knobs(raw, problems)
 
     keywords_raw = raw.get("keywords") or []
     keywords = tuple(str(k) for k in keywords_raw) if isinstance(keywords_raw, list) else ()
 
     year_match = re.search(r"\b(1\d{3}|2\d{3})\b", date)
 
-    print_config = raw.get("print") or {}
-    if not isinstance(print_config, dict):
-        problems.append("print: expected a mapping")
-        print_config = {}
-    registrations = raw.get("registrations") or {}
-    if not isinstance(registrations, dict):
-        problems.append("registrations: expected a mapping")
-        registrations = {}
+    print_config = _mapping(raw, problems, "print")
+    registrations = _mapping(raw, problems, "registrations")
 
     if problems:
         _fail(problems, source)

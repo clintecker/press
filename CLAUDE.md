@@ -88,11 +88,14 @@ forever, while `vN` floats normally. Design is part of the contract:
 within a major, fixes may correct broken output but must not change
 typography or layout of a valid book; design and template changes
 require a new major.
-To release: wait for the integration gate to be green on the release
-commit, set build.yml's `uses: clintecker/press@vN.x.y` to the tag
-being cut and its container image to the current toolchain `sha-` tag,
-bump pyproject, commit, tag `vN.x.y`, force-move `vN` to it, push
-both. For a new major, also move the requirements pin in the template.
+To release: roll the CHANGELOG's [Unreleased] section into a version
+section, then run `scripts/release.sh vN.x.y`. The script is the one
+release path and a resumable state machine: it validates strict
+SemVer, preflights remote state, pins build.yml and pyproject,
+commits, tags, waits for the tag's release contract to prove, floats
+`vN` only then, and publishes the GitHub Release; rerunning after any
+failure is the recovery procedure. For a new major, also move the
+requirements pin in the template.
 
 ## Config a book supplies
 
@@ -108,9 +111,12 @@ both. For a new major, also move the requirements pin in the template.
   index appendix generates on every build and zero-hit terms fail it.
 - `config/authorities.yaml` (optional): the table of authorities, a ledger
   mapping exact text fragments (claims of fact) to the sources that
-  warrant them. The "Sources and authorities" appendix generates on every
-  build; a claim whose sentence has left the text fails the run. Populate
-  it with the `authorities-research` workflow (extract, research with web
+  warrant them. Every build verifies each claim still appears exactly
+  once in its declared file (a claim whose sentence has left the text
+  fails the run) and renders the ledger as a standalone
+  sources-and-authorities companion document published beside the
+  book, not as an appendix inside it. Populate it with the
+  `authorities-research` workflow (extract, research with web
   sources, adversarial audit, ledger write).
 - `config/aesthetic.yaml` (optional): the book's visual identity
   (cover grammar, plate medium, logomark tradition, portrait style,

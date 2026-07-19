@@ -363,6 +363,36 @@ def check_honest_refusals() -> None:
                 )
 
 
+def check_aesthetic_schema() -> None:
+    """The book-aesthetics skill documents every configuration key the
+    aesthetic engine consumes, so a drafted aesthetic.yaml can actually
+    reach the site and PDF; drift fails here, not in an author's
+    confused draft."""
+
+    import yaml
+
+    here = Path(__file__).resolve().parent
+    skill = (here / "data" / "skills" / "book-aesthetics.md").read_text(encoding="utf-8")
+    source = (here / "aesthetic.py").read_text(encoding="utf-8")
+    consumed = set(re.findall(r'(?:merged|overrides)\.get\("([a-z-]+)"\)', source))
+    consumed |= set(re.findall(r'\.get\("((?:web|pdf)-family)"\)', source))
+    with (here / "data" / "aesthetic-house.yaml").open(encoding="utf-8") as handle:
+        house = set(yaml.safe_load(handle) or {})
+    undocumented = sorted(
+        key for key in consumed | house if key not in skill
+    )
+    if undocumented:
+        raise SystemExit(
+            "book-aesthetics.md does not document keys the aesthetic "
+            f"engine consumes: {', '.join(undocumented)}"
+        )
+    for subkey in ("ink", "muted", "accent", "link"):
+        if subkey not in skill:
+            raise SystemExit(
+                f"book-aesthetics.md omits the book-colors subkey {subkey!r}"
+            )
+
+
 def check_coverwrap_detectors() -> None:
     """The wrap verifier's rendering checks, proven against deliberate
     damage: a flat front panel, a missing barcode, too few bars, and
@@ -662,23 +692,74 @@ def render_reference() -> str:
             f"| {a.name} | {', '.join(a.outputs)} | "
             f"{', '.join(a.prerequisites) or '-'} | {published} |"
         )
+    # Builders and verifiers per artifact, stated here so the table
+    # stays generated; a registry artifact this map does not name
+    # fails the selftest instead of silently missing a row.
+    builders = {
+        "pdf": "build (pandoc + latexmk)", "epub": "build",
+        "html": "build", "markdown": "build", "txt": "build",
+        "docx": "build", "site": "build", "source": "package_source",
+        "sources": "gen_authorities", "pages": "build",
+        "print": "build (print profile)", "coverwrap": "gen_coverwrap",
+    }
+    verifiers = {
+        "pdf": "verify_pdf", "epub": "verify_formats + epubcheck",
+        "html": "verify_formats", "markdown": "verify_formats",
+        "txt": "verify_formats", "docx": "verify_formats",
+        "site": "verify_formats + verify_archives",
+        "source": "verify_archives", "sources": "verify_archives",
+        "pages": "verify_pages", "print": "verify_pdf (print profile)",
+        "coverwrap": "verify_coverwrap",
+    }
+    destinations = {
+        "pages": "deployed as the Pages site",
+        "print": "GitHub Release when built (print pack)",
+        "coverwrap": "GitHub Release when built (print pack)",
+    }
+    lines += [
+        "",
+        "## Builders, verifiers, and destinations",
+        "",
+        "| artifact | builder | verifier | publication destination |",
+        "|---|---|---|---|",
+    ]
+    for a in registry.ARTIFACTS.values():
+        if a.published:
+            destination = "Pages downloads + GitHub Release"
+            if a.condition:
+                destination += f" (when {a.condition} configured)"
+        else:
+            destination = destinations[a.name]
+        lines.append(
+            f"| {a.name} | {builders[a.name]} | {verifiers[a.name]} | "
+            f"{destination} |"
+        )
     lines += ["", "## Targets", "", "```text", cli.USAGE.strip(), "```", ""]
     return "\n".join(lines)
+
+
+def check_contract_mirror() -> None:
+    """AGENTS.md is a generated mirror of CLAUDE.md (same contract,
+    agents.md convention): identical below the heading line, so the
+    two cannot drift apart again."""
+
+    root = Path(__file__).resolve().parent.parent.parent
+    claude = (root / "CLAUDE.md").read_text(encoding="utf-8")
+    agents = (root / "AGENTS.md").read_text(encoding="utf-8")
+    if agents.split("\n", 1)[1] != claude.split("\n", 1)[1]:
+        raise SystemExit(
+            "AGENTS.md has drifted from CLAUDE.md; regenerate it "
+            "(the body below the heading must be identical)"
+        )
 
 
 def check_docs() -> None:
     from . import __main__ as cli
 
     here = Path(__file__).resolve().parent
-    source = (here / "__main__.py").read_text(encoding="utf-8")
     readme = (here.parent.parent / "README.md")
     usage_words = set(re.findall(r"[a-z-]{2,}", cli.USAGE.split("usage:")[1]))
-    routed = set(re.findall(r'target == "([a-z-]+)"', source)) | set(cli.FORMATS)
-    # Tuple routes (`target in ("pages", "verify-pages")`) count too; the
-    # first version of this check only saw equality routes and blessed a
-    # usage text that omitted them.
-    for group in re.findall(r"target in \(([^)]*)\)", source):
-        routed |= set(re.findall(r'"([a-z-]+)"', group))
+    routed = set(cli.ROUTES) | set(cli.FORMATS) | {"print"}
     missing_from_usage = sorted(routed - usage_words)
     if missing_from_usage:
         raise SystemExit(f"targets routed but absent from usage text: {missing_from_usage}")
@@ -716,6 +797,8 @@ def main(argv: list[str] | None = None) -> int:
     check_honest_refusals()
     check_release_grammar()
     check_coverwrap_detectors()
+    check_aesthetic_schema()
+    check_contract_mirror()
     check_docs()
     print(f"Selftest passed: {len(modules())} modules import, arithmetic agrees "
           "with the canonical examples, usage and README name every target")

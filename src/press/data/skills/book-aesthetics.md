@@ -41,7 +41,31 @@ logomark:
   tradition: what kind of mark the imprint device is
 portrait:
   style: how the author appears
+web-palette:            # the reading site and landing page, light theme;
+  paper: "#f8f5ef"      # keys are the reader stylesheet's CSS tokens:
+  ink: "#2a2622"        # paper, paper-warm, ink, ink-soft, cloth,
+  cloth: "#1d3a2f"      # cloth-deep, foil, foil-bright, foil-deep,
+  foil: "#b08d3e"       # hairline, link, ornament
+  link: "#1d5c3f"
+web-palette-dark:       # the same tokens for the dark theme; omit to
+  paper: "#161513"      # keep the house dark values
+  ink: "#ded9d0"
+typography:
+  web-family: CSS font stack for the reading surfaces
+  pdf-family: a LaTeX-known family name for the book's body face
+book-colors:            # the PDF's inks
+  ink: "#1a1a1a"        # body ink
+  muted: "#5a5a50"      # captions and folios
+  accent: "#7a2d26"     # rules and display accents
+  link: "#1d5c3f"       # hyperlink ink
 ```
+
+The page look is as configurable as the art: `web-palette` and
+`web-palette-dark` restyle the reading site and landing page,
+`typography` sets the web stack and the PDF body face, and
+`book-colors` sets the PDF inks. A brief that names a period or mood
+should draft all four; leaving them out keeps the Victorian house
+palette, which contradicts most briefs.
 
 What is NOT configurable: text named verbatim, flat cover plates (no
 mockups), single-ink print interiors, print resolutions, the trim.

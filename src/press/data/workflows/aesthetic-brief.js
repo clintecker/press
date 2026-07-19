@@ -37,7 +37,7 @@ const draft = await agent(
 `Read in full the book-aesthetics skill at ${scout.skill}: it states the schema, what is configurable, and what craft language means.
 THE AUTHOR'S BRIEF: ${BRIEF}
 THE MANUSCRIPT: ${scout.gist}
-Draft the complete config/aesthetic.yaml for this book: every schema section (name, register, cover with all six fields, plates, logomark, portrait), values in concrete craft language a period art director would use, faithful to the brief and fitting the manuscript. Return the YAML text only.`,
+Draft the complete config/aesthetic.yaml for this book: every schema section (name, register, cover with all six fields, plates, logomark, portrait, AND the page look: web-palette and web-palette-dark with hex values for the reader tokens, typography with web-family and pdf-family, book-colors with ink/muted/accent/link), values in concrete craft language a period art director would use, faithful to the brief and fitting the manuscript. The page look is where most briefs live or die: a pulp paperback brief with the Victorian house palette left in place is a failed draft. Return the YAML text only.`,
   { label: 'draft', phase: 'Draft', schema: { type: 'object', properties: {
       yaml: { type: 'string' }, rationale: { type: 'string' } }, required: ['yaml'] } }
 )

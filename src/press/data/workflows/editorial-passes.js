@@ -44,16 +44,22 @@ const DISEASES = `THE NAMED DISEASES of agent prose (hunt these specifically; ge
 5. Throat-clearing, inflated significance, chatbot signposting, formulaic negative parallelism.`
 
 let totalApplied = 0
+let totalRejected = 0
+const rejectedLedger = []
 for (let round = 1; round <= ROUNDS; round++) {
   phase('Suggest')
   log(`round ${round}: collecting suggestions`)
 
+  const rejectionContext = rejectedLedger.length === 0 ? '' : `
+PREVIOUSLY REJECTED (a synthesizer already declined these with reasons; do NOT re-file one unchanged. If the quoted text no longer appears in the file, the rejection is stale and no longer binds):
+${JSON.stringify(rejectedLedger.map(r => ({ file: r.file, current: r.current, reason: r.reason })), null, 2)}
+`
   const perChapter = scout.files.map(f => () => agent(
 `Round ${round} editorial pass on ONE chapter of a book. First READ IN FULL each of these prose skills and hold all four at once:
 ${scout.skills.map(s => '- ' + s).join('\n')}
 
 ${DISEASES}
-${LAW}
+${LAW}${rejectionContext}
 
 Now read ${ROOT}/${f} closely and produce SUGGESTIONS ONLY (do not edit the file): each with the exact current text (short quote), the proposed replacement or 'delete', and which skill or disease motivates it. Suggest nothing that changes facts, practices, rules, headings, image lines, or captions. Quality over quantity; an empty list is an acceptable answer for clean prose. Cap at 12.`,
     { label: `suggest:${f.split('/').pop()}`, phase: 'Suggest',
@@ -68,7 +74,7 @@ Now read ${ROOT}/${f} closely and produce SUGGESTIONS ONLY (do not edit the file
 `Whole-book ${lens.key} pass, round ${round}. Read EVERY file in order under ${ROOT}: ${scout.files.join(', ')}.
 ${lens.prompt}
 ${DISEASES}
-${LAW}
+${LAW}${rejectionContext}
 Produce SUGGESTIONS ONLY (no edits): each names the file, quotes the exact current text, gives the proposed replacement or 'delete', and the reason. Cap at 15 total, ranked by severity.`,
     { label: `book:${lens.key}`, phase: 'Suggest',
       schema: { type: 'object', properties: { suggestions: { type: 'array', items: { type: 'object', properties: { file: { type: 'string' }, current: { type: 'string' }, proposed: { type: 'string' }, reason: { type: 'string' } }, required: ['file', 'current', 'proposed', 'reason'] } } }, required: ['suggestions'] } }
@@ -126,13 +132,26 @@ ${LAW}
 SUGGESTIONS:
 ${JSON.stringify(suggestions, null, 2)}
 
-Return the count you applied and the count you rejected with a one-line reason for the rejections.`,
+Return the count you applied, the count you rejected, and for each rejection the exact quoted current text and a one-line reason.`,
     { label: `synth:${file.split('/').pop()}`, phase: 'Synthesize',
-      schema: { type: 'object', properties: { applied: { type: 'number' }, rejected: { type: 'number' }, rejectionReasons: { type: 'string' } }, required: ['applied', 'rejected'] } }
-  )))
+      schema: { type: 'object', properties: { applied: { type: 'number' }, rejected: { type: 'number' }, rejections: { type: 'array', items: { type: 'object', properties: { current: { type: 'string' }, reason: { type: 'string' } }, required: ['current', 'reason'] } } }, required: ['applied', 'rejected'] } }
+  ).then(r => ({ ...r, file }))))
   const appliedCount = applied.filter(Boolean).reduce((n, a) => n + a.applied, 0)
   totalApplied += appliedCount
-  log(`round ${round}: ${appliedCount} suggestions applied`)
+  const roundRejections = applied.filter(Boolean).flatMap(a =>
+    (a.rejections || []).map(r => ({ ...r, file: a.file, round })))
+  rejectedLedger.push(...roundRejections)
+  totalRejected += roundRejections.length
+  log(`round ${round}: ${appliedCount} applied, ${roundRejections.length} rejected with reasons`)
+  if (roundRejections.length) {
+    await agent(
+`Append to ${ROOT}/build/editorial-rejections.md (create it with a title line "# Editorial rejections" if absent; never overwrite existing content). For each entry below add a bullet: the file, the quoted current text, the reason, and "round ${round}". These are durable reviewed findings: an author auditing why a suggestion was declined reads this file.
+ENTRIES:
+${JSON.stringify(roundRejections, null, 2)}
+House law for the file: no em or en dashes, straight quotes.`,
+      { label: `rejections:round${round}`, phase: 'Synthesize' }
+    )
+  }
 
   phase('Law')
   await agent(
@@ -141,4 +160,4 @@ Return the count you applied and the count you rejected with a one-line reason f
   )
   if (appliedCount < 5) break
 }
-return { rounds: ROUNDS, totalApplied }
+return { rounds: ROUNDS, totalApplied, totalRejected, rejectionsFile: totalRejected ? `${ROOT}/build/editorial-rejections.md` : null }

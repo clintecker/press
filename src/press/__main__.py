@@ -10,6 +10,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 import sys
+from typing import Callable
 
 from . import booklib
 
@@ -80,156 +81,235 @@ def verify_formats_built() -> int:
     ])
 
 
-def main(argv: list[str] | None = None) -> int:  # noqa: C901
+def _run_new(args: list[str]) -> int:
+    from . import scaffold
+
+    return scaffold.main(args[1:])
+
+
+def _run_selftest(args: list[str]) -> int:
+    from . import selftest
+
+    return selftest.main(args[1:])
+
+
+def _run_doctor(args: list[str]) -> int:
+    from . import doctor
+
+    return doctor.main()
+
+
+def _run_art(args: list[str]) -> int:
+    from . import art
+
+    return art.main(args[1:])
+
+
+def _run_improve(args: list[str]) -> int:
+    from . import operator
+
+    return operator.improve(args[1:])
+
+
+def _run_aesthetic(args: list[str]) -> int:
+    from . import operator
+
+    return operator.aesthetic(args[1:])
+
+
+def _run_research(args: list[str]) -> int:
+    from . import operator
+
+    return operator.research(args[1:])
+
+
+def _run_skills(args: list[str]) -> int:
+    from . import instruments
+
+    return instruments.list_skills()
+
+
+def _run_workflows(args: list[str]) -> int:
+    from . import instruments
+
+    return instruments.list_workflows()
+
+
+def _run_source(args: list[str]) -> int:
+    from . import package_source
+
+    return package_source.main()
+
+
+def _run_pages(args: list[str]) -> int:
+    from . import registry, verify_pages
+
+    registry.build("pages")
+    return verify_pages.main()
+
+
+def _run_check(args: list[str]) -> int:
+    return check()
+
+
+def _run_style(args: list[str]) -> int:
+    from . import style_audit
+
+    return style_audit.main([])
+
+
+def _run_verify(args: list[str]) -> int:
+    from . import build
+
+    build.build_target("pdf")
+    return verify_built()
+
+
+def _run_coverwrap(args: list[str]) -> int:
+    from . import registry, verify_coverwrap
+
+    registry.build("coverwrap")
+    return verify_coverwrap.main()
+
+
+def _run_publish(args: list[str]) -> int:
+    from . import publish
+
+    rest = [a for a in args[1:] if a != "--report-only"]
+    if len(rest) != 1:
+        print("usage: press publish kdp|ingram [--report-only]")
+        return 2
+    return publish.main(rest[0], report_only="--report-only" in args)
+
+
+def _run_verify_print(args: list[str]) -> int:
+    from . import registry, verify_coverwrap, verify_pdf
+
+    registry.build("print")
+    code = verify_pdf.main(
+        [str(booklib.root() / "dist" / f"{booklib.slug()}-interior.pdf"),
+         "--profile", "print"]
+    )
+    if code:
+        return code
+    # The wrap needs cover art; a coverless book still verifies its
+    # interior (assets are optional, per the config contract).
+    if (booklib.root() / "assets" / "cover.jpg").is_file():
+        registry.build("coverwrap")
+        return verify_coverwrap.main()
+    print("no assets/cover.jpg; interior verified, wrap not built")
+    return 0
+
+
+def _run_verify_formats(args: list[str]) -> int:
+    from . import build, package_source, verify_archives
+
+    for name in ["epub", "html", "markdown", "site", "txt", "docx"]:
+        build.build_target(name)
+    package_source.main()
+    code = verify_formats_built()
+    if code:
+        return code
+    return verify_archives.main()
+
+
+def _run_all(args: list[str]) -> int:
+    code = check()
+    if code:
+        return code
+    from . import build
+
+    for name in FORMATS:
+        build.build_target(name)
+    from . import package_source
+
+    package_source.main()
+    build.build_target("pages")
+    from . import verify_pages
+
+    code = verify_pages.main()
+    if code:
+        return code
+    code = verify_built()
+    if code:
+        return code
+    code = verify_formats_built()
+    if code:
+        return code
+    from . import verify_archives
+
+    return verify_archives.main()
+
+
+def _run_render(args: list[str]) -> int:
+    from . import build
+
+    build.build_target("pdf")
+    out = booklib.root() / "build" / "rendered-book"
+    out.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        ["pdftoppm", "-png", "-r", "160",
+         str(booklib.root() / "dist" / f"{booklib.slug()}.pdf"), str(out / "page")],
+        check=True,
+    )
+    return 0
+
+
+def _run_wordcount(args: list[str]) -> int:
+    from . import wordcount
+
+    return wordcount.main()
+
+
+def _run_clean(args: list[str]) -> int:
+    for name in ["build", "dist"]:
+        directory = booklib.root() / name
+        if directory.exists():
+            shutil.rmtree(directory)
+    return 0
+
+
+ROUTES: dict[str, Callable[[list[str]], int]] = {
+    "new": _run_new,
+    "selftest": _run_selftest,
+    "doctor": _run_doctor,
+    "art": _run_art,
+    "improve": _run_improve,
+    "aesthetic": _run_aesthetic,
+    "research": _run_research,
+    "skills": _run_skills,
+    "workflows": _run_workflows,
+    "source": _run_source,
+    "pages": _run_pages,
+    "verify-pages": _run_pages,
+    "check": _run_check,
+    "style": _run_style,
+    "verify": _run_verify,
+    "coverwrap": _run_coverwrap,
+    "publish": _run_publish,
+    "verify-print": _run_verify_print,
+    "verify-formats": _run_verify_formats,
+    "all": _run_all,
+    "render": _run_render,
+    "wordcount": _run_wordcount,
+    "clean": _run_clean,
+}
+
+
+def main(argv: list[str] | None = None) -> int:
     args = list(argv if argv is not None else sys.argv[1:])
     if not args:
         print(USAGE)
         return 2
     target = args[0]
 
-    if target == "new":
-        from . import scaffold
-
-        return scaffold.main(args[1:])
-    if target == "selftest":
-        from . import selftest
-
-        return selftest.main(args[1:])
-    if target == "doctor":
-        from . import doctor
-
-        return doctor.main()
-    if target == "art":
-        from . import art
-
-        return art.main(args[1:])
-    if target == "improve":
-        from . import operator
-
-        return operator.improve(args[1:])
-    if target == "aesthetic":
-        from . import operator
-
-        return operator.aesthetic(args[1:])
-    if target == "research":
-        from . import operator
-
-        return operator.research(args[1:])
-    if target == "skills":
-        from . import instruments
-
-        return instruments.list_skills()
-    if target == "workflows":
-        from . import instruments
-
-        return instruments.list_workflows()
-
-    from . import build
-
+    handler = ROUTES.get(target)
+    if handler is not None:
+        return handler(args)
     if target in FORMATS or target == "print":
+        from . import build
+
         build.build_target(target)
-        return 0
-    if target == "source":
-        from . import package_source
-
-        return package_source.main()
-    if target in ("pages", "verify-pages"):
-        from . import registry, verify_pages
-
-        registry.build("pages")
-        return verify_pages.main()
-    if target == "check":
-        return check()
-    if target == "style":
-        from . import style_audit
-
-        return style_audit.main([])
-    if target == "verify":
-        build.build_target("pdf")
-        return verify_built()
-    if target == "coverwrap":
-        from . import registry, verify_coverwrap
-
-        registry.build("coverwrap")
-        return verify_coverwrap.main()
-    if target == "publish":
-        from . import publish
-
-        rest = [a for a in args[1:] if a != "--report-only"]
-        if len(rest) != 1:
-            print("usage: press publish kdp|ingram [--report-only]")
-            return 2
-        return publish.main(rest[0], report_only="--report-only" in args)
-    if target == "verify-print":
-        from . import registry, verify_coverwrap, verify_pdf
-
-        registry.build("print")
-        code = verify_pdf.main(
-            [str(booklib.root() / "dist" / f"{booklib.slug()}-interior.pdf"),
-             "--profile", "print"]
-        )
-        if code:
-            return code
-        # The wrap needs cover art; a coverless book still verifies its
-        # interior (assets are optional, per the config contract).
-        if (booklib.root() / "assets" / "cover.jpg").is_file():
-            registry.build("coverwrap")
-            return verify_coverwrap.main()
-        print("no assets/cover.jpg; interior verified, wrap not built")
-        return 0
-    if target == "verify-formats":
-        from . import package_source, verify_archives
-
-        for name in ["epub", "html", "markdown", "site", "txt", "docx"]:
-            build.build_target(name)
-        package_source.main()
-        code = verify_formats_built()
-        if code:
-            return code
-        return verify_archives.main()
-    if target == "all":
-        code = check()
-        if code:
-            return code
-        for name in FORMATS:
-            build.build_target(name)
-        from . import package_source
-
-        package_source.main()
-        build.build_target("pages")
-        from . import verify_pages
-
-        code = verify_pages.main()
-        if code:
-            return code
-        code = verify_built()
-        if code:
-            return code
-        code = verify_formats_built()
-        if code:
-            return code
-        from . import verify_archives
-
-        return verify_archives.main()
-    if target == "render":
-        build.build_target("pdf")
-        out = booklib.root() / "build" / "rendered-book"
-        out.mkdir(parents=True, exist_ok=True)
-        subprocess.run(
-            ["pdftoppm", "-png", "-r", "160",
-             str(booklib.root() / "dist" / f"{booklib.slug()}.pdf"), str(out / "page")],
-            check=True,
-        )
-        return 0
-    if target == "wordcount":
-        from . import wordcount
-
-        return wordcount.main()
-    if target == "clean":
-        for name in ["build", "dist"]:
-            directory = booklib.root() / name
-            if directory.exists():
-                shutil.rmtree(directory)
         return 0
     print(USAGE)
     print(f"unknown target: {target}")

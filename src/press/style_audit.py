@@ -117,7 +117,88 @@ def looks_title_cased(heading: str) -> bool:
     return capitalized / len(candidates) >= 0.8
 
 
-def main(argv: list[str] | None = None) -> int:  # noqa: C901
+def check_forbidden(line: str, where: str, errors: list[str]) -> None:
+    """The universal battery: characters and phrases banned in all prose."""
+
+    for char, name in FORBIDDEN_CHARS.items():
+        if char in line:
+            errors.append(f"{where}: contains {name}")
+    for pattern, label in FORBIDDEN_PATTERNS.items():
+        if re.search(pattern, line, flags=re.IGNORECASE):
+            errors.append(f"{where}: {label}")
+
+
+def check_book_prose(
+    line: str, where: str, banned: dict[re.Pattern, str], errors: list[str]
+) -> None:
+    """Checks that apply only to manuscript prose: typography glyphs,
+    print-font coverage, and the book's own banned patterns."""
+
+    for char, name in CURLY_QUOTES.items():
+        if char in line:
+            errors.append(f"{where}: contains {name}")
+    stray = ALLOWED_CHARS.search(line)
+    if stray:
+        errors.append(
+            f"{where}: glyph U+{ord(stray.group(0)):04X} "
+            "is outside the print-font set"
+        )
+    for compiled, label in banned.items():
+        if compiled.search(line):
+            errors.append(f"{where}: {label}")
+
+
+def check_heading(
+    line: str, where: str, in_book: bool, errors: list[str], warnings: list[str]
+) -> None:
+    heading = re.match(r"^#{1,6}\s+(.+?)\s*$", line)
+    if heading is None:
+        return
+    if in_book and re.match(r"^\d", heading.group(1)):
+        errors.append(f"{where}: manual number in heading")
+    if looks_title_cased(heading.group(1)):
+        target = errors if in_book else warnings
+        target.append(f"{where}: title-case heading: {heading.group(1)}")
+
+
+def check_paragraph_length(
+    text: str, relative: Path, in_book: bool, errors: list[str], warnings: list[str]
+) -> None:
+    # Dense chapters are difficult to read in a narrow trim.
+    paragraphs = re.split(r"\n\s*\n", text)
+    for index, paragraph in enumerate(paragraphs, start=1):
+        if paragraph.lstrip().startswith(("#", "```", "~~~", "|", "- [", ">")):
+            continue
+        words = re.findall(r"\b\w+[\w'-]*\b", paragraph)
+        if len(words) > 190:
+            # The editorial law says paragraphs stay under 190 words;
+            # a law downgraded to a warning is guidance wearing a
+            # uniform. Book prose enforces it; press-side docs only
+            # hear about it.
+            target = errors if in_book else warnings
+            target.append(
+                f"{relative}: paragraph {index} has {len(words)} words "
+                "(the law is under 190; split it)"
+            )
+
+
+def report(explicit: list[str], errors: list[str], warnings: list[str]) -> int:
+    if warnings:
+        print("Editorial warnings:")
+        for warning in warnings:
+            print(f"  - {warning}")
+
+    if errors:
+        print("Editorial checks failed:")
+        for error in errors:
+            print(f"  - {error}")
+        return 1
+
+    print(f"Editorial checks passed: {len(markdown_files(explicit))} Markdown files")
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
     explicit = list(argv if argv is not None else sys.argv[1:])
     explicit_mode = bool(explicit)
     root = booklib.root()
@@ -135,69 +216,22 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901
         text = path.read_text(encoding="utf-8")
         lines = text.splitlines()
         code_flags = in_fenced_code(lines)
+        in_book = explicit_mode or book_dir in path.parents
 
         for number, (line, in_code) in enumerate(zip(lines, code_flags), start=1):
+            where = f"{relative}:{number}"
             if line.rstrip() != line:
-                errors.append(f"{relative}:{number}: trailing whitespace")
+                errors.append(f"{where}: trailing whitespace")
             if in_code:
                 continue
-            for char, name in FORBIDDEN_CHARS.items():
-                if char in line:
-                    errors.append(f"{relative}:{number}: contains {name}")
-            for pattern, label in FORBIDDEN_PATTERNS.items():
-                if re.search(pattern, line, flags=re.IGNORECASE):
-                    errors.append(f"{relative}:{number}: {label}")
-            in_book = explicit_mode or book_dir in path.parents
+            check_forbidden(line, where, errors)
             if in_book:
-                for char, name in CURLY_QUOTES.items():
-                    if char in line:
-                        errors.append(f"{relative}:{number}: contains {name}")
-                stray = ALLOWED_CHARS.search(line)
-                if stray:
-                    errors.append(
-                        f"{relative}:{number}: glyph U+{ord(stray.group(0)):04X} "
-                        "is outside the print-font set"
-                    )
-                for compiled, label in banned.items():
-                    if compiled.search(line):
-                        errors.append(f"{relative}:{number}: {label}")
-            heading = re.match(r"^#{1,6}\s+(.+?)\s*$", line)
-            if heading and in_book and re.match(r"^\d", heading.group(1)):
-                errors.append(f"{relative}:{number}: manual number in heading")
-            if heading and looks_title_cased(heading.group(1)):
-                target = errors if in_book else warnings
-                target.append(f"{relative}:{number}: title-case heading: {heading.group(1)}")
+                check_book_prose(line, where, banned, errors)
+            check_heading(line, where, in_book, errors, warnings)
 
-        # Dense chapters are difficult to read in a narrow trim.
-        paragraphs = re.split(r"\n\s*\n", text)
-        for index, paragraph in enumerate(paragraphs, start=1):
-            if paragraph.lstrip().startswith(("#", "```", "~~~", "|", "- [", ">")):
-                continue
-            words = re.findall(r"\b\w+[\w'-]*\b", paragraph)
-            if len(words) > 190:
-                # The editorial law says paragraphs stay under 190 words;
-                # a law downgraded to a warning is guidance wearing a
-                # uniform. Book prose enforces it; press-side docs only
-                # hear about it.
-                target = errors if (explicit_mode or book_dir in path.parents) else warnings
-                target.append(
-                    f"{relative}: paragraph {index} has {len(words)} words "
-                    "(the law is under 190; split it)"
-                )
+        check_paragraph_length(text, relative, in_book, errors, warnings)
 
-    if warnings:
-        print("Editorial warnings:")
-        for warning in warnings:
-            print(f"  - {warning}")
-
-    if errors:
-        print("Editorial checks failed:")
-        for error in errors:
-            print(f"  - {error}")
-        return 1
-
-    print(f"Editorial checks passed: {len(markdown_files(explicit))} Markdown files")
-    return 0
+    return report(explicit, errors, warnings)
 
 
 if __name__ == "__main__":

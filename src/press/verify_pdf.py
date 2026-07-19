@@ -186,14 +186,7 @@ def verify_fonts(pdf: Path) -> None:
         raise SystemExit(f"unembedded fonts: {sorted(set(unembedded))}")
 
 
-def main(argv: list[str] | None = None) -> int:  # noqa: C901
-    booklib.require_release_witnesses()
-    root = booklib.root()
-    meta = booklib.metadata()
-    trim = meta.get("trim") or {}
-    trim_width = float(trim.get("width", 6))
-    trim_height = float(trim.get("height", 9))
-
+def parse_args(argv: list[str] | None, root: Path, meta: dict) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("pdf", type=Path)
     parser.add_argument(
@@ -220,12 +213,11 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901
         default="reading",
         help="print adds the interior checks: mirrored margins, black ink only.",
     )
-    args = parser.parse_args(argv)
-    pdf = args.pdf.resolve()
-    if not pdf.is_file():
-        raise SystemExit(f"PDF not found: {pdf}")
+    return parser.parse_args(argv)
 
-    self_test_detector()
+
+def verify_info(pdf: Path, trim_width: float, trim_height: float, min_pages: int) -> int:
+    """Trim size and page count from pdfinfo; returns the page count."""
 
     for tool in ["pdfinfo", "pdftotext"]:
         if shutil.which(tool) is None:
@@ -243,24 +235,30 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901
             f"unexpected trim size: {width} x {height} pt "
             f"(expected {trim_width:g} x {trim_height:g} inches)"
         )
-    if expected_pages < args.min_pages:
+    if expected_pages < min_pages:
         raise SystemExit(
             f"suspiciously short PDF: {expected_pages} pages "
-            f"(minimum {args.min_pages})"
+            f"(minimum {min_pages})"
         )
+    return expected_pages
+
+
+def verify_sentinel_text(pdf: Path, root: Path, arg_sentinels: list[str] | None) -> int:
+    """Sentinels (and the title, when running the book's own list) must
+    survive into the extracted text; returns the witness count."""
 
     text_path = root / "build" / "verify-text.txt"
     text_path.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run(["pdftotext", str(pdf), str(text_path)], check=True)
     text = text_path.read_text(encoding="utf-8", errors="replace")
     normalized_text = " ".join(text.split())
-    required = args.sentinels if args.sentinels is not None else sentinels()
+    required = arg_sentinels if arg_sentinels is not None else sentinels()
     from .verify_formats import sentinel_present
 
     for sentinel in required:
         if not sentinel_present(sentinel, normalized_text):
             raise SystemExit(f"missing text sentinel in PDF: {sentinel}")
-    if args.sentinels is None:
+    if arg_sentinels is None:
         # Case folds because house title pages set the title in caps;
         # quotes normalize because pandoc's smart extension curls the
         # straight quotes the metadata states.
@@ -268,11 +266,12 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901
         title = " ".join(booklib.metadata()["title"].split()).casefold().translate(straighten)
         if title not in normalized_text.casefold().translate(straighten):
             raise SystemExit(f"missing title in PDF text: {booklib.metadata()['title']}")
+    return len(required)
 
-    verify_fonts(pdf)
-    verify_plate_links(pdf)
 
-    render_dir = args.render_dir.resolve()
+def render_pages(pdf: Path, render_dir: Path, expected_pages: int) -> list[Path]:
+    """Render every page to PNG and demand the count matches pdfinfo."""
+
     if render_dir.exists():
         shutil.rmtree(render_dir)
     if RENDER_SCRIPT.exists():
@@ -289,6 +288,29 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901
     images = sorted(render_dir.glob("*.png"))
     if len(images) != expected_pages:
         raise SystemExit(f"rendered {len(images)} pages, pdfinfo reports {expected_pages}")
+    return images
+
+
+def drop_structural_blank(blank_pages: list[int]) -> list[int]:
+    # A bound book may carry ONE structural blank verso (KOMA's
+    # \mainmatter clears to a recto to keep folio and leaf parity
+    # aligned). A blank recto, adjacent blanks, or a second isolated
+    # blank verso is still the empty-pages failure and dies here; the
+    # cap exists because a render cannot tell the mainmatter blank
+    # from a plate that silently failed to ship.
+    blank_set = set(blank_pages)
+    structural = [
+        page for page in blank_pages
+        if page % 2 == 0
+        and (page - 1) not in blank_set
+        and (page + 1) not in blank_set
+    ][:1]
+    return [page for page in blank_pages if page not in structural]
+
+
+def verify_page_ink(images: list[Path], profile: str) -> None:
+    """Every rendered page must carry ink, keep it off the edge, and share
+    one set of dimensions."""
 
     blank_pages: list[int] = []
     edge_pages: list[int] = []
@@ -304,21 +326,8 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901
                 dimensions = image.size
             elif image.size != dimensions:
                 inconsistent.append(index)
-    if args.profile == "print":
-        # A bound book may carry ONE structural blank verso (KOMA's
-        # \mainmatter clears to a recto to keep folio and leaf parity
-        # aligned). A blank recto, adjacent blanks, or a second isolated
-        # blank verso is still the empty-pages failure and dies here; the
-        # cap exists because a render cannot tell the mainmatter blank
-        # from a plate that silently failed to ship.
-        blank_set = set(blank_pages)
-        structural = [
-            page for page in blank_pages
-            if page % 2 == 0
-            and (page - 1) not in blank_set
-            and (page + 1) not in blank_set
-        ][:1]
-        blank_pages = [page for page in blank_pages if page not in structural]
+    if profile == "print":
+        blank_pages = drop_structural_blank(blank_pages)
     if blank_pages:
         raise SystemExit(f"apparently blank rendered pages: {blank_pages}")
     if edge_pages:
@@ -326,13 +335,37 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901
     if inconsistent:
         raise SystemExit(f"inconsistent rendered page dimensions: {inconsistent}")
 
+
+def main(argv: list[str] | None = None) -> int:
+    booklib.require_release_witnesses()
+    root = booklib.root()
+    meta = booklib.metadata()
+    trim = meta.get("trim") or {}
+    trim_width = float(trim.get("width", 6))
+    trim_height = float(trim.get("height", 9))
+
+    args = parse_args(argv, root, meta)
+    pdf = args.pdf.resolve()
+    if not pdf.is_file():
+        raise SystemExit(f"PDF not found: {pdf}")
+
+    self_test_detector()
+
+    expected_pages = verify_info(pdf, trim_width, trim_height, args.min_pages)
+    witnesses = verify_sentinel_text(pdf, root, args.sentinels)
+
+    verify_fonts(pdf)
+    verify_plate_links(pdf)
+
+    images = render_pages(pdf, args.render_dir.resolve(), expected_pages)
+    verify_page_ink(images, args.profile)
+
     profile_note = ""
     if args.profile == "print":
         verify_mirrored_margins(images)
         verify_black_ink(images)
         profile_note = ", mirrored margins, black ink only"
 
-    witnesses = len(required)
     print(
         f"Verified {pdf.name}: {expected_pages} pages, "
         f"{trim_width:g} x {trim_height:g} trim, embedded fonts, "
