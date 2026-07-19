@@ -11,6 +11,39 @@ audit).
 
 Nothing yet.
 
+## [1.15.0] - 2026-07-19
+
+### Added
+
+- The operator desk: `press desk`, an optional Textual interface over
+  the command line. It is genuinely optional, behind a `tui` extra: a
+  bare install builds books untouched and the entry refuses cleanly
+  with the install hint when the extra or a terminal is absent.
+- Its foundations are pure Python, provable without the UI. One typed
+  command catalog is the single source the CLI usage text and the desk
+  surface both read, so they cannot drift (#100). doctor.examine
+  returns the machine's capabilities as typed findings and main()
+  renders them byte-identically (#103). Artifact status is projected
+  from content digests and recorded verification, never mtimes: a
+  touched-but-unchanged file is not stale and a rebuild to identical
+  bytes is not new (#101). A versioned structured event protocol lets
+  a child emit stage and diagnostic events without a consumer scraping
+  text, and a malformed event is a surfaced failure that never hides
+  raw output (#102). A single-child process controller streams a
+  child's output and reports its exact exit code as the verdict, with
+  cancellation and the single-child invariant proven against a fake
+  process (#105). The DESK read model assembles the desk's facts from
+  those registries and reads only (#106).
+- The desk itself: the DESK dashboard renders the read model with the
+  digest-based evidence vocabulary and grays out actions a missing
+  toolchain blocks (#112); a RUN view streams a press child and shows
+  its exact verdict (#109); a picker generated from the catalog offers
+  exactly the CLI's targets (#111); the app shell carries a house
+  theme (#104, #107). A headless Pilot harness drives the real app
+  against a scaffolded book (#108), and a bare-and-tui wheel matrix
+  plus an installed end-to-end proof gate the milestone
+  (#110, #114). docs/DESK.md documents it (#113).
+
 ## [1.14.0] - 2026-07-19
 
 This release ships the completed, self-contained portion of the
