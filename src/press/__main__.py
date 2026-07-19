@@ -16,16 +16,11 @@ from . import booklib
 
 from .registry import FORMATS
 
-USAGE = """usage: press <target>
+from .catalog import render_usage
 
-building        pdf epub html markdown site txt docx pages source all
-checking        check style verify verify-formats verify-pages
-print pack      print verify-print coverwrap publish kdp|ingram
-utilities       render wordcount clean new <directory> selftest doctor
-instruments     skills workflows
-art             art commission [targets] | art accept <file> --as <target>
-operator        improve [--apply] | research | aesthetic ["<brief>"]
-"""
+# Generated from the one command catalog so the usage text cannot drift
+# from the commands the CLI dispatches or the desk offers.
+USAGE = render_usage()
 
 
 def jargon_check() -> int:

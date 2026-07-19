@@ -41,6 +41,7 @@ modules:
       run: adapter
       subtitle_stack_html: pure
       download_names: pure
+  catalog: {default: pure, overrides: {render_usage: producer}}
   check_source: verifier
   check_the_checkers: verifier
   doctor: {default: presenter, overrides: {tool_runs: adapter}}

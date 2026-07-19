@@ -787,6 +787,29 @@ def check_contract_mirror() -> None:
         )
 
 
+def check_command_catalog() -> None:
+    """The CLI and the desk read one command catalog, so their surfaces
+    cannot drift: every catalog command is dispatchable, every route is
+    a catalog command, and the usage text is the catalog's own
+    rendering."""
+
+    from . import __main__ as cli, catalog
+
+    routes = set(cli.ROUTES)
+    formats = set(cli.FORMATS) | {"print"}
+    for command in catalog.COMMANDS:
+        target = command.alias_of or command.name
+        if not (command.name in routes or command.name in formats
+                or target in routes or target in formats):
+            raise SystemExit(f"catalog command {command.name!r} is not dispatchable")
+    known = catalog.canonical_targets()
+    for route in routes:
+        if route not in known:
+            raise SystemExit(f"route {route!r} is not in the command catalog")
+    if cli.USAGE != catalog.render_usage():
+        raise SystemExit("cli.USAGE is not the catalog's rendering; regenerate it")
+
+
 def check_docs() -> None:
     from . import __main__ as cli
 
@@ -860,6 +883,7 @@ CHECKS = [
     check_contract_mirror,
     check_invariant_ledger,
     check_fixture_provenance,
+    check_command_catalog,
     check_docs,
 ]
 
