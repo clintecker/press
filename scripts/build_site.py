@@ -53,6 +53,9 @@ FOOTER_PAGES = [
 NOT_PUBLISHED = {
     "CLAUDE.md": "agent working instructions for this repo, not documentation",
     "AGENTS.md": "the same working instructions in the agents.md convention",
+    "docs/META-FRAMEWORK-EXTRACTION.md": (
+        "exploration notebook for a possible later extraction, not a press contract"
+    ),
 }
 
 
