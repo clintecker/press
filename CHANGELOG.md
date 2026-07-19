@@ -11,6 +11,44 @@ audit).
 
 Nothing yet.
 
+## [1.13.0] - 2026-07-19
+
+### Added
+
+- Adversarial artifact proof: the verifiers are now proven to fail, not
+  just to pass. A library of named single-purpose damage operators
+  (archive member add, remove, escaping-path, uncompressed-store,
+  byte-flip; reader-site chapter duplication, dead stylesheet url, dead
+  fragment) each records source and result digests and asserts the
+  invariant-specific diagnostic, with a coverage gate so no
+  deliberate-damage invariant loses its negative proof (#88). The
+  artifact graph is modeled as deterministic build-mutate-verify state
+  transitions over the git-only source archive, proving a mutated or
+  missing output cannot be blessed, rebuild restores validity, and
+  clean removes every declared output, in both cwd and BOOK_ROOT modes
+  (#89).
+- Mechanical configuration coverage: quality/scenarios.yaml declares
+  ten optional-configuration dimensions, press.scenarios generates a
+  deterministic eleven-combination pairwise covering set plus five
+  named high-risk interactions, and gates fail on an untested surface
+  or an unrealizable high-risk scenario (#90).
+- Real-tool integration runners for every artifact family (PDF/print,
+  EPUB, HTML and site and Pages, Markdown and text and DOCX, archives
+  and the sources companion, cover wrap) build source-only factory
+  books through the actual toolchain and inspect them with their real
+  verifiers, capability-gated so a missing tool skips cleanly, each
+  recording tool versions and input and output digests (#91).
+- Design-major visual regression: a fixture book's built PDF is
+  measured for toolchain-stable geometry (page count, embedded fonts,
+  trim, per-page ink bounds) against a committed v1 baseline, so a
+  margin shift, font swap, or displaced plate is a drift while an
+  encoder patch is not; baselines update only with a recorded reason
+  (#92).
+- docs/COMPATIBILITY.md states the supported Python range (3.10 to
+  3.13, tested), the pinned Ubuntu 24.04 toolchain image as the
+  contract, and the OS families, and press doctor warns outside the
+  tested Python range (#35).
+
 ## [1.12.0] - 2026-07-19
 
 ### Added
