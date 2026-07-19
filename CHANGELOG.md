@@ -9,7 +9,12 @@ audit).
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- The release script's version bump is anchored to the `[project]`
+  version line; v1.9.0's cut rewrote `[tool.mypy]`'s `python_version`
+  to the release number, and mypy silently fell back to checking
+  against the running interpreter instead of 3.10.
 
 ## [1.9.0] - 2026-07-19
 

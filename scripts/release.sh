@@ -32,7 +32,10 @@ tag, version = sys.argv[1], sys.argv[2]
 b = Path(".github/workflows/build.yml")
 b.write_text(re.sub(r"uses: clintecker/press@v[0-9.]+", f"uses: clintecker/press@{tag}", b.read_text()))
 p = Path("pyproject.toml")
-p.write_text(re.sub(r'version = "[0-9.]+"', f'version = "{version}"', p.read_text()))
+# Anchored to the line start and limited to one hit: an unanchored
+# pattern once rewrote [tool.mypy]'s python_version to the release
+# number, and mypy silently fell back to the running interpreter.
+p.write_text(re.sub(r'^version = "[0-9.]+"', f'version = "{version}"', p.read_text(), count=1, flags=re.M))
 PY
 
 # The changelog must have a section for this version.
