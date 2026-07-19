@@ -34,7 +34,7 @@ SRC = Path(r"{_SRC}")
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from press import pytest_invariants
+from tests import pytest_invariants
 
 
 def pytest_configure(config):

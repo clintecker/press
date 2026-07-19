@@ -56,6 +56,8 @@ _POLARITIES = frozenset({"positive", "negative"})
 _CAPABILITIES = frozenset({
     "pandoc", "lualatex", "latexmk", "pdftoppm", "pdffonts",
     "pdfinfo", "pdftotext", "git", "epubcheck", "claude",
+    # The packaging tool, a real capability the distribution tests need.
+    "build",
 })
 
 _INV_ID = re.compile(r"INV-[A-Za-z0-9-]+")

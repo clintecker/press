@@ -760,12 +760,24 @@ def render_reference() -> str:
     return "\n".join(lines)
 
 
+def _repo_root() -> Path | None:
+    """The source checkout root, or None when the press runs from an
+    installed wheel. Checks that read repo files (contract mirror,
+    invariant ledger, doc drift) prove nothing from an install and skip
+    rather than crash, so `press selftest` works either way."""
+
+    root = Path(__file__).resolve().parent.parent.parent
+    return root if (root / "CLAUDE.md").is_file() else None
+
+
 def check_contract_mirror() -> None:
     """AGENTS.md is a generated mirror of CLAUDE.md (same contract,
     agents.md convention): identical below the heading line, so the
     two cannot drift apart again."""
 
-    root = Path(__file__).resolve().parent.parent.parent
+    root = _repo_root()
+    if root is None:
+        return
     claude = (root / "CLAUDE.md").read_text(encoding="utf-8")
     agents = (root / "AGENTS.md").read_text(encoding="utf-8")
     if agents.split("\n", 1)[1] != claude.split("\n", 1)[1]:
@@ -808,8 +820,12 @@ def check_docs() -> None:
 
 def check_invariant_ledger() -> None:
     """The invariant ledger validates: schema holds and every enforcer
-    and proof it names resolves to a real function or fixture."""
+    and proof it names resolves to a real function or fixture. The
+    ledger is a repo file, not package data, so an installed wheel has
+    nothing to validate here."""
 
+    if not invariants.LEDGER.is_file():
+        return
     invariants.validate(invariants.load())
 
 

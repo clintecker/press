@@ -17,12 +17,12 @@ SRC = Path(__file__).resolve().parent.parent / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from press import pytest_invariants  # noqa: E402  (needs src on sys.path first)
+from tests import pytest_invariants  # noqa: E402  (test infra, not shipped)
 
 
 def pytest_configure(config):
     """Install the collection-time invariant/layer/proof enforcement
-    (see press.pytest_invariants)."""
+    (see tests.pytest_invariants)."""
 
     pytest_invariants._install(config)
 

@@ -24,10 +24,35 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install -y --no-install-recommends pandoc
           python3 scripts/build_site.py
-      - name: Distribution metadata is publishable
+      - name: Clean distributions install and run from a fresh environment
         run: |
-          python3 -m build --sdist --wheel --outdir /tmp/dist-check
+          set -euo pipefail
+          # Build from the checked-out (clean) tree and treat any build
+          # warning as a failure: a warning here is the undeclared-package
+          # or bytecode-leak class the manifest rules exist to prevent.
+          python3 -m build --sdist --wheel --outdir /tmp/dist-check 2>build.log
+          if grep -i '^warning:' build.log; then
+            echo "build emitted warnings; failing"; exit 1
+          fi
           python3 -m twine check --strict /tmp/dist-check/*
+          # No bytecode or cache may reach either artifact.
+          python3 - <<'PY'
+          import glob, tarfile, zipfile
+          bad = []
+          for whl in glob.glob("/tmp/dist-check/*.whl"):
+              bad += [n for n in zipfile.ZipFile(whl).namelist()
+                      if "__pycache__" in n or n.endswith((".pyc", ".pyo"))]
+          for sdist in glob.glob("/tmp/dist-check/*.tar.gz"):
+              bad += [n for n in tarfile.open(sdist).getnames()
+                      if "__pycache__" in n or n.endswith((".pyc", ".pyo"))]
+          assert not bad, f"distribution carries bytecode: {bad}"
+          print("distributions are clean")
+          PY
+          # Install the built wheel into a throwaway venv and prove the
+          # installed package runs its own selftest.
+          python3 -m venv /tmp/fresh
+          /tmp/fresh/bin/pip install --quiet /tmp/dist-check/*.whl
+          /tmp/fresh/bin/press selftest
 
   selftest:
     runs-on: ${{ matrix.os }}

@@ -1,0 +1,5 @@
+# The sdist manifest. Python 3 bytecode always lives in __pycache__, so
+# pruning it keeps a locally-run tree's cache out of the source archive;
+# the wheel excludes the same via exclude-package-data. Both are needed
+# because the data glob is broad and ships the packaged scripts.
+prune **/__pycache__

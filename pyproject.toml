@@ -64,6 +64,13 @@ where = ["src"]
 [tool.setuptools.package-data]
 press = ["data/**/*"]
 
+[tool.setuptools.exclude-package-data]
+# The data glob is broad on purpose (it ships the house design, skills,
+# and templates), so bytecode and cache from running the packaged
+# scripts locally must be excluded explicitly, or the wheel's contents
+# would depend on prior local execution and the interpreter version.
+press = ["**/__pycache__/**", "**/*.pyc", "**/*.pyo", "**/.DS_Store", "**/*.swp"]
+
 [project.urls]
 Repository = "https://github.com/clintecker/press"
 Issues = "https://github.com/clintecker/press/issues"
