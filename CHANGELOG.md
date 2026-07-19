@@ -9,6 +9,10 @@ audit).
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.10.0] - 2026-07-19
+
 ### Changed
 
 - Boundary integrity, first half (the v1.10 milestone's verifier and
