@@ -14,6 +14,8 @@ import importlib
 import re
 from pathlib import Path
 
+from . import invariants
+
 def modules() -> list[str]:
     """Every module in the package, derived so the list cannot drift."""
 
@@ -796,31 +798,55 @@ def check_docs() -> None:
             "docs/REFERENCE.md drifted from the registry; regenerate with "
             "`press selftest --write-docs`"
         )
+    invariants_doc = here.parent.parent / "docs" / "INVARIANTS.md"
+    if invariants_doc.is_file() and invariants_doc.read_text(encoding="utf-8") != invariants.render():
+        raise SystemExit(
+            "docs/INVARIANTS.md drifted from quality/invariants.yaml; "
+            "regenerate with `press selftest --write-docs`"
+        )
+
+
+def check_invariant_ledger() -> None:
+    """The invariant ledger validates: schema holds and every enforcer
+    and proof it names resolves to a real function or fixture."""
+
+    invariants.validate(invariants.load())
+
+
+# The one ordered list of invariant checks. main() runs it and the
+# pytest suite parametrizes over it, so the CLI and the test runner
+# cannot disagree about which invariants the press proves.
+CHECKS = [
+    check_imports,
+    check_arithmetic,
+    check_slug_invariant,
+    check_source_policy,
+    check_pages_verifier,
+    check_scaffold_neutrality,
+    check_book_model,
+    check_registry,
+    check_format_witnesses,
+    check_site_identity,
+    check_authorities_ledger,
+    check_honest_refusals,
+    check_release_grammar,
+    check_coverwrap_detectors,
+    check_aesthetic_schema,
+    check_contract_mirror,
+    check_invariant_ledger,
+    check_docs,
+]
 
 
 def main(argv: list[str] | None = None) -> int:
     if argv and "--write-docs" in argv:
-        target = Path(__file__).resolve().parent.parent.parent / "docs" / "REFERENCE.md"
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(render_reference(), encoding="utf-8")
-        print(f"wrote {target}")
-    check_imports()
-    check_arithmetic()
-    check_slug_invariant()
-    check_source_policy()
-    check_pages_verifier()
-    check_scaffold_neutrality()
-    check_book_model()
-    check_registry()
-    check_format_witnesses()
-    check_site_identity()
-    check_authorities_ledger()
-    check_honest_refusals()
-    check_release_grammar()
-    check_coverwrap_detectors()
-    check_aesthetic_schema()
-    check_contract_mirror()
-    check_docs()
+        docs = Path(__file__).resolve().parent.parent.parent / "docs"
+        docs.mkdir(parents=True, exist_ok=True)
+        (docs / "REFERENCE.md").write_text(render_reference(), encoding="utf-8")
+        (docs / "INVARIANTS.md").write_text(invariants.render(), encoding="utf-8")
+        print(f"wrote {docs / 'REFERENCE.md'} and {docs / 'INVARIANTS.md'}")
+    for check in CHECKS:
+        check()
     print(f"Selftest passed: {len(modules())} modules import, arithmetic agrees "
           "with the canonical examples, usage and README name every target")
     return 0

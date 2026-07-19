@@ -18,6 +18,8 @@ configure a book with the
 [configuration reference](https://github.com/clintecker/press/blob/main/docs/CONFIGURATION.md),
 look up any artifact in the generated
 [reference](https://github.com/clintecker/press/blob/main/docs/REFERENCE.md),
+trace every guarantee in the generated
+[invariant ledger](https://github.com/clintecker/press/blob/main/docs/INVARIANTS.md),
 see what is coming in the
 [roadmap](https://github.com/clintecker/press/blob/main/ROADMAP.md) and what
 changed in the

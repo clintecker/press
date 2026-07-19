@@ -37,6 +37,7 @@ PAGES = [
     ("docs/ARCHITECTURE.md", "architecture.html", "architecture"),
     ("docs/REFERENCE.md", "reference.html", "reference"),
     ("docs/CONFIGURATION.md", "configuration.html", "configuration"),
+    ("docs/INVARIANTS.md", "invariants.html", "invariants"),
     ("ROADMAP.md", "roadmap.html", "roadmap"),
     ("docs/TUI-PLAN.md", "desk-plan.html", "desk plan"),
     ("CHANGELOG.md", "changelog.html", "changelog"),

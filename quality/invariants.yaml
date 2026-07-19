@@ -1,0 +1,366 @@
+# The executable invariant ledger: what the press promises, and where
+# each promise is kept. Validated on every selftest (schema, and that
+# every enforcer and proof names something real), rendered to
+# docs/INVARIANTS.md. Seeded from the narrative matrix in
+# docs/ARCHITECTURE.md; add an invariant here when you add a guarantee.
+#
+# proof references: check_* names a selftest function; fixture:<name>
+# names a file under src/press/data/known-bad/; 'integration' means the
+# integration-gate workflow proves it; 'none' is an honest admission
+# (only allowed for standard, not critical, invariants).
+
+invariants:
+  - id: INV-config-slug
+    statement: A slug is strict lowercase kebab, safe as an artifact basename.
+    risk: A crafted slug escapes the dist directory or breaks a filename.
+    criticality: critical
+    owner: booklib
+    enforcer: booklib.validate_slug
+    layers: [selftest, pytest]
+    negative: [check_slug_invariant]
+    ci_tier: quality
+    limitations: Fullmatch of a fixed pattern; no other basename hazard is modeled.
+
+  - id: INV-config-trim
+    statement: Trim is exactly 6 by 9 inches in v1; any other geometry is refused.
+    risk: A book ships at a size the design was never proven against.
+    criticality: standard
+    owner: bookmodel
+    enforcer: bookmodel.load
+    layers: [selftest]
+    negative: [check_book_model]
+    ci_tier: quality
+    limitations: Hard-coded to the v1 design; v2 geometry is unsupported by design.
+
+  - id: INV-config-locatable
+    statement: >-
+      Config defects are collected and reported with file and key; YAML
+      errors are located; a non-mapping config file is refused.
+    risk: An author faces a parser traceback instead of a fixable diagnostic.
+    criticality: standard
+    owner: booklib
+    enforcer: booklib.load_config_mapping
+    layers: [selftest]
+    negative: [check_honest_refusals, check_book_model]
+    ci_tier: quality
+    limitations: Some YAML errors carry no line mark.
+
+  - id: INV-config-release-witness
+    statement: >-
+      Release builds refuse vacuous witnesses (fewer than two sentinels,
+      page floor under twenty-four) when PRESS_RELEASE is set.
+    risk: A release is cut that no rendered artifact can be proven to be.
+    criticality: standard
+    owner: booklib
+    enforcer: booklib.require_release_witnesses
+    layers: [integration]
+    negative: [integration]
+    ci_tier: integration
+    limitations: Counts only; two trivial sentinels satisfy it; drafts skip it.
+
+  - id: INV-config-registrations
+    statement: >-
+      ISBN and ISSN check digits are computed, never trusted; retail mode
+      fails on a pending number.
+    risk: A malformed identifier reaches a retail channel or the barcode.
+    criticality: standard
+    owner: registrations
+    enforcer: barcode.validate
+    layers: [selftest, pytest]
+    negative: [check_arithmetic]
+    ci_tier: quality
+    limitations: LCCN is shape-checked only; the ISBN is not matched to the barcode edition.
+
+  - id: INV-editorial-battery
+    statement: >-
+      The universal prose battery refuses dashes, curly quotes,
+      out-of-font glyphs, throat-clearing, bad headings, and long paragraphs.
+    risk: Synthetic or print-unsafe prose reaches a published book.
+    criticality: standard
+    owner: style_audit
+    enforcer: style_audit
+    layers: [selftest, integration]
+    negative:
+      - fixture:em-dash.md
+      - fixture:curly-quotes.md
+      - fixture:emoji.md
+      - fixture:title-case.md
+      - fixture:numbered-heading.md
+      - fixture:long-paragraph.md
+    ci_tier: quality
+    limitations: The glyph law flags legitimate Greek or math; short title-case headings slip.
+
+  - id: INV-editorial-jargon
+    statement: Watchlist terms at rewrite severity fail the run.
+    risk: Overused jargon the author outlawed survives into the book.
+    criticality: standard
+    owner: jargon_lint
+    enforcer: jargon_lint
+    layers: [selftest]
+    negative: [fixture:jargon.md]
+    ci_tier: quality
+    limitations: Exact matches only; a per-book allow list can silence any term.
+
+  - id: INV-editorial-checkers
+    statement: Every known-bad fixture trips its declared rule; known-good passes clean.
+    risk: A checker silently stops catching what it was built to catch.
+    criticality: critical
+    owner: check_the_checkers
+    enforcer: check_the_checkers
+    layers: [selftest, integration]
+    negative: [integration]
+    ci_tier: quality
+    limitations: A book fixture with no expect comment falls back to any-rejection.
+
+  - id: INV-editorial-banned-regex
+    statement: A malformed book-supplied banned regex is refused by name.
+    risk: An author's regex slip becomes a parser traceback mid-audit.
+    criticality: standard
+    owner: style_audit
+    enforcer: style_audit.banned_book_patterns
+    layers: [selftest]
+    negative: [check_honest_refusals]
+    ci_tier: quality
+    limitations: Only regex-compile errors are caught.
+
+  - id: INV-authorities-claims
+    statement: >-
+      Every authorities claim appears in the manuscript exactly once in its
+      declared file; malformed, duplicate, missing, moved, and ambiguous
+      entries are each named.
+    risk: A citation outlives the sentence it attributed, rotting silently.
+    criticality: standard
+    owner: gen_authorities
+    enforcer: gen_authorities
+    layers: [selftest, pytest]
+    negative: [check_authorities_ledger]
+    ci_tier: quality
+    limitations: Whitespace-normalized substring match; a coincidental duplicate counts as a hit.
+
+  - id: INV-authorities-printsafe
+    statement: Researched source text is print-safe and TeX-safe.
+    risk: A citation carrying a backslash reaches the TeX engine as a command.
+    criticality: standard
+    owner: gen_authorities
+    enforcer: gen_authorities.print_safe
+    layers: [selftest]
+    negative: [check_honest_refusals]
+    ci_tier: quality
+    limitations: Fixed replacement table.
+
+  - id: INV-pdf-detector
+    statement: The blank-page detector is proven against fixtures before it judges.
+    risk: A miscalibrated detector passes blank pages or fails inked ones.
+    criticality: critical
+    owner: verify_pdf
+    enforcer: verify_pdf.self_test_detector
+    layers: [selftest, pytest]
+    negative: [check_coverwrap_detectors]
+    ci_tier: quality
+    limitations: Two synthetic extremes; a faint hairline can still read as blank.
+
+  - id: INV-pdf-ink
+    statement: Every rendered page carries ink and keeps it off the edge.
+    risk: A blank or clipped page ships in the interior.
+    criticality: standard
+    owner: verify_pdf
+    enforcer: verify_pdf.verify_page_ink
+    layers: [integration]
+    negative: [integration]
+    ci_tier: integration
+    limitations: Tolerates one structural blank verso in the print profile.
+
+  - id: INV-format-witness
+    statement: >-
+      Title and a derived manuscript witness appear in every format; a book
+      yielding no witness is refused, not passed.
+    risk: A format silently drops the manuscript and still verifies.
+    criticality: critical
+    owner: verify_formats
+    enforcer: verify_formats.require_witnesses
+    layers: [selftest, pytest]
+    negative: [check_format_witnesses]
+    ci_tier: quality
+    limitations: One longest line per document; a format dropping every other line still passes.
+
+  - id: INV-format-site-identity
+    statement: Each chapter's witness appears exactly once across the reader site.
+    risk: A duplicated or missing chapter page passes on file count alone.
+    criticality: standard
+    owner: verify_formats
+    enforcer: verify_formats.verify_site
+    layers: [selftest]
+    negative: [check_site_identity]
+    ci_tier: quality
+    limitations: A chapter with no qualifying line contributes no witness.
+
+  - id: INV-pages-refs
+    statement: >-
+      Every local reference and stylesheet url resolves; fragments resolve
+      to real anchors.
+    risk: The public site ships dead links or a stylesheet pointing at nothing.
+    criticality: standard
+    owner: verify_pages
+    enforcer: verify_pages.check_refs
+    layers: [selftest, pytest]
+    negative: [check_pages_verifier]
+    ci_tier: quality
+    limitations: External links are skipped; a dead external URL is never caught.
+
+  - id: INV-archive-site-bytes
+    statement: The reader zip is byte-for-byte the verified site directory.
+    risk: The downloadable reader disagrees with the site that was verified.
+    criticality: standard
+    owner: verify_archives
+    enforcer: verify_archives.verify_site_zip
+    layers: [selftest]
+    negative: [check_source_policy]
+    ci_tier: quality
+    limitations: Compares to the on-disk site, which must itself have been verified first.
+
+  - id: INV-archive-source-policy
+    statement: >-
+      The source zip holds exactly what the publication policy admits:
+      tracked files only, symlinks never dereferenced, secret files abort,
+      no member escapes its prefix.
+    risk: A public source archive leaks a secret or a file outside the repo.
+    criticality: critical
+    owner: package_source
+    enforcer: package_source.publication_members
+    layers: [selftest, pytest]
+    negative: [check_source_policy]
+    ci_tier: quality
+    limitations: Secret and junk patterns are fixed lists; a novel secret filename is not caught.
+
+  - id: INV-coverwrap-geometry
+    statement: >-
+      The wrap is one page at exactly trim plus bleed plus spine, the spine
+      recomputed from the built interior, never restated.
+    risk: A wrong-sized retail cover is produced and blessed.
+    criticality: standard
+    owner: gen_coverwrap
+    enforcer: verify_coverwrap
+    producer: gen_coverwrap
+    layers: [integration]
+    negative: [integration]
+    ci_tier: integration
+    limitations: Spine trusts the declared paper stock; a wrong stock yields a self-consistent wrong spine.
+
+  - id: INV-coverwrap-barcode
+    statement: The barcode panel has its white card, enough bar transitions, and clean quiet zones.
+    risk: An unscannable or ink-fouled barcode ships on the retail cover.
+    criticality: standard
+    owner: verify_coverwrap
+    enforcer: verify_coverwrap.scanline
+    layers: [selftest, pytest]
+    negative: [check_coverwrap_detectors]
+    ci_tier: quality
+    limitations: Twenty-five transitions against EAN-13's real fifty-nine; it proves a symbol, not the right symbol.
+
+  - id: INV-graph-acyclic
+    statement: >-
+      The artifact graph is acyclic, outputs unique, every published
+      artifact a concrete filename.
+    risk: A build order cycles or an artifact has no real output.
+    criticality: standard
+    owner: registry
+    enforcer: registry.build_order
+    layers: [selftest, pytest]
+    negative: [check_registry]
+    ci_tier: quality
+    limitations: Proves graph shape, not that each builder produces its declared output.
+
+  - id: INV-graph-no-stale
+    statement: Verify targets rebuild before verifying; a stale artifact cannot be blessed.
+    risk: A verifier passes an old artifact that no longer matches the source.
+    criticality: critical
+    owner: __main__
+    enforcer: __main__
+    layers: [integration]
+    negative: [integration]
+    ci_tier: integration
+    limitations: CLI-path only; importing a verifier module directly skips the rebuild.
+
+  - id: INV-graph-escaping
+    statement: Metadata interpolated into HTML and TeX is escaped.
+    risk: A title with markup corrupts the single-file HTML or injects TeX.
+    criticality: standard
+    owner: build
+    enforcer: build.cover_fragment_html
+    layers: [selftest]
+    negative: [check_honest_refusals]
+    ci_tier: quality
+    limitations: The proof covers the cover fragment; sibling sites share the pattern unproven.
+
+  - id: INV-cli-exit-code
+    statement: A failing tool's exit code passes through the console, never a traceback.
+    risk: A pandoc or TeX failure ends in a Python traceback, not the tool's message.
+    criticality: standard
+    owner: __main__
+    enforcer: __main__.console
+    layers: [selftest, pytest]
+    negative: [check_honest_refusals]
+    ci_tier: quality
+    limitations: Only CalledProcessError is unwrapped.
+
+  - id: INV-release-tag-grammar
+    statement: >-
+      A release tag is strict SemVer and the composite action refuses shell
+      syntax in its command input.
+    risk: A malformed tag or an injected command reaches the release path.
+    criticality: critical
+    owner: selftest
+    enforcer: selftest.check_release_grammar
+    layers: [selftest, pytest]
+    negative: [check_release_grammar]
+    ci_tier: quality
+    limitations: The action grammar is proven by unit test, not by a live workflow run.
+
+  - id: INV-release-contract
+    statement: >-
+      A three-part tag pins its own action ref and an existing immutable
+      toolchain image, proven before the major floats.
+    risk: A pinned book resolves a different pipeline than the tag promises.
+    criticality: standard
+    owner: selftest
+    enforcer: selftest.check_release_grammar
+    layers: [integration]
+    negative: [none]
+    ci_tier: integration
+    limitations: The pin grep is an exact string; it does not prove the tag's tree.
+
+  - id: INV-scaffold-neutral
+    statement: No original-book identity leaks into a clean scaffold.
+    risk: A new book inherits another book's name, person, or imprint.
+    criticality: standard
+    owner: scaffold
+    enforcer: selftest.check_scaffold_neutrality
+    layers: [selftest, pytest, integration]
+    negative: [check_scaffold_neutrality]
+    ci_tier: quality
+    limitations: Pattern-based; a novel identifying string is not caught.
+
+  - id: INV-docs-no-drift
+    statement: >-
+      Usage and README name every target, REFERENCE.md and INVARIANTS.md
+      equal their generated text, and the aesthetics skill documents every
+      consumed key.
+    risk: The documentation quietly diverges from what the code does.
+    criticality: standard
+    owner: selftest
+    enforcer: selftest.check_docs
+    layers: [selftest]
+    negative: [check_docs, check_aesthetic_schema]
+    ci_tier: quality
+    limitations: Presence tests, not semantic ones.
+
+  - id: INV-contract-mirror
+    statement: AGENTS.md is a byte-for-byte mirror of CLAUDE.md below the heading.
+    risk: The two contributor contracts drift apart and disagree.
+    criticality: standard
+    owner: selftest
+    enforcer: selftest.check_contract_mirror
+    layers: [selftest]
+    negative: [check_contract_mirror]
+    ci_tier: quality
+    limitations: Only the body below the first line is compared.
