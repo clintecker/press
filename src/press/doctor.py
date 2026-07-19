@@ -10,9 +10,9 @@ first failure is a diagnosis instead of a traceback.
 
 from __future__ import annotations
 
-import os
-import shutil
 import subprocess
+
+from . import adapters
 
 
 CHECKS = [
@@ -37,8 +37,8 @@ KEYS = [
 def tool_runs(tool: str) -> bool:
     try:
         for flag in ("--version", "-v"):
-            if subprocess.run(
-                [tool, flag], capture_output=True, timeout=15
+            if adapters.process_runner.run(
+                [tool, flag], capture=True, timeout=15
             ).returncode == 0:
                 return True
     except (OSError, subprocess.TimeoutExpired):
@@ -50,7 +50,7 @@ def main() -> int:
     print("press doctor")
     missing_required = []
     for tool, purpose, required in CHECKS:
-        if shutil.which(tool) is None:
+        if adapters.environment.which(tool) is None:
             state = "MISSING" if required else "absent"
             if required:
                 missing_required.append(tool)
@@ -61,7 +61,7 @@ def main() -> int:
         else:
             print(f"  [     ok] {tool:<10} {purpose}")
     for key, purpose in KEYS:
-        state = "ok" if os.environ.get(key) else "unset"
+        state = "ok" if adapters.environment.get(key) else "unset"
         print(f"  [{state:>7}] {key:<16} {purpose}")
     try:
         from PIL import Image  # noqa: F401

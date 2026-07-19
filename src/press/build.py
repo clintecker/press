@@ -10,15 +10,14 @@ the same defaults.
 
 from __future__ import annotations
 
-import os
 import re
 import shutil
-import subprocess
 import time
 from pathlib import Path
 
 import yaml
 
+from . import adapters
 from . import booklib
 from . import gen_authorities
 from . import gen_front_matter
@@ -28,12 +27,12 @@ from . import gen_index
 def run(command: list[str]) -> None:
     printable = " ".join(command)
     print(f"+ {printable}")
-    env = os.environ.copy()
+    env = adapters.environment.copy()
     env.setdefault("SOURCE_DATE_EPOCH", "1784160000")
     env["BOOK_ROOT"] = str(booklib.root())
     env["BOOK_PUBLISHER"] = str(booklib.metadata().get("publisher") or "")
     started = time.monotonic()
-    subprocess.run(command, cwd=booklib.root(), env=env, check=True)
+    adapters.process_runner.run(command, cwd=booklib.root(), env=env, check=True)
     elapsed = time.monotonic() - started
     if elapsed >= 1.0:
         print(f"  {command[0]} took {elapsed:.1f}s")
@@ -427,7 +426,7 @@ def pages_build(output_dir: str) -> None:
 
 
 def build_target(target: str) -> None:
-    if shutil.which("pandoc") is None:
+    if adapters.environment.which("pandoc") is None:
         raise SystemExit("pandoc is required")
     slug = booklib.slug()
     if target == "pdf":
