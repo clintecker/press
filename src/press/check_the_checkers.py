@@ -1,29 +1,41 @@
-"""Prove the checkers can fail.
+"""Prove the checkers can fail, and fail for the stated reason.
 
-Each fixture violates one rule a checker claims to enforce. A checker that
-returns success against its fixture is an untested claim, and this script
-fails the build. Universal fixtures ship with the press; a book adds its own
-under tests/known-bad/ (for house rules like banned project names), and every
-fixture must be rejected by the style audit or the jargon lint.
+Each fixture violates one rule a checker claims to enforce and names
+that rule in its first line (`<!-- expect: em dash -->`). Any-rejection
+was not proof: an accidentally over-broad checker could reject every
+fixture while the intended rule quietly disappeared. The harness now
+requires the declared diagnostic to fire, reports any additional
+diagnostics for review, and holds a known-good fixture that no checker
+may reject. Book fixtures under tests/known-bad/ use the same
+expectation comment; one without it falls back to any-rejection with a
+note.
 """
 
 from __future__ import annotations
 
 import contextlib
 import io
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 from . import booklib, style_audit
 
+EXPECT = re.compile(r"<!--\s*expect:\s*(.+?)\s*-->")
 
-def rejected(fixture: Path) -> bool:
-    """True if at least one prose checker fails the fixture."""
 
-    with contextlib.redirect_stdout(io.StringIO()):
-        if style_audit.main([str(fixture)]) != 0:
-            return True
+def diagnostics(fixture: Path) -> list[str]:
+    """Every diagnostic any prose checker emits for the fixture."""
+
+    found: list[str] = []
+    buffer = io.StringIO()
+    with contextlib.redirect_stdout(buffer):
+        style_audit.main([str(fixture)])
+    found.extend(
+        line.strip() for line in buffer.getvalue().splitlines()
+        if fixture.name in line
+    )
     allow = booklib.house_rules().get("jargon-allow") or []
     command = [
         sys.executable, "-m", "press.jargon_lint",
@@ -32,7 +44,13 @@ def rejected(fixture: Path) -> bool:
         str(fixture),
     ]
     result = subprocess.run(command, capture_output=True, text=True)
-    return result.returncode != 0
+    if result.returncode != 0:
+        found.extend(
+            f"jargon: {line.strip()}"
+            for line in (result.stdout + result.stderr).splitlines()
+            if "rewrite:" in line
+        )
+    return found
 
 
 def main() -> int:
@@ -42,10 +60,36 @@ def main() -> int:
         fixtures.extend(sorted(book_fixtures.glob("*.md")))
 
     failures: list[str] = []
+    extras = 0
     for fixture in fixtures:
-        if rejected(fixture):
+        expected = EXPECT.search(fixture.read_text(encoding="utf-8"))
+        found = diagnostics(fixture)
+        if expected is None:
+            if not found:
+                failures.append(
+                    f"{fixture.name}: no checker rejected a known-bad fixture "
+                    "(and it declares no expected rule)"
+                )
             continue
-        failures.append(f"{fixture.name}: no checker rejected a known-bad fixture")
+        rule = expected.group(1)
+        matching = [d for d in found if rule.lower() in d.lower()]
+        if not matching:
+            others = "; ".join(found[:3]) or "no diagnostics at all"
+            failures.append(
+                f"{fixture.name}: expected rule {rule!r} did not fire ({others})"
+            )
+        elif len(found) > len(matching):
+            extras += len(found) - len(matching)
+            for extra in (d for d in found if rule.lower() not in d.lower()):
+                print(f"  note: {fixture.name} also drew: {extra}")
+
+    for clean in sorted((booklib.DATA / "known-good").glob("*.md")):
+        found = diagnostics(clean)
+        if found:
+            failures.append(
+                f"{clean.name}: a checker rejected the known-good fixture: "
+                + "; ".join(found[:3])
+            )
 
     if failures:
         print("Checker self-test failed:")
@@ -53,7 +97,11 @@ def main() -> int:
             print(f"  - {failure}")
         return 1
 
-    print(f"Checker self-test passed: {len(fixtures)} known-bad fixtures rejected")
+    print(
+        f"Checker self-test passed: {len(fixtures)} known-bad fixtures each "
+        "tripped their declared rule, known-good fixture accepted"
+        + (f", {extras} extra diagnostics noted" if extras else "")
+    )
     return 0
 
 
