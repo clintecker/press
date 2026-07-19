@@ -1,0 +1,78 @@
+# The public-surface classification: every public callable in the press
+# has a role, and its role sets what kind of proof it owes. The
+# inventory gate (press.surfaces) fails when a public callable exists
+# that this file does not account for, so a new function cannot ship
+# without a deliberate decision about how it is proven.
+#
+# Roles are assigned by module default with per-callable overrides,
+# never one row per function: a module has a dominant role and the
+# exceptions are named. A callable that genuinely needs no direct proof
+# is exempted by name with a reason and a review date, never silently.
+
+# What each role owes. Advisory today (the collection plugin in #80
+# turns these into enforced test metadata); the gate here proves
+# classification coverage, not proof presence.
+roles:
+  pure: proven by a property or unit test over its contract
+  parser: proven by a unit test with malformed input that must be refused
+  normalizer: proven by a property test (idempotence and folding)
+  verifier: proven by a negative fixture that must turn it red
+  producer: proven through the verifier that inspects its artifact
+  orchestrator: proven by an interaction test over its dependency edges
+  adapter: proven by a contract test against fake and real backends
+  presenter: proven by an integration or end-to-end run
+
+# module -> role, or module -> {default: role, overrides: {func: role}}
+modules:
+  aesthetic: {default: normalizer, overrides: {write_tex_overrides: producer}}
+  art: presenter
+  art_commission: adapter
+  barcode: pure
+  booklib:
+    default: parser
+    overrides:
+      validate_slug: pure
+      require_release_witnesses: verifier
+  bookmodel: parser
+  build:
+    default: producer
+    overrides:
+      cover_fragment_html: pure
+      run: adapter
+      subtitle_stack_html: pure
+      download_names: pure
+  check_source: verifier
+  check_the_checkers: verifier
+  doctor: {default: presenter, overrides: {tool_runs: adapter}}
+  fixture_provenance: verifier
+  gen_authorities: {default: producer, overrides: {print_safe: normalizer, normalize: normalizer, chapter_label: pure, next_letter: pure, taken_letters: pure}}
+  gen_coverwrap: {default: producer, overrides: {spine_width: pure, interior_page_count: pure, isbn_for_print: parser, tex_safe_path: pure}}
+  gen_front_matter: {default: producer, overrides: {escape: normalizer}}
+  gen_index: producer
+  instruments: presenter
+  invariants: {default: verifier, overrides: {load: parser, render: producer}}
+  jargon_lint: verifier
+  operator: orchestrator
+  package_source: {default: producer, overrides: {publication_members: pure, tracked_paths: adapter}}
+  publish: {default: orchestrator, overrides: {}}
+  registrations: {default: parser, overrides: {}}
+  registry: {default: orchestrator, overrides: {build_order: pure, condition_holds: pure, download_names: pure}}
+  scaffold: producer
+  selftest: {default: verifier, overrides: {modules: pure, render_reference: producer, borrow_book: adapter, clear_book_caches: adapter, main: presenter}}
+  style_audit: {default: verifier, overrides: {in_fenced_code: pure, looks_title_cased: pure, markdown_files: pure, audit_dirs: pure, banned_book_patterns: parser}}
+  verify_archives: verifier
+  verify_coverwrap: {default: verifier, overrides: {render: adapter}}
+  verify_formats: {default: verifier, overrides: {normalized: normalizer, manuscript_witness: pure, chapter_witnesses: pure, docx_visible_text: parser, sentinel_present: pure, plate_count: pure}}
+  verify_pages: {default: verifier, overrides: {scan_page: parser, check_refs: pure, check_downloads: pure, check_reading_surface: verifier}}
+  verify_pdf: {default: verifier, overrides: {run_capture: adapter, looks_blank: pure, ink_bbox: pure, edge_has_ink: pure, parse_args: parser}}
+  wordcount: presenter
+
+# Callables that owe no direct proof, each with a reason and a review
+# date. An exemption is a decision on the record, not an escape hatch.
+exemptions:
+  - callable: doctor.main
+    reason: A presenter over doctor findings; proven by the integration gate running it.
+    review: 2026-07
+  - callable: selftest.main
+    reason: The orchestrator the whole selftest suite is; every check it runs is proven.
+    review: 2026-07
