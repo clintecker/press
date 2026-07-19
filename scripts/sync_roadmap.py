@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -21,6 +22,7 @@ REGISTRY = ROOT / "roadmap" / "milestones.json"
 ROADMAP = ROOT / "ROADMAP.md"
 START = "<!-- BEGIN GENERATED MILESTONES -->"
 END = "<!-- END GENERATED MILESTONES -->"
+BARE_URL = re.compile(r"https://[^\s]+")
 
 
 def load_registry() -> dict[str, Any]:
@@ -61,11 +63,16 @@ def render(data: dict[str, Any]) -> str:
         number = item["number"]
         url = f"https://github.com/{repository}/milestone/{number}"
         state = "Open" if item["state"] == "open" else "Complete"
+        description = BARE_URL.sub(
+            lambda match: f"<{match.group(0).rstrip('.,;:')}>"
+            + match.group(0)[len(match.group(0).rstrip('.,;:')) :],
+            item["description"],
+        )
         blocks.extend(
             [
                 f"### [{item['title']}]({url}) · {state}",
                 "",
-                item["description"],
+                description,
                 "",
             ]
         )

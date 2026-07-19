@@ -1,6 +1,6 @@
 ---
 name: hemingway-prose
-description: Generate or revise prose using durable craft principles synthesized from Ernest Hemingway’s fiction and nonfiction: concrete detail, compression, omission, emotional restraint, rhythmic clarity, and action under pressure.
+description: "Generate or revise prose using durable craft principles synthesized from Ernest Hemingway’s fiction and nonfiction: concrete detail, compression, omission, emotional restraint, rhythmic clarity, and action under pressure."
 version: 1.0.0
 ---
 

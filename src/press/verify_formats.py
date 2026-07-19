@@ -66,15 +66,46 @@ def manuscript_witness() -> str:
     return normalized(best)
 
 
+def chapter_witnesses() -> dict[str, str]:
+    """Each chapter's own longest markup-free line of 40+ characters.
+
+    The per-chapter identity proof: a chapter whose witness is absent
+    from a rendered surface is missing, and a witness appearing more
+    than once is a duplicated or mis-mapped chapter. Chapters with no
+    such line contribute nothing (and say so in the site check)."""
+
+    witnesses: dict[str, str] = {}
+    for path in booklib.chapter_files():
+        best = ""
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if len(line) <= len(best) or len(line) < 40:
+                continue
+            if any(ch in line for ch in "*_`[]()<>\"'&#!|"):
+                continue
+            best = line
+        if best:
+            witnesses[path.name] = normalized(best)
+    return witnesses
+
+
 def require_witnesses(text: str, label: str) -> None:
-    """Title and manuscript witness, normalized, in every format."""
+    """Title and manuscript witness, normalized, in every format. A
+    manuscript that yields no witness line cannot prove content
+    survival at all, which is a refusal, not a free pass."""
 
     haystack = normalized(text)
     title = normalized(booklib.book().title)
     if title and title not in haystack:
         raise SystemExit(f"{label} does not carry the book title: {booklib.book().title}")
     witness = manuscript_witness()
-    if witness and witness not in haystack:
+    if not witness:
+        raise SystemExit(
+            f"{label}: no manuscript witness derivable; the book has no "
+            "markup-free line of 40+ characters, so content survival "
+            "cannot be proven (write one honest plain sentence)"
+        )
+    if witness not in haystack:
         raise SystemExit(
             f"{label} lost the manuscript witness line: {witness[:60]}..."
         )
@@ -225,6 +256,26 @@ def verify_site(path: Path) -> None:
         raise SystemExit(
             f"site has {len(chapter_pages)} chapter pages; expected at least {expected}"
         )
+    # Identity, chapter by chapter: each chapter's own witness line must
+    # appear exactly once across the site, so a missing chapter, a
+    # duplicated page, or another book's pages cannot pass on count.
+    page_texts: dict[str, str] = {}
+    for page in chapter_pages:
+        parser = VisibleText()
+        parser.feed(page.read_text(encoding="utf-8", errors="replace"))
+        page_texts[page.name] = normalized(" ".join(parser.parts))
+    for chapter, witness in chapter_witnesses().items():
+        carriers = [name for name, text in page_texts.items() if witness in text]
+        if not carriers:
+            raise SystemExit(
+                f"reader site is missing {chapter}: its witness line "
+                f'"{witness[:50]}..." appears on no page'
+            )
+        if len(carriers) > 1:
+            raise SystemExit(
+                f"reader site duplicates {chapter}: its witness line "
+                f"appears on {len(carriers)} pages ({', '.join(sorted(carriers))})"
+            )
     source_plates = plate_count()
     if source_plates:
         woodcuts = list((path / "assets" / "woodcuts").glob("*.jpg"))
