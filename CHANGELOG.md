@@ -9,6 +9,10 @@ audit).
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.9.0] - 2026-07-19
+
 ### Added
 
 - An engineering-quality layer with teeth: ruff lints with a
