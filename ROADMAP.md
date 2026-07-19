@@ -1,188 +1,122 @@
 # Roadmap: press as the whole publisher
 
-The idea, stated once: a book repository holds the manuscript, its config,
-and its art, and nothing else. The press holds everything a publisher
-holds: the build and verification machinery, the editorial law, the agent
-skills and workflows that compose, refine, and source prose, the art
-direction that briefs image models, the front matter, and the preparation
-for real publication (retail channels, print on demand, registrations).
-Someone who "gets" press should be able to run `press new`, write
-chapters, and end with every artifact a publisher needs: EPUB, HTML,
-website, print-ready interior and cover wrap, and a checklist of the
-paperwork, without the book repo growing any machinery of its own.
+The idea, stated once: a book repository holds the manuscript, its
+configuration, and its accepted art. The press holds the reusable publishing
+system: builds, verification, editorial law, agent instruments, art direction,
+front matter, retail preparation, and registration guidance.
 
-The press already practices its laws (facts stated once, generators over
-checkers over conventions, artifacts verified as objects, scars become
-law). Every milestone below extends those laws to a new territory.
+Someone who understands press should be able to run `press new`, write a book,
+and finish with every promised artifact—EPUB, HTML, website, print-ready
+interior and cover wrap, and publication checklists—without copying publishing
+machinery into the book repository.
 
-## Where press is today (v1.0.x)
+## How this roadmap stays true
 
-Works: all eight artifact builds; editorial law (`press check`) with
-self-tested checkers; structural verification of every format; subject
-index and table-of-authorities generators with orphan enforcement; the
-sources companion document; `press new` scaffold; CI via composite action
-plus reusable workflow and prebuilt toolchain image; private-to-private
-consumption with per-repo package grants; two agent workflows
-(editorial-passes, authorities-research) shipped as package data and
-scaffolded into books.
+[`roadmap/milestones.json`](https://github.com/clintecker/press/blob/main/roadmap/milestones.json)
+is the source of record for
+milestone identity, state, title, and description. Git commits and reviewed pull
+requests provide the durable history. GitHub milestones are the mutable
+execution view: they own live issue assignment, progress, and discussion. This
+page is the human-readable view and is published directly as the website's
+roadmap.
 
-Leaks the milestones must fix: skills and workflows resolve from a press
-checkout path on disk, not from the installed package; art prompts were
-hand-written per book; the treatise title page and colophon are
-hand-authored TeX per book despite being derivable from metadata; nothing
-exists between "verified PDF" and "book on sale."
+The generated section below must never be edited by hand. Run
+`python3 scripts/sync_roadmap.py --write` after changing the registry. CI checks
+the projection and reconciles the same metadata to GitHub after changes reach
+`main`. Every milestone links to its live issue list; every description links
+back to the relevant repository contracts or successor work.
 
-## M1: self-contained press
+This direction is intentionally one-way:
 
-No step may depend on a press checkout existing on disk.
+1. Propose roadmap intent in the repository.
+2. Review the registry and generated roadmap in a pull request.
+3. Merge the immutable record.
+4. Reconcile GitHub's milestone metadata from that record.
+5. Build the website from the same commit.
 
-- Package `skills/` into `press.data` (they are authoring instruments, not
-  repo docs). `press skills` lists them with absolute installed paths;
-  workflows resolve skills from the package first, checkout second.
-- Scaffold a book CLAUDE.md from the template: what this repo is, the
-  press commands, the available workflows and their exact invocations
-  (root and press args), where the skills live, the house laws. This is
-  how an agent opening any press book knows the whole system.
-- `press workflows` prints each packaged workflow with its Workflow-tool
-  invocation, ready to paste.
-- Add epubcheck to the toolchain image and `verify_formats`; retail
-  channels reject invalid EPUBs, so the press must reject them first.
+Editing milestone metadata only in GitHub is detectable drift, not a second
+source of truth. Issue titles, bodies, labels, and milestone assignments remain
+native GitHub data; duplicating them here would create a noisy and fragile
+shadow issue tracker.
 
-## M2: the art department
+## Delivery milestones
 
-Press holds the prompts; the book holds only the accepted images.
+<!-- BEGIN GENERATED MILESTONES -->
 
-- `art-direction` workflow: reads the manuscript and metadata, applies the
-  design skills (cover-design, plates-and-woodcuts, press-logomark), and
-  writes `art/commissions.md`: finished, paste-ready prompts for an image
-  model, covering cover, interior plates keyed to chapters, logomark, and
-  author portrait, with every visible word named verbatim per the skill.
-- `press art accept <file> --as cover|plate:<name>|logomark|portrait`:
-  intake that converts to house format (JPEG q88 for grain, PNG for line
-  art), enforces the cover's trim aspect (the text-block height cap is
-  enforced at typeset time by the TeX header), places the file, and
-  records the acceptance beside its commission prompt so a lost original
-  can be recommissioned.
-- Plate placement stays manual or agent-driven (captions are prose), but
-  `press check` flags plates on disk that no manuscript file references;
-  cover, logomark, and portrait are unreferenced by prose by design.
-- `press art commission` (next): submit the finished prompts, and
-  variations of them, to image models (GPT Image, Gemini) at the target
-  aspect ratios, and collect the candidates under `art/candidates/` for
-  review; the chosen file then goes through `press art accept` as
-  usual. API keys come from the environment; the press never stores
-  them, and a book repo never holds a rejected candidate.
+### [v1.1.1 — Integrity hotfix](https://github.com/clintecker/press/milestone/1) · Complete
 
-## M3: front matter from metadata
+Historical integrity hotfix: correctness and release-safety failures where a command could succeed while public output was wrong or unsafe. Review the closed scope at <https://github.com/clintecker/press/milestone/1> and release history at <https://github.com/clintecker/press/blob/main/CHANGELOG.md>. The contract it established is documented at <https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md>.
 
-The treatise title page, colophon, and epigraph become a generator.
+### [v1.2 — Executable contracts](https://github.com/clintecker/press/milestone/2) · Complete
 
-- A press-data TeX template renders the stacked Victorian title page from
-  title, subtitle (split on its OR clauses), author, place, and year; the
-  colophon from copyright, imprint, contact, registration numbers, and an
-  optional rights-notice and motto in config. A book may still supply
-  tex/title-page.tex to override entirely.
-- Activation is the presence of `config/front-matter.yaml` (which also
-  holds the epigraph: quote, attribution). The scaffold includes the
-  file, so new books get generated front matter by supplying nothing
-  else; pinned books keep their rendered output, as the contract
-  requires, until they add the file.
-- The imprint device and cover plate slot in automatically when the assets
-  exist (both already optional in the pipeline).
+Historical executable-contract release: centralized configuration/artifact contracts, stronger verifiers, and real consumer-book integration. Closed scope: <https://github.com/clintecker/press/milestone/2>. Architecture: <https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md>. Generated artifact reference: <https://github.com/clintecker/press/blob/main/docs/REFERENCE.md>. Successor integrity work: <https://github.com/clintecker/press/milestone/6>.
 
-## M4: the print pack
+### [v1.3 — Public readiness](https://github.com/clintecker/press/milestone/3) · Complete
 
-From "verified PDF" to "uploadable to KDP and IngramSpark."
+Historical public-readiness release: licensing, installation, support/security guidance, portability, and repository-boundary evidence. Closed scope: <https://github.com/clintecker/press/milestone/3>. Installation: <https://github.com/clintecker/press/blob/main/docs/INSTALL.md>. Contribution policy: <https://github.com/clintecker/press/blob/main/CONTRIBUTING.md>. Remaining live second-party proof: <https://github.com/clintecker/press/issues/87>.
 
-- A `print` build profile: twoside class options, mirrored inner/outer
-  margins with a gutter, black links (no colored ink in print), optional
-  higher-resolution image pass. `press print` builds
-  `dist/<slug>-interior.pdf`; `verify_pdf` learns per-profile checks
-  (mirrored margins, no color annotations).
-- Cover wrap generator: `press coverwrap` computes spine width from page
-  count and configured paper stock, lays front cover art, spine (title,
-  author, imprint), and back cover (blurb from metadata description, the
-  imprint device, ISBN barcode) into a single trim+bleed PDF sized to the
-  channel's template. Spine math is a generator, never a hand-entered
-  number.
-- EAN-13 barcode generated from the ISBN (with optional price add-on).
-- Channel checklists: `press publish kdp` / `press publish ingram` emit a
-  checklist document of exactly what that channel needs (file specs,
-  marketing image sizes, category and keyword slots, description HTML),
-  with the items the press already produced checked off and file paths
-  attached.
+### [v2 — Composable press](https://github.com/clintecker/press/milestone/4) · Open
 
-## M5: registrations
+Reserved for breaking design/extension work that cannot ship under the v1 rendering contract: configurable geometry/themes, vendor-neutral operator boundaries, and other explicitly breaking changes. Milestone: <https://github.com/clintecker/press/milestone/4>. Breaking-change issues: <https://github.com/clintecker/press/issues?q=is%3Aissue+is%3Aopen+label%3Abreaking-change>. Versioning contract: <https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md>. Roadmap: <https://github.com/clintecker/press/blob/main/ROADMAP.md>.
 
-The paperwork becomes config plus a skill, not tribal knowledge.
+### [Later — Catalog](https://github.com/clintecker/press/milestone/5) · Open
 
-- `config/metadata.yaml` gains a registrations block: isbn (per format:
-  print, epub), issn for serials, lccn. The press validates ISBN check
-  digits, injects the numbers into the colophon, EPUB metadata, and the
-  barcode, and refuses a release tagged as a retail edition while a
-  registration placeholder remains.
-- A `registrations` skill documents the actual processes end to end:
-  buying ISBNs (Bowker), the LCCN PCN program, ISSN applications, CIP
-  data blocks, so an agent can walk the author through each with current
-  steps rather than reinventing them per book.
-- Placeholders stay honest: `[ISBN pending]` renders until the real
-  number lands in config, exactly as today.
+Optional multi-book catalog after the single-book publishing contract is mature. Milestone: <https://github.com/clintecker/press/milestone/5>. Scoped feature: <https://github.com/clintecker/press/issues/6>. Roadmap context: <https://github.com/clintecker/press/blob/main/ROADMAP.md>. Artifact contract to preserve: <https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md>.
 
-## M6: the operator
+### [v1.10 — Boundary integrity](https://github.com/clintecker/press/milestone/6) · Open
 
-The whole publisher behind one installed command, no session required.
-`press new` already initializes; the builds already produce; the gap is
-that the agent machinery (editorial passes, authorities research) runs
-only inside a live Claude Code session hosting the Workflow tool.
+Immediate boundary-integrity work: source/publication safety, archive and format verification, retail artifacts, workflow input containment, exact toolchain identity, and resumable releases. Milestone/issues: <https://github.com/clintecker/press/milestone/6>. Architecture and artifact laws: <https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md>. Its verifiers become named accumulated-trust proofs in <https://github.com/clintecker/press/milestone/9>; release/container outcomes feed <https://github.com/clintecker/press/milestone/10>.
 
-- `press improve` and `press research` drive the packaged workflows
-  headlessly through the Claude Code CLI or Agent SDK, so "process this
-  directory for prose quality" and "research the claims and build the
-  bibliography" are shell commands, not session rituals.
-- Report first is the default: `press improve` writes
-  `build/editorial-report.md` (what to add, cut, soften, strengthen,
-  revoice) and touches nothing; applying is the flag, not the default.
-  The counsel is always safe to ask for; the hand on the manuscript is
-  always deliberate.
-- `press publish <channel>` stays a checklist generator (M4); the
-  self-service platforms have no upload APIs worth trusting, so the
-  press prepares everything and the author clicks.
+### [v1.11 — Workflow coherence](https://github.com/clintecker/press/milestone/7) · Open
 
-## M7: the catalog (later)
+Workflow and public-contract coherence: durable editorial/research outcomes, domain-neutral instruments, aesthetic/config documentation, contributor guidance, package metadata, and complexity debt. Milestone/issues: <https://github.com/clintecker/press/milestone/7>. Public architecture/reference issue: <https://github.com/clintecker/press/issues/33>. Contributor contract: <https://github.com/clintecker/press/blob/main/CONTRIBUTING.md>. Testing traceability is implemented separately in <https://github.com/clintecker/press/milestone/8>.
 
-One press site listing every book with covers and download links, built
-from the books' own metadata. Optional; single-book Pages sites already
-work.
+### [v1.12 — Trust foundations](https://github.com/clintecker/press/milestone/8) · Open
 
-## Untangling notes (current entanglements to dissolve)
+Accumulated-trust foundation: pytest/selftest structure, executable invariant and callable-surface ledgers, collection-time proof enforcement, typed deterministic adapters, composable book factories, fixture provenance, property tests, and bounded replayable fuzzing. Milestone/issues: <https://github.com/clintecker/press/milestone/8>. Start at <https://github.com/clintecker/press/issues/78>, then invariant ledger <https://github.com/clintecker/press/issues/79>. Feeds adversarial artifact proof: <https://github.com/clintecker/press/milestone/9>. Architecture: <https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md>.
 
-- Done on main (ships as v1.1.0): skills are package data under
-  `src/press/data/skills/` and workflows resolve them through
-  `press skills` before any checkout fallback.
-- Done on main: books' `.claude/workflows/` are copies from press data
-  (books pin behavior); `press new` stamps the press version into them so
-  drift is visible.
-- Done on main (ships as v1.1.0): M2 (art-direction workflow,
-  `press art accept`, orphan-plate check, `press art commission`
-  submitting to GPT Image and Gemini), M3 (front matter generated from
-  config, activated by `config/front-matter.yaml`), M4 (print profile,
-  coverwrap with computed spine and EAN-13, channel checklists), M5
-  (registrations ledger with the retail gate), and M6 (`press improve`
-  report-first and `press research`, headless via the Claude Code CLI).
-  `press selftest` guards the documentation mechanically in CI.
-- The local build venv for make-ready lives in a session scratchpad and
-  points at the press checkout via editable install; a plain
-  `pip install -e ~/code/press` in any environment replaces it.
-- Mostly Done. runs its own frozen pre-press pipeline by design (shipped
-  at v1.0.x, org-owned while press is personal); it stays frozen unless a
-  second edition forces the ownership question.
+### [v1.13 — Adversarial artifact proof](https://github.com/clintecker/press/milestone/9) · Open
 
-## Sequencing
+Adversarial artifact proof built on v1.12: named damage operators, fixture-specific negative diagnostics, deterministic build/mutate/verify state models, pairwise/high-risk scenarios, real-tool integrations, compatibility, and design-major visual regression. Milestone/issues: <https://github.com/clintecker/press/milestone/9>. Prerequisite foundation: <https://github.com/clintecker/press/milestone/8>. Damage harness: <https://github.com/clintecker/press/issues/88>. Real-tool runner: <https://github.com/clintecker/press/issues/91>. Feeds delivery trust: <https://github.com/clintecker/press/milestone/10>.
 
-M1 and M3 are small and unlock the "content-only book" promise; do them
-first. M2 is a workflow plus an intake command. M4 is the largest (new
-TeX profile, spine math, barcode, wrap layout) and should land behind its
-own verify gates. M5 is mostly config plumbing plus one skill. M6 rides
-on M1's packaged workflows and can land any time after them. Each
-milestone ships as a minor tag; anything that changes a pinned book's
-rendered output waits for v2.
+### [v1.14 — Accumulated delivery trust](https://github.com/clintecker/press/milestone/10) · Open
+
+Accumulated delivery/release trust: clean installed distributions, chained machine-verifiable trust receipts, ordered CI gates, mutation/sabotage ratchets, invariant-aware test impact, live second-party boundaries, and release identity across commit/wheel/action/image/artifacts/tag. Milestone/issues: <https://github.com/clintecker/press/milestone/10>. Prerequisites: <https://github.com/clintecker/press/milestone/8> and <https://github.com/clintecker/press/milestone/9>. Receipt chain: <https://github.com/clintecker/press/issues/93>. Layered CI: <https://github.com/clintecker/press/issues/94>. Release gate: <https://github.com/clintecker/press/issues/97>.
+
+<!-- END GENERATED MILESTONES -->
+
+## Product laws carried through every milestone
+
+- Facts are stated once and projected mechanically wherever possible.
+- Generators establish structure; verifiers prove the generated artifacts as
+  objects rather than trusting command exit status.
+- A scar becomes an executable invariant, a named proof, or an explicit public
+  contract—not merely a warning in prose.
+- Valid output and behavior remain compatible within a major release. Changes
+  to typography, layout, or other pinned design contracts wait for a new major.
+- Book repositories contain book facts. Reusable publishing machinery belongs
+  in press and must work from an installed distribution without a source
+  checkout.
+- Trust accumulates from deterministic functions through compositions, real
+  tools, complete workflows, consumer repositories, and release identity. A
+  higher layer cannot erase missing proof below it.
+
+The detailed system and artifact invariants live in
+[`docs/ARCHITECTURE.md`](https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md);
+the public command and artifact surface lives in
+[`docs/REFERENCE.md`](https://github.com/clintecker/press/blob/main/docs/REFERENCE.md);
+shipped changes live in
+[`CHANGELOG.md`](https://github.com/clintecker/press/blob/main/CHANGELOG.md).
+
+## Long horizon
+
+The v1 milestones strengthen correctness and completeness without changing the
+rendering contract. [v2 — Composable press](https://github.com/clintecker/press/milestone/4)
+holds breaking design and extension work such as configurable geometry, themes,
+and vendor-neutral operator boundaries. [Later — Catalog](https://github.com/clintecker/press/milestone/5)
+holds the optional multi-book catalog after the single-book publishing contract
+is mature.
+
+Ideas that are not scheduled remain issues until their dependencies, invariant
+impact, and release compatibility are understood. A milestone is a delivery
+claim, not an aspiration bucket.

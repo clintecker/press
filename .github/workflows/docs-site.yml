@@ -16,10 +16,19 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Install pandoc
         run: sudo apt-get update -q && sudo apt-get install -y --no-install-recommends pandoc
+      - name: Reconcile roadmap milestone metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 scripts/sync_roadmap.py --check
+          python3 scripts/sync_roadmap.py --apply-github
       - run: python3 scripts/build_site.py
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:

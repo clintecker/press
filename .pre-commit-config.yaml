@@ -37,6 +37,11 @@ repos:
         exclude: "known-bad/"
   - repo: local
     hooks:
+      - id: roadmap
+        name: roadmap registry projection
+        entry: python3 scripts/sync_roadmap.py --check
+        language: system
+        pass_filenames: false
       - id: ruff
         name: ruff (lint + complexity gate)
         entry: ruff check src/press scripts

@@ -1,0 +1,31 @@
+name: Roadmap integrity
+
+on:
+  pull_request:
+  schedule:
+    - cron: "17 8 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  projection:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - run: python3 scripts/sync_roadmap.py --check
+
+  github-drift:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: projection
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Detect out-of-band milestone metadata edits
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/sync_roadmap.py --check-github

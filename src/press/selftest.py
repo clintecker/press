@@ -120,12 +120,21 @@ def check_source_policy() -> None:
 
             import subprocess as sp
 
-            sp.run(["git", "init", "-q"], cwd=book, check=True)
-            sp.run(["git", "add", "-A"], cwd=book, check=True)
+            # A commit hook exports its in-progress index. A nested git command
+            # must not inherit that repository identity or it stages this
+            # fixture into the caller's commit and runs the caller's hooks.
+            import os
+
+            nested_git_env = os.environ.copy()
+            for name in ("GIT_DIR", "GIT_INDEX_FILE", "GIT_PREFIX", "GIT_WORK_TREE"):
+                nested_git_env.pop(name, None)
+
+            sp.run(["git", "init", "-q"], cwd=book, env=nested_git_env, check=True)
+            sp.run(["git", "add", "-A"], cwd=book, env=nested_git_env, check=True)
             sp.run(
                 ["git", "-c", "user.email=proof@press", "-c", "user.name=Proof",
                  "commit", "-qm", "fixture"],
-                cwd=book, check=True,
+                cwd=book, env=nested_git_env, check=True,
             )
             (book / "private-working-notes.md").write_text("draft", encoding="utf-8")
             package_source.main()
