@@ -58,6 +58,7 @@ modules:
   registrations: {default: parser, overrides: {}}
   registry: {default: orchestrator, overrides: {build_order: pure, condition_holds: pure, download_names: pure}}
   scaffold: producer
+  scenarios: {default: producer, overrides: {load: parser, dimension_values: pure, surface_dimensions: pure, scenario_id: pure, pairwise: pure, high_risk_scenarios: pure}}
   selftest: {default: verifier, overrides: {modules: pure, render_reference: producer, borrow_book: adapter, clear_book_caches: adapter, main: presenter}}
   style_audit: {default: verifier, overrides: {in_fenced_code: pure, looks_title_cased: pure, markdown_files: pure, audit_dirs: pure, banned_book_patterns: parser}}
   verify_archives: verifier
