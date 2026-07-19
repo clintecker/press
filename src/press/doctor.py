@@ -11,6 +11,7 @@ first failure is a diagnosis instead of a traceback.
 from __future__ import annotations
 
 import subprocess
+import sys
 
 from . import adapters
 
@@ -63,6 +64,15 @@ def main() -> int:
     for key, purpose in KEYS:
         state = "ok" if adapters.environment.get(key) else "unset"
         print(f"  [{state:>7}] {key:<16} {purpose}")
+    # The tested Python range; outside it the press may still run but is
+    # unproven, so doctor says so rather than staying silent.
+    supported = (3, 10) <= sys.version_info[:2] <= (3, 13)
+    version = f"{sys.version_info.major}.{sys.version_info.minor}"
+    if supported:
+        print(f"  [     ok] python     {version} is within the tested range 3.10 to 3.13")
+    else:
+        print(f"  [   warn] python     {version} is outside the tested range 3.10 to 3.13 "
+              "(see docs/COMPATIBILITY.md)")
     try:
         from PIL import Image  # noqa: F401
         import pypdf  # noqa: F401
