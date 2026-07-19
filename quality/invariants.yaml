@@ -364,3 +364,21 @@ invariants:
     negative: [check_contract_mirror]
     ci_tier: quality
     limitations: Only the body below the first line is compared.
+
+  - id: INV-release-receipt-chain
+    statement: >-
+      A release chain refuses a missing, tampered, reordered, or
+      input-mismatched prerequisite, a dirty-tree receipt, and a
+      terminal receipt whose package or toolchain does not match the
+      built and pinned objects.
+    risk: A release ships objects that differ from the ones the tests proved.
+    criticality: critical
+    owner: receipts
+    enforcer: receipts.verify_release
+    layers: [selftest, pytest, integration]
+    negative: [check_receipt_chain]
+    ci_tier: integration
+    limitations: >-
+      The per-layer prerequisite chain awaits the layered-CI change; the
+      release identity (commit, package, toolchain, manifests) is proven
+      now.

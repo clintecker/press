@@ -493,6 +493,31 @@ BAD_TAGS = ("v1.0", "v1.0.0.0", "v1.0.0-rc1", "v1.0.0x", "v01.0.0",
             "1.0.0", "v1..0", "v1.0.0 ")
 
 
+def check_receipt_chain() -> None:
+    """The trust-receipt chain refuses a broken chain: a dirty-tree
+    release receipt, and a release whose package digest does not match
+    the built object, are each rejected."""
+
+    from . import receipts
+
+    inputs = {"invariants": "d", "fixtures": "d", "scenarios": "d",
+              "surfaces": "d", "toolchain": "sha-x"}
+    dirty = receipts.Receipt(
+        schema_version=receipts.SCHEMA_VERSION, layer="release",
+        source_commit="c", tree_clean=False, inputs=inputs,
+        prerequisites=[], proofs=[],
+        artifacts={"package": "PKG", "toolchain": "sha-x"}, local_dev=True)
+    if not any("dirty tree" in p for p in receipts.verify_chain([dirty], require_clean=True)):
+        raise SystemExit("selftest: receipt chain blessed a dirty-tree release")
+    clean = receipts.Receipt(
+        schema_version=receipts.SCHEMA_VERSION, layer="release",
+        source_commit="c", tree_clean=True, inputs=inputs,
+        prerequisites=[], proofs=[],
+        artifacts={"package": "PKG", "toolchain": receipts.pinned_toolchain_digest()})
+    if not any("package digest" in p for p in receipts.verify_release([clean], "OTHER")):
+        raise SystemExit("selftest: release receipt blessed a package mismatch")
+
+
 def check_release_grammar() -> None:
     """The release script's tag validation, exercised without any
     network: exactly vN.x.y, and the composite action's command
@@ -878,6 +903,7 @@ CHECKS = [
     check_authorities_ledger,
     check_honest_refusals,
     check_release_grammar,
+    check_receipt_chain,
     check_coverwrap_detectors,
     check_aesthetic_schema,
     check_contract_mirror,

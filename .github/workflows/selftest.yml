@@ -19,6 +19,14 @@ jobs:
       - run: pip install -e '.[dev]'
       - name: Every format's linter, exactly as the pre-commit hook runs them
         run: pre-commit run --all-files --show-diff-on-failure
+      - name: Changed policy code owes an invariant and a proof
+        if: github.event_name == 'pull_request'
+        run: |
+          # Impact selection is for acceleration, not for skipping release
+          # evidence: this only fails when changed policy code maps to no
+          # classified surface or no invariant, and runs on PRs only.
+          git fetch origin "${{ github.base_ref }}" --depth=1 || true
+          python3 -m press.impact "origin/${{ github.base_ref }}"
       - name: Site builds from these docs
         run: |
           sudo apt-get update -q

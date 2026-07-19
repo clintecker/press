@@ -53,6 +53,7 @@ modules:
   gen_coverwrap: {default: producer, overrides: {spine_width: pure, interior_page_count: pure, isbn_for_print: parser, tex_safe_path: pure}}
   gen_front_matter: {default: producer, overrides: {escape: normalizer}}
   gen_index: producer
+  impact: {default: pure, overrides: {changed_modules: adapter, render: producer, main: presenter}}
   instruments: presenter
   invariants: {default: verifier, overrides: {load: parser, render: producer}}
   jargon_lint: verifier
