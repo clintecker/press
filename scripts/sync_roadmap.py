@@ -104,14 +104,20 @@ def write_or_check(data: dict[str, Any], *, check: bool) -> int:
 
 
 def gh(*args: str, input_data: str | None = None) -> Any:
-    result = subprocess.run(
-        ["gh", *args],
-        cwd=ROOT,
-        input=input_data,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    try:
+        result = subprocess.run(
+            ["gh", *args],
+            cwd=ROOT,
+            input=input_data,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        raise SystemExit(
+            "GitHub CLI 'gh' is required for GitHub roadmap synchronization; "
+            "install it from https://cli.github.com/"
+        ) from None
     if result.returncode:
         raise SystemExit(result.stderr.strip() or f"gh exited {result.returncode}")
     return json.loads(result.stdout) if result.stdout.strip() else None
