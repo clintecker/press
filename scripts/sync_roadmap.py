@@ -35,7 +35,9 @@ def validate_groups(data: dict[str, Any]) -> set[str]:
         if not isinstance(group, dict) or set(group) != required:
             raise SystemExit(f"group must contain exactly {sorted(required)}: {group!r}")
         group_id = group["id"]
-        if not isinstance(group_id, str) or not group_id or group_id in group_ids:
+        if not isinstance(group_id, str):
+            raise SystemExit(f"invalid or duplicate group id: {group_id!r}")
+        if not group_id.strip() or group_id != group_id.strip() or group_id in group_ids:
             raise SystemExit(f"invalid or duplicate group id: {group_id!r}")
         if not isinstance(group["heading"], str) or not group["heading"].strip():
             raise SystemExit(f"group {group_id!r} requires a heading")
