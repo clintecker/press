@@ -69,7 +69,9 @@ settings before its first CI run can pull the image.
 - Instruments: `skills workflows` -- the packaged authoring skills and
   agent workflows, with installed paths, paste-ready invocations, and
   pinned-copy drift detection inside a book.
-- Utilities: `render wordcount clean new selftest` -- `press selftest`
+- Utilities: `render wordcount clean new selftest doctor` --
+  `press doctor` examines every external dependency and says what
+  works, what is missing, and what each absence costs; `press selftest`
   is the press checking itself: module imports, check-digit arithmetic,
   and that this README and the CLI usage stay honest about every
   target.

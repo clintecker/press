@@ -20,7 +20,7 @@ USAGE = """usage: press <target>
 building        pdf epub html markdown site txt docx pages source all
 checking        check style verify verify-formats verify-pages
 print pack      print verify-print coverwrap publish kdp|ingram
-utilities       render wordcount clean new <directory> selftest
+utilities       render wordcount clean new <directory> selftest doctor
 instruments     skills workflows
 art             art commission [targets] | art accept <file> --as <target>
 operator        improve [--apply] | research | aesthetic ["<brief>"]
@@ -95,6 +95,10 @@ def main(argv: list[str] | None = None) -> int:
         from . import selftest
 
         return selftest.main()
+    if target == "doctor":
+        from . import doctor
+
+        return doctor.main()
     if target == "art":
         from . import art
 

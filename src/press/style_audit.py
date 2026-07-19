@@ -160,7 +160,15 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             words = re.findall(r"\b\w+[\w'-]*\b", paragraph)
             if len(words) > 190:
-                warnings.append(f"{relative}: paragraph {index} has {len(words)} words")
+                # The editorial law says paragraphs stay under 190 words;
+                # a law downgraded to a warning is guidance wearing a
+                # uniform. Book prose enforces it; press-side docs only
+                # hear about it.
+                target = errors if (explicit_mode or book_dir in path.parents) else warnings
+                target.append(
+                    f"{relative}: paragraph {index} has {len(words)} words "
+                    "(the law is under 190; split it)"
+                )
 
     if warnings:
         print("Editorial warnings:")
