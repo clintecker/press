@@ -11,6 +11,50 @@ audit).
 
 Nothing yet.
 
+## [1.14.0] - 2026-07-19
+
+This release ships the completed, self-contained portion of the
+accumulated-delivery-trust milestone. The receipt library is the
+foundation; the remaining CI-workflow integration (layered CI, the
+release receipt gate, coverage impact selection, mutation-score
+ratchets) and the live second-party proofs are tracked for a
+follow-up point release.
+
+### Fixed
+
+- The distributions are clean and reproducible: the broad data glob
+  used to ship __pycache__ and bytecode from running the packaged
+  scripts, so the wheel's contents depended on prior execution and the
+  interpreter version. exclude-package-data and a pruning MANIFEST.in
+  drop bytecode from both wheel and sdist; a build emits no warnings,
+  passes twine --strict, and CI installs the wheel into a fresh
+  environment to run its selftest. That fresh-install run surfaced two
+  real defects, now fixed: the pytest collection plugin (pure test
+  infrastructure) was shipping in the runtime package, and several
+  selftest checks read repo files a wheel does not carry; the plugin
+  moved to tests/ and the repo-only checks skip cleanly from an
+  install (#73).
+
+### Added
+
+- Chained trust receipts: a receipt records the source commit and
+  tree-clean state, the digests of the source, toolchain, and quality
+  manifests a layer consumed, the proofs it executed, and the digests
+  of the prerequisite receipts it extends. Receipts are deterministic
+  and independently verifiable (`python3 -m press.receipts verify`),
+  and verify_chain refuses a missing or tampered prerequisite, layers
+  out of accumulated-trust order, a changed input, and a dirty-tree
+  receipt in a release chain, each with a negative test (#93).
+- A consolidated sabotage suite proves each trust gate reddens when
+  its protection is removed (unclassified callable, dangling proof
+  reference, orphan fixture, removed graph edge, dirty release
+  receipt, wrong fake command), indexed so a gate cannot lose its
+  sabotage case unnoticed (part of #95).
+- The CI privilege posture the second-party proofs would exercise is
+  proven mechanically: no pull_request_target and every workflow
+  least-privilege, so a regression is caught without a second account
+  (part of #87, whose live runs are documented for a second party).
+
 ## [1.13.0] - 2026-07-19
 
 ### Added
