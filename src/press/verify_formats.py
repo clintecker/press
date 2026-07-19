@@ -215,12 +215,20 @@ def verify_plaintext(path: Path, label: str) -> None:
 
 
 def docx_visible_text(document: bytes) -> str:
-    """The w:t node text, joined: what a reader sees, not the markup."""
+    """The w:t node text, joined: what a reader sees, not the markup.
+
+    Unparseable bytes yield the empty string, not an XML traceback: the
+    caller's witness check then fails locatably on the missing text,
+    which is the honest way a corrupt DOCX surfaces.
+    """
 
     import xml.etree.ElementTree as ET
 
     w = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t"
-    root_el = ET.fromstring(document)
+    try:
+        root_el = ET.fromstring(document)
+    except ET.ParseError:
+        return ""
     return " ".join("".join(node.text or "" for node in root_el.iter(w)).split())
 
 

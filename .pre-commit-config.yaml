@@ -24,9 +24,10 @@ repos:
     rev: v1.35.1
     hooks:
       - id: yamllint
-        # the scaffold template carries {{PLACEHOLDER}} lines; it is a
-        # template, not YAML, until press new renders it.
-        exclude: "src/press/data/template/"
+        # the scaffold template carries {{PLACEHOLDER}} lines (a template,
+        # not YAML, until press new renders it), and the fuzz corpus is
+        # deliberately-broken YAML that must never be linted clean.
+        exclude: "src/press/data/template/|tests/fuzz/corpus/"
   - repo: https://github.com/jackdewinter/pymarkdown
     rev: v0.9.25
     hooks:
