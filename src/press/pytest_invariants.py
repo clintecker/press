@@ -61,7 +61,8 @@ _CAPABILITIES = frozenset({
 _INV_ID = re.compile(r"INV-[A-Za-z0-9-]+")
 # Call names that count as an assertion when a test carries no bare
 # `assert`: pytest's expected-exception/warning contexts and helpers, and
-# the project convention that assertion helpers are named assert*/expect*.
+# unittest-style assert* helpers. A bare expect() (a common assertion
+# spelling) counts; expect*-prefixed value helpers do not.
 _ASSERT_CALLS = frozenset({
     "raises", "warns", "deprecated_call", "fail", "xfail", "approx",
 })
@@ -130,7 +131,10 @@ def _has_assertion(tree: ast.AST) -> bool:
             return True
         if isinstance(node, ast.Call):
             name = _call_name(node)
-            if name in _ASSERT_CALLS or name.startswith(("assert", "expect")):
+            # `assert*` covers unittest-style helpers (assertEqual); a bare
+            # `expect`-prefix is too loose (expected_payload() is a value,
+            # not an assertion), so only an exact `expect` call counts.
+            if name in _ASSERT_CALLS or name.startswith("assert") or name == "expect":
                 return True
     return False
 
