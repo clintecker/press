@@ -9,6 +9,10 @@ audit).
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.11.0] - 2026-07-19
+
 ### Changed
 
 - Workflow coherence (the v1.11 milestone). The packaged workflows
