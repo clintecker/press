@@ -47,14 +47,6 @@ shadow issue tracker.
 
 The current compatible release train, ordered by intended delivery. Each milestone accumulates proof from the milestones before it.
 
-#### [v1.10 — Boundary integrity](https://github.com/clintecker/press/milestone/6) · Complete
-
-Completed boundary-integrity release: source/publication safety, archive and format verification, retail artifacts, workflow input containment, exact toolchain identity, and resumable releases. Release: <https://github.com/clintecker/press/releases/tag/v1.10.0>. Closed scope: <https://github.com/clintecker/press/milestone/6>. Architecture and artifact laws: <https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md>. Its verifiers become named accumulated-trust proofs in <https://github.com/clintecker/press/milestone/9>; release/container outcomes feed <https://github.com/clintecker/press/milestone/10>.
-
-#### [v1.11 — Workflow coherence](https://github.com/clintecker/press/milestone/7) · Open
-
-Workflow and public-contract coherence: durable editorial/research outcomes, domain-neutral instruments, aesthetic/config documentation, contributor guidance, package metadata, and complexity debt. Milestone/issues: <https://github.com/clintecker/press/milestone/7>. Public architecture/reference issue: <https://github.com/clintecker/press/issues/33>. Contributor contract: <https://github.com/clintecker/press/blob/main/CONTRIBUTING.md>. Testing traceability is implemented separately in <https://github.com/clintecker/press/milestone/8>.
-
 #### [v1.12 — Trust foundations](https://github.com/clintecker/press/milestone/8) · Open
 
 Accumulated-trust foundation: pytest/selftest structure, executable invariant and callable-surface ledgers, collection-time proof enforcement, typed deterministic adapters, composable book factories, fixture provenance, property tests, and bounded replayable fuzzing. Milestone/issues: <https://github.com/clintecker/press/milestone/8>. Start at <https://github.com/clintecker/press/issues/78>, then invariant ledger <https://github.com/clintecker/press/issues/79>. Feeds adversarial artifact proof: <https://github.com/clintecker/press/milestone/9>. Architecture: <https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md>.
@@ -98,6 +90,14 @@ Historical executable-contract release: centralized configuration/artifact contr
 #### [v1.3 — Public readiness](https://github.com/clintecker/press/milestone/3) · Complete
 
 Historical public-readiness release: licensing, installation, support/security guidance, portability, and repository-boundary evidence. Closed scope: <https://github.com/clintecker/press/milestone/3>. Installation: <https://github.com/clintecker/press/blob/main/docs/INSTALL.md>. Contribution policy: <https://github.com/clintecker/press/blob/main/CONTRIBUTING.md>. Remaining live second-party proof: <https://github.com/clintecker/press/issues/87>.
+
+#### [v1.10 — Boundary integrity](https://github.com/clintecker/press/milestone/6) · Complete
+
+Completed boundary-integrity release: source/publication safety, archive and format verification, retail artifacts, workflow input containment, exact toolchain identity, and resumable releases. Release: <https://github.com/clintecker/press/releases/tag/v1.10.0>. Closed scope: <https://github.com/clintecker/press/milestone/6>. Architecture and artifact laws: <https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md>. Its verifiers become named accumulated-trust proofs in <https://github.com/clintecker/press/milestone/9>; release/container outcomes feed <https://github.com/clintecker/press/milestone/10>.
+
+#### [v1.11 — Workflow coherence](https://github.com/clintecker/press/milestone/7) · Complete
+
+Workflow and public-contract coherence: durable editorial/research outcomes, domain-neutral instruments, aesthetic/config documentation, contributor guidance, package metadata, and complexity debt. Milestone/issues: <https://github.com/clintecker/press/milestone/7>. Public architecture/reference issue: <https://github.com/clintecker/press/issues/33>. Contributor contract: <https://github.com/clintecker/press/blob/main/CONTRIBUTING.md>. Testing traceability is implemented separately in <https://github.com/clintecker/press/milestone/8>.
 
 <!-- END GENERATED MILESTONES -->
 

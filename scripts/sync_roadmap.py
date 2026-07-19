@@ -71,9 +71,8 @@ def validate_milestones(data: dict[str, Any], group_ids: set[str]) -> None:
             raise SystemExit(f"milestone {number} requires a description")
         numbers.add(number)
         titles.add(title)
-    unused_groups = group_ids - {item["group"] for item in milestones}
-    if unused_groups:
-        raise SystemExit(f"roadmap groups contain no milestones: {sorted(unused_groups)}")
+    if "complete" not in group_ids:
+        raise SystemExit("roadmap registry requires the 'complete' group; closed milestones present there")
 
 
 def load_registry() -> dict[str, Any]:
@@ -86,14 +85,29 @@ def load_registry() -> dict[str, Any]:
     return data
 
 
+COMPLETE_GROUP = "complete"
+
+
+def effective_group(item: dict[str, Any]) -> str:
+    """Closed milestones always present under the completed
+    foundations, wherever they were scheduled; the registry's group
+    field records intent, the state decides placement."""
+
+    return COMPLETE_GROUP if item["state"] == "closed" else item["group"]
+
+
 def render(data: dict[str, Any]) -> str:
     repository = data["repository"]
     blocks = [START, ""]
     for group in data["groups"]:
+        members = [
+            item for item in data["milestones"]
+            if effective_group(item) == group["id"]
+        ]
+        if not members:
+            continue
         blocks.extend([f"### {group['heading']}", "", group["description"], ""])
-        for item in data["milestones"]:
-            if item["group"] != group["id"]:
-                continue
+        for item in members:
             number = item["number"]
             url = f"https://github.com/{repository}/milestone/{number}"
             state = "Open" if item["state"] == "open" else "Complete"
