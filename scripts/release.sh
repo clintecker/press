@@ -11,12 +11,17 @@ test -z "$(git status --porcelain)" || { echo "working tree not clean"; exit 1; 
 
 # The integration gate must be green on HEAD before anything moves.
 sha=$(git rev-parse HEAD)
-conclusion=$(gh api "repos/clintecker/press/commits/${sha}/check-runs" \
-  --jq '[.check_runs[] | select(.name=="consumer")] | first | .conclusion // "absent"')
-if [ "$conclusion" != "success" ]; then
-  echo "integration gate is '$conclusion' on HEAD; push and let it pass first"
-  exit 1
-fi
+for attempt in $(seq 1 40); do
+  conclusion=$(gh api "repos/clintecker/press/commits/${sha}/check-runs" \
+    --jq '[.check_runs[] | select(.name=="consumer")] | first | .conclusion // "pending"')
+  case "$conclusion" in
+    success) break ;;
+    failure|cancelled|timed_out)
+      echo "integration gate is '$conclusion' on HEAD; fix it first"; exit 1 ;;
+    *) echo "waiting on the integration gate ($conclusion, attempt $attempt)"; sleep 30 ;;
+  esac
+done
+[ "$conclusion" = "success" ] || { echo "gate never concluded on HEAD"; exit 1; }
 
 # Pin the action ref to the tag being cut; the image sha stays as the
 # last smoked build unless updated deliberately.
