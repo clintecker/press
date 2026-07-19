@@ -25,24 +25,40 @@ END = "<!-- END GENERATED MILESTONES -->"
 BARE_URL = re.compile(r"https://[^\s]+")
 
 
-def load_registry() -> dict[str, Any]:
-    data = json.loads(REGISTRY.read_text(encoding="utf-8"))
-    if data.get("schema_version") != 1:
-        raise SystemExit("unsupported roadmap registry schema")
-    if not isinstance(data.get("repository"), str) or "/" not in data["repository"]:
-        raise SystemExit("roadmap registry requires an owner/repository name")
+def validate_groups(data: dict[str, Any]) -> set[str]:
+    groups = data.get("groups")
+    if not isinstance(groups, list) or not groups:
+        raise SystemExit("roadmap registry requires presentation groups")
+    group_ids: set[str] = set()
+    for group in groups:
+        required = {"id", "heading", "description"}
+        if not isinstance(group, dict) or set(group) != required:
+            raise SystemExit(f"group must contain exactly {sorted(required)}: {group!r}")
+        group_id = group["id"]
+        if not isinstance(group_id, str) or not group_id or group_id in group_ids:
+            raise SystemExit(f"invalid or duplicate group id: {group_id!r}")
+        if not isinstance(group["heading"], str) or not group["heading"].strip():
+            raise SystemExit(f"group {group_id!r} requires a heading")
+        if not isinstance(group["description"], str) or not group["description"].strip():
+            raise SystemExit(f"group {group_id!r} requires a description")
+        group_ids.add(group_id)
+    return group_ids
 
+
+def validate_milestones(data: dict[str, Any], group_ids: set[str]) -> None:
     milestones = data.get("milestones")
     if not isinstance(milestones, list) or not milestones:
         raise SystemExit("roadmap registry requires milestones")
     numbers: set[int] = set()
     titles: set[str] = set()
     for item in milestones:
-        required = {"number", "title", "state", "description"}
+        required = {"number", "group", "title", "state", "description"}
         if not isinstance(item, dict) or set(item) != required:
             raise SystemExit(f"milestone must contain exactly {sorted(required)}: {item!r}")
         number = item["number"]
         title = item["title"]
+        if item["group"] not in group_ids:
+            raise SystemExit(f"unknown group for milestone {number}: {item['group']!r}")
         if not isinstance(number, int) or number < 1 or number in numbers:
             raise SystemExit(f"invalid or duplicate milestone number: {number!r}")
         if not isinstance(title, str) or not title or title in titles:
@@ -53,29 +69,45 @@ def load_registry() -> dict[str, Any]:
             raise SystemExit(f"milestone {number} requires a description")
         numbers.add(number)
         titles.add(title)
+    unused_groups = group_ids - {item["group"] for item in milestones}
+    if unused_groups:
+        raise SystemExit(f"roadmap groups contain no milestones: {sorted(unused_groups)}")
+
+
+def load_registry() -> dict[str, Any]:
+    data = json.loads(REGISTRY.read_text(encoding="utf-8"))
+    if data.get("schema_version") != 2:
+        raise SystemExit("unsupported roadmap registry schema")
+    if not isinstance(data.get("repository"), str) or "/" not in data["repository"]:
+        raise SystemExit("roadmap registry requires an owner/repository name")
+    validate_milestones(data, validate_groups(data))
     return data
 
 
 def render(data: dict[str, Any]) -> str:
     repository = data["repository"]
     blocks = [START, ""]
-    for item in data["milestones"]:
-        number = item["number"]
-        url = f"https://github.com/{repository}/milestone/{number}"
-        state = "Open" if item["state"] == "open" else "Complete"
-        description = BARE_URL.sub(
-            lambda match: f"<{match.group(0).rstrip('.,;:')}>"
-            + match.group(0)[len(match.group(0).rstrip('.,;:')) :],
-            item["description"],
-        )
-        blocks.extend(
-            [
-                f"### [{item['title']}]({url}) · {state}",
-                "",
-                description,
-                "",
-            ]
-        )
+    for group in data["groups"]:
+        blocks.extend([f"### {group['heading']}", "", group["description"], ""])
+        for item in data["milestones"]:
+            if item["group"] != group["id"]:
+                continue
+            number = item["number"]
+            url = f"https://github.com/{repository}/milestone/{number}"
+            state = "Open" if item["state"] == "open" else "Complete"
+            description = BARE_URL.sub(
+                lambda match: f"<{match.group(0).rstrip('.,;:')}>"
+                + match.group(0)[len(match.group(0).rstrip('.,;:')) :],
+                item["description"],
+            )
+            blocks.extend(
+                [
+                    f"#### [{item['title']}]({url}) · {state}",
+                    "",
+                    description,
+                    "",
+                ]
+            )
     blocks.append(END)
     return "\n".join(blocks)
 
