@@ -35,14 +35,20 @@ jobs:
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           docker manifest inspect "$image" > /dev/null
           echo "toolchain manifest resolves: $image"
-      - name: The integration gate was green on this commit
+      - name: The integration gate is green on this commit
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          conclusion=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs" \
-            --jq '[.check_runs[] | select(.name=="consumer")] | first | .conclusion // "absent"')
-          if [ "$conclusion" != "success" ]; then
-            echo "the integration gate is '$conclusion' for $GITHUB_SHA; tag only green commits"
-            exit 1
-          fi
-          echo "integration gate green on the tagged commit"
+          # The release commit's own gate starts with the same push that
+          # carries the tag; the contract waits for its verdict rather
+          # than demanding prescience.
+          for attempt in $(seq 1 50); do
+            conclusion=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs" \
+              --jq '[.check_runs[] | select(.name=="consumer")] | first | .conclusion // "pending"')
+            case "$conclusion" in
+              success) echo "integration gate green on the tagged commit"; exit 0 ;;
+              failure|cancelled|timed_out) echo "gate is '$conclusion' on $GITHUB_SHA"; exit 1 ;;
+              *) echo "waiting on the gate ($conclusion, attempt $attempt)"; sleep 30 ;;
+            esac
+          done
+          echo "gate never concluded for $GITHUB_SHA"; exit 1
