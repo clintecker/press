@@ -72,7 +72,7 @@
       "number": 8,
       "group": "active-v1",
       "title": "v1.12 \u2014 Trust foundations",
-      "state": "open",
+      "state": "closed",
       "description": "Accumulated-trust foundation: pytest/selftest structure, executable invariant and callable-surface ledgers, collection-time proof enforcement, typed deterministic adapters, composable book factories, fixture provenance, property tests, and bounded replayable fuzzing. Milestone/issues: https://github.com/clintecker/press/milestone/8. Start at https://github.com/clintecker/press/issues/78, then invariant ledger https://github.com/clintecker/press/issues/79. Feeds adversarial artifact proof: https://github.com/clintecker/press/milestone/9. Architecture: https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md."
     },
     {
