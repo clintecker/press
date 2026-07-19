@@ -32,6 +32,8 @@ Rank by how strong and checkable the assertion is; cap at ${CAP}. An empty list 
   { label: `extract:${f.split('/').pop()}`, phase: 'Extract',
     schema: { type: 'object', properties: { claims: { type: 'array', items: { type: 'object', properties: { fragment: { type: 'string' }, assertion: { type: 'string' } }, required: ['fragment', 'assertion'] } } }, required: ['claims'] } }
 ).then(r => (r.claims || []).map(c => ({ ...c, file: f })))))
+const missedFiles = scout.files.filter((f, i) => !harvested[i])
+if (missedFiles.length) log(`extraction agents failed for ${missedFiles.length} file(s): ${missedFiles.join(', ')}; their claims are uncounted, rerun to cover them`)
 const claims = harvested.filter(Boolean).flat()
 log(`${claims.length} factual claims harvested`)
 
@@ -49,8 +51,11 @@ Use web search to find a real, checkable authority: a published book, scholarly 
   { label: `research:${c.fragment.slice(0, 24)}`, phase: 'Research',
     schema: { type: 'object', properties: { verdict: { enum: ['supported', 'caveat', 'unsupported'] }, authority: { type: 'string' }, url: { type: 'string' }, note: { type: 'string' } }, required: ['verdict'] } }
 ).then(r => ({ ...c, ...r }))))
+// A null agent result is a failed lookup, not a cleared claim: it
+// goes to the unresolved list, never silently out of the ledger.
+const unresolved = claims.filter((c, i) => !researched[i]).map(c => ({ ...c, stage: 'research agent failed' }))
 const sourced = researched.filter(Boolean)
-log(`${sourced.filter(x => x.verdict !== 'unsupported').length}/${sourced.length} claims sourced`)
+log(`${sourced.filter(x => x.verdict !== 'unsupported').length}/${sourced.length} claims sourced; ${unresolved.length} unresolved`)
 
 phase('Verify')
 const attackable = sourced.filter(x => x.verdict !== 'unsupported')
@@ -63,12 +68,13 @@ Attack it: does this source actually exist (search for it), and does it actually
   { label: `audit:${c.fragment.slice(0, 24)}`, phase: 'Verify',
     schema: { type: 'object', properties: { verdict: { enum: ['holds', 'overstates', 'fails'] }, correctedNote: { type: 'string' } }, required: ['verdict'] } }
 ).then(r => ({ ...c, audit: r.verdict, note: r.verdict === 'overstates' ? r.correctedNote : c.note }))))
+unresolved.push(...attackable.filter((c, i) => !verified[i]).map(c => ({ ...c, stage: 'audit agent failed' })))
 const good = verified.filter(Boolean).filter(x => x.audit !== 'fails')
 const unsourced = [
   ...sourced.filter(x => x.verdict === 'unsupported'),
   ...verified.filter(Boolean).filter(x => x.audit === 'fails'),
 ]
-log(`${good.length} attributions hold; ${unsourced.length} claims lack support`)
+log(`reconciled: ${claims.length} harvested = ${good.length} ledgered + ${unsourced.length} unsourced + ${unresolved.length} unresolved`)
 
 phase('Ledger')
 const result = await agent(
@@ -84,7 +90,10 @@ ${JSON.stringify(good.map(x => ({ claim: x.fragment, file: x.file, authority: x.
 3. Report the claims that could NOT be sourced (below). Do NOT put them in the ledger; instead list them in your return so the author can decide whether to soften or cut those sentences:
 ${JSON.stringify(unsourced.map(x => ({ file: x.file, fragment: x.fragment, assertion: x.assertion })), null, 2)}
 
-Return: entries written, build status, and the unsourced list with a one-line suggested edit for each.`,
+4. Also report the UNRESOLVED claims (below): their research or audit agent failed, so they are neither ledgered nor cleared. List them under their own heading with the failed stage; the author should rerun the workflow or source them by hand.
+${JSON.stringify(unresolved.map(x => ({ file: x.file, fragment: x.fragment, assertion: x.assertion, stage: x.stage })), null, 2)}
+
+Return: entries written, build status, the unsourced list with a one-line suggested edit for each, and the unresolved list verbatim.`,
   { label: 'ledger', phase: 'Ledger' }
 )
-return { claims: claims.length, sourced: good.length, unsourced: unsourced.length, ledger: result }
+return { claims: claims.length, sourced: good.length, unsourced: unsourced.length, unresolved: unresolved.length, extractionMissedFiles: missedFiles, ledger: result }

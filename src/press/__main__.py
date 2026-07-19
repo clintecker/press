@@ -148,25 +148,35 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901
         build.build_target("pdf")
         return verify_built()
     if target == "coverwrap":
-        from . import registry
+        from . import registry, verify_coverwrap
 
         registry.build("coverwrap")
-        return 0
+        return verify_coverwrap.main()
     if target == "publish":
         from . import publish
 
-        if len(args) != 2:
-            print("usage: press publish kdp|ingram")
+        rest = [a for a in args[1:] if a != "--report-only"]
+        if len(rest) != 1:
+            print("usage: press publish kdp|ingram [--report-only]")
             return 2
-        return publish.main(args[1])
+        return publish.main(rest[0], report_only="--report-only" in args)
     if target == "verify-print":
-        from . import verify_pdf
+        from . import registry, verify_coverwrap, verify_pdf
 
-        build.build_target("print")
-        return verify_pdf.main(
+        registry.build("print")
+        code = verify_pdf.main(
             [str(booklib.root() / "dist" / f"{booklib.slug()}-interior.pdf"),
              "--profile", "print"]
         )
+        if code:
+            return code
+        # The wrap needs cover art; a coverless book still verifies its
+        # interior (assets are optional, per the config contract).
+        if (booklib.root() / "assets" / "cover.jpg").is_file():
+            registry.build("coverwrap")
+            return verify_coverwrap.main()
+        print("no assets/cover.jpg; interior verified, wrap not built")
+        return 0
     if target == "verify-formats":
         from . import package_source, verify_archives
 

@@ -75,16 +75,31 @@ Produce SUGGESTIONS ONLY (no edits): each names the file, quotes the exact curre
   ))
 
   const results = (await parallel([...perChapter, ...wholeBook])).filter(Boolean)
+  // Whole-book agents name files free-form; normalize every variant
+  // (basename, absolute, ROOT-prefixed) to the canonical relative path
+  // so one real file gets exactly one synthesizer and no suggestion is
+  // silently lost to a path mismatch.
+  const canonical = new Map()
+  for (const f of scout.files) {
+    canonical.set(f, f)
+    canonical.set(`${ROOT}/${f}`, f)
+    const base = f.split('/').pop()
+    canonical.set(base, canonical.has(base) && canonical.get(base) !== f ? null : f)
+  }
   const byFile = {}
+  const unresolvable = []
   for (const r of results) {
     for (const s of (r.suggestions || [])) {
-      const file = s.file || r.file
-      if (!file) continue
+      const raw = s.file || r.file
+      if (!raw) continue
+      const file = canonical.get(raw) || canonical.get(String(raw).replace(/^\/+/, ''))
+      if (!file) { unresolvable.push({ file: raw, reason: s.reason }); continue }
       ;(byFile[file] = byFile[file] || []).push(s)
     }
   }
   const count = Object.values(byFile).reduce((n, a) => n + a.length, 0)
   log(`round ${round}: ${count} suggestions across ${Object.keys(byFile).length} files`)
+  if (unresolvable.length) log(`round ${round}: ${unresolvable.length} suggestion(s) named files outside the manuscript and were set aside: ${unresolvable.map(u => u.file).join(', ')}`)
 
   if (REPORT) {
     phase('Synthesize')

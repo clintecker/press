@@ -57,6 +57,10 @@ def barcode_tex(isbn: str | None) -> str:
     if isbn is None:
         return (
             "\\begin{tikzpicture}\n"
+            # The placeholder sits on the same white card a real symbol
+            # gets, so the panel geometry does not shift when the ISBN
+            # arrives.
+            "\\fill[white] (-0.125in,-0.125in) rectangle (2.125in,1.325in);\n"
             "\\draw[black] (0,0) rectangle (2in,1.2in);\n"
             "\\node at (1in,0.6in) {\\small [ISBN pending]};\n"
             "\\end{tikzpicture}"

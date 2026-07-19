@@ -1,15 +1,19 @@
 """Channel checklists: press publish kdp|ingram.
 
 The press cannot upload to retail channels (they have no APIs worth
-trusting), so it does the next honest thing: emit a checklist of
-exactly what the channel needs, with the items the press already
-produced checked off and their paths attached, and the items only a
-person can do left unchecked. The document is generated from config and
-the dist directory, never written by hand.
+trusting), so it does the next honest thing: build and verify every
+retail artifact now, then emit a checklist where a checked box means
+"this artifact passed its verifier in this run", with the items only
+a person can do left unchecked. A stale or corrupt file cannot be
+blessed, because the checklist never consults mere existence: the
+interior, wrap, and EPUB are rebuilt through the registry and
+inspected by their own verifiers first. --report-only skips the
+build and says so on every line instead of pretending.
 """
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 from . import booklib, gen_coverwrap
@@ -36,39 +40,120 @@ CHANNELS = {
 }
 
 
-def artifact(path: Path, label: str) -> str:
-    mark = "x" if path.is_file() else " "
-    note = str(path) if path.is_file() else f"{path} (missing; build it)"
-    return f"- [{mark}] {label}: {note}"
+def verify_retail() -> dict[str, tuple[bool, Path, str]]:
+    """Build and verify each retail artifact now.
+
+    Returns label -> (passed, path, note); a False entry carries the
+    verifier's own refusal as the note.
+    """
+
+    from . import registry, verify_coverwrap, verify_formats, verify_pdf
+
+    root = booklib.root()
+    slug = booklib.slug()
+    dist = root / "dist"
+    results: dict[str, tuple[bool, Path, str]] = {}
+
+    def attempt(label: str, path: Path, action) -> None:
+        try:
+            action()
+        except SystemExit as exc:
+            results[label] = (False, path, str(exc))
+        except subprocess.CalledProcessError as exc:
+            results[label] = (False, path, f"build failed with exit {exc.returncode}")
+        else:
+            results[label] = (True, path, "verified this run")
+
+    interior = dist / f"{slug}-interior.pdf"
+    wrap = dist / f"{slug}-coverwrap.pdf"
+    epub = dist / f"{slug}.epub"
+    cover = root / "assets" / "cover.jpg"
+
+    def interior_check() -> None:
+        registry.build("print")
+        code = verify_pdf.main([str(interior), "--profile", "print"])
+        if code:
+            raise SystemExit("interior failed its print verification")
+
+    def wrap_check() -> None:
+        registry.build("coverwrap")
+        verify_coverwrap.main()
+
+    # Interior and wrap fail separately, each under its own label; a
+    # missing cover must never read as an interior defect.
+    attempt("Print interior PDF (mirrored margins, black ink)", interior,
+            interior_check)
+    attempt("Cover wrap PDF (trim + bleed, spine computed)", wrap, wrap_check)
+
+    def epub_verified() -> None:
+        registry.build("epub")
+        verify_formats.verify_epub(epub)
+
+    attempt("EPUB (KDP eBook / Ingram ebook program)", epub, epub_verified)
+
+    def cover_opens() -> None:
+        if not cover.is_file():
+            raise SystemExit("assets/cover.jpg missing")
+        from PIL import Image
+
+        with Image.open(cover) as art:
+            art.verify()
+
+    attempt("Marketing cover image (front board only)", cover, cover_opens)
+    return results
 
 
-def main(channel: str) -> int:
+def unverified_retail() -> dict[str, tuple[bool, Path, str]]:
+    """--report-only: presence noted, verification honestly absent."""
+
+    root = booklib.root()
+    slug = booklib.slug()
+    dist = root / "dist"
+    entries = {
+        "Print interior PDF (mirrored margins, black ink)":
+            dist / f"{slug}-interior.pdf",
+        "Cover wrap PDF (trim + bleed, spine computed)":
+            dist / f"{slug}-coverwrap.pdf",
+        "EPUB (KDP eBook / Ingram ebook program)": dist / f"{slug}.epub",
+        "Marketing cover image (front board only)":
+            root / "assets" / "cover.jpg",
+    }
+    return {
+        label: (False, path,
+                "present but NOT verified (report-only)" if path.is_file()
+                else "missing")
+        for label, path in entries.items()
+    }
+
+
+def main(channel: str, report_only: bool = False) -> int:
     if channel not in CHANNELS:
         raise SystemExit(f"unknown channel {channel!r}: {', '.join(CHANNELS)}")
     root = booklib.root()
     meta = booklib.metadata()
     if not meta.get("title") or not meta.get("author"):
         raise SystemExit("the checklist needs title and author in config/metadata.yaml")
-    slug = booklib.slug()
-    dist = root / "dist"
     trim = meta.get("trim") or {}
     trim_w, trim_h = float(trim.get("width", 6)), float(trim.get("height", 9))
     isbn = gen_coverwrap.isbn_for_print()
     spec = CHANNELS[channel]
 
-    interior = dist / f"{slug}-interior.pdf"
+    results = unverified_retail() if report_only else verify_retail()
+
     lines = [
         f"# {spec['name']} checklist: {meta['title']}",
         "",
         f"Generated by the press from config and dist/. Trim {trim_w:g} x "
         f"{trim_h:g} in, bleed {gen_coverwrap.BLEED_IN} in on the wrap.",
+        "A checked box means the artifact passed its verifier in this run.",
         "",
         "## Files the channel needs",
         "",
-        artifact(interior, "Print interior PDF (mirrored margins, black ink)"),
-        artifact(dist / f"{slug}-coverwrap.pdf", "Cover wrap PDF (trim + bleed, spine computed)"),
-        artifact(dist / f"{slug}.epub", "EPUB (KDP eBook / Ingram ebook program)"),
-        artifact(root / "assets" / "cover.jpg", "Marketing cover image (front board only)"),
+    ]
+    for label, (passed, path, note) in results.items():
+        mark = "x" if passed else " "
+        lines.append(f"- [{mark}] {label}: {path} ({note})")
+    lines += [
         "",
         "## Identity the channel will ask for",
         "",
@@ -84,11 +169,13 @@ def main(channel: str) -> int:
         *[f"- [ ] {item}" for item in spec["manual"]],
         "",
     ]
-    out = dist / f"publish-{channel}.md"
+    out = root / "dist" / f"publish-{channel}.md"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(lines), encoding="utf-8")
     print(f"checklist -> {out.relative_to(root)}")
-    missing = [line for line in lines if "(missing; build it)" in line]
-    for line in missing:
-        print(f"  {line}")
+    failed = {label: note for label, (passed, _, note) in results.items() if not passed}
+    for label, note in failed.items():
+        print(f"  unverified: {label} ({note})")
+    if failed and not report_only:
+        return 1
     return 0

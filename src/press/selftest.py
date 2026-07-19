@@ -354,6 +354,83 @@ def check_honest_refusals() -> None:
                 )
 
 
+def check_coverwrap_detectors() -> None:
+    """The wrap verifier's rendering checks, proven against deliberate
+    damage: a flat front panel, a missing barcode, too few bars, and
+    ink in the quiet zone each turn red on synthetic images."""
+
+    from PIL import Image, ImageDraw
+
+    from . import verify_coverwrap
+
+    trim_w, spine, dpi = 6.0, 0.115, 50
+    bleed = 0.125
+    wrap_w = 2 * bleed + 2 * trim_w + spine
+    wrap_h = 2 * bleed + 9.0
+    size = (int(wrap_w * dpi), int(wrap_h * dpi))
+
+    flat = Image.new("RGB", size, (200, 190, 180))
+    try:
+        verify_coverwrap.check_front_panel(flat, spine, trim_w, wrap_w)
+    except SystemExit as exc:
+        assert "flat" in str(exc) or "blank" in str(exc), exc
+    else:
+        raise AssertionError("flat front panel passed the wrap verifier")
+
+    def barcode_image(bars: int, quiet_ink: bool) -> Image.Image:
+        # All geometry in inches scaled by dpi, and everything kept
+        # inside scanline's crop window (which ends 0.05in past the
+        # anchor): the first version advanced bars by raw pixels and
+        # drew its quiet-zone ink outside the inspected region, so the
+        # "damage" was invisible and the check asserted the wrong way.
+        image = Image.new("L", size, 180)
+        draw = ImageDraw.Draw(image)
+        anchor_x, anchor_y = bleed + trim_w - 0.5, bleed + 0.5
+        card_left = int((anchor_x - 1.6) * dpi)
+        card_right = int(anchor_x * dpi)
+        card_top = size[1] - int((anchor_y + 1.05) * dpi)
+        card_bottom = size[1] - int((anchor_y - 0.32) * dpi)
+        draw.rectangle((card_left, card_top, card_right, card_bottom), fill=255)
+        bar_top = size[1] - int((anchor_y + 0.32 + 0.9) * dpi)
+        bar_bottom = size[1] - int((anchor_y + 0.32) * dpi)
+        # Bars live where the verifier expects the symbol: 95 modules
+        # ending 0.15in inside the card's east edge; quiet-zone ink is
+        # drawn in the right-hand zone beyond that expected span.
+        symbol_right = int((anchor_x - 0.15) * dpi)
+        symbol_left = symbol_right - int(95 * 0.0130 * dpi)
+        x = symbol_left + 2
+        for _ in range(bars):
+            draw.rectangle((x, bar_top, x, bar_bottom), fill=0)
+            x += 2
+        if quiet_ink:
+            zone = symbol_right + int(0.05 * dpi)
+            draw.rectangle((zone, bar_top, zone + 1, bar_bottom), fill=0)
+        return image
+
+    verify_coverwrap.scanline(barcode_image(22, False), trim_w, wrap_w,
+                              "9780306406157")
+    try:
+        verify_coverwrap.scanline(Image.new("L", size, 180), trim_w, wrap_w, None)
+    except SystemExit as exc:
+        assert "white card" in str(exc), exc
+    else:
+        raise AssertionError("missing barcode card passed the wrap verifier")
+    try:
+        verify_coverwrap.scanline(barcode_image(3, False), trim_w, wrap_w,
+                                  "9780306406157")
+    except SystemExit as exc:
+        assert "transitions" in str(exc), exc
+    else:
+        raise AssertionError("threadbare barcode passed the wrap verifier")
+    try:
+        verify_coverwrap.scanline(barcode_image(22, True), trim_w, wrap_w,
+                                  "9780306406157")
+    except SystemExit as exc:
+        assert "quiet zone" in str(exc), exc
+    else:
+        raise AssertionError("ink in the quiet zone passed the wrap verifier")
+
+
 def check_release_grammar() -> None:
     """The release script's tag validation, exercised without any
     network: exactly vN.x.y, and the composite action's command
@@ -629,6 +706,7 @@ def main(argv: list[str] | None = None) -> int:
     check_authorities_ledger()
     check_honest_refusals()
     check_release_grammar()
+    check_coverwrap_detectors()
     check_docs()
     print(f"Selftest passed: {len(modules())} modules import, arithmetic agrees "
           "with the canonical examples, usage and README name every target")

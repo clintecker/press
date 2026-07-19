@@ -31,6 +31,25 @@ audit).
   failed step, and does not float the major until the immutable
   tag's contract is green (#69, #70). Every audit-3 damage exploit
   is now a selftest fixture.
+- Retail artifacts tell the truth (the milestone's second half):
+  `press publish` builds and verifies the interior, wrap, and EPUB
+  through the registry before checking anything off, exits non-zero
+  when a required artifact fails, and separates interior and wrap
+  failures under their own labels; `--report-only` says "NOT
+  verified" on every line instead of pretending (#71). The cover
+  wrap gains its own verifier: one page at the exact
+  trim-plus-bleed-plus-spine size recomputed from the generator's
+  own functions, embedded fonts, rendered ink, cover art on the
+  front panel, surviving title text, and a barcode on a white card
+  whose quiet zones are judged against the expected EAN symbol span,
+  never against observed ink (#72). `press verify-print` verifies
+  the interior first and degrades gracefully for coverless books.
+  The agent workflows harden too: whole-book editorial suggestions
+  normalize file paths against the scout list so a basename or
+  absolute path reaches the right synthesizer and unresolvable paths
+  are set aside loudly (#57), and research or audit agents that fail
+  route their claims to an explicit unresolved list with reconciled
+  counts, never silently out of the ledger (#58).
 - Contact and imprint identity: the security contact is
   clint@lgtm.systems, the license holder is LGTM Systems, LLC, and
   books appear under the LGTM Publishing imprint.
