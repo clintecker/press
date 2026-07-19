@@ -74,7 +74,8 @@ This section is the narrative form. The same invariants live in
 machine-checkable form in `quality/invariants.yaml`, whose validator
 proves that every enforcer and proof it names still resolves to a
 real function or fixture, and which generates
-[docs/INVARIANTS.md](INVARIANTS.md) as the traceable table.
+[docs/INVARIANTS.md](https://github.com/clintecker/press/blob/main/docs/INVARIANTS.md)
+as the traceable table.
 
 ### Config law
 
