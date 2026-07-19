@@ -29,13 +29,20 @@ def check_imports() -> None:
         importlib.import_module(name)
 
 
+# The slug invariant's evidence, stated once: the pytest suite
+# parametrizes over these same tuples, so the two runners cannot
+# disagree about what a slug is.
+GOOD_SLUGS = ("make-ready", "a", "book-2", "9lives")
+BAD_SLUGS = ("../escape", "a/b", "a\\b", "A-Cap", "spa ce", "", "-lead",
+             "dot.seg", "semi;colon", "tick`", "new\nline", "<tag>")
+
+
 def check_slug_invariant() -> None:
     from . import booklib
 
-    for good in ("make-ready", "a", "book-2", "9lives"):
+    for good in GOOD_SLUGS:
         assert booklib.validate_slug(good) == good
-    for bad in ("../escape", "a/b", "a\\b", "A-Cap", "spa ce", "", "-lead",
-                "dot.seg", "semi;colon", "tick`", "new\nline", "<tag>"):
+    for bad in BAD_SLUGS:
         try:
             booklib.validate_slug(bad)
         except SystemExit:
@@ -43,7 +50,18 @@ def check_slug_invariant() -> None:
         raise AssertionError(f"slug invariant admitted {bad!r}")
 
 
-def _borrow_book(path):
+def clear_book_caches() -> None:
+    """Every booklib cache emptied, so a borrowed or fixture book cannot
+    leak into the caller's world through a memoized answer."""
+
+    from . import booklib
+
+    for cache in (booklib.root, booklib.metadata, booklib.book,
+                  booklib.house_rules):
+        cache.cache_clear()
+
+
+def borrow_book(path):
     """Point booklib at a fixture book, restoring the caller's world
     afterward: every cache cleared both ways, BOOK_ROOT restored to its
     prior value rather than deleted."""
@@ -51,15 +69,11 @@ def _borrow_book(path):
     import contextlib
     import os
 
-    from . import booklib
-
     @contextlib.contextmanager
     def borrowed():
         previous = os.environ.get("BOOK_ROOT")
         os.environ["BOOK_ROOT"] = str(path)
-        for cache in (booklib.root, booklib.metadata, booklib.book,
-                      booklib.house_rules):
-            cache.cache_clear()
+        clear_book_caches()
         try:
             yield
         finally:
@@ -67,9 +81,7 @@ def _borrow_book(path):
                 os.environ.pop("BOOK_ROOT", None)
             else:
                 os.environ["BOOK_ROOT"] = previous
-            for cache in (booklib.root, booklib.metadata, booklib.book,
-                          booklib.house_rules):
-                cache.cache_clear()
+            clear_book_caches()
 
     return borrowed()
 
@@ -90,7 +102,7 @@ def check_source_policy() -> None:
         outside.write_text("leak", encoding="utf-8")
         (book / "escape.txt").symlink_to(outside)
         (book / ".env").write_text("KEY=1", encoding="utf-8")
-        with _borrow_book(book):
+        with borrow_book(book):
             try:
                 package_source.main()
             except SystemExit as exc:
@@ -177,9 +189,12 @@ def check_format_witnesses() -> None:
     assert "line survives" not in docx_visible_text(corrupted)
     assert normalized("The \u201cWitness\u201d") == 'the "witness"'
 
-    # The audit's damage case for site identity: a duplicated chapter
-    # page must fail on its witness appearing twice, and a removed
-    # chapter must fail on its witness appearing nowhere.
+
+def check_site_identity() -> None:
+    """The audit's damage case for site identity: a duplicated chapter
+    page must fail on its witness appearing twice, and a removed
+    chapter must fail on its witness appearing nowhere."""
+
     import shutil
     import tempfile
 
@@ -197,7 +212,7 @@ def check_format_witnesses() -> None:
         site.mkdir(parents=True)
         (site / "index.html").write_text("<html><body>contents</body></html>")
         (site / "reader.css").write_text("body{}")
-        with _borrow_book(book):
+        with borrow_book(book):
             from . import booklib
 
             witnesses = verify_formats.chapter_witnesses()
@@ -243,7 +258,7 @@ def check_authorities_ledger() -> None:
             "\nIt is said the press ran all night. Some say the press ran all night twice.\n"
         ))
         ledger = book / "config" / "authorities.yaml"
-        with _borrow_book(book):
+        with borrow_book(book):
             ledger.write_text("""
 - claim: "cast at dawn by careful hands"
   file: "book/chapters/00-preface.md"
@@ -323,7 +338,7 @@ def check_honest_refusals() -> None:
         scaffold.main([str(book), "--author", "Refusal Prover"])
         metadata_file = book / "config" / "metadata.yaml"
         sound_metadata = metadata_file.read_text()
-        with _borrow_book(book):
+        with borrow_book(book):
             for content, wants in (
                 ('title: "Unclosed', "metadata.yaml"),
                 ("", "empty"),
@@ -470,6 +485,12 @@ def check_coverwrap_detectors() -> None:
         raise AssertionError("ink in the quiet zone passed the wrap verifier")
 
 
+# The release grammar's evidence, stated once for both runners.
+GOOD_TAGS = ("v1.0.0", "v0.0.1", "v10.20.30")
+BAD_TAGS = ("v1.0", "v1.0.0.0", "v1.0.0-rc1", "v1.0.0x", "v01.0.0",
+            "1.0.0", "v1..0", "v1.0.0 ")
+
+
 def check_release_grammar() -> None:
     """The release script's tag validation, exercised without any
     network: exactly vN.x.y, and the composite action's command
@@ -480,9 +501,8 @@ def check_release_grammar() -> None:
     script = Path(__file__).resolve().parent.parent.parent / "scripts" / "release.sh"
     if not script.is_file():
         return  # installed wheel; the script ships with the repo only
-    good = ["v1.0.0", "v0.0.1", "v10.20.30"]
-    bad = ["v1.0", "v1.0.0.0", "v1.0.0-rc1", "v1.0.0x", "v01.0.0",
-           "1.0.0", "v1..0", "v1.0.0 "]
+    good = GOOD_TAGS
+    bad = BAD_TAGS
     for tag in good:
         result = subprocess.run(["bash", str(script), "--check-tag", tag],
                                 capture_output=True)
@@ -793,6 +813,7 @@ def main(argv: list[str] | None = None) -> int:
     check_book_model()
     check_registry()
     check_format_witnesses()
+    check_site_identity()
     check_authorities_ledger()
     check_honest_refusals()
     check_release_grammar()

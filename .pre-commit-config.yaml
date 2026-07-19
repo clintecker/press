@@ -44,7 +44,7 @@ repos:
         pass_filenames: false
       - id: ruff
         name: ruff (lint + complexity gate)
-        entry: ruff check src/press scripts
+        entry: ruff check src/press scripts tests
         language: system
         pass_filenames: false
       - id: mypy
@@ -55,5 +55,10 @@ repos:
       - id: selftest
         name: press selftest (invariants + doc drift)
         entry: env PYTHONPATH=src python3 -m press selftest
+        language: system
+        pass_filenames: false
+      - id: pytest
+        name: pytest (reusable invariant tests)
+        entry: python3 -m pytest
         language: system
         pass_filenames: false
