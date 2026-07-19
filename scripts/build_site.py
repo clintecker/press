@@ -38,6 +38,7 @@ PAGES = [
     ("docs/REFERENCE.md", "reference.html", "reference"),
     ("docs/CONFIGURATION.md", "configuration.html", "configuration"),
     ("ROADMAP.md", "roadmap.html", "roadmap"),
+    ("docs/TUI-PLAN.md", "desk-plan.html", "desk plan"),
     ("CHANGELOG.md", "changelog.html", "changelog"),
 ]
 
@@ -51,7 +52,6 @@ FOOTER_PAGES = [
 NOT_PUBLISHED = {
     "CLAUDE.md": "agent working instructions for this repo, not documentation",
     "AGENTS.md": "the same working instructions in the agents.md convention",
-    "docs/TUI-PLAN.md": "design plan for unbuilt work; joins the site when scheduled",
 }
 
 
