@@ -38,6 +38,7 @@ PAGES = [
     ("docs/REFERENCE.md", "reference.html", "reference"),
     ("ROADMAP.md", "roadmap.html", "roadmap"),
     ("docs/TUI-PLAN.md", "desk-plan.html", "desk plan"),
+    ("docs/DIRECT-ORDERING-PLAN.md", "direct-ordering-plan.html", "ordering plan"),
     ("CHANGELOG.md", "changelog.html", "changelog"),
 ]
 
