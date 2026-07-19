@@ -1,0 +1,100 @@
+# The provenance ledger for the checked-in regression fixtures.
+#
+# Every deliberately-defective file under src/press/data/known-bad/ is a
+# regression fixture: it exists to trip one checker rule and prove that
+# checker still bites. This manifest records, for each one, the valid
+# object it derived from, the single mutation it carries, the invariant
+# it must violate, and the rejection that proves the right checker (not
+# merely some checker) noticed it. A fixture with no entry here, or an
+# entry naming a file that has left the tree, fails the fixture auditor
+# (press.fixture_provenance, run from selftest).
+#
+# Fields per entry:
+#   file            basename under src/press/data/known-bad/, unique
+#   kind            source | damaged-artifact | recorded-response
+#   invariant       an id in quality/invariants.yaml
+#   provenance      the valid object this fixture was derived from
+#   mutation        the single defect introduced
+#   expected_result rejected
+#   checker         the module whose rule rejects it; must match the
+#                   enforcer the named invariant declares
+#   expect          the expected diagnostic substring; must equal the
+#                   fixture's inline `<!-- expect: ... -->` comment, the
+#                   authority check_the_checkers already reads, so the
+#                   two representations cannot drift
+#   regenerate      how to reproduce this derived fixture
+#
+# damaged-artifact and recorded-response fixtures (none yet) additionally
+# record a source_digest or generator so a binary blob's origin is not a
+# mystery; the auditor requires one of the two for those kinds.
+
+fixtures:
+  - file: em-dash.md
+    kind: source
+    invariant: INV-editorial-battery
+    provenance: A minimal clean chapter (see src/press/data/known-good/clean.md).
+    mutation: One sentence break rewritten with an em dash.
+    expected_result: rejected
+    checker: style_audit
+    expect: em dash
+    regenerate: Hand-authored; edit the fixture to change the mutation.
+
+  - file: curly-quotes.md
+    kind: source
+    invariant: INV-editorial-battery
+    provenance: A minimal clean chapter (see src/press/data/known-good/clean.md).
+    mutation: One quoted phrase set in curly quotation marks.
+    expected_result: rejected
+    checker: style_audit
+    expect: curly
+    regenerate: Hand-authored; edit the fixture to change the mutation.
+
+  - file: emoji.md
+    kind: source
+    invariant: INV-editorial-battery
+    provenance: A minimal clean chapter (see src/press/data/known-good/clean.md).
+    mutation: One emoji glyph the print fonts cannot render dropped into the prose.
+    expected_result: rejected
+    checker: style_audit
+    expect: outside the print-font set
+    regenerate: Hand-authored; edit the fixture to change the mutation.
+
+  - file: title-case.md
+    kind: source
+    invariant: INV-editorial-battery
+    provenance: A minimal clean chapter (see src/press/data/known-good/clean.md).
+    mutation: The heading set in full title case rather than sentence case.
+    expected_result: rejected
+    checker: style_audit
+    expect: title-case heading
+    regenerate: Hand-authored; edit the fixture to change the mutation.
+
+  - file: numbered-heading.md
+    kind: source
+    invariant: INV-editorial-battery
+    provenance: A minimal clean chapter (see src/press/data/known-good/clean.md).
+    mutation: A manual ordinal prepended to the heading text.
+    expected_result: rejected
+    checker: style_audit
+    expect: manual number in heading
+    regenerate: Hand-authored; edit the fixture to change the mutation.
+
+  - file: long-paragraph.md
+    kind: source
+    invariant: INV-editorial-battery
+    provenance: A minimal clean chapter (see src/press/data/known-good/clean.md).
+    mutation: A single paragraph stretched past the word ceiling.
+    expected_result: rejected
+    checker: style_audit
+    expect: words
+    regenerate: Hand-authored; a 200-word run of word0..word199 in one paragraph.
+
+  - file: jargon.md
+    kind: source
+    invariant: INV-editorial-jargon
+    provenance: A minimal clean chapter (see src/press/data/known-good/clean.md).
+    mutation: Two watchlist terms at rewrite severity dropped into one sentence.
+    expected_result: rejected
+    checker: jargon_lint
+    expect: jargon
+    regenerate: Hand-authored; edit the fixture to change the mutation.

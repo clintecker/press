@@ -813,6 +813,15 @@ def check_invariant_ledger() -> None:
     invariants.validate(invariants.load())
 
 
+def check_fixture_provenance() -> None:
+    """Every checked-in regression fixture carries a provenance manifest
+    entry, and no entry names a fixture that has left the tree."""
+
+    from . import fixture_provenance
+
+    fixture_provenance.check()
+
+
 # The one ordered list of invariant checks. main() runs it and the
 # pytest suite parametrizes over it, so the CLI and the test runner
 # cannot disagree about which invariants the press proves.
@@ -834,6 +843,7 @@ CHECKS = [
     check_aesthetic_schema,
     check_contract_mirror,
     check_invariant_ledger,
+    check_fixture_provenance,
     check_docs,
 ]
 

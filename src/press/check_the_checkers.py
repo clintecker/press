@@ -23,6 +23,9 @@ from pathlib import Path
 from . import booklib, style_audit
 
 EXPECT = re.compile(r"<!--\s*expect:\s*(.+?)\s*-->")
+"""The declared-diagnostic convention: a fixture's first line names the
+rule it must trip. fixture_provenance imports this so the manifest and
+the checker agree on how a fixture states its expected diagnostic."""
 
 
 def diagnostics(fixture: Path) -> list[str]:
