@@ -48,4 +48,13 @@ git tag "$tag"
 git tag -f "$major"
 git push origin "$tag"
 git push -f origin "$major"
+# A tag is what machines consume; the Release is what people read.
+awk -v ver="$version" '
+  $0 ~ "^## \\[" ver "\\]" {p=1; next}
+  p && /^## \[/ {exit}
+  p {print}
+' CHANGELOG.md > /tmp/press-release-notes.md
+gh release create "$tag" \
+  --title "press $tag" \
+  --notes-file /tmp/press-release-notes.md
 echo "released $tag; the release-contract workflow now proves it"
