@@ -20,7 +20,8 @@ from . import booklib, instruments
 TIMEOUT_SECONDS = 3600
 
 
-def run_workflow(name: str, args_obj: dict, full_bash: bool) -> int:
+def run_workflow(name: str, args_obj: dict, full_bash: bool,
+                 extra_tools: list[str] | None = None) -> int:
     """Drive a packaged workflow headlessly.
 
     Report/research modes get Bash scoped to press commands; --apply
@@ -45,6 +46,7 @@ def run_workflow(name: str, args_obj: dict, full_bash: bool) -> int:
         "returned result and nothing else."
     )
     bash_grant = ["Bash"] if full_bash else ["Bash(press:*)", "Bash(python3:*)"]
+    bash_grant += extra_tools or []
     print(f"operator: {name} on {args_obj['root']} (this runs agents; minutes, not seconds)")
     try:
         completed = subprocess.run(
@@ -125,4 +127,7 @@ def research(argv: list[str]) -> int:
     workflow_args: dict = {"root": str(booklib.root())}
     if args.max_claims_per_file:
         workflow_args["maxClaimsPerFile"] = args.max_claims_per_file
-    return run_workflow("authorities-research", workflow_args, full_bash=False)
+    # Research is the one counsel workflow that must reach the web:
+    # its whole job is finding and auditing real sources.
+    return run_workflow("authorities-research", workflow_args, full_bash=False,
+                        extra_tools=["WebSearch", "WebFetch"])

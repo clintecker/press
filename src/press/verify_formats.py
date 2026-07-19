@@ -41,6 +41,14 @@ def normalized(text: str) -> str:
     return " ".join(text.split()).casefold().translate(STRAIGHTEN)
 
 
+def sentinel_present(sentinel: str, text: str) -> bool:
+    """Exact-case match with quotes straightened on both sides: pandoc's
+    smart extension curls the straight quotes the config states."""
+
+    needle = " ".join(sentinel.split()).translate(STRAIGHTEN)
+    return needle in " ".join(text.split()).translate(STRAIGHTEN)
+
+
 def manuscript_witness() -> str:
     """One long plain line of the manuscript, markup-free, that every
     format must carry: content survival proven even with an empty
@@ -81,7 +89,7 @@ def verify_html(path: Path) -> None:
     parser.feed(path.read_text(encoding="utf-8"))
     text = " ".join(" ".join(parser.parts).split())
     for sentinel in booklib.sentinels():
-        if " ".join(sentinel.split()) not in text:
+        if not sentinel_present(sentinel, text):
             raise SystemExit(f"HTML missing sentinel: {sentinel}")
     if "<html" not in path.read_text(encoding="utf-8", errors="ignore").lower():
         raise SystemExit("HTML output has no html element")
@@ -120,7 +128,7 @@ def verify_epub(path: Path) -> None:
         parser.feed(raw)
         text = " ".join(" ".join(parser.parts).split())
         for sentinel in booklib.sentinels():
-            if " ".join(sentinel.split()) not in text:
+            if not sentinel_present(sentinel, text):
                 raise SystemExit(f"EPUB missing sentinel: {sentinel}")
         require_witnesses(text, "EPUB")
 
@@ -170,7 +178,7 @@ def epubcheck(path: Path) -> None:
 def verify_plaintext(path: Path, label: str) -> None:
     text = " ".join(path.read_text(encoding="utf-8").split())
     for sentinel in booklib.sentinels():
-        if sentinel not in text:
+        if not sentinel_present(sentinel, text):
             raise SystemExit(f"{label} missing sentinel: {sentinel}")
     require_witnesses(text, label)
 
@@ -195,7 +203,7 @@ def verify_docx(path: Path) -> None:
     # defeat a raw substring search.
     flattened = docx_visible_text(document)
     for sentinel in booklib.sentinels():
-        if " ".join(sentinel.split()) not in flattened:
+        if not sentinel_present(sentinel, flattened):
             raise SystemExit(f"docx missing sentinel: {sentinel}")
     require_witnesses(flattened, "docx")
     expected_plates = plate_count()
@@ -227,7 +235,7 @@ def verify_site(path: Path) -> None:
         aggregate.feed(page.read_text(encoding="utf-8", errors="replace"))
     site_text = " ".join(" ".join(aggregate.parts).split())
     for sentinel in booklib.sentinels():
-        if " ".join(sentinel.split()) not in site_text:
+        if not sentinel_present(sentinel, site_text):
             raise SystemExit(f"reader site missing sentinel: {sentinel}")
     require_witnesses(site_text, "reader site")
 

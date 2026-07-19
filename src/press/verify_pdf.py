@@ -250,8 +250,10 @@ def main(argv: list[str] | None = None) -> int:
     text = text_path.read_text(encoding="utf-8", errors="replace")
     normalized_text = " ".join(text.split())
     required = args.sentinels if args.sentinels is not None else sentinels()
+    from .verify_formats import sentinel_present
+
     for sentinel in required:
-        if " ".join(sentinel.split()) not in normalized_text:
+        if not sentinel_present(sentinel, normalized_text):
             raise SystemExit(f"missing text sentinel in PDF: {sentinel}")
     if args.sentinels is None:
         # Case folds because house title pages set the title in caps;

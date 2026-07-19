@@ -175,13 +175,17 @@ def markdown_build(output: str) -> None:
 
     root = booklib.root()
     (root / "dist").mkdir(parents=True, exist_ok=True)
-    meta = booklib.metadata()
-    authors = ", ".join(booklib.book().authors)
+    book = booklib.book()
+    authors = ", ".join(book.authors)
+    subtitle_line = f"*{book.subtitle}*\n\n" if book.subtitle else ""
+    imprint = (
+        f" Published by {book.publisher}, {book.publisher_place}."
+        if book.publisher else ""
+    )
     header = (
-        f"# {meta['title']}\n\n"
-        f"*{meta['subtitle']}*\n\n"
-        f"By {authors}. {meta['date']}. {meta['copyright']} "
-        f"Published by {meta['publisher']}, {meta['publisher-place']}.\n"
+        f"# {book.title}\n\n"
+        f"{subtitle_line}"
+        f"By {authors}. {book.date}. {book.copyright}{imprint}\n"
     )
     parts = [header]
     inputs = book_inputs()
@@ -321,7 +325,7 @@ def pages_build(output_dir: str) -> None:
         )
     logo_block = ""
     if (root / "assets" / "press-logo.png").is_file():
-        publisher = html_mod.escape(str(meta["publisher"]))
+        publisher = html_mod.escape(booklib.book().publisher)
         logo_block = (
             f'    <img class="press-logo" src="press-logo.png" '
             f'alt="Imprint device of {publisher}">'
@@ -346,10 +350,10 @@ def pages_build(output_dir: str) -> None:
         "{{EDITION_ROWS}}": "\n".join(rows),
         "{{REPO_PARAGRAPH}}": repo_paragraph,
         "{{LOGO_BLOCK}}": logo_block,
-        "{{DATE}}": html_mod.escape(str(meta["date"])),
-        "{{COPYRIGHT}}": html_mod.escape(str(meta["copyright"])),
-        "{{PUBLISHER}}": html_mod.escape(str(meta["publisher"])),
-        "{{PLACE}}": html_mod.escape(str(meta["publisher-place"])),
+        "{{DATE}}": html_mod.escape(booklib.book().date),
+        "{{COPYRIGHT}}": html_mod.escape(booklib.book().copyright),
+        "{{PUBLISHER}}": html_mod.escape(booklib.book().publisher),
+        "{{PLACE}}": html_mod.escape(booklib.book().publisher_place),
     }
     page = template
     for key, value in replacements.items():
@@ -391,11 +395,12 @@ def build_target(target: str) -> None:
     elif target == "epub":
         from . import registrations
 
-        meta = booklib.metadata()
-        rights = (
-            f"{meta['copyright']} Published by {meta['publisher']}, "
-            f"{meta['publisher-place']}."
-        )
+        book = booklib.book()
+        rights = " ".join(part for part in (
+            book.copyright,
+            f"Published by {book.publisher}, {book.publisher_place}."
+            if book.publisher else "",
+        ) if part)
         extra = ["--metadata", f"rights={rights}"]
         epub_isbn = registrations.isbn("epub")
         if epub_isbn:

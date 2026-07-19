@@ -43,6 +43,37 @@ def check_slug_invariant() -> None:
         raise AssertionError(f"slug invariant admitted {bad!r}")
 
 
+def _borrow_book(path):
+    """Point booklib at a fixture book, restoring the caller's world
+    afterward: every cache cleared both ways, BOOK_ROOT restored to its
+    prior value rather than deleted."""
+
+    import contextlib
+    import os
+
+    from . import booklib
+
+    @contextlib.contextmanager
+    def borrowed():
+        previous = os.environ.get("BOOK_ROOT")
+        os.environ["BOOK_ROOT"] = str(path)
+        for cache in (booklib.root, booklib.metadata, booklib.book,
+                      booklib.house_rules):
+            cache.cache_clear()
+        try:
+            yield
+        finally:
+            if previous is None:
+                os.environ.pop("BOOK_ROOT", None)
+            else:
+                os.environ["BOOK_ROOT"] = previous
+            for cache in (booklib.root, booklib.metadata, booklib.book,
+                          booklib.house_rules):
+                cache.cache_clear()
+
+    return borrowed()
+
+
 def check_source_policy() -> None:
     """The source packager refuses secrets, skips symlinks without
     dereferencing, and actually deflates its members."""
@@ -60,10 +91,7 @@ def check_source_policy() -> None:
         outside.write_text("leak", encoding="utf-8")
         (book / "escape.txt").symlink_to(outside)
         (book / ".env").write_text("KEY=1", encoding="utf-8")
-        os.environ["BOOK_ROOT"] = str(book)
-        booklib.root.cache_clear()
-        booklib.metadata.cache_clear()
-        try:
+        with _borrow_book(book):
             try:
                 package_source.main()
             except SystemExit as exc:
@@ -78,10 +106,6 @@ def check_source_policy() -> None:
                 deflated = [i for i in archive.infolist()
                             if i.compress_type == zipfile.ZIP_DEFLATED]
                 assert deflated, "no member was deflated"
-        finally:
-            del os.environ["BOOK_ROOT"]
-            booklib.root.cache_clear()
-            booklib.metadata.cache_clear()
 
 
 def check_format_witnesses() -> None:
@@ -121,11 +145,7 @@ def check_authorities_ledger() -> None:
             "\nIt is said the press ran all night. Some say the press ran all night twice.\n"
         ))
         ledger = book / "config" / "authorities.yaml"
-        os.environ["BOOK_ROOT"] = str(book)
-        booklib.root.cache_clear()
-        booklib.metadata.cache_clear()
-        booklib.book.cache_clear()
-        try:
+        with _borrow_book(book):
             ledger.write_text("""
 - claim: "cast at dawn by careful hands"
   file: "book/chapters/00-preface.md"
@@ -161,11 +181,6 @@ def check_authorities_ledger() -> None:
             companion = book / "dist" / "ledger-proof-sources.md"
             text = companion.read_text()
             assert "example.org/founders-manual" in text, "locator lost"
-        finally:
-            del os.environ["BOOK_ROOT"]
-            booklib.root.cache_clear()
-            booklib.metadata.cache_clear()
-            booklib.book.cache_clear()
 
 
 def check_registry() -> None:

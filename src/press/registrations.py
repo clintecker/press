@@ -19,10 +19,22 @@ def block() -> dict:
     return booklib.metadata().get("registrations") or {}
 
 
+def isbn_map() -> dict:
+    value = block().get("isbn")
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise SystemExit(
+            "registrations isbn must be a mapping of editions "
+            '(isbn: {print: "...", epub: "..."}), not a single value'
+        )
+    return value
+
+
 def raw_isbn(edition: str) -> str | None:
     """The ISBN exactly as config states it, hyphens and all."""
 
-    value = (block().get("isbn") or {}).get(edition)
+    value = isbn_map().get(edition)
     return str(value).strip() if value else None
 
 
@@ -82,7 +94,11 @@ def failures() -> list[str]:
 
     found: list[str] = []
     reg = block()
-    for edition, value in (reg.get("isbn") or {}).items():
+    try:
+        editions = isbn_map()
+    except SystemExit as exc:
+        return [str(exc)]
+    for edition, value in editions.items():
         text = str(value).strip()
         if text.lower() == PENDING:
             continue
@@ -98,7 +114,7 @@ def failures() -> list[str]:
         found.append(f"registrations lccn does not look like an LCCN: {lccn}")
 
     if reg.get("retail"):
-        isbns = reg.get("isbn") or {}
+        isbns = isbn_map()
         pending = [
             f"isbn {edition} missing"
             for edition in ("print", "epub") if edition not in isbns

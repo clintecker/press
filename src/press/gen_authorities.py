@@ -184,12 +184,14 @@ def generate() -> Path | None:
 
     # The full table of authorities is published as its own document rather
     # than bloating the book; enforcement still runs above on every build.
-    meta = booklib.metadata()
+    book = booklib.book()
+    imprint = f", {book.publisher}" if book.publisher else ""
+    dated = f", {book.date}" if book.date else ""
     lines = [
-        f"# {meta['title']}: sources and authorities",
+        f"# {book.title}: sources and authorities",
         "",
-        f"*Companion to {meta['title']} by {', '.join(meta['author'])}, "
-        f"{meta['publisher']}, {meta['date']}.*",
+        f"*Companion to {book.title} by {', '.join(book.authors)}"
+        f"{imprint}{dated}.*",
         "",
         "Where the book states a matter of fact it did not invent, the",
         "statement is listed here against the authority for it. Each claim is",

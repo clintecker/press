@@ -78,8 +78,10 @@ def crawl(pages: Path, sentinels: list[str], downloads: list[str],
     for page in reader_pages:
         text_parser.feed(page.read_text(encoding="utf-8", errors="replace"))
     reading_text = " ".join(" ".join(text_parser.parts).split())
+    from .verify_formats import sentinel_present
+
     for sentinel in sentinels:
-        if " ".join(sentinel.split()) not in reading_text:
+        if not sentinel_present(sentinel, reading_text):
             failures.append(f"public reading surface missing sentinel: {sentinel}")
     index_text = (pages / "index.html").read_text(encoding="utf-8", errors="replace")
     if title not in index_text:

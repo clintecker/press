@@ -250,10 +250,11 @@ def normalize_reference(data: bytes, path: Path) -> bytes:
 
     from PIL import Image, ImageOps
 
-    if len(data) <= 4_000_000:
-        image = Image.open(io.BytesIO(data))
-        if max(image.size) <= 2048:
-            return data
+    image = Image.open(io.BytesIO(data))
+    if (len(data) <= 4_000_000 and max(image.size) <= 2048
+            and image.format == "JPEG"):
+        # Small and already the format its mime label claims.
+        return data
     image = ImageOps.exif_transpose(Image.open(io.BytesIO(data)))
     image.thumbnail((2048, 2048))
     out = io.BytesIO()
