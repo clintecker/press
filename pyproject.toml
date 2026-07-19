@@ -40,6 +40,7 @@ dev = [
     "build>=1.0",
     "twine>=5.0",
     "pytest>=8.0",
+    "hypothesis>=6.100",
 ]
 
 [tool.pytest.ini_options]
@@ -48,6 +49,11 @@ addopts = "-q"
 # The suite proves the press against real scaffolded books; a run that
 # collected nothing is a mistake, not a pass.
 python_files = ["test_*.py"]
+markers = [
+    "invariant: the ledger id this test proves (INV-...)",
+    "layer: the test layer (unit, property, selftest, integration)",
+    "proof: proof polarity (positive or negative)",
+]
 
 [project.scripts]
 press = "press.__main__:console"
