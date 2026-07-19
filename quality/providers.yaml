@@ -1,0 +1,265 @@
+# The print-provider qualification record: the PRD vendor research turned
+# into structured, versioned evidence. This file answers "which providers
+# exist, what can each actually do, and what is still unknown" -- it does
+# NOT mark any edition sellable. An edition becomes qualified for a
+# provider only through a passed physical inspection scoped to that
+# edition's identity (see press.qualification and press.edition).
+#
+# Laws (enforced by press.qualification.validate):
+#   - every provider carries a disposition, at least one evidence link,
+#     an explicit unknowns list, and explicit capabilities;
+#   - a capability is supported | unsupported | by_approval | unknown, and
+#     unsupported is never simulated;
+#   - marketing claims are evidence, not qualification: they cannot mark a
+#     provider qualified for production, only researched.
+#
+# Research last verified: 2026-07-18. Marketing and unpublished commercial
+# terms still require written confirmation and a physical sample.
+
+schema_version: 1
+
+# The physical inspection every provider+product+region must pass before an
+# edition is qualified for it. A copy is ordered through the real route and
+# each point dispositioned pass | fail; none may be skipped.
+physical_checklist:
+  - content        # the interior text matches the release-approved manuscript
+  - pagination     # page count and page order match the manifest
+  - trim           # cut size matches the declared trim within tolerance
+  - bleed          # full-bleed art reaches the trimmed edge without white slivers
+  - spine          # spine text is centered and square for the page count
+  - barcode        # the EAN-13 scans and matches the declared ISBN
+  - color          # single-ink interior and cover reproduce as specified
+  - paper          # stock weight and shade match the declared paper
+  - binding        # binding is square, tight, and opens flat enough to read
+  - packaging      # the copy arrives undamaged and appropriately protected
+  - tracking       # the tracking link resolves and matches the destination
+
+providers:
+  lulu:
+    disposition: primary
+    routes: [custom-api, lulu-direct-shopify, lulu-direct-wix, lulu-direct-woocommerce]
+    evidence:
+      - claim: REST/JSON sandbox and production Print API, one-copy POD, file
+          validation, pricing, shipping, order creation, worldwide fulfillment
+        url: https://developers.lulu.com/home
+      - claim: custom direct sales remain the publisher's sale; the reader pays
+          the publisher and the publisher pays Lulu for print and shipping
+        url: https://www.lulu.com/sell
+      - claim: API privacy policy confirms order contact/address and content are
+          transferred for fulfillment
+        url: https://developers.lulu.com/privacy-policy
+    capabilities:
+      api: supported
+      sandbox: supported
+      one_copy_pod: supported
+      file_validation: supported
+      pricing_api: supported
+      order_creation: supported
+      shipping: supported
+      cancellation: unknown
+      webhooks: unknown
+      worldwide: supported
+      seller_of_record: unsupported   # the publisher is the seller in the custom route
+    unknowns:
+      - exact trim/paper/binding qualification for the press 6x9 single-ink object
+      - cancellation and webhook semantics
+      - commercial terms and per-region production sites
+    notes: Primary provider for the seller-of-record storefront route and, if the
+      publisher ever becomes merchant of record, the first custom-API adapter.
+
+  bookvault:
+    disposition: secondary
+    routes: [custom-api, shopify, woocommerce, wix, payhip]
+    evidence:
+      - claim: direct-sale fulfillment and a custom API with no integration fee
+        url: https://help.bookvault.app/how-much-does-it-cost-to-print-and-ship-my-book
+      - claim: the store receives reader funds while Bookvault charges production
+          and shipping to the publisher
+        url: https://help.bookvault.app/i-have-connected-my-store-to-bookvault-how-do-i-pay-for-the-orders
+    capabilities:
+      api: supported
+      sandbox: unknown
+      one_copy_pod: supported
+      file_validation: unknown
+      pricing_api: unknown
+      order_creation: supported
+      shipping: supported
+      cancellation: unknown
+      webhooks: unknown
+      worldwide: unknown
+      seller_of_record: unsupported
+    unknowns:
+      - API contract, sandbox, webhook, region coverage, account-funding behavior
+    notes: Preferred second adapter and a strong hosted-commerce route, especially
+      for special editions.
+
+  peecho:
+    disposition: hosted-candidate
+    routes: [hosted-checkout, seller-of-record, custom-api]
+    evidence:
+      - claim: REST print API and checkout, single-copy books, pricing/status/order
+          operations, global routing, seller-of-record option
+        url: https://www.peecho.com/solutions/print-api
+      - claim: self-publishing route with no minimum and dropshipping
+        url: https://www.peecho.com/self-publishing
+    capabilities:
+      api: supported
+      sandbox: unknown
+      one_copy_pod: supported
+      file_validation: unknown
+      pricing_api: supported
+      order_creation: supported
+      shipping: supported
+      cancellation: unknown
+      webhooks: unknown
+      worldwide: supported
+      seller_of_record: supported   # the reason to prefer Peecho when avoiding MoR
+    unknowns:
+      - trade-book geometry and monochrome economics
+      - data terms, checkout branding, support ownership, API access
+    notes: Best route when avoiding merchant-of-record work matters, because Peecho
+      can be the seller of record.
+
+  mixam:
+    disposition: candidate
+    routes: [printlink, shopify, api-by-approval]
+    evidence:
+      - claim: product discovery, options, order submission, and status through a
+          public API, with account approval required
+        url: https://d1e8vjamx1ssze.cloudfront.net/support/how-to-print-a-book.pdf
+      - claim: PrintLink POD, fulfillment, shipping, no inventory (Shopify app)
+        url: https://apps.shopify.com/mixam
+    capabilities:
+      api: by_approval
+      sandbox: unknown
+      one_copy_pod: supported
+      file_validation: unknown
+      pricing_api: unknown
+      order_creation: supported
+      shipping: supported
+      cancellation: unknown
+      webhooks: unknown
+      worldwide: unknown
+      seller_of_record: unsupported
+    unknowns:
+      - API access is approval-gated; public technical material is thin
+    notes: Good hosted-checkout candidate; do not make it a first custom adapter
+      without sandbox and contract review.
+
+  cloudprinter:
+    disposition: candidate
+    routes: [custom-api, commerce-integrations]
+    evidence:
+      - claim: REST print API, sandbox, live pricing, webhooks/signals, global
+          local routing
+        url: https://www.cloudprinter.com/
+    capabilities:
+      api: supported
+      sandbox: supported
+      one_copy_pod: supported
+      file_validation: unknown
+      pricing_api: supported
+      order_creation: supported
+      shipping: supported
+      cancellation: unknown
+      webhooks: supported
+      worldwide: supported
+      seller_of_record: unsupported
+    unknowns:
+      - variable production sites complicate physical consistency and qualification
+    notes: Strong multi-provider/network candidate for geographic routing and
+      resilience; requalify per production site.
+
+  prodigi:
+    disposition: candidate
+    routes: [custom-api, commerce]
+    evidence:
+      - claim: v4 API with sandbox/live environments and order APIs; single-copy
+          hardback, softcover, layflat, and magazines
+        url: https://www.prodigi.com/print-api/docs/
+    capabilities:
+      api: supported
+      sandbox: supported
+      one_copy_pod: supported
+      file_validation: unknown
+      pricing_api: supported
+      order_creation: supported
+      shipping: supported
+      cancellation: unknown
+      webhooks: unknown
+      worldwide: supported
+      seller_of_record: unsupported
+    unknowns:
+      - range leans to photo books/magazines; trade-book typography and black-only
+        interiors need qualification
+    notes: Technically credible, product-fit uncertain for trade books.
+
+  onpress:
+    disposition: not-fit
+    routes: [custom-api]
+    evidence:
+      - claim: announced a book-printing API for automated printing and fulfillment
+        url: https://www.onpressbookprinting.com/resources/book-printing-api
+    capabilities:
+      api: unknown
+      sandbox: unknown
+      one_copy_pod: unknown
+      file_validation: unknown
+      pricing_api: unknown
+      order_creation: unknown
+      shipping: unknown
+      cancellation: unknown
+      webhooks: unknown
+      worldwide: unknown
+      seller_of_record: unknown
+    unknowns:
+      - public operational/API detail is insufficient for a release commitment
+    notes: Obtain auth, quote, idempotency, status, cancellation, sandbox, SLA, and
+      privacy terms before reconsidering.
+
+  print-bind-ship:
+    disposition: not-fit
+    routes: [shopify, woocommerce, custom-api, portal]
+    evidence:
+      - claim: book fulfillment and Shopify/API fulfillment; setup, auto-payment,
+          POD production, storage, returns
+        url: https://printbindship.com/book-fulfillment-services/
+    capabilities:
+      api: by_approval
+      sandbox: unknown
+      one_copy_pod: supported
+      file_validation: unknown
+      pricing_api: unknown
+      order_creation: supported
+      shipping: supported
+      cancellation: unknown
+      webhooks: unknown
+      worldwide: unknown
+      seller_of_record: unsupported
+    unknowns:
+      - more sales- and contract-led than a self-service API
+    notes: Later 3PL/volume route if inventory, kitting, or mixed POD/stock
+      fulfillment becomes important.
+
+  48-hour-books:
+    disposition: not-fit
+    routes: [manual-short-run]
+    evidence:
+      - claim: 10-copy minimum, shipping to the US and Canada
+        url: https://www.48hrbooks.com/faq
+    capabilities:
+      api: unsupported
+      sandbox: unsupported
+      one_copy_pod: unsupported
+      file_validation: unknown
+      pricing_api: unsupported
+      order_creation: unsupported
+      shipping: supported
+      cancellation: unknown
+      webhooks: unsupported
+      worldwide: unsupported
+      seller_of_record: unsupported
+    unknowns:
+      - none material: the 10-copy minimum rules out one-reader/one-copy
+    notes: Not a one-reader/one-copy adapter; keep as a bulk proof or launch-stock
+      option only.

@@ -568,6 +568,30 @@ def check_edition_manifest() -> None:
         raise SystemExit("selftest: edition manifest blessed a byte mismatch")
 
 
+def check_provider_qualification() -> None:
+    """The provider record is well-formed, and only a passed physical
+    inspection scoped to the edition qualifies a provider: marketing alone
+    and a stale or wrong-edition inspection are refused."""
+
+    from . import qualification as q
+
+    problems = q.validate()
+    if problems:
+        raise SystemExit(f"selftest: provider qualification record invalid: {problems[:2]}")
+    passed = {point: q.PASS for point in q.REQUIRED_CHECKLIST}
+    # A single failed point cannot qualify: the physical gate is real.
+    failed = q.PhysicalInspection("ed1", "lulu", "PB", "US", "inspector",
+                                  {**passed, "barcode": "fail"})
+    qual, probs = q.qualify(failed, "ed1")
+    if qual is not None or not any("not passed" in p for p in probs):
+        raise SystemExit("selftest: qualification honored a failed physical inspection")
+    # A copy inspected against a different edition is stale.
+    other = q.PhysicalInspection("edX", "lulu", "PB", "US", "inspector", passed)
+    qual2, probs2 = q.qualify(other, "ed1")
+    if qual2 is not None or not any("different edition" in p for p in probs2):
+        raise SystemExit("selftest: qualification honored a stale inspection")
+
+
 def check_release_grammar() -> None:
     """The release script's tag validation, exercised without any
     network: exactly vN.x.y, and the composite action's command
@@ -914,6 +938,13 @@ def check_docs() -> None:
             "docs/INVARIANTS.md drifted from quality/invariants.yaml; "
             "regenerate with `press selftest --write-docs`"
         )
+    from . import qualification
+    quals_doc = here.parent.parent / "docs" / "PROVIDER-QUALIFICATION.md"
+    if quals_doc.is_file() and quals_doc.read_text(encoding="utf-8") != qualification.render():
+        raise SystemExit(
+            "docs/PROVIDER-QUALIFICATION.md drifted from quality/providers.yaml; "
+            "regenerate with `press selftest --write-docs`"
+        )
 
 
 def check_invariant_ledger() -> None:
@@ -955,6 +986,7 @@ CHECKS = [
     check_release_grammar,
     check_receipt_chain,
     check_edition_manifest,
+    check_provider_qualification,
     check_coverwrap_detectors,
     check_aesthetic_schema,
     check_contract_mirror,
@@ -969,9 +1001,13 @@ def main(argv: list[str] | None = None) -> int:
     if argv and "--write-docs" in argv:
         docs = Path(__file__).resolve().parent.parent.parent / "docs"
         docs.mkdir(parents=True, exist_ok=True)
+        from . import qualification
         (docs / "REFERENCE.md").write_text(render_reference(), encoding="utf-8")
         (docs / "INVARIANTS.md").write_text(invariants.render(), encoding="utf-8")
-        print(f"wrote {docs / 'REFERENCE.md'} and {docs / 'INVARIANTS.md'}")
+        (docs / "PROVIDER-QUALIFICATION.md").write_text(
+            qualification.render(), encoding="utf-8")
+        print(f"wrote {docs / 'REFERENCE.md'}, {docs / 'INVARIANTS.md'}, "
+              f"and {docs / 'PROVIDER-QUALIFICATION.md'}")
     for check in CHECKS:
         check()
     print(f"Selftest passed: {len(modules())} modules import, arithmetic agrees "

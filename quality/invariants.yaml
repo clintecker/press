@@ -407,3 +407,26 @@ invariants:
       well-formedness of qualification evidence; it does not re-run a
       provider's physical qualification, only reject a qualification whose
       named edition is not this one.
+
+  - id: INV-provider-qualification
+    statement: >-
+      The provider record declares every capability explicitly (an omitted
+      capability is a forbidden implicit claim) and the full physical
+      checklist; a provider is qualified for an edition only by a physical
+      inspection with every checklist point passed, scoped to that
+      edition's identity, so a marketing claim, a failed point, a not-fit
+      provider, and an inspection of a different edition are all refused.
+    risk: >-
+      A book is sold as printable by a provider that cannot produce the
+      exact object, or a qualification survives a production-affecting
+      change to the edition.
+    criticality: standard
+    owner: qualification
+    enforcer: qualification.qualify
+    layers: [selftest, pytest]
+    negative: [check_provider_qualification]
+    ci_tier: quality
+    limitations: >-
+      Validates the record's shape and the physical-gate logic; it cannot
+      confirm a claimed inspection actually happened, only that a
+      qualification carries a passed, edition-scoped inspection digest.

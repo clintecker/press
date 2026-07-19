@@ -62,6 +62,7 @@ modules:
   package_source: {default: producer, overrides: {publication_members: pure, tracked_paths: adapter}}
   process_control: {default: orchestrator, overrides: {default_spawn: adapter}}
   publish: {default: orchestrator, overrides: {}}
+  qualification: {default: verifier, overrides: {load: parser, providers: parser, render: producer}}
   receipts: {default: verifier, overrides: {emit: producer, current_inputs: adapter, to_json: pure, from_json: pure}}
   registrations: {default: parser, overrides: {}}
   registry: {default: orchestrator, overrides: {build_order: pure, condition_holds: pure, download_names: pure}}

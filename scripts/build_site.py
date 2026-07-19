@@ -38,6 +38,7 @@ PAGES = [
     ("docs/REFERENCE.md", "reference.html", "reference"),
     ("docs/CONFIGURATION.md", "configuration.html", "configuration"),
     ("docs/INVARIANTS.md", "invariants.html", "invariants"),
+    ("docs/PROVIDER-QUALIFICATION.md", "provider-qualification.html", "provider qualification"),
     ("docs/COMPATIBILITY.md", "compatibility.html", "compatibility"),
     ("docs/DESK.md", "desk.html", "desk"),
     ("ROADMAP.md", "roadmap.html", "roadmap"),
