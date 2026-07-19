@@ -23,7 +23,7 @@ book repository that consumes this package.
 - `scripts/build_site.py` + `site/press.css` build the press's own
   documentation site (README, docs/, CHANGELOG, CONTRIBUTING through
   pandoc, link-checked); `.github/workflows/docs-site.yml` deploys it
-  to https://clintecker.github.io/press/ on every push to main. The
+  to <https://clintecker.github.io/press/> on every push to main. The
   site carries no hand-written content, so it cannot drift from the
   repo.
 - `.github/workflows/build.yml` is the reusable workflow books call. It

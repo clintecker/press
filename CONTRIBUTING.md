@@ -7,11 +7,13 @@ conventions, artifacts verified as objects, scars become law).
 - Run `press doctor`, then `press selftest`, before and after your
   change; both must be green.
 - Install the local gates once: `pip install -e '.[dev]'` then
-  `pre-commit install`. Every commit then runs ruff (lint plus a
-  cyclomatic-complexity ceiling of 15 for new code), mypy, and the
-  selftest; CI runs the same three, so the hook only saves you the
-  round trip. Functions above the ceiling carry `# noqa: C901` as a
-  tracked inventory, not a license; do not add new ones.
+  `pre-commit install`. Every commit then lints every checked-in
+  format: ruff (with a cyclomatic-complexity ceiling of 15 for new
+  code), mypy, shellcheck, yamllint, pymarkdown, TOML/JSON validity,
+  and the selftest. CI runs the identical battery via
+  `pre-commit run --all-files`, so the hook only saves you the round
+  trip. Functions above the complexity ceiling carry `# noqa: C901`
+  as a tracked inventory, not a license; do not add new ones.
 - Prove changes against a real book: scaffold one (`press new`) or use
   your own, and run `press all`. A green `pip install` is not a
   working pipeline.

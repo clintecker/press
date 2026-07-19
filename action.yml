@@ -2,7 +2,7 @@ name: press
 description: >-
   Install the press from this action's own checkout and run a press target
   against the calling book repository. Because GitHub materializes the action
-  repository onto the runner, a private book can use the private press with
+  repository onto the runner, even a private book can use the press with
   no cross-repo token.
 inputs:
   command:
@@ -14,6 +14,18 @@ runs:
     - name: Install press
       shell: bash
       run: python3 -m pip install --quiet --break-system-packages "$GITHUB_ACTION_PATH"
-    - name: Run press ${{ inputs.command }}
+    - name: Run press
       shell: bash
-      run: python3 -m press ${{ inputs.command }}
+      env:
+        # The input reaches the script as an environment value, never
+        # interpolated into shell text, so metacharacters are data.
+        PRESS_COMMAND: ${{ inputs.command }}
+      run: |
+        if ! [[ "$PRESS_COMMAND" =~ ^[a-z][a-z0-9-]*( [A-Za-z0-9._/=-]+)*$ ]]; then
+          echo "press action: refusing command input: $PRESS_COMMAND"
+          echo "targets are lowercase words with plain path/flag arguments;"
+          echo "shell syntax is not part of the grammar"
+          exit 2
+        fi
+        read -r -a argv <<< "$PRESS_COMMAND"
+        python3 -m press "${argv[@]}"

@@ -23,7 +23,7 @@ file drifts from the machinery it describes.
 
 ## Targets
 
-```
+```text
 usage: press <target>
 
 building        pdf epub html markdown site txt docx pages source all

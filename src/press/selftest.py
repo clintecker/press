@@ -99,12 +99,56 @@ def check_source_policy() -> None:
                 raise AssertionError("secret file did not block the archive")
             (book / ".env").unlink()
             package_source.main()
-            with zipfile.ZipFile(book / "dist" / "policy-proof-source.zip") as archive:
+            source_zip = book / "dist" / "policy-proof-source.zip"
+            with zipfile.ZipFile(source_zip) as archive:
                 names = archive.namelist()
                 assert not any("escape" in n for n in names), "symlink archived"
                 deflated = [i for i in archive.infolist()
                             if i.compress_type == zipfile.ZIP_DEFLATED]
                 assert deflated, "no member was deflated"
+
+            from . import verify_archives
+
+            # The audit's damage pair for archives: an appended member
+            # the policy did not admit, and untracked private files,
+            # must both fail digest-exact verification.
+            assert verify_archives.verify_source_zip(source_zip, "policy-proof") == []
+            with zipfile.ZipFile(source_zip, "a") as archive:
+                archive.writestr("policy-proof/private-notes.md", "not for anyone")
+            appended = verify_archives.verify_source_zip(source_zip, "policy-proof")
+            assert any("did not admit" in f for f in appended), appended
+
+            import subprocess as sp
+
+            sp.run(["git", "init", "-q"], cwd=book, check=True)
+            sp.run(["git", "add", "-A"], cwd=book, check=True)
+            sp.run(
+                ["git", "-c", "user.email=proof@press", "-c", "user.name=Proof",
+                 "commit", "-qm", "fixture"],
+                cwd=book, check=True,
+            )
+            (book / "private-working-notes.md").write_text("draft", encoding="utf-8")
+            package_source.main()
+            with zipfile.ZipFile(source_zip) as archive:
+                assert not any("private-working-notes" in n for n in archive.namelist()), (
+                    "untracked file published"
+                )
+            assert verify_archives.verify_source_zip(source_zip, "policy-proof") == []
+
+            # A flipped byte inside a site zip member is a different book.
+            site_dir = book / "dist" / "site"
+            site_dir.mkdir(parents=True)
+            (site_dir / "index.html").write_text("<html>true text</html>", encoding="utf-8")
+            import shutil as sh
+
+            sh.make_archive(str(book / "dist" / "policy-proof-site"), "zip",
+                            root_dir=book / "dist", base_dir="site")
+            site_zip = book / "dist" / "policy-proof-site.zip"
+            assert verify_archives.verify_site_zip(site_zip, site_dir) == []
+            with zipfile.ZipFile(site_zip, "w") as archive:
+                archive.writestr("site/index.html", "<html>trxe text</html>")
+            tampered = verify_archives.verify_site_zip(site_zip, site_dir)
+            assert any("bytes disagree" in f for f in tampered), tampered
 
 
 def check_format_witnesses() -> None:
@@ -123,6 +167,53 @@ def check_format_witnesses() -> None:
     corrupted = xml.replace(b"survives", b"vanished from")
     assert "line survives" not in docx_visible_text(corrupted)
     assert normalized("The \u201cWitness\u201d") == 'the "witness"'
+
+    # The audit's damage case for site identity: a duplicated chapter
+    # page must fail on its witness appearing twice, and a removed
+    # chapter must fail on its witness appearing nowhere.
+    import shutil
+    import tempfile
+
+    from . import scaffold, verify_formats
+
+    with tempfile.TemporaryDirectory() as tmp:
+        book = Path(tmp) / "identity-proof"
+        scaffold.main([str(book), "--author", "Identity Prover"])
+        chapter = book / "book" / "chapters" / "01-first.md"
+        chapter.write_text(
+            "# First\n\nThe first chapter carries this exact identity "
+            "line and no other chapter repeats it anywhere.\n"
+        )
+        site = book / "dist" / "site"
+        site.mkdir(parents=True)
+        (site / "index.html").write_text("<html><body>contents</body></html>")
+        (site / "reader.css").write_text("body{}")
+        with _borrow_book(book):
+            from . import booklib
+
+            witnesses = verify_formats.chapter_witnesses()
+            for name, witness in witnesses.items():
+                (site / name.replace(".md", ".html")).write_text(
+                    f"<html><body><p>{witness}</p>"
+                    f"<p>{booklib.book().title}</p></body></html>"
+                )
+            verify_formats.verify_site(site)
+            shutil.copy(site / "01-first.html", site / "duplicate-chapter.html")
+            try:
+                verify_formats.verify_site(site)
+            except SystemExit as exc:
+                assert "duplicates" in str(exc), exc
+            else:
+                raise AssertionError("duplicated chapter page passed verify_site")
+            (site / "duplicate-chapter.html").unlink()
+            page = site / "01-first.html"
+            page.write_text("<html><body>replaced with other words</body></html>")
+            try:
+                verify_formats.verify_site(site)
+            except SystemExit as exc:
+                assert "missing" in str(exc), exc
+            else:
+                raise AssertionError("missing chapter text passed verify_site")
 
 
 def check_authorities_ledger() -> None:
@@ -263,6 +354,47 @@ def check_honest_refusals() -> None:
                 )
 
 
+def check_release_grammar() -> None:
+    """The release script's tag validation, exercised without any
+    network: exactly vN.x.y, and the composite action's command
+    grammar rejects shell syntax."""
+
+    import subprocess
+
+    script = Path(__file__).resolve().parent.parent.parent / "scripts" / "release.sh"
+    if not script.is_file():
+        return  # installed wheel; the script ships with the repo only
+    good = ["v1.0.0", "v0.0.1", "v10.20.30"]
+    bad = ["v1.0", "v1.0.0.0", "v1.0.0-rc1", "v1.0.0x", "v01.0.0",
+           "1.0.0", "v1..0", "v1.0.0 "]
+    for tag in good:
+        result = subprocess.run(["bash", str(script), "--check-tag", tag],
+                                capture_output=True)
+        if result.returncode != 0:
+            raise SystemExit(f"selftest: release grammar rejected valid {tag!r}")
+    for tag in bad:
+        result = subprocess.run(["bash", str(script), "--check-tag", tag],
+                                capture_output=True)
+        if result.returncode == 0:
+            raise SystemExit(f"selftest: release grammar accepted invalid {tag!r}")
+
+    action = script.parent.parent / "action.yml"
+    text = action.read_text(encoding="utf-8")
+    if "${{ inputs.command }}" in text.split("env:")[-1].split("run:")[-1]:
+        raise SystemExit(
+            "selftest: action.yml interpolates inputs.command into shell text"
+        )
+    # The action's grammar, proven against the audit's injection string.
+    import re as re_mod
+
+    grammar = re_mod.compile(r"^[a-z][a-z0-9-]*( [A-Za-z0-9._/=-]+)*$")
+    assert grammar.match("all")
+    assert grammar.match("art accept art/candidates/cover-1.png --as=cover")
+    assert not grammar.match("all; touch /tmp/pwned")
+    assert not grammar.match("all && rm -rf .")
+    assert not grammar.match("$(id)")
+
+
 def check_registry() -> None:
     """The artifact graph is acyclic, outputs are unique, and every
     published artifact resolves to concrete filenames."""
@@ -378,6 +510,31 @@ def check_pages_verifier() -> None:
         broken = verify_pages.crawl(pages, ["sentinel phrase"], ["proof.pdf"], "Proof Book")
         assert any("missing.html" in f for f in broken), broken
         assert any("ghost.jpg" in f for f in broken), broken
+        # The audit's deliberate-damage pair: a dead fragment anchor and
+        # a stylesheet url() pointing at nothing must both be findings.
+        (pages / "index.html").write_text(
+            '<html><body>Proof Book <a href="read/index.html">read</a> '
+            '<a href="#missing-fragment">dead anchor</a> '
+            '<a href="read/index.html#nowhere">dead cross-page</a> '
+            '<a href="downloads/proof.pdf">pdf</a></body></html>',
+            encoding="utf-8",
+        )
+        (pages / "reader.css").write_text(
+            "body { background: url(missing.png); }", encoding="utf-8"
+        )
+        damaged = verify_pages.crawl(pages, ["sentinel phrase"], ["proof.pdf"], "Proof Book")
+        assert any("missing-fragment" in f for f in damaged), damaged
+        assert any("nowhere" in f for f in damaged), damaged
+        assert any("missing.png" in f for f in damaged), damaged
+        (pages / "reader.css").unlink()
+        (pages / "index.html").write_text(
+            '<html><body id="top">Proof Book <a href="#top">top</a> '
+            '<a href="read/index.html">read</a> '
+            '<a href="downloads/proof.pdf">pdf</a></body></html>',
+            encoding="utf-8",
+        )
+        sound = verify_pages.crawl(pages, ["sentinel phrase"], ["proof.pdf"], "Proof Book")
+        assert sound == [], sound
 
 
 def check_arithmetic() -> None:
@@ -419,7 +576,7 @@ def render_reference() -> str:
             f"| {a.name} | {', '.join(a.outputs)} | "
             f"{', '.join(a.prerequisites) or '-'} | {published} |"
         )
-    lines += ["", "## Targets", "", "```", cli.USAGE.strip(), "```", ""]
+    lines += ["", "## Targets", "", "```text", cli.USAGE.strip(), "```", ""]
     return "\n".join(lines)
 
 
@@ -471,6 +628,7 @@ def main(argv: list[str] | None = None) -> int:
     check_format_witnesses()
     check_authorities_ledger()
     check_honest_refusals()
+    check_release_grammar()
     check_docs()
     print(f"Selftest passed: {len(modules())} modules import, arithmetic agrees "
           "with the canonical examples, usage and README name every target")

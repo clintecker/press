@@ -1075,4 +1075,3 @@ Fatal defects:
 - generic filler carrying the main argument;
 - flattened or fabricated voice;
 - visible assistant instructions or placeholder residue.
-

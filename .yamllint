@@ -1,0 +1,13 @@
+# Structural YAML linting; style rules that fight GitHub Actions
+# idiom (bare `on:`, long uses: lines) are tuned, not fought.
+extends: default
+rules:
+  line-length: disable
+  document-start: disable
+  truthy:
+    check-keys: false
+  comments:
+    min-spaces-from-content: 1
+  indentation:
+    spaces: 2
+    indent-sequences: consistent

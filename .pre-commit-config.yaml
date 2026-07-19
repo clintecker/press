@@ -1,11 +1,45 @@
-# The same three gates CI runs, before the commit exists. Install once:
+# Every checked-in file format has its linter, and the same gates run
+# before the commit exists and in CI (the quality job runs
+# `pre-commit run --all-files`). Install once:
 #   pip install -e '.[dev]' && pre-commit install
+#
+# JS (data/workflows/*.js) and CSS have no pip-installable linter;
+# their gates are the workflow runtime's own parser and the site
+# link-checker respectively, until a Node toolchain is deliberately
+# adopted.
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-json
+      - id: check-added-large-files
+        args: ["--maxkb=600"]
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        # the scaffold template carries {{PLACEHOLDER}} lines; it is a
+        # template, not YAML, until press new renders it.
+        exclude: "src/press/data/template/"
+  - repo: https://github.com/jackdewinter/pymarkdown
+    rev: v0.9.25
+    hooks:
+      - id: pymarkdown
+        args: ["--config", ".pymarkdown.json", "scan"]
+        # known-bad fixtures are deliberately defective; linting them
+        # to cleanliness would defeat their purpose.
+        exclude: "known-bad/"
   - repo: local
     hooks:
       - id: ruff
         name: ruff (lint + complexity gate)
-        entry: ruff check src/press
+        entry: ruff check src/press scripts
         language: system
         pass_filenames: false
       - id: mypy

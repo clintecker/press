@@ -1,11 +1,14 @@
-name: Build toolchain image
-
 # Pull requests that touch the toolchain build the image and smoke it
-# without publishing; main builds, smokes the same build, and only
-# then pushes. The smoke proves every promised binary actually
-# executes inside the container (binfmt taught us that existence and
-# executability are different facts) and that a minimal book builds
-# and verifies with the press installed from this checkout.
+# with read-only permissions and no registry credentials: PR jobs
+# build contributor-controlled Dockerfile changes, so they hold no
+# package-write surface at all. Main builds once, smokes that exact
+# local image, and only then logs in and pushes the very same image
+# object with docker push, never a second build, so the published
+# digest is mechanically the digest that passed. The smoke itself
+# lives in scripts/toolchain_smoke.sh, shared by both paths so they
+# cannot drift.
+
+name: Build toolchain image
 
 on:
   push:
@@ -13,10 +16,12 @@ on:
     paths:
       - Dockerfile
       - .github/workflows/toolchain.yml
+      - scripts/toolchain_smoke.sh
   pull_request:
     paths:
       - Dockerfile
       - .github/workflows/toolchain.yml
+      - scripts/toolchain_smoke.sh
   workflow_dispatch:
 
 concurrency:
@@ -27,75 +32,59 @@ concurrency:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
-  image:
+  smoke:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Log in to GHCR
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build for smoke (no push)
+      - name: Build for smoke (no push, no credentials)
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           push: false
           load: true
-          tags: press-toolchain:smoke
-      - name: Every promised tool executes
-        run: |
-          docker run --rm press-toolchain:smoke bash -euo pipefail -c '
-            for tool in pandoc lualatex latexmk pdftoppm pdffonts pdfinfo pdftotext git make; do
-              command -v "$tool" > /dev/null || { echo "missing: $tool"; exit 1; }
-              "$tool" --version > /dev/null 2>&1 || "$tool" -v > /dev/null 2>&1 \
-                || { echo "cannot execute: $tool"; exit 1; }
-              echo "executes: $tool"
-            done
-            python3 -c "import PIL, yaml, pypdf; print(\"PIL\", PIL.__version__, \"pypdf\", pypdf.__version__)"
-            fc-list : family > /tmp/fonts.txt
-            grep -qi "Libertine" /tmp/fonts.txt && echo "Libertine faces present"
-            test "$PRESS_TOOLCHAIN" = "1" && echo "PRESS_TOOLCHAIN promise set"
-          '
-      - name: epubcheck really runs
-        run: |
-          docker run --rm press-toolchain:smoke bash -euo pipefail -c '
-            cd /tmp
-            python3 - <<PY
-          import zipfile
-          with zipfile.ZipFile("broken.epub", "w") as z:
-              z.writestr("mimetype", "application/epub+zip")
-              z.writestr("META-INF/container.xml", "<container/>")
-          PY
-            if epubcheck broken.epub > out.txt 2>&1; then
-              echo "epubcheck approved a broken epub" && exit 1
-            fi
-            grep -qi "error" out.txt && echo "epubcheck executes and rejects"
-          '
-      - name: A minimal book builds and verifies inside the image
-        run: |
-          docker run --rm -v "$PWD":/press press-toolchain:smoke bash -euo pipefail -c '
-            python3 -m pip install --break-system-packages -q /press
-            cd /tmp && press new smoke-proof --author "Smoke Proof"
-            cd smoke-proof
-            press pdf && press verify
-            press epub && press verify-formats
-          '
-      - name: Publish (main only)
-        if: github.event_name != 'pull_request'
+          tags: press-toolchain:candidate
+      - name: Smoke the candidate
+        run: scripts/toolchain_smoke.sh press-toolchain:candidate "$PWD"
+
+  publish:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Build once
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
-          push: true
-          # :latest floats for development; the sha tag is immutable and
-          # is what a release's build.yml pins, so a three-part press
-          # tag resolves the same toolchain bytes forever. The push
-          # reuses the smoked build's cache, so the published layers are
-          # the layers that passed.
-          tags: |
-            ghcr.io/clintecker/press-toolchain:latest
-            ghcr.io/clintecker/press-toolchain:sha-${{ github.sha }}
+          push: false
+          load: true
+          tags: press-toolchain:candidate
+      - name: Smoke the exact image that will publish
+        run: scripts/toolchain_smoke.sh press-toolchain:candidate "$PWD"
+      - name: Log in to GHCR (after the smoke, never before)
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish the smoked image object
+        run: |
+          # docker push of the same local image, never a second build:
+          # the pushed layers are byte-for-byte the layers that passed.
+          smoked_id=$(docker image inspect -f '{{.Id}}' press-toolchain:candidate)
+          docker tag press-toolchain:candidate ghcr.io/clintecker/press-toolchain:latest
+          docker tag press-toolchain:candidate "ghcr.io/clintecker/press-toolchain:sha-$GITHUB_SHA"
+          docker push ghcr.io/clintecker/press-toolchain:latest
+          docker push "ghcr.io/clintecker/press-toolchain:sha-$GITHUB_SHA"
+          published_id=$(docker image inspect -f '{{.Id}}' "ghcr.io/clintecker/press-toolchain:sha-$GITHUB_SHA")
+          test "$smoked_id" = "$published_id" || { echo "published image is not the smoked image"; exit 1; }
+          digest=$(docker image inspect -f '{{index .RepoDigests 0}}' "ghcr.io/clintecker/press-toolchain:sha-$GITHUB_SHA" || true)
+          echo "smoked image id: $smoked_id"
+          echo "published: $digest"

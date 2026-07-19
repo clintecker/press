@@ -9,7 +9,42 @@ audit).
 
 ## [Unreleased]
 
+### Changed
+
+- Boundary integrity, first half (the v1.10 milestone's verifier and
+  CI groups). Public artifacts: source publication is now an
+  allowlist (git's tracked files, inside a repo) stated once in
+  `publication_members()` and consumed by both the packager and the
+  archive verifier, so an appended member, an untracked private
+  file, or a flipped byte each fail digest-exact verification
+  (#12, #23); the pages crawler follows stylesheet `url()` assets
+  and fragment anchors (#10); the reader site proves per-chapter
+  identity witnesses (a duplicated or missing chapter page fails by
+  name) and an underivable manuscript witness is a refusal, not a
+  free pass (#20). CI: pull-request toolchain smokes run with read
+  permissions and no registry credentials, and main publishes the
+  exact smoked image object with docker push, never a second build
+  (#67, #27); the composite action passes its command input as an
+  environment value matched against a target grammar, so shell
+  metacharacters are data (#68); the release script validates strict
+  SemVer, preflights remote state, resumes idempotently after any
+  failed step, and does not float the major until the immutable
+  tag's contract is green (#69, #70). Every audit-3 damage exploit
+  is now a selftest fixture.
+- Contact and imprint identity: the security contact is
+  clint@lgtm.systems, the license holder is LGTM Systems, LLC, and
+  books appear under the LGTM Publishing imprint.
+
 ### Added
+
+- Every checked-in format has a linter, locally and in CI:
+  shellcheck, yamllint, pymarkdown (frontmatter-aware; known-bad
+  fixtures excluded on purpose), TOML/JSON validity, and
+  merge-conflict/large-file guards join ruff, mypy, and the selftest
+  in pre-commit; the CI quality job runs the identical battery via
+  `pre-commit run --all-files`.
+- docs/TUI-PLAN.md records the press desk design (Textual, screens,
+  integration laws, first milestone) from the three research passes.
 
 - Full CSS freedom for a book's web surfaces: `assets/web/reader.css`
   replaces the house reader stylesheet outright and

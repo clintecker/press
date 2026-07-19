@@ -4,12 +4,16 @@ The reader zip, the source zip, and the sources companion were built
 and published but never verified: a reader zip could disagree with the
 verified reader directory, a source zip could carry an escaping path,
 and the companion could be an empty file with a good name. Each is now
-held to its contract, and extraction-style checks never trust a member
-name that would land outside its prefix.
+held to its contract byte for byte: the reader zip must digest-match
+the verified reader directory, the source zip must contain exactly
+what the publication policy admits (the same function the packager
+ran) with matching digests, and extraction-style checks never trust a
+member name that would land outside its prefix.
 """
 
 from __future__ import annotations
 
+import hashlib
 import zipfile
 from pathlib import Path
 
@@ -22,20 +26,29 @@ def member_safe(name: str, prefix: str) -> bool:
     return name == prefix or name.startswith(prefix + "/") or prefix == ""
 
 
+def _digest(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
 def verify_site_zip(archive_path: Path, site_dir: Path) -> list[str]:
-    """The boxed reader must be exactly the verified reader directory."""
+    """The boxed reader must be exactly the verified reader directory,
+    proven by digest, not by name and size: a flipped byte in a member
+    is a different book."""
 
     failures: list[str] = []
     expected = {
-        str(p.relative_to(site_dir.parent)): p.stat().st_size
+        str(p.relative_to(site_dir.parent)): _digest(p.read_bytes())
         for p in sorted(site_dir.rglob("*")) if p.is_file()
     }
     with zipfile.ZipFile(archive_path) as archive:
-        members = {i.filename: i.file_size for i in archive.infolist()
-                   if not i.is_dir()}
-    for name in members:
-        if not member_safe(name, "site"):
-            failures.append(f"site zip member escapes its prefix: {name}")
+        members = {}
+        for info in archive.infolist():
+            if info.is_dir():
+                continue
+            if not member_safe(info.filename, "site"):
+                failures.append(f"site zip member escapes its prefix: {info.filename}")
+                continue
+            members[info.filename] = _digest(archive.read(info.filename))
     missing = sorted(set(expected) - set(members))
     surplus = sorted(set(members) - set(expected))
     if missing:
@@ -44,35 +57,52 @@ def verify_site_zip(archive_path: Path, site_dir: Path) -> list[str]:
     if surplus:
         failures.append(f"site zip carries {len(surplus)} files the reader "
                         f"does not (first: {surplus[0]})")
-    mismatched = [n for n in expected.keys() & members.keys()
-                  if expected[n] != members[n]]
+    mismatched = sorted(n for n in expected.keys() & members.keys()
+                        if expected[n] != members[n])
     if mismatched:
-        failures.append(f"site zip disagrees with the reader on "
-                        f"{len(mismatched)} files (first: {sorted(mismatched)[0]})")
+        failures.append(f"site zip bytes disagree with the reader on "
+                        f"{len(mismatched)} files (first: {mismatched[0]})")
     return failures
 
 
 def verify_source_zip(archive_path: Path, slug: str) -> list[str]:
-    """Every member beneath the slug prefix, deflated, and policy-clean."""
+    """Exactly the members the publication policy admits, digest for
+    digest. The expectation is recomputed from the same
+    publication_members() the packager ran, so an appended member, a
+    missing member, or altered bytes each fail by name."""
 
-    from .package_source import JUNK_PATTERNS, SECRET_PATTERNS
-    import fnmatch
+    from .package_source import publication_members
 
     failures: list[str] = []
+    root = booklib.root()
+    expected = {
+        f"{slug}/{relative}": _digest(path.read_bytes())
+        for path, relative in publication_members(root)[0]
+    }
+    members: dict[str, str] = {}
     with zipfile.ZipFile(archive_path) as archive:
         for info in archive.infolist():
             if info.is_dir():
                 continue
             if not member_safe(info.filename, slug):
                 failures.append(f"source zip member escapes its prefix: {info.filename}")
+                continue
             if info.compress_type != zipfile.ZIP_DEFLATED:
                 failures.append(f"source zip member not deflated: {info.filename}")
-            base = Path(info.filename).name
-            for pattern in SECRET_PATTERNS + JUNK_PATTERNS:
-                if fnmatch.fnmatch(base, pattern):
-                    failures.append(
-                        f"source zip carries a policy-refused file: {info.filename}"
-                    )
+            members[info.filename] = _digest(archive.read(info.filename))
+    missing = sorted(set(expected) - set(members))
+    surplus = sorted(set(members) - set(expected))
+    if missing:
+        failures.append(f"source zip is missing {len(missing)} files the "
+                        f"policy admits (first: {missing[0]})")
+    if surplus:
+        failures.append(f"source zip carries {len(surplus)} files the "
+                        f"policy did not admit (first: {surplus[0]})")
+    mismatched = sorted(n for n in expected.keys() & members.keys()
+                        if expected[n] != members[n])
+    if mismatched:
+        failures.append(f"source zip bytes disagree with the repository on "
+                        f"{len(mismatched)} files (first: {mismatched[0]})")
     return failures
 
 
