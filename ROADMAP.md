@@ -47,9 +47,9 @@ shadow issue tracker.
 
 The current compatible release train, ordered by intended delivery. Each milestone accumulates proof from the milestones before it.
 
-#### [v1.14 — Accumulated delivery trust](https://github.com/clintecker/press/milestone/10) · Open
+#### [v1.15.2 — Delivery trust completion](https://github.com/clintecker/press/milestone/10) · Open
 
-Accumulated delivery/release trust: clean installed distributions, chained machine-verifiable trust receipts, ordered CI gates, mutation/sabotage ratchets, invariant-aware test impact, live second-party boundaries, and release identity across commit/wheel/action/image/artifacts/tag. Milestone/issues: <https://github.com/clintecker/press/milestone/10>. Prerequisites: <https://github.com/clintecker/press/milestone/8> and <https://github.com/clintecker/press/milestone/9>. Receipt chain: <https://github.com/clintecker/press/issues/93>. Layered CI: <https://github.com/clintecker/press/issues/94>. Release gate: <https://github.com/clintecker/press/issues/97>.
+The delivery-trust work deferred from the v1.14.0/v1.15.1 releases, rescheduled here because it ships on top of v1.15 as a patch, not as v1.14.x. Remaining: the layered CI reorder that emits a receipt per trust layer (<https://github.com/clintecker/press/issues/94)>, which completes the per-layer prerequisite chain the release-identity gate (shipped in v1.15.1) already stands on (<https://github.com/clintecker/press/issues/97)>; the mutation-score ratchet, whose sabotage half shipped (<https://github.com/clintecker/press/issues/95)>; the branch-coverage ratchet, whose change-impact mapper shipped (<https://github.com/clintecker/press/issues/96)>; and the live second-party proofs, which need a second GitHub identity and are documented for a human to run (<https://github.com/clintecker/press/issues/87)>.
 
 ### Future and breaking horizons
 
