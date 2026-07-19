@@ -11,6 +11,23 @@ audit).
 
 Nothing yet.
 
+## [1.15.1] - 2026-07-19
+
+### Added
+
+- The release boundary verifies accumulated provenance, not just a
+  green workflow name. A release receipt names the source commit, the
+  built wheel digest, the pinned toolchain image, and the quality
+  manifest digests; the release contract builds the wheel on the clean
+  tagged checkout, assembles the receipt, and refuses a chain that is
+  not clean-tree or whose package or toolchain does not match the
+  objects actually built and pinned, so a deliberate commit, wheel, or
+  image substitution turns the release gate red. Because the contract
+  must be green before the floating major moves, the identity gate is
+  enforced before the tag floats. Part of the accumulated-delivery-trust
+  work (#97); the full per-layer receipt chain follows with the
+  layered-CI change.
+
 ## [1.15.0] - 2026-07-19
 
 ### Added
