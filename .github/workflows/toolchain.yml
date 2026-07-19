@@ -44,17 +44,16 @@ jobs:
       - name: Every promised tool executes
         run: |
           docker run --rm press-toolchain:smoke bash -euo pipefail -c '
-            pandoc --version | head -1
-            lualatex --version | head -1
-            latexmk --version | head -1
-            pdftoppm -v 2>&1 | head -1
-            pdffonts -v 2>&1 | head -1
-            pdfinfo -v 2>&1 | head -1
-            pdftotext -v 2>&1 | head -1
-            git --version && make --version | head -1
+            for tool in pandoc lualatex latexmk pdftoppm pdffonts pdfinfo pdftotext git make; do
+              command -v "$tool" > /dev/null || { echo "missing: $tool"; exit 1; }
+              "$tool" --version > /dev/null 2>&1 || "$tool" -v > /dev/null 2>&1 \
+                || { echo "cannot execute: $tool"; exit 1; }
+              echo "executes: $tool"
+            done
             python3 -c "import PIL, yaml, pypdf; print(\"PIL\", PIL.__version__, \"pypdf\", pypdf.__version__)"
-            fc-list | grep -qi "Libertine" && echo "Libertine faces present"
-            printf "%s" "$PRESS_TOOLCHAIN" | grep -q 1 && echo "PRESS_TOOLCHAIN promise set"
+            fc-list : family > /tmp/fonts.txt
+            grep -qi "Libertine" /tmp/fonts.txt && echo "Libertine faces present"
+            test "$PRESS_TOOLCHAIN" = "1" && echo "PRESS_TOOLCHAIN promise set"
           '
       - name: epubcheck really runs
         run: |

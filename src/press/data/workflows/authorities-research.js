@@ -43,11 +43,11 @@ CLAIM (as the text asserts it): ${c.assertion}
 EXACT TEXT FRAGMENT: "${c.fragment}" (in ${ROOT}/${c.file})
 
 Use web search to find a real, checkable authority: a published book, scholarly article, museum or archive page, or standard reference that supports the claim. Prefer primary or classic sources (e.g. Moxon's Mechanick Exercises, trade histories, OED etymologies) over blogs. Then judge honestly:
-- If the claim is supported: give the authority as a short citation (author, title, year; add publisher or archive only if needed to find it) and one dry line on what it establishes.
+- If the claim is supported: give the authority as a short citation (author, title, year; add publisher or archive only if needed to find it), a stable url (the canonical page, archive record, or DOI; omit only if the work has no durable online locator), and one dry line on what it establishes.
 - If the claim is PARTLY right or commonly repeated but disputed: say so and give the best source with a caveat note.
 - If you cannot find real support: verdict "unsupported". Do not invent citations; an invented authority is worse than none.`,
   { label: `research:${c.fragment.slice(0, 24)}`, phase: 'Research',
-    schema: { type: 'object', properties: { verdict: { enum: ['supported', 'caveat', 'unsupported'] }, authority: { type: 'string' }, note: { type: 'string' } }, required: ['verdict'] } }
+    schema: { type: 'object', properties: { verdict: { enum: ['supported', 'caveat', 'unsupported'] }, authority: { type: 'string' }, url: { type: 'string' }, note: { type: 'string' } }, required: ['verdict'] } }
 ).then(r => ({ ...c, ...r }))))
 const sourced = researched.filter(Boolean)
 log(`${sourced.filter(x => x.verdict !== 'unsupported').length}/${sourced.length} claims sourced`)
@@ -74,10 +74,10 @@ phase('Ledger')
 const result = await agent(
 `Work in the book repository at ${ROOT}. Write its table of authorities and prove the build accepts it.
 
-1. Write ${ROOT}/config/authorities.yaml as a YAML list; for each entry below use keys claim (the exact fragment), authority, and note (omit note if empty). Keep the fragments EXACTLY as given; the build verifies them against the text and fails on any mismatch. If a fragment does not appear verbatim in its file (check with grep after whitespace-normalizing), shorten it to a substring that does.
+1. Write ${ROOT}/config/authorities.yaml as a YAML list; for each entry below use keys claim (the exact fragment), file (the manuscript path as given), authority, url (omit if none), and note (omit if empty). The build validates this exact schema: the claim must appear exactly once in its declared file. Keep the fragments EXACTLY as given; the build verifies them against the text and fails on any mismatch. If a fragment does not appear verbatim in its file (check with grep after whitespace-normalizing), shorten it to a substring that does.
 
 ENTRIES:
-${JSON.stringify(good.map(x => ({ claim: x.fragment, file: x.file, authority: x.authority, note: x.note || '' })), null, 2)}
+${JSON.stringify(good.map(x => ({ claim: x.fragment, file: x.file, authority: x.authority, url: x.url || '', note: x.note || '' })), null, 2)}
 
 2. Run \`${PRESS} pdf\` from ${ROOT}. If the authorities generator rejects a claim, fix that entry's fragment and rerun until the build passes.
 
