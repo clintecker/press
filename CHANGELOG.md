@@ -30,6 +30,18 @@ audit).
   The link check covers stylesheet url() references as well as page
   hrefs.
 
+### Changed
+
+- The press repository is public (2026-07-19), and the repository
+  boundary matrix is proven with real repositories (#37):
+  `press-smoke` is the standing boundary fixture, exercised as a
+  private consumer (minimum permissions plus the toolchain grant),
+  as a public consumer (anonymous action fetch, zero owner-specific
+  setup), through a cross-boundary Pages deployment, and through a
+  witness-gate refusal on a vacuous release tag. Fork-PR posture is
+  proven mechanically (no pull_request_target, default read token,
+  per-job least privilege); the live second-party proofs are #87.
+
 ### Fixed
 
 - Bad input now gets a named refusal, never a traceback or an

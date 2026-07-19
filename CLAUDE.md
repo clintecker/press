@@ -15,8 +15,11 @@ book repository that consumes this package.
   known-bad fixtures, and the new-book template.
 - `action.yml` is a composite action: a book's CI does
   `uses: clintecker/press@v1` and the press installs itself from the
-  action's own checkout. That is what lets a private book use the private
-  press with no cross-repo token; do not replace it with pip-from-git.
+  action's own checkout. The press repo is public
+  (since 2026-07-19; proven by press-smoke, the standing boundary
+  fixture), but self-checkout install is still the law: it keeps a
+  private book working with no cross-repo token and pins the installed
+  press to the exact action ref; do not replace it with pip-from-git.
 - `scripts/build_site.py` + `site/press.css` build the press's own
   documentation site (README, docs/, CHANGELOG, CONTRIBUTING through
   pandoc, link-checked); `.github/workflows/docs-site.yml` deploys it
