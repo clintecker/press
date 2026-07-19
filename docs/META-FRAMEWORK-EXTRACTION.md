@@ -202,7 +202,7 @@ have already stabilized.
 The framework kernel should own only domain-neutral concepts:
 
 ```text
-trustforge-core/
+celebrimbor-core/
 ├── artifacts       # declarations, dependency graph, identities
 ├── invariants      # claims, applicability, severity, limitations
 ├── proofs          # proof declarations, results, diagnostics
@@ -214,15 +214,20 @@ trustforge-core/
 ├── projection      # render/reconcile contracts and drift
 └── serialization   # versioned canonical schemas
 
-pytest-trustforge/   # collection gates, markers, properties, state models
-trustforge-python/   # wheel, sdist, entry-point, import, metadata proofs
-trustforge-github/   # Actions evidence and GitHub projections
-trustforge-container/# image, labels, SBOM, provenance proofs
-trustforge-cli/      # graph, verify, explain, doctor, receipt commands
+pytest-celebrimbor/   # collection gates, markers, properties, state models
+celebrimbor-python/   # wheel, sdist, entry-point, import, metadata proofs
+celebrimbor-github/   # Actions evidence and GitHub projections
+celebrimbor-container/# image, labels, SBOM, provenance proofs
+celebrimbor-cli/      # graph, verify, explain, doctor, receipt commands
 ```
 
-`trustforge` is a working name only. Naming should wait until the extracted
-contract and audience are clear.
+`Celebrimbor` is the working project and CLI name: a maker-centered name for a
+system concerned with the identity, proof, and integrity of things produced.
+Python distribution names should use the lowercase `celebrimbor-*` family while
+prose retains the proper name. Because Celebrimbor comes from Tolkien's
+legendarium, public release still requires an explicit trademark, package-name,
+and project-name availability review; the internal architecture must not depend
+on the name surviving that gate.
 
 Press would depend on the kernel and supply a publishing plugin containing book
 models, Pandoc/TeX builders, PDF/EPUB/site verifiers, print geometry, editorial
@@ -261,7 +266,7 @@ Invariant(
     statement="The wheel operates without a source checkout",
     applies_to=("python.wheel", "release"),
     required_layers=("L2", "L6"),
-    enforcers=("trustforge_python.clean_install",),
+    enforcers=("celebrimbor_python.clean_install",),
     negative_proofs=("wheel_missing_package_data",),
     severity="release-blocking",
     limitation="Does not prove optional extras not selected by the matrix",
@@ -516,18 +521,18 @@ inventing a new wheel format implementation.
 Candidate commands:
 
 ```text
-trustforge graph                    show artifacts and prerequisites
-trustforge invariants               show claims, layers, and proof coverage
-trustforge explain <invariant>      explain enforcement, evidence, limitation
-trustforge verify <artifact>        build prerequisites and verify the object
-trustforge damage <artifact>        run applicable negative operators
-trustforge doctor                   return/render typed capability findings
-trustforge receipt <stage>          emit canonical evidence for a stage
-trustforge receipt verify <file>    verify schema, subjects, and predecessor chain
-trustforge projection check         detect local projection drift
-trustforge projection check-remote  compare remote projections read-only
-trustforge projection apply <id>    explicitly reconcile one target
-trustforge release check            consume the complete release claim
+celebrimbor graph                    show artifacts and prerequisites
+celebrimbor invariants               show claims, layers, and proof coverage
+celebrimbor explain <invariant>      explain enforcement, evidence, limitation
+celebrimbor verify <artifact>        build prerequisites and verify the object
+celebrimbor damage <artifact>        run applicable negative operators
+celebrimbor doctor                   return/render typed capability findings
+celebrimbor receipt <stage>          emit canonical evidence for a stage
+celebrimbor receipt verify <file>    verify schema, subjects, and predecessor chain
+celebrimbor projection check         detect local projection drift
+celebrimbor projection check-remote  compare remote projections read-only
+celebrimbor projection apply <id>    explicitly reconcile one target
+celebrimbor release check            consume the complete release claim
 ```
 
 Human output should always expose:
