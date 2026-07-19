@@ -9,6 +9,10 @@ audit).
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.7.0] - 2026-07-19
+
 ### Added
 
 - press doctor, the dependency examiner.
