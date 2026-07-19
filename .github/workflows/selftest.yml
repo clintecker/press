@@ -34,6 +34,12 @@ jobs:
           # with pandoc or LuaLaTeX being present; it goes red only on a
           # real per-module coverage regression.
           python3 scripts/coverage_ratchet.py
+      - name: The pure-logic modules still kill their mutants
+        run: |
+          # Deterministic mutation over the pure-computation modules: a
+          # surviving mutant beyond the baseline means a proof weakened.
+          # Each mutant runs its example-based tests once, no retry.
+          python3 scripts/mutation_ratchet.py
       - name: Site builds from these docs
         run: |
           sudo apt-get update -q

@@ -1,0 +1,17 @@
+{
+  "modules": {
+    "artifact_status": {
+      "total": 10,
+      "killed": 10,
+      "survivors": []
+    },
+    "barcode": {
+      "total": 37,
+      "killed": 35,
+      "survivors": [
+        "52:48:intconst:7",
+        "54:57:intconst:13"
+      ]
+    }
+  }
+}
