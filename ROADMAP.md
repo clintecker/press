@@ -49,7 +49,7 @@ The current compatible release train, ordered by intended delivery. Each milesto
 
 #### [v1.16 — Direct print ordering](https://github.com/clintecker/press/milestone/12) · Open
 
-Post-v1.15 direct-to-reader commerce: immutable release-qualified editions, hosted checkout and tax calculation, provider-neutral print fulfillment, Lulu sandbox/production qualification, idempotent payment-to-print orchestration, privacy-safe order status, deterministic accumulated-trust tests, operational controls, and a physical golden-copy release gate. Milestone/issues: <https://github.com/clintecker/press/milestone/12>. Product and technical plan: <https://github.com/clintecker/press/blob/main/docs/DIRECT-ORDERING-PLAN.md>. Start with merchant/policy ownership <https://github.com/clintecker/press/issues/116>, provider qualification <https://github.com/clintecker/press/issues/117>, edition manifests <https://github.com/clintecker/press/issues/118>, state machines <https://github.com/clintecker/press/issues/119>, provider contracts <https://github.com/clintecker/press/issues/120>, and broker boundary <https://github.com/clintecker/press/issues/121>. Golden-copy proof: <https://github.com/clintecker/press/issues/143>. Release gate: <https://github.com/clintecker/press/issues/144>. Prerequisites: <https://github.com/clintecker/press/milestone/10> and <https://github.com/clintecker/press/milestone/11>. Release identity: <https://github.com/clintecker/press/issues/97>. Architecture: <https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md>. Roadmap: <https://github.com/clintecker/press/blob/main/ROADMAP.md>.
+Post-v1.15 direct-to-reader print ordering on the seller-of-record model: the provider (Lulu first) is the legal seller and owns payment, tax, fulfillment, and support, so press ships no payment infrastructure. Remaining after the manifest (#118, done): provider qualification and physical sample protocol (#117), a generated accessible storefront CTA with a no-JS fallback (#123) linking to the provider-hosted checkout (#139), a capped golden-copy inspection (#143), documentation (#138), and the release gate (#144). The custom merchant-of-record machinery (broker, Stripe checkout, provider API adapters, state machines, webhooks, outbox, reconciliation) is deferred to the 'Custom MoR (deferred)' milestone. Plan: <https://github.com/clintecker/press/blob/main/docs/DIRECT-ORDERING-PLAN.md>.
 
 ### Future and breaking horizons
 
@@ -66,6 +66,10 @@ Optional multi-book catalog after the single-book publishing contract is mature.
 #### [Delivery trust — live proofs](https://github.com/clintecker/press/milestone/13) · Open
 
 The delivery-trust work that cannot be finished from a single identity or a single CI run: the live second-party proofs (#87, human-run, needs a second GitHub account/org), and assembling the release trust chain from receipts the individual CI jobs emit and upload (#150), rather than synthesizing the chain inside the release-contract job.
+
+#### [Custom MoR (deferred)](https://github.com/clintecker/press/milestone/14) · Open
+
+The custom merchant-of-record commerce machinery, deferred from v1.16 when the publisher chose a provider seller-of-record model. Built only if the publisher ever becomes merchant of record: the order broker, hosted Stripe checkout, provider API adapters, payment/fulfillment state machines, verified webhooks, exactly-once outbox, reconciliation, artifact delivery, and the privacy/operator/observability infrastructure. Plan: <https://github.com/clintecker/press/blob/main/docs/DIRECT-ORDERING-PLAN.md>.
 
 ### Completed foundations
 
