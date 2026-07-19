@@ -84,9 +84,12 @@ settings before its first CI run can pull the image.
   `assets/web/reader.css` replaces the house reader sheet entirely,
   and `assets/web/extra.css` appends declarations that win the
   cascade on both the reader and the landing page.
-- Instruments: `skills workflows` -- the packaged authoring skills and
-  agent workflows, with installed paths, paste-ready invocations, and
-  pinned-copy drift detection inside a book.
+- Instruments: `skills workflows desk` -- the packaged authoring skills
+  and agent workflows (with installed paths, paste-ready invocations,
+  and pinned-copy drift detection inside a book), and `press desk`, the
+  optional operator desk: a terminal interface over these same targets
+  that reads facts from the registries and runs every action as a
+  `press` child (`pip install 'press[tui]'`).
 - Utilities: `render wordcount clean new selftest doctor` --
   `press doctor` examines every external dependency and says what
   works, what is missing, and what each absence costs; `press selftest`

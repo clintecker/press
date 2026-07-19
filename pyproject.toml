@@ -32,6 +32,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# The operator desk is optional: a bare install builds books from the
+# command line without Textual, and `press desk` asks for this extra.
+tui = [
+    "textual>=8,<9",
+]
 dev = [
     "ruff>=0.5",
     "mypy>=1.10",
@@ -40,12 +45,16 @@ dev = [
     "build>=1.0",
     "twine>=5.0",
     "pytest>=8.0",
+    "pytest-asyncio>=0.23",
     "hypothesis>=6.100",
+    "textual>=8,<9",
+    "pytest-textual-snapshot>=1.0",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+asyncio_mode = "auto"
 # The suite proves the press against real scaffolded books; a run that
 # collected nothing is a mistake, not a pass.
 python_files = ["test_*.py"]

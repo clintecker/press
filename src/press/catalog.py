@@ -65,6 +65,7 @@ COMMANDS: tuple[Command, ...] = (
     # instruments
     Command("skills", "instruments", "List the packaged authoring skills"),
     Command("workflows", "instruments", "List the packaged agent workflows"),
+    Command("desk", "instruments", "Open the operator desk (needs the tui extra)"),
     # art
     Command("art", "art", "Commission or accept cover and plate art",
             args="commission [targets] | accept <file> --as <target>"),

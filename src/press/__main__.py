@@ -130,6 +130,12 @@ def _run_workflows(args: list[str]) -> int:
     return instruments.list_workflows()
 
 
+def _run_desk(args: list[str]) -> int:
+    from . import desk
+
+    return desk.run(args[1:])
+
+
 def _run_source(args: list[str]) -> int:
     from . import package_source
 
@@ -274,6 +280,7 @@ ROUTES: dict[str, Callable[[list[str]], int]] = {
     "research": _run_research,
     "skills": _run_skills,
     "workflows": _run_workflows,
+    "desk": _run_desk,
     "source": _run_source,
     "pages": _run_pages,
     "verify-pages": _run_pages,

@@ -47,7 +47,7 @@ building     pdf  epub  html  markdown  site  txt  docx  pages  source  all
 checking     check  style  verify  verify-formats  verify-pages
 print pack   print  verify-print  coverwrap  publish kdp|ingram [--report-only]
 utilities    render  wordcount  clean  new <directory>  selftest  doctor
-instruments  skills  workflows
+instruments  skills  workflows  desk
 art          art commission [targets] | accept <file> --as <target>
 operator     improve [--apply]  research  aesthetic ["<brief>"]
 ```

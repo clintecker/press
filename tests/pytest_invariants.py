@@ -58,6 +58,8 @@ _CAPABILITIES = frozenset({
     "pdfinfo", "pdftotext", "git", "epubcheck", "claude",
     # The packaging tool, a real capability the distribution tests need.
     "build",
+    # The optional operator-desk interface.
+    "textual",
 })
 
 _INV_ID = re.compile(r"INV-[A-Za-z0-9-]+")
