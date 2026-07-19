@@ -65,6 +65,24 @@ def run_workflow(name: str, args_obj: dict, full_bash: bool,
     return completed.returncode
 
 
+def _manuscript_fingerprint(root):
+    """Hash of every manuscript and config byte, for proving counsel
+    mode kept its hands off."""
+
+    import hashlib
+
+    digest = hashlib.sha256()
+    for base in ("book", "config"):
+        directory = root / base
+        if not directory.is_dir():
+            continue
+        for path in sorted(directory.rglob("*")):
+            if path.is_file():
+                digest.update(str(path.relative_to(root)).encode())
+                digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
 def improve(argv: list[str]) -> int:
     import argparse
 
@@ -78,11 +96,20 @@ def improve(argv: list[str]) -> int:
     workflow_args = {"root": str(root), "report": not args.apply}
     if args.apply:
         workflow_args["rounds"] = args.rounds
+    before = None if args.apply else _manuscript_fingerprint(root)
     code = run_workflow("editorial-passes", workflow_args, full_bash=args.apply)
     if code == 0 and not args.apply:
+        # "Touches nothing" is proven, not promised: the manuscript and
+        # config must hash identically after a counsel run.
+        if _manuscript_fingerprint(root) != before:
+            raise SystemExit(
+                "counsel mode changed the manuscript or config; that "
+                "violates its contract. Review with git diff, restore, "
+                "and report this as a press bug."
+            )
         report = root / "build" / "editorial-report.md"
         if report.is_file():
-            print(f"report: {report}")
+            print(f"report: {report} (manuscript proven untouched)")
         else:
             raise SystemExit(
                 "the workflow finished but wrote no report; read its output above"

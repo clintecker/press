@@ -16,15 +16,30 @@ permissions:
   packages: read
 
 jobs:
+  resolve:
+    # The gate proves the image consumers actually receive: the sha
+    # build.yml pins, not whatever :latest points at today.
+    runs-on: ubuntu-24.04
+    outputs:
+      image: ${{ steps.pin.outputs.image }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - id: pin
+        run: |
+          image=$(grep -o 'ghcr.io/clintecker/press-toolchain:sha-[0-9a-f]*' .github/workflows/build.yml | head -1)
+          test -n "$image" || { echo "build.yml pins no toolchain sha"; exit 1; }
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+
   consumer:
+    needs: resolve
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/clintecker/press-toolchain:latest
+      image: ${{ needs.resolve.outputs.image }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Build and install the wheel
         run: |
           python3 -m pip install --break-system-packages --no-cache-dir build

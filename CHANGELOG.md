@@ -9,7 +9,14 @@ audit).
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- The second audit's first two waves: smart-quote-proof sentinels,
+  model-driven builders and bylines, headless research granted the
+  web, counsel mode proving the manuscript untouched, the integration
+  gate running on the pinned toolchain image, least-privilege jobs,
+  sha-pinned actions, serialized toolchain publishes, tag-gating as
+  machinery, and the release script the docs had only promised.
 
 ## [1.7.0] - 2026-07-19
 

@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# The press release script the docs promise: pins, proves, tags, floats.
+# Usage: scripts/release.sh vN.x.y
+set -euo pipefail
+tag="${1:?usage: scripts/release.sh vN.x.y}"
+version="${tag#v}"
+major="${tag%%.*}"
+case "$tag" in v[0-9]*.[0-9]*.[0-9]*) ;; *) echo "tag must be vN.x.y"; exit 1;; esac
+
+test -z "$(git status --porcelain)" || { echo "working tree not clean"; exit 1; }
+
+# The integration gate must be green on HEAD before anything moves.
+sha=$(git rev-parse HEAD)
+conclusion=$(gh api "repos/clintecker/press/commits/${sha}/check-runs" \
+  --jq '[.check_runs[] | select(.name=="consumer")] | first | .conclusion // "absent"')
+if [ "$conclusion" != "success" ]; then
+  echo "integration gate is '$conclusion' on HEAD; push and let it pass first"
+  exit 1
+fi
+
+# Pin the action ref to the tag being cut; the image sha stays as the
+# last smoked build unless updated deliberately.
+python3 - "$tag" "$version" <<'PY'
+import re, sys
+from pathlib import Path
+tag, version = sys.argv[1], sys.argv[2]
+b = Path(".github/workflows/build.yml")
+b.write_text(re.sub(r"uses: clintecker/press@v[0-9.]+", f"uses: clintecker/press@{tag}", b.read_text()))
+p = Path("pyproject.toml")
+p.write_text(re.sub(r'version = "[0-9.]+"', f'version = "{version}"', p.read_text()))
+PY
+
+# The changelog must have a section for this version.
+grep -q "^## \[$version\]" CHANGELOG.md || {
+  echo "CHANGELOG.md has no [$version] section; roll [Unreleased] first"; exit 1; }
+
+PYTHONPATH=src python3 -m press selftest > /dev/null
+
+git add -A
+git commit -m "Release $tag"
+git push origin main
+git tag "$tag"
+git tag -f "$major"
+git push origin "$tag"
+git push -f origin "$major"
+echo "released $tag; the release-contract workflow now proves it"
