@@ -241,6 +241,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--docx", type=Path)
     parser.add_argument("--site", type=Path)
     args = parser.parse_args(argv)
+    booklib.require_release_witnesses()
     for path in [args.html, args.epub]:
         if not path.is_file() or path.stat().st_size < 1000:
             raise SystemExit(f"missing or suspicious artifact: {path}")
@@ -260,7 +261,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.site:
         verify_site(args.site)
         verified.append(args.site.name + "/")
-    print(f"Verified {', '.join(verified)}")
+    witness = manuscript_witness()
+    print(
+        f"Verified {', '.join(verified)} "
+        f"({len(booklib.sentinels())} sentinel(s), the title, and the "
+        f"manuscript line '{witness[:40]}...' as witnesses)"
+    )
     return 0
 
 

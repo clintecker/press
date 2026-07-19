@@ -18,8 +18,12 @@ slug: "{{SLUG}}"
 {{REPOSITORY_LINE}}
 {{SITE_URL_LINE}}
 
-# Verification knobs. Sentinels are prose fragments every rendered format
-# must contain; pick phrases that would only survive a real build.
+# Verification knobs. Sentinels are prose fragments every rendered
+# format must contain: pick 2-4 phrases from your actual manuscript,
+# each distinctive enough to appear exactly once (a whole memorable
+# clause, not a common word). Empty sentinels and a one-page floor are
+# DRAFT settings; a release build (CI on a tag) refuses them until at
+# least 2 sentinels and verify-min-pages >= 24 are set.
 verify-sentinels: []
 verify-min-pages: 1
 # trim: {width: 6, height: 9}

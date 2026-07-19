@@ -40,6 +40,16 @@ def main() -> int:
 
     failures.extend(registrations.failures())
 
+    # A sentinel that never appears in the source proves nothing in the
+    # artifacts; catch the typo here, not after six builds.
+    manuscript_text = " ".join(
+        " ".join(path.read_text(encoding="utf-8").split())
+        for path in seen if path.is_file()
+    )
+    for sentinel in booklib.sentinels():
+        if " ".join(sentinel.split()) not in manuscript_text:
+            failures.append(f"sentinel not found in the manuscript: {sentinel}")
+
     # A plate on disk that no manuscript file references ships in every
     # archive and the site while appearing in no book; orphans are
     # mistakes. The match is path-anchored so raven.jpg cannot hide

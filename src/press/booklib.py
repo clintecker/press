@@ -107,6 +107,38 @@ def year() -> str | None:
     return book().year
 
 
+def require_release_witnesses() -> None:
+    """Release builds refuse vacuous verification.
+
+    A scaffold's empty sentinel list and one-page floor are draft
+    conveniences: they let a book build before its first real word.
+    A release (PRESS_RELEASE=1, set by CI on tag builds) demands at
+    least two sentinels and a real page floor, because a green
+    verification that proves nothing is worse than a red one.
+    """
+
+    if not os.environ.get("PRESS_RELEASE"):
+        return
+    b = book()
+    problems = []
+    if len(b.sentinels) < 2:
+        problems.append(
+            f"verify-sentinels has {len(b.sentinels)} entries; a release "
+            "needs at least 2 distinctive prose fragments"
+        )
+    if b.min_pages < 24:
+        problems.append(
+            f"verify-min-pages is {b.min_pages}; a release needs at least 24"
+        )
+    if problems:
+        raise SystemExit(
+            "this is a release build (PRESS_RELEASE=1) and its witnesses "
+            "are vacuous:\n" + "\n".join(f"  - {p}" for p in problems)
+            + "\n(drafts may build with defaults; releases must prove the "
+            "manuscript survived)"
+        )
+
+
 def chapter_files() -> list[Path]:
     """Return the ordered manuscript files: chapters, then appendices."""
 

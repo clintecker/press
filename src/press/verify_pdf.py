@@ -182,6 +182,7 @@ def verify_fonts(pdf: Path) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    booklib.require_release_witnesses()
     root = booklib.root()
     meta = booklib.metadata()
     trim = meta.get("trim") or {}
@@ -324,11 +325,12 @@ def main(argv: list[str] | None = None) -> int:
         verify_black_ink(images)
         profile_note = ", mirrored margins, black ink only"
 
+    witnesses = len(required)
     print(
         f"Verified {pdf.name}: {expected_pages} pages, "
         f"{trim_width:g} x {trim_height:g} trim, embedded fonts, "
-        "text sentinels present, every rendered page contains ink, "
-        f"no edge clipping{profile_note}"
+        f"{witnesses} sentinel(s) plus the title as witnesses, every "
+        f"rendered page contains ink, no edge clipping{profile_note}"
     )
     return 0
 
