@@ -79,7 +79,7 @@
       "number": 9,
       "group": "active-v1",
       "title": "v1.13 \u2014 Adversarial artifact proof",
-      "state": "open",
+      "state": "closed",
       "description": "Adversarial artifact proof built on v1.12: named damage operators, fixture-specific negative diagnostics, deterministic build/mutate/verify state models, pairwise/high-risk scenarios, real-tool integrations, compatibility, and design-major visual regression. Milestone/issues: https://github.com/clintecker/press/milestone/9. Prerequisite foundation: https://github.com/clintecker/press/milestone/8. Damage harness: https://github.com/clintecker/press/issues/88. Real-tool runner: https://github.com/clintecker/press/issues/91. Feeds delivery trust: https://github.com/clintecker/press/milestone/10."
     },
     {
