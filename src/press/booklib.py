@@ -32,12 +32,43 @@ def root() -> Path:
     return candidate
 
 
+def load_config_mapping(path, required: bool = False) -> dict:
+    """A YAML mapping from a config file, or a locatable refusal.
+
+    Config errors are the author's to fix and deserve a diagnostic
+    naming the file and line, not a parser traceback; an empty or
+    non-mapping file is refused before any consumer can dereference
+    None.
+    """
+
+    if not path.is_file():
+        if required:
+            raise SystemExit(f"{path}: missing (a book requires this file)")
+        return {}
+    with path.open(encoding="utf-8") as handle:
+        try:
+            loaded = yaml.safe_load(handle)
+        except yaml.YAMLError as exc:
+            mark = getattr(exc, "problem_mark", None)
+            where = f":{mark.line + 1}" if mark is not None else ""
+            problem = getattr(exc, "problem", None) or "invalid YAML"
+            raise SystemExit(f"{path}{where}: {problem}") from exc
+    if loaded is None:
+        if required:
+            raise SystemExit(f"{path}: empty")
+        return {}
+    if not isinstance(loaded, dict):
+        raise SystemExit(
+            f"{path}: must be a YAML mapping, not {type(loaded).__name__}"
+        )
+    return loaded
+
+
 @lru_cache(maxsize=1)
 def metadata() -> dict:
     """Parsed config/metadata.yaml."""
 
-    with (root() / "config" / "metadata.yaml").open(encoding="utf-8") as handle:
-        return yaml.safe_load(handle)
+    return load_config_mapping(root() / "config" / "metadata.yaml", required=True)
 
 
 @lru_cache(maxsize=1)
@@ -53,11 +84,7 @@ def book():
 def house_rules() -> dict:
     """Parsed config/house-rules.yaml, or an empty ruleset if absent."""
 
-    path = root() / "config" / "house-rules.yaml"
-    if not path.is_file():
-        return {}
-    with path.open(encoding="utf-8") as handle:
-        return yaml.safe_load(handle) or {}
+    return load_config_mapping(root() / "config" / "house-rules.yaml")
 
 
 SLUG_PATTERN = re.compile(r"[a-z0-9][a-z0-9-]*")

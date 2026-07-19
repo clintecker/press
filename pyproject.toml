@@ -33,7 +33,7 @@ dev = [
 ]
 
 [project.scripts]
-press = "press.__main__:main"
+press = "press.__main__:console"
 
 [tool.setuptools.packages.find]
 where = ["src"]

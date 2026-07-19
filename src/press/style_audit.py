@@ -52,8 +52,23 @@ TITLE_SMALL_WORDS = {
 }
 
 
-def banned_book_patterns() -> dict[str, str]:
-    return dict(booklib.house_rules().get("banned-patterns") or {})
+def banned_book_patterns() -> dict[re.Pattern, str]:
+    """The book's banned patterns, compiled once; a malformed regex is
+    a config mistake and gets a refusal naming the file and pattern,
+    not a traceback out of the re parser mid-audit."""
+
+    compiled = {}
+    for pattern, label in dict(
+        booklib.house_rules().get("banned-patterns") or {}
+    ).items():
+        try:
+            compiled[re.compile(pattern)] = label
+        except re.error as exc:
+            raise SystemExit(
+                "config/house-rules.yaml: banned pattern "
+                f"{pattern!r} is not a valid regex ({exc})"
+            ) from exc
+    return compiled
 
 
 def audit_dirs() -> list[Path]:
@@ -143,8 +158,8 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901
                         f"{relative}:{number}: glyph U+{ord(stray.group(0)):04X} "
                         "is outside the print-font set"
                     )
-                for pattern, label in banned.items():
-                    if re.search(pattern, line):
+                for compiled, label in banned.items():
+                    if compiled.search(line):
                         errors.append(f"{relative}:{number}: {label}")
             heading = re.match(r"^#{1,6}\s+(.+?)\s*$", line)
             if heading and in_book and re.match(r"^\d", heading.group(1)):

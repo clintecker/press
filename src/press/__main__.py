@@ -226,8 +226,16 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901
     return 2
 
 
-if __name__ == "__main__":
+def console() -> int:
+    """The one entry for both `press` and `python -m press`: when a
+    pipeline tool fails, its own output is the last word, carried out
+    through its exit code, not wrapped in a Python traceback."""
+
     try:
-        raise SystemExit(main())
+        return main()
     except subprocess.CalledProcessError as exc:
-        raise SystemExit(exc.returncode) from exc
+        return exc.returncode
+
+
+if __name__ == "__main__":
+    raise SystemExit(console())

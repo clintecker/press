@@ -14,7 +14,7 @@ from pathlib import Path
 
 import yaml
 
-from . import booklib
+from . import booklib, gen_authorities
 
 
 def chapter_label(path: Path) -> str:
@@ -75,7 +75,12 @@ def generate() -> Path | None:
             if any(pattern.search(text) for pattern in patterns)
         ]
         if hits:
-            lines.append(f"**{entry['term']}** · {', '.join(hits)}")
+            # print_safe strips backslashes: pandoc's markdown reader
+            # passes raw TeX through, and a curated data file must not
+            # be a \input path into the engine.
+            lines.append(
+                f"**{gen_authorities.print_safe(entry['term'])}** · {', '.join(hits)}"
+            )
             lines.append("")
         else:
             silent.append(entry["term"])

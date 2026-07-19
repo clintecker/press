@@ -94,6 +94,21 @@ def _resolve_paths(node):
     return node
 
 
+def cover_fragment_html(title: str) -> str:
+    """The single-file edition's cover block; the title is data and is
+    escaped like every other metadata interpolation into HTML."""
+
+    import html as html_mod
+
+    safe = html_mod.escape(title, quote=True)
+    return (
+        '<p style="text-align:center;margin:0 0 2em 0;">'
+        f'<img src="assets/cover.jpg" alt="{safe} cover" '
+        'style="max-width:100%;height:auto;'
+        'box-shadow:0 2px 12px rgba(0,0,0,0.35);"/></p>\n'
+    )
+
+
 def render_defaults(name: str) -> Path:
     """Materialize a press defaults template for this book into build/."""
 
@@ -108,10 +123,7 @@ def render_defaults(name: str) -> Path:
             fragment.parent.mkdir(parents=True, exist_ok=True)
             title = booklib.metadata()["title"]
             fragment.write_text(
-                '<p style="text-align:center;margin:0 0 2em 0;">'
-                f'<img src="assets/cover.jpg" alt="{title} cover" '
-                'style="max-width:100%;height:auto;'
-                'box-shadow:0 2px 12px rgba(0,0,0,0.35);"/></p>\n',
+                cover_fragment_html(str(title)),
                 encoding="utf-8",
             )
     if name == "chunked":

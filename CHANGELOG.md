@@ -32,6 +32,18 @@ audit).
 
 ### Fixed
 
+- Bad input now gets a named refusal, never a traceback or an
+  injection, closing the audit's failure-honesty tail: a malformed or
+  empty `config/metadata.yaml` is refused with the file and line
+  instead of a parser traceback (#53); the installed `press` command
+  passes a failing tool's exit code through cleanly instead of
+  leaking a CalledProcessError traceback (#54); a malformed
+  banned-patterns regex names `config/house-rules.yaml` and the
+  offending pattern (#55); a metadata title with quotes or angle
+  brackets is escaped into the single-file HTML edition's cover
+  fragment (#43); and index terms pass through the shared print-safe
+  sanitizer so a backslash in `config/index-terms.yaml` can never
+  reach the TeX engine (#44). The selftest proves every refusal.
 - The release script's version bump is anchored to the `[project]`
   version line; v1.9.0's cut rewrote `[tool.mypy]`'s `python_version`
   to the release number, and mypy silently fell back to checking

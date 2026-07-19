@@ -181,6 +181,88 @@ def check_authorities_ledger() -> None:
             assert "example.org/founders-manual" in text, "locator lost"
 
 
+def check_honest_refusals() -> None:
+    """Bad input gets a named refusal, never a traceback or an
+    injection: config parse errors are locatable, a failing tool's
+    exit code passes through the console entry, a malformed banned
+    pattern names its file, and metadata reaching HTML or generated
+    appendices is escaped."""
+
+    import subprocess
+    import tempfile
+
+    from . import booklib, build, gen_authorities, scaffold, style_audit
+    from . import __main__ as cli
+
+    fragment = build.cover_fragment_html('The "Devil\'s" <Case> & Co.')
+    if "<Case>" in fragment or 'The "Devil' in fragment:
+        raise SystemExit("selftest: cover fragment does not escape the title")
+    if "&amp; Co." not in fragment:
+        raise SystemExit("selftest: cover fragment lost the escaped ampersand")
+
+    term = gen_authorities.print_safe("foo\\input{/etc/hostname}")
+    if "\\" in term:
+        raise SystemExit("selftest: print_safe let a backslash through to TeX")
+
+    def failing_tool(argv=None):
+        raise subprocess.CalledProcessError(43, ["pandoc"])
+
+    original = cli.main
+    cli.main = failing_tool
+    try:
+        code = cli.console()
+    finally:
+        cli.main = original
+    if code != 43:
+        raise SystemExit(
+            f"selftest: console() returned {code}, not the failing tool's 43"
+        )
+
+    with tempfile.TemporaryDirectory() as tmp:
+        book = Path(tmp) / "refusal-proof"
+        scaffold.main([str(book), "--author", "Refusal Prover"])
+        metadata_file = book / "config" / "metadata.yaml"
+        sound_metadata = metadata_file.read_text()
+        with _borrow_book(book):
+            for content, wants in (
+                ('title: "Unclosed', "metadata.yaml"),
+                ("", "empty"),
+                ("- just\n- a\n- list\n", "mapping"),
+            ):
+                metadata_file.write_text(content)
+                booklib.metadata.cache_clear()
+                try:
+                    booklib.metadata()
+                except SystemExit as exc:
+                    if wants not in str(exc):
+                        raise SystemExit(
+                            f"selftest: metadata refusal {str(exc)!r} "
+                            f"does not mention {wants!r}"
+                        )
+                else:
+                    raise SystemExit(
+                        f"selftest: metadata content {content!r} was accepted"
+                    )
+            metadata_file.write_text(sound_metadata)
+            booklib.metadata.cache_clear()
+            (book / "config" / "house-rules.yaml").write_text(
+                'banned-patterns:\n  "\\\\bleverage(": "banned verb"\n'
+            )
+            booklib.house_rules.cache_clear()
+            try:
+                style_audit.banned_book_patterns()
+            except SystemExit as exc:
+                if "house-rules.yaml" not in str(exc):
+                    raise SystemExit(
+                        "selftest: banned-pattern refusal does not name "
+                        "house-rules.yaml"
+                    )
+            else:
+                raise SystemExit(
+                    "selftest: malformed banned pattern was accepted"
+                )
+
+
 def check_registry() -> None:
     """The artifact graph is acyclic, outputs are unique, and every
     published artifact resolves to concrete filenames."""
@@ -388,6 +470,7 @@ def main(argv: list[str] | None = None) -> int:
     check_registry()
     check_format_witnesses()
     check_authorities_ledger()
+    check_honest_refusals()
     check_docs()
     print(f"Selftest passed: {len(modules())} modules import, arithmetic agrees "
           "with the canonical examples, usage and README name every target")
