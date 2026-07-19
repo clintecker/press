@@ -4,4 +4,7 @@ build/
 dist/
 .DS_Store
 .hypothesis/
+.coverage
+.coverage.*
+coverage.json
 tests/_collection-index.json

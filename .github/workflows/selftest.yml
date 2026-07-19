@@ -27,6 +27,13 @@ jobs:
           # classified surface or no invariant, and runs on PRs only.
           git fetch origin "${{ github.base_ref }}" --depth=1 || true
           python3 -m press.impact "origin/${{ github.base_ref }}"
+      - name: No module's branch coverage regressed below its floor
+        run: |
+          # The ratchet hides the rendering toolchain internally and
+          # measures the deterministic floor, so this gate cannot swing
+          # with pandoc or LuaLaTeX being present; it goes red only on a
+          # real per-module coverage regression.
+          python3 scripts/coverage_ratchet.py
       - name: Site builds from these docs
         run: |
           sudo apt-get update -q
