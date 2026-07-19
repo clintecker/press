@@ -1,26 +1,66 @@
 /* The press's own site. Deliberately not the house book style: the
    reader stylesheet a book ships is bookish by design, and this site
    exists partly to prove nothing about a press-built page's look is
-   baked in. Specimen-sheet idiom: bright paper, hard ink, one
-   vermillion accent, grotesk headings over a readable serif well. */
+   baked in. Two-ink letterpress idiom: warm paper, hard ink, one
+   vermillion, used the way a second ink is used, sparingly. Type is
+   self-hosted so the page asks nothing of third parties: Source
+   Serif for the text well, Space Grotesk for display, Plex Mono for
+   the machine voice. */
+
+@font-face {
+  font-family: "Source Serif";
+  src: url("fonts/source-serif.woff2") format("woff2");
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Source Serif";
+  src: url("fonts/source-serif-italic.woff2") format("woff2");
+  font-weight: 200 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("fonts/space-grotesk.woff2") format("woff2");
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Plex Mono";
+  src: url("fonts/plex-mono.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
 
 :root {
-  --paper: #fdfcf8;
-  --ink: #16181d;
-  --muted: #5c6068;
-  --accent: #c8371e;
-  --rule: #d8d5cc;
-  --code-bg: #f1efe8;
+  --paper: #faf7f0;
+  --ink: #211e1a;
+  --muted: #6d6759;
+  --accent: #b93a1a;
+  --rule: #e4ddcf;
+  --rule-strong: #c9c0ad;
+  --code-bg: #f1ecdf;
+  --code-ink: #45402f;
+  --serif: "Source Serif", Georgia, serif;
+  --grotesk: "Space Grotesk", "Helvetica Neue", sans-serif;
+  --mono: "Plex Mono", ui-monospace, Menlo, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #16181d;
-    --ink: #e8e6df;
-    --muted: #9a9ea8;
-    --accent: #ff6b4a;
-    --rule: #34373f;
-    --code-bg: #22252c;
+    --paper: #1b1a18;
+    --ink: #e8e3d8;
+    --muted: #a39c8c;
+    --accent: #f07d55;
+    --rule: #35322c;
+    --rule-strong: #4d4941;
+    --code-bg: #262420;
+    --code-ink: #cfc8b8;
   }
 }
 
@@ -30,110 +70,206 @@ body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
-  font: 400 1.05rem/1.65 Georgia, "Times New Roman", serif;
+  font: 400 1.0625rem/1.72 var(--serif);
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
+
+::selection { background: var(--accent); color: var(--paper); }
+
+/* ── toolbar ─────────────────────────────────────────────── */
 
 .toolbar {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 1rem;
-  border-bottom: 3px double var(--rule);
-  padding: 0.9rem 1.25rem;
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-size: 0.85rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  border-bottom: 1px solid var(--rule-strong);
+  padding: 1.1rem 1.5rem;
+  font-family: var(--grotesk);
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
-.toolbar nav { display: flex; flex-wrap: wrap; gap: 1.1rem; }
-
-.toolbar a {
-  color: var(--muted);
+.wordmark {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
   text-decoration: none;
 }
 
-.toolbar a:hover { color: var(--accent); }
+.wordmark .mark { color: var(--accent); }
 
-.toolbar a[aria-current="page"] {
-  color: var(--ink);
-  border-bottom: 2px solid var(--accent);
+.toolbar nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1.3rem;
 }
 
-.toolbar .repo { color: var(--accent); }
+.toolbar nav a {
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 120ms ease;
+}
 
-body > *:not(.toolbar) {
-  max-width: 44rem;
+.toolbar nav a:hover { color: var(--ink); }
+
+.toolbar nav a[aria-current="page"] {
+  color: var(--ink);
+  box-shadow: inset 0 -2px var(--accent);
+}
+
+.toolbar nav .repo { color: var(--accent); }
+
+/* ── the text well ───────────────────────────────────────── */
+
+body > *:not(.toolbar):not(.colophon) {
+  max-width: 41rem;
   margin-left: auto;
   margin-right: auto;
-  padding-left: 1.25rem;
-  padding-right: 1.25rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
 }
 
 h1, h2, h3, h4 {
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
+  font-family: var(--grotesk);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
 }
 
-h1 { font-size: 2.1rem; margin-top: 2.5rem; }
-
-h2 {
-  font-size: 1.35rem;
-  margin-top: 2.4rem;
-  padding-top: 1.1rem;
-  border-top: 1px solid var(--rule);
+h1 {
+  font-size: clamp(2rem, 5vw, 2.75rem);
+  font-weight: 700;
+  margin: 3rem auto 1.2rem;
 }
 
-h3 { font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.05em; }
+h1::after {
+  content: "";
+  display: block;
+  width: 2.5rem;
+  border-bottom: 4px solid var(--accent);
+  margin-top: 0.7rem;
+}
 
-a { color: var(--accent); }
+h2 { font-size: 1.45rem; margin: 2.8rem auto 0.8rem; }
 
-code, pre {
-  font-family: "SF Mono", Menlo, Consolas, monospace;
-  font-size: 0.88em;
+h3 { font-size: 1.1rem; margin: 2rem auto 0.6rem; }
+
+p, ul, ol { margin: 0 auto 1.05rem; }
+
+li { margin-bottom: 0.35rem; }
+
+li::marker { color: var(--accent); }
+
+strong { font-weight: 640; }
+
+/* Prose links stay ink; the second ink lives in the underline. */
+a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  transition: color 120ms ease;
+}
+
+a:hover { color: var(--accent); }
+
+/* ── the machine voice ───────────────────────────────────── */
+
+code, pre, kbd {
+  font-family: var(--mono);
+  font-size: 0.84em;
+}
+
+code {
   background: var(--code-bg);
+  color: var(--code-ink);
+  padding: 0.12em 0.35em;
   border-radius: 3px;
 }
 
-code { padding: 0.1em 0.3em; }
-
 pre {
-  padding: 0.9rem 1rem;
+  background: var(--code-bg);
+  color: var(--code-ink);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 4px 4px 0;
+  padding: 1rem 1.2rem;
   overflow-x: auto;
-  line-height: 1.5;
+  line-height: 1.55;
+  margin: 1.3rem auto;
 }
 
-pre code { padding: 0; background: none; }
+pre code { padding: 0; background: none; color: inherit; }
 
-table { border-collapse: collapse; width: 100%; margin: 1.4rem 0; }
+/* ── apparatus ───────────────────────────────────────────── */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.5rem auto;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.97rem;
+}
 
 th, td {
   text-align: left;
-  padding: 0.45rem 0.7rem;
+  padding: 0.5rem 0.75rem 0.5rem 0;
   border-bottom: 1px solid var(--rule);
   vertical-align: top;
 }
 
 th {
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-family: var(--grotesk);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   color: var(--muted);
+  border-bottom: 2px solid var(--rule-strong);
 }
 
 blockquote {
-  margin: 1.4rem 0;
-  padding: 0.1rem 1.1rem;
-  border-left: 3px solid var(--accent);
+  margin: 1.5rem auto;
+  padding: 0.05rem 1.2rem;
+  border-left: 3px solid var(--rule-strong);
   color: var(--muted);
+  font-style: italic;
 }
 
-hr { border: none; border-top: 3px double var(--rule); margin: 2.5rem 0; }
+hr {
+  border: none;
+  width: 2.5rem;
+  border-top: 4px solid var(--rule-strong);
+  margin: 2.8rem auto;
+}
 
 img { max-width: 100%; }
 
-@media (max-width: 40rem) {
-  .toolbar { flex-direction: column; gap: 0.4rem; }
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
+
+/* ── colophon ────────────────────────────────────────────── */
+
+.colophon {
+  max-width: 41rem;
+  margin: 4rem auto 0;
+  padding: 1.3rem 1.5rem 2.2rem;
+  border-top: 1px solid var(--rule-strong);
+  font-family: var(--grotesk);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.colophon nav { display: flex; gap: 1.3rem; margin-bottom: 0.6rem; }
+
+.colophon a { color: var(--muted); text-decoration-color: var(--accent); }
+
+.colophon a:hover { color: var(--accent); }
+
+.colophon .stamp { margin: 0; }

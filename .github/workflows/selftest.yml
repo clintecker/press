@@ -19,6 +19,11 @@ jobs:
       - run: pip install -e '.[dev]'
       - run: ruff check src/press
       - run: python3 -m mypy src/press
+      - name: Site builds from these docs
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends pandoc
+          python3 scripts/build_site.py
 
   selftest:
     runs-on: ${{ matrix.os }}

@@ -18,10 +18,17 @@ audit).
   to either; a book supplying neither renders byte-identically.
 - The press publishes its own documentation site
   (https://clintecker.github.io/press/): `scripts/build_site.py`
-  renders README, docs/, CHANGELOG, and CONTRIBUTING through pandoc
-  with the site's own stylesheet, link-checks the result, and the
-  docs-site workflow deploys it on every push to main. No page is
-  hand-written, so the site cannot drift from the repo.
+  renders every repo document through pandoc with the site's own
+  design (self-hosted Source Serif, Space Grotesk, and Plex Mono;
+  a two-ink letterpress palette), and the docs-site workflow deploys
+  it on every push to main. Three phase guards keep site and repo in
+  step: no page is hand-written; every repo Markdown file must be
+  published or consciously excluded with a reason (the check caught
+  SUPPORT, SECURITY, ROADMAP, and AGENTS on its first two runs);
+  and every page footer stamps the commit it was built from, while
+  CI builds the site pre-merge so a breakage goes red before deploy.
+  The link check covers stylesheet url() references as well as page
+  hrefs.
 
 ### Fixed
 
