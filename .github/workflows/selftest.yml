@@ -78,3 +78,34 @@ jobs:
           cd "$RUNNER_TEMP"
           press new matrix-proof --author "Matrix Proof"
           cd matrix-proof && press check
+
+  desk:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: A bare wheel refuses the desk cleanly, without Textual
+        run: |
+          set -euo pipefail
+          python3 -m build --wheel --outdir /tmp/dw
+          python3 -m venv /tmp/bare
+          /tmp/bare/bin/pip install --quiet /tmp/dw/*.whl
+          # The desk must not import in a bare install; the entry says so
+          # and exits 2, and the rest of the CLI is untouched.
+          cd "$RUNNER_TEMP" && /tmp/bare/bin/press new bare-proof --author B
+          cd bare-proof
+          if /tmp/bare/bin/press desk; then echo "desk ran without tui extra"; exit 1; fi
+          /tmp/bare/bin/press check
+      - name: The tui wheel runs the operator desk end to end (headless)
+        run: |
+          set -euo pipefail
+          python3 -m venv /tmp/tui
+          # Install the built wheel with the tui extra plus the test tools,
+          # then run the desk's headless proofs against the installed
+          # package, not the checkout.
+          /tmp/tui/bin/pip install --quiet "$(echo /tmp/dw/*.whl)[tui]" \
+            pytest pytest-asyncio
+          /tmp/tui/bin/python -m pytest tests/test_desk_app.py tests/test_desk_run.py \
+            -p no:cacheprovider

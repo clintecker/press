@@ -13,9 +13,15 @@ from pathlib import Path
 
 import pytest
 
-SRC = Path(__file__).resolve().parent.parent / "src"
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
+import importlib.util
+
+# Use the source tree only when press is not already importable (a bare
+# checkout); when the tests run against an installed wheel (the desk
+# end-to-end proof), do not shadow it with src.
+if importlib.util.find_spec("press") is None:
+    SRC = Path(__file__).resolve().parent.parent / "src"
+    if str(SRC) not in sys.path:
+        sys.path.insert(0, str(SRC))
 
 from tests import pytest_invariants  # noqa: E402  (test infra, not shipped)
 
