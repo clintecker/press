@@ -11,6 +11,48 @@ audit).
 
 Nothing yet.
 
+## [1.12.0] - 2026-07-19
+
+### Added
+
+- Trust foundations: a test-quality architecture the press proves
+  itself against. A pytest harness runs the selftest's invariant
+  checks as individual cases from one ordered CHECKS list both runners
+  consume (#78). An executable invariant ledger, quality/invariants.yaml,
+  is the single source of what the press promises: its validator proves
+  every enforcer and proof it names resolves to a real function or
+  fixture, it generates docs/INVARIANTS.md, and the narrative matrix in
+  ARCHITECTURE.md now points at it rather than duplicating it (#79). The
+  public surface is classified in quality/surfaces.yaml with a
+  mechanical AST inventory that fails on an unclassified new callable
+  (#81). Every regression fixture has a provenance entry reconciled
+  against its inline expect comment (#84). Twenty-two hypothesis
+  properties cover the pure policy, parsing, graph, and normalization
+  code (#85). A deterministic fuzz corpus proves the hostile parsers
+  refuse locatably instead of crashing (#86). A typed BookFactory with
+  named presets builds isolated source-only books whose facts are
+  inspectable and whose scenarios cannot contaminate one another (#83).
+- Typed boundary adapters: subprocess, environment, credential, and
+  image-HTTP calls move behind protocols with production and recording
+  fake pairs; build, doctor, operator, art_commission, and
+  package_source drive them through injected singletons with behavior
+  preserved, domain results and exceptions give the layer a vocabulary,
+  retry is deterministic, and a boundary lint keeps raw calls out of
+  every module but the adapters, its legacy allowlist able only to
+  shrink (#82).
+- A pytest collection plugin enforces the invariant, layer, and proof
+  markers where present, rejects an assertionless marked test, requires
+  an xfail to cite a declared limitation and a skip to name a toolchain
+  capability, and writes a test-to-invariant index before execution
+  (#80).
+
+### Fixed
+
+- docx_visible_text returned the empty string on unparseable bytes
+  instead of raising an XML traceback, so a corrupt DOCX now surfaces
+  as its caller's locatable witness failure (found by the new fuzz
+  corpus).
+
 ## [1.11.0] - 2026-07-19
 
 ### Changed
