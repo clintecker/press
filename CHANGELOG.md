@@ -11,6 +11,14 @@ audit).
 
 Nothing yet.
 
+## [1.8.1] - 2026-07-19
+
+### Fixed
+
+- The release contract awaits the tagged commit's own integration
+  verdict instead of demanding prescience; v1.8.0's maiden contract
+  run refused itself by racing its own gate.
+
 ## [1.8.0] - 2026-07-19
 
 ### Fixed
