@@ -9,6 +9,10 @@ audit).
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.8.0] - 2026-07-19
+
 ### Fixed
 
 - The second audit's first two waves: smart-quote-proof sentinels,
