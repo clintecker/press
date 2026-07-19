@@ -11,6 +11,14 @@ audit).
 
 Nothing yet.
 
+## [1.8.2] - 2026-07-19
+
+### Fixed
+
+- The release contract's gate check requests checks:read, the scope
+  the check-runs API actually demands; v1.8.1's run had pins proven
+  and manifest resolving but 403'd on its final question.
+
 ## [1.8.1] - 2026-07-19
 
 ### Fixed
