@@ -11,6 +11,52 @@ audit).
 
 Nothing yet.
 
+## [1.15.2] - 2026-07-19
+
+Completes the accumulated-delivery-trust work deferred from v1.14: the
+release chain now proves every layer, and two new ratchets guard the
+tests that do the proving.
+
+### Added
+
+- The release trust chain is complete, not a placeholder. A release used
+  to be witnessed by a two-layer chain in which one "collection" receipt
+  stood in for every CI proof, and the verifier checked ordering and
+  linkage but not completeness — so the stand-in passed and the release
+  proved nothing about the layers between. Verification now requires the
+  chain to be complete: every trust layer present, contiguous, and each
+  extending its immediate predecessor. The release contract builds the
+  full per-layer chain only after asserting that every trust-layer check
+  (the whole test suite, the container gauntlet, the operator surface) is
+  green on the tagged commit, so each layer's receipt is backed by a
+  proof that actually ran. Closes the per-layer prerequisite chain (#97)
+  and the layered-CI trust ordering (#94).
+- A per-module branch-coverage floor gate. Repository-wide coverage can
+  stay green while one module's branches rot; the ratchet holds each
+  module to the minimum coverage it shows when the rendering toolchain is
+  absent. It hides that toolchain internally before measuring, so the
+  gate is deterministic whether or not the machine has pandoc or
+  LuaLaTeX, and because ambient coverage is always at or above the floor,
+  no toolchain posture can push a module below baseline — the gate goes
+  red only on a real regression (#96).
+- A deterministic mutation-score ratchet over the pure-computation
+  modules. It mutates the EAN-13 checksum and bar encoding and the
+  artifact-state derivation one edit at a time and runs each module's
+  example-based tests against the mutant; a surviving mutant is a
+  missing proof. Each mutant runs once with no retry, against a shadow
+  source tree with bytecode caching forbidden so no mutant is ever
+  measured against another's compiled code (#95).
+- The change-impact mapper: on a pull request, changed policy code that
+  maps to no classified surface or no invariant fails the build, so a new
+  verifier or parser cannot land ungated (#96).
+
+### Changed
+
+- The operator desk is a usable tool: a run can be cancelled and reports
+  the child's exact verdict; the target picker prompts for a command's
+  arguments before launching and grays out a command a missing toolchain
+  would only let fail (#147, #148, #149).
+
 ## [1.15.1] - 2026-07-19
 
 ### Added

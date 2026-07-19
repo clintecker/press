@@ -229,6 +229,28 @@ def _run_tests(test_files: list[str], pkg_parent: Path) -> bool:
     return result.returncode == 0
 
 
+def _assert_shadow_wins(module: str, pkg_parent: Path) -> None:
+    """Confirm the shadow module out-ranks the installed one before any
+    scoring. If it did not (a strict-editable MetaPathFinder resolving
+    press before PYTHONPATH), every mutant would import the real module
+    and 'survive' -- and a --update in that state would silently gut the
+    gate. Better to abort loudly than to bless a shadow that lost."""
+
+    env = dict(os.environ)
+    env["PYTHONPATH"] = str(pkg_parent) + os.pathsep + env.get("PYTHONPATH", "")
+    result = subprocess.run(
+        [sys.executable, "-c",
+         f"import press.{module} as m; print(m.__file__)"],
+        cwd=ROOT, env=env, capture_output=True, text=True,
+    )
+    resolved = result.stdout.strip()
+    if not resolved.startswith(str(pkg_parent)):
+        raise SystemExit(
+            f"mutation shadow did not win: press.{module} resolved to "
+            f"{resolved!r}, not under {pkg_parent}. Mutants would be measured "
+            "against the real module; refusing to score.")
+
+
 def score_module(module: str) -> dict:
     source = (SRC / f"{module}.py").read_text(encoding="utf-8")
     tree = ast.parse(source)
@@ -238,6 +260,8 @@ def score_module(module: str) -> dict:
         tmp_path = Path(tmp)
         pkg = _shadow(module, tmp_path)
         target = pkg / f"{module}.py"
+        target.write_text(source, encoding="utf-8")
+        _assert_shadow_wins(module, tmp_path)
         for site in sites:
             mutant = _apply(tree, site)
             target.write_text(ast.unparse(mutant), encoding="utf-8")
@@ -281,11 +305,16 @@ def main(argv: list[str] | None = None) -> int:
             problems.append(
                 f"{m}: mutant total changed {base['total']} -> {r['total']}; "
                 f"the source moved, re-take the baseline deliberately")
-        elif r["killed"] < base["killed"]:
+        else:
+            # Survivor identity is the invariant, not the count: a change
+            # that lets one mutant survive while another newly dies keeps
+            # the count level but has lost a real proof. Fail on any new
+            # survivor, not merely a lower kill count.
             new = sorted(set(r["survivors"]) - set(base["survivors"]))
-            problems.append(
-                f"{m}: kills dropped {base['killed']} -> {r['killed']}; "
-                f"new survivors: {', '.join(new)}")
+            if new:
+                problems.append(
+                    f"{m}: {len(new)} new survivor(s) a proof no longer kills: "
+                    f"{', '.join(new)}")
     if problems:
         print("\nmutation ratchet failed:")
         for p in problems:

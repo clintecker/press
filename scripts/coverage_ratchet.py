@@ -77,12 +77,25 @@ def measure() -> dict[str, float]:
     with tempfile.TemporaryDirectory(prefix="press-cov-path-") as shadow:
         env = dict(os.environ)
         env["PATH"] = _toolchain_hidden_path(Path(shadow))
-        subprocess.run(
+        # Delete any prior report first: a stale coverage.json left by an
+        # abnormal run must never be read as this run's result (the
+        # stale-artifact scar). build/ is reused, so this is the norm.
+        cov_json.unlink(missing_ok=True)
+        result = subprocess.run(
             [sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-q",
              "-k", DESELECT, "--cov=press", "--cov-branch",
              f"--cov-report=json:{cov_json}"],
             cwd=ROOT, check=False, capture_output=True, env=env,
         )
+    # pytest exits 0 (all pass) or 1 (tests failed) with a valid report;
+    # any other code (2 interrupted, 3 internal error, 5 nothing
+    # collected) means the numbers are not trustworthy. Fail loud with the
+    # captured diagnostics rather than blessing whatever is on disk.
+    if result.returncode not in (0, 1) or not cov_json.is_file():
+        raise SystemExit(
+            f"coverage run did not produce a trustworthy report "
+            f"(pytest exit {result.returncode}):\n"
+            + result.stderr.decode("utf-8", "replace")[-2000:])
     data = json.loads(cov_json.read_text(encoding="utf-8"))
     modules: dict[str, float] = {}
     for path, entry in data["files"].items():
@@ -90,6 +103,11 @@ def measure() -> dict[str, float]:
             continue
         stem = path[len("src/press/"):-3].replace("/", ".")
         modules[stem] = round(entry["summary"]["percent_covered"], 1)
+    if not modules:
+        raise SystemExit(
+            "coverage measured zero press modules; the report paths are not "
+            "'src/press/...' (a non-src install or strict editable mode). "
+            "Refusing to pass a vacuous gate.")
     return modules
 
 
@@ -99,9 +117,10 @@ def compare(
     tolerance: float,
 ) -> tuple[list[str], list[str]]:
     """Return (regressions, new_modules). A regression is a module whose
-    current coverage fell more than `tolerance` below its baseline; a new
-    module is one with no baseline yet. Pure, so a proof need not re-run
-    the suite."""
+    current coverage fell more than `tolerance` below its baseline, or a
+    baselined module that vanished from the measurement entirely (which
+    would otherwise be silently ignored); a new module is one with no
+    baseline yet. Pure, so a proof need not re-run the suite."""
 
     regressions = []
     new_modules = []
@@ -110,6 +129,9 @@ def compare(
             new_modules.append(module)
         elif pct < expected[module] - tolerance:
             regressions.append(f"{module}: {pct:.1f}% < baseline {expected[module]:.1f}%")
+    for module in sorted(expected):
+        if module not in current:
+            regressions.append(f"{module}: baselined but absent from this measurement")
     return regressions, new_modules
 
 

@@ -52,8 +52,14 @@ jobs:
           for attempt in $(seq 1 60); do
             pending=""
             for check in $required; do
-              conclusion=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs" \
-                --paginate --jq "[.check_runs[] | select(.name==\"${check}\")] | first | .conclusion // \"pending\"")
+              # The MOST RECENT run of the check decides: a re-run adds a
+              # second same-named check-run, and an older green attempt
+              # must not mask a newer red one (sort_by started_at | last).
+              # per_page=100 in one call, not --paginate: a reducing jq
+              # under --paginate runs per page and concatenates, so a
+              # commit with >30 check-runs would never read a bare verdict.
+              conclusion=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs?per_page=100" \
+                --jq "[.check_runs[] | select(.name==\"${check}\")] | sort_by(.started_at) | last | .conclusion // \"pending\"")
               case "$conclusion" in
                 success) ;;
                 failure|cancelled|timed_out) echo "check '${check}' is '${conclusion}' on ${GITHUB_SHA}"; exit 1 ;;
@@ -79,12 +85,19 @@ jobs:
           from press import receipts
           whl = glob.glob("/tmp/rc/*.whl")[0]
           digest = hashlib.sha256(open(whl, "rb").read()).hexdigest()
-          # The full trust chain: a receipt for every layer, each
-          # extending the one before, terminated by the release receipt
-          # naming the built wheel and the pinned toolchain. The
-          # check-runs step above proved every layer green on this commit;
-          # completeness proves no layer was skipped in the chain, so the
-          # release cannot be cut on a partial proof.
+          # The per-layer EVIDENCE is the check-runs step above: it
+          # refused to reach here unless every trust-layer check was green
+          # on this commit. This step records that as a complete,
+          # independently verifiable audit artifact -- a receipt per
+          # layer, each extending the one before, terminated by the
+          # release receipt naming the built wheel and the pinned
+          # toolchain -- and proves the release identity (clean tree,
+          # package and toolchain match the built and pinned objects).
+          # verify_complete holds the record to every layer, and is the
+          # real gate for the standalone `python -m press.receipts
+          # verify-release <chain.json>` path over an externally supplied
+          # chain. Assembling the chain from receipts the other jobs emit
+          # (rather than synthesizing it here) is tracked as a follow-up.
           chain = receipts.build_full_chain(
               digest, receipts.pinned_toolchain_digest())
           open("/tmp/release-receipt.json", "w").write(receipts.to_json(chain))

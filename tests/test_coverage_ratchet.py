@@ -48,6 +48,16 @@ def test_a_module_with_no_baseline_is_flagged_new():
     assert new == ["brandnew"]
 
 
+def test_a_baselined_module_vanishing_is_a_regression():
+    # A module dropping out of the measurement entirely must not pass
+    # silently -- it means the report stopped covering it.
+    ratchet = _load_ratchet()
+    regressions, new = ratchet.compare(
+        {"receipts": 68.9}, {"receipts": 68.9, "impact": 83.7}, tolerance=1.5)
+    assert new == []
+    assert any("impact" in r and "absent" in r for r in regressions)
+
+
 def test_the_committed_baseline_is_well_formed():
     data = json.loads((ROOT / "quality" / "coverage-baseline.json").read_text())
     assert isinstance(data["tolerance"], (int, float))

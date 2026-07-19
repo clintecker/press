@@ -77,17 +77,33 @@ def _required_checks() -> list[str]:
     return match.group(1).split()
 
 
+def _effective_check_names() -> set[str]:
+    """The check-run names GitHub will publish: a job's key, unless the
+    job overrides it with `name:`. The release poll matches on this name,
+    not the job key, so this is what a required check must resolve to."""
+
+    import yaml
+
+    names: set[str] = set()
+    for f in _workflow_files():
+        data = yaml.safe_load(f.read_text(encoding="utf-8"))
+        for key, job in (data.get("jobs") or {}).items():
+            names.add(job.get("name", key) if isinstance(job, dict) else key)
+    return names
+
+
 def test_every_required_check_is_a_real_job():
     """The release waits for each required check to go green. A check name
-    that matches no job would never appear, so the release would hang
-    forever instead of failing -- a silent broken dependency. Every
-    required name must resolve to a defined job."""
+    that matches no published check-run would never appear, so the release
+    would hang forever instead of failing -- a silent broken dependency.
+    The poll matches the check-run NAME, so a job that sets a differing
+    `name:` (not just a renamed key) must also be caught."""
 
-    jobs = _all_job_names()
-    unknown = [c for c in _required_checks() if c not in jobs]
+    names = _effective_check_names()
+    unknown = [c for c in _required_checks() if c not in names]
     assert not unknown, (
-        f"release-contract waits on checks with no matching job: {unknown}; "
-        "a renamed or deleted job would deadlock the release"
+        f"release-contract waits on checks with no matching check-run: {unknown}; "
+        "a renamed job or a differing job `name:` would deadlock the release"
     )
 
 
