@@ -94,7 +94,7 @@ def main(argv: list[str] | None = None) -> int:
     if target == "selftest":
         from . import selftest
 
-        return selftest.main()
+        return selftest.main(args[1:])
     if target == "doctor":
         from . import doctor
 
