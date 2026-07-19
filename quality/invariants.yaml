@@ -384,3 +384,26 @@ invariants:
       it trusts the CI check-runs (asserted green before the chain is
       built) that each layer's proofs actually ran, rather than
       re-executing them inside the release job.
+
+  - id: INV-edition-manifest
+    statement: >-
+      An edition manifest is immutable identity: any production-affecting
+      fact mints a new edition_id, and verification refuses a forged
+      identity, an interior or cover byte or page mismatch, an ill-formed
+      or mutable reference, a forbidden price/secret/customer field, a
+      manifest with no receipt chain or built from a dirty tree, and a
+      provider qualification proven against a different edition.
+    risk: >-
+      An order ships bytes that differ from the release-approved edition,
+      or a manifest leaks a price, secret, or customer datum.
+    criticality: critical
+    owner: edition
+    enforcer: edition.verify_facts
+    layers: [selftest, pytest]
+    negative: [check_edition_manifest]
+    ci_tier: quality
+    limitations: >-
+      Verifies content identity against the artifacts on disk and the
+      well-formedness of qualification evidence; it does not re-run a
+      provider's physical qualification, only reject a qualification whose
+      named edition is not this one.

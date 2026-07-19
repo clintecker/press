@@ -533,6 +533,41 @@ def check_receipt_chain() -> None:
         raise SystemExit("selftest: release chain blessed a skipped trust layer")
 
 
+def check_edition_manifest() -> None:
+    """The edition manifest holds for a valid release-gated edition and
+    refuses a forged identity and a byte mismatch: an order can only name
+    the exact bytes the release approved."""
+
+    import dataclasses
+
+    from . import edition
+
+    interior_sha = "1" * 64
+    cover_sha = "2" * 64
+    base = edition.EditionManifest(
+        schema_version=edition.SCHEMA_VERSION, edition_id="",
+        slug="proof-book", title="Proof", format="paperback", isbn=None,
+        trim_width=6.0, trim_height=9.0, page_count=120, paper="cream",
+        spine_width_in=0.3, bleed_in=0.125,
+        interior=edition.ArtifactRef("interior", interior_sha, 4096),
+        cover=edition.ArtifactRef("cover", cover_sha, 2048),
+        toolchain_digest="sha-abc", source_commit="c0ffee", tree_clean=True,
+        input_digests={"invariants": "d"}, receipt_digests=("r0",))
+    manifest = dataclasses.replace(
+        base, edition_id=edition._identity_digest(base))
+    observed = edition.Observed(interior_sha, 4096, 120, cover_sha, 2048)
+    if edition.verify_facts(manifest, observed):
+        raise SystemExit("selftest: edition manifest rejected a valid edition")
+    # A production fact changed without re-deriving identity is a forgery.
+    forged = dataclasses.replace(manifest, page_count=manifest.page_count + 10)
+    if not any("identity digest" in p for p in edition.verify_facts(forged, observed)):
+        raise SystemExit("selftest: edition manifest blessed a forged identity")
+    # The artifact on disk no longer hashes to the recorded digest.
+    tampered = edition.Observed("0" * 64, 4096, 120, cover_sha, 2048)
+    if not any("interior digest" in p for p in edition.verify_facts(manifest, tampered)):
+        raise SystemExit("selftest: edition manifest blessed a byte mismatch")
+
+
 def check_release_grammar() -> None:
     """The release script's tag validation, exercised without any
     network: exactly vN.x.y, and the composite action's command
@@ -919,6 +954,7 @@ CHECKS = [
     check_honest_refusals,
     check_release_grammar,
     check_receipt_chain,
+    check_edition_manifest,
     check_coverwrap_detectors,
     check_aesthetic_schema,
     check_contract_mirror,
