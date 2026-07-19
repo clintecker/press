@@ -135,7 +135,35 @@ def test_release_receipt_names_package_and_toolchain(monkeypatch):
     assert release.artifacts["toolchain"] == "sha-abc"
 
 
-def test_verify_release_accepts_a_matching_clean_chain(monkeypatch):
+def _full_chain(inputs, commit="c", clean=True, package="PKG"):
+    """A complete trust chain: every pre-release layer, each extending the
+    one before, terminated by a release receipt that extends them all."""
+
+    chain = []
+    for layer in receipts.LAYERS[:-1]:
+        chain.append(_receipt(layer, prereqs=chain[-1:], proofs=[],
+                              clean=clean, inputs=inputs, commit=commit))
+    release = receipts.Receipt(
+        schema_version=receipts.SCHEMA_VERSION, layer="release",
+        source_commit=commit, tree_clean=clean, inputs=inputs,
+        prerequisites=[r.digest() for r in chain], proofs=[],
+        artifacts={"package": package, "toolchain": inputs["toolchain"]},
+        local_dev=not clean)
+    chain.append(release)
+    return chain
+
+
+def test_verify_release_accepts_a_complete_clean_chain(monkeypatch):
+    from press import receipts
+    monkeypatch.setattr(receipts, "pinned_toolchain_digest", lambda: "sha-abc")
+    inputs = {"invariants": "d", "fixtures": "d", "scenarios": "d",
+              "surfaces": "d", "toolchain": "sha-abc"}
+    assert receipts.verify_release(_full_chain(inputs), "PKG") == []
+
+
+def test_verify_release_refuses_a_two_layer_placeholder(monkeypatch):
+    # The old thinness: a collection receipt standing in for every layer.
+    # Completeness must refuse it now.
     from press import receipts
     monkeypatch.setattr(receipts, "pinned_toolchain_digest", lambda: "sha-abc")
     inputs = {"invariants": "d", "fixtures": "d", "scenarios": "d",
@@ -146,7 +174,37 @@ def test_verify_release_accepts_a_matching_clean_chain(monkeypatch):
         source_commit="c", tree_clean=True, inputs=inputs,
         prerequisites=[collection.digest()], proofs=[],
         artifacts={"package": "PKG", "toolchain": "sha-abc"})
-    assert receipts.verify_release([collection, release], "PKG") == []
+    problems = receipts.verify_release([collection, release], "PKG")
+    assert any("incomplete release chain" in p for p in problems)
+
+
+def test_completeness_names_a_missing_middle_layer():
+    from press import receipts
+    inputs = {"invariants": "d", "fixtures": "d", "scenarios": "d",
+              "surfaces": "d", "toolchain": "t"}
+    chain = _full_chain(inputs)
+    without_scenario = [r for r in chain if r.layer != "scenario"]
+    problems = receipts.verify_complete(without_scenario)
+    assert any("scenario" in p and "missing" in p for p in problems)
+
+
+def test_completeness_catches_a_broken_extend_link():
+    from press import receipts
+    inputs = {"invariants": "d", "fixtures": "d", "scenarios": "d",
+              "surfaces": "d", "toolchain": "t"}
+    chain = _full_chain(inputs)
+    # Sever the graph layer's link to its predecessor (component).
+    idx = next(i for i, r in enumerate(chain) if r.layer == "graph")
+    chain[idx] = dataclasses.replace(chain[idx], prerequisites=[])
+    problems = receipts.verify_complete(chain)
+    assert any("graph" in p and "prerequisite link broken" in p for p in problems)
+
+
+def test_build_full_chain_is_complete():
+    from press import receipts
+    chain = receipts.build_full_chain("PKG", receipts.pinned_toolchain_digest())
+    assert [r.layer for r in chain] == receipts.LAYERS
+    assert receipts.verify_complete(chain) == []
 
 
 def test_verify_release_refuses_a_package_mismatch(monkeypatch):

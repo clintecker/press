@@ -495,8 +495,9 @@ BAD_TAGS = ("v1.0", "v1.0.0.0", "v1.0.0-rc1", "v1.0.0x", "v01.0.0",
 
 def check_receipt_chain() -> None:
     """The trust-receipt chain refuses a broken chain: a dirty-tree
-    release receipt, and a release whose package digest does not match
-    the built object, are each rejected."""
+    release receipt, a release whose package digest does not match the
+    built object, and an incomplete chain that skips trust layers are
+    each rejected."""
 
     from . import receipts
 
@@ -516,6 +517,20 @@ def check_receipt_chain() -> None:
         artifacts={"package": "PKG", "toolchain": receipts.pinned_toolchain_digest()})
     if not any("package digest" in p for p in receipts.verify_release([clean], "OTHER")):
         raise SystemExit("selftest: release receipt blessed a package mismatch")
+    # A two-layer placeholder standing in for every layer must be refused:
+    # completeness is what turns the chain from an assertion into a proof.
+    collection = receipts.Receipt(
+        schema_version=receipts.SCHEMA_VERSION, layer="collection",
+        source_commit="c", tree_clean=True, inputs=inputs, prerequisites=[],
+        proofs=[], artifacts={})
+    placeholder_release = receipts.Receipt(
+        schema_version=receipts.SCHEMA_VERSION, layer="release",
+        source_commit="c", tree_clean=True, inputs=inputs,
+        prerequisites=[collection.digest()], proofs=[],
+        artifacts={"package": "PKG", "toolchain": receipts.pinned_toolchain_digest()})
+    if not any("incomplete release chain" in p
+               for p in receipts.verify_release([collection, placeholder_release], "PKG")):
+        raise SystemExit("selftest: release chain blessed a skipped trust layer")
 
 
 def check_release_grammar() -> None:

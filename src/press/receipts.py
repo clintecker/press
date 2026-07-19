@@ -201,6 +201,62 @@ def build_release_receipt(package_digest: str, chain: list[Receipt]) -> Receipt:
     )
 
 
+def build_full_chain(package_digest: str, toolchain_digest: str,
+                     proofs_by_layer: dict[str, list[str]] | None = None) -> list[Receipt]:
+    """The full trust chain for a release: a receipt for every pre-release
+    layer, each extending the one before, then the terminal release
+    receipt. proofs_by_layer optionally records which invariants each
+    layer executed; the completeness proof does not depend on it, but a
+    populated chain is a richer audit record."""
+
+    proofs_by_layer = proofs_by_layer or {}
+    chain: list[Receipt] = []
+    for layer in LAYERS:
+        if layer == "release":
+            continue
+        chain.append(emit(
+            layer,
+            proofs=proofs_by_layer.get(layer, []),
+            prerequisites=chain[-1:],  # extend the immediately preceding layer
+            toolchain_digest=toolchain_digest,
+        ))
+    chain.append(build_release_receipt(package_digest, chain))
+    return chain
+
+
+def verify_complete(chain: list[Receipt]) -> list[str]:
+    """A release chain must present every trust layer, contiguous and in
+    order from the base to release, each layer naming the immediately
+    preceding layer's receipt as a prerequisite. This is what turns the
+    chain from an assertion into a proof: no layer can be skipped, and a
+    placeholder standing in for 'the CI proofs' cannot pass, because the
+    missing layers are named and absent."""
+
+    problems: list[str] = []
+    present = [r.layer for r in chain]
+    if present != LAYERS:
+        missing = [ell for ell in LAYERS if ell not in present]
+        extra = [ell for ell in present if ell not in LAYERS]
+        detail = []
+        if missing:
+            detail.append(f"missing {missing}")
+        if extra:
+            detail.append(f"unexpected {extra}")
+        if not detail:
+            detail.append(f"out of order (got {present})")
+        problems.append("incomplete release chain: " + "; ".join(detail))
+        return problems
+    # Each layer must extend the immediately preceding one, so the chain
+    # is a single spine and not a fan of unlinked receipts.
+    for earlier, later in zip(chain, chain[1:]):
+        if earlier.digest() not in later.prerequisites:
+            problems.append(
+                f"{later.layer}: does not extend its predecessor "
+                f"{earlier.layer!r} (prerequisite link broken)"
+            )
+    return problems
+
+
 def verify_release(chain: list[Receipt], package_digest: str) -> list[str]:
     """A release chain is complete and clean, and its terminal receipt
     names the pinned toolchain and the built package. Every mismatch is a
@@ -208,6 +264,7 @@ def verify_release(chain: list[Receipt], package_digest: str) -> list[str]:
     turns the release gate red."""
 
     problems = verify_chain(chain, require_clean=True)
+    problems += verify_complete(chain)
     if not chain:
         return problems
     release = chain[-1]

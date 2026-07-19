@@ -368,9 +368,10 @@ invariants:
   - id: INV-release-receipt-chain
     statement: >-
       A release chain refuses a missing, tampered, reordered, or
-      input-mismatched prerequisite, a dirty-tree receipt, and a
-      terminal receipt whose package or toolchain does not match the
-      built and pinned objects.
+      input-mismatched prerequisite, a dirty-tree receipt, a terminal
+      receipt whose package or toolchain does not match the built and
+      pinned objects, and an incomplete chain that skips any trust layer
+      or breaks a layer's extension of its predecessor.
     risk: A release ships objects that differ from the ones the tests proved.
     criticality: critical
     owner: receipts
@@ -379,6 +380,7 @@ invariants:
     negative: [check_receipt_chain]
     ci_tier: integration
     limitations: >-
-      The per-layer prerequisite chain awaits the layered-CI change; the
-      release identity (commit, package, toolchain, manifests) is proven
-      now.
+      Completeness proves every layer is present, contiguous, and linked;
+      it trusts the CI check-runs (asserted green before the chain is
+      built) that each layer's proofs actually ran, rather than
+      re-executing them inside the release job.

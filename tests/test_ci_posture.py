@@ -13,6 +13,7 @@ party.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -22,6 +23,16 @@ WORKFLOWS = Path(__file__).resolve().parent.parent / ".github" / "workflows"
 
 def _workflow_files():
     return sorted(WORKFLOWS.glob("*.yml")) if WORKFLOWS.is_dir() else []
+
+
+def _all_job_names() -> set[str]:
+    import yaml
+
+    names: set[str] = set()
+    for f in _workflow_files():
+        data = yaml.safe_load(f.read_text(encoding="utf-8"))
+        names |= set((data.get("jobs") or {}).keys())
+    return names
 
 
 def test_no_pull_request_target_anywhere():
@@ -47,4 +58,60 @@ def test_workflow_declares_permissions(workflow):
     assert has_top or all_jobs_scoped, (
         f"{workflow.name} declares no permissions block at top level or on "
         "every job; a fork PR could inherit a broad token"
+    )
+
+
+# ---- the release DAG: every layer the chain claims is backed by a real,
+#      privileged check the release-contract actually waits on (#94/#97) ----
+
+RELEASE_CONTRACT = WORKFLOWS / "release-contract.yml"
+
+
+def _required_checks() -> list[str]:
+    """The check-run names the release-contract blocks the release on, read
+    from its `required="..."` line, so the test tracks the workflow."""
+
+    text = RELEASE_CONTRACT.read_text(encoding="utf-8")
+    match = re.search(r'required="([^"]+)"', text)
+    assert match, "release-contract declares no required checks list"
+    return match.group(1).split()
+
+
+def test_every_required_check_is_a_real_job():
+    """The release waits for each required check to go green. A check name
+    that matches no job would never appear, so the release would hang
+    forever instead of failing -- a silent broken dependency. Every
+    required name must resolve to a defined job."""
+
+    jobs = _all_job_names()
+    unknown = [c for c in _required_checks() if c not in jobs]
+    assert not unknown, (
+        f"release-contract waits on checks with no matching job: {unknown}; "
+        "a renamed or deleted job would deadlock the release"
+    )
+
+
+def test_the_release_waits_on_the_integration_gate():
+    """The container gauntlet (consumer) is the strongest layer; the
+    release must not be cuttable without it."""
+
+    assert "consumer" in _required_checks()
+
+
+def test_the_integration_gate_runs_privileged_in_the_container():
+    """The consumer job pulls the private toolchain image, so it must run
+    in that container with registry credentials and packages:read. If this
+    privilege regressed, the integration layer could not run at all."""
+
+    import yaml
+
+    data = yaml.safe_load((WORKFLOWS / "integration.yml").read_text(encoding="utf-8"))
+    consumer = data["jobs"]["consumer"]
+    assert "container" in consumer, "consumer does not run in the toolchain container"
+    assert "credentials" in consumer["container"], "container pulls without credentials"
+    # packages:read may be declared at the top level or on the job.
+    top = (data.get("permissions") or {})
+    job = (consumer.get("permissions") or {})
+    assert top.get("packages") == "read" or job.get("packages") == "read", (
+        "no packages:read privilege to pull the private toolchain"
     )

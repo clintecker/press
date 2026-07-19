@@ -123,6 +123,16 @@ the whole gauntlet, and tampers with an artifact to prove the
 verifiers still refuse. Tag builds run with `PRESS_RELEASE=1`, which
 refuses vacuous witnesses.
 
+The release itself is proven by a trust-receipt chain: the
+release-contract workflow first waits for every trust-layer check to go
+green on the tagged commit (the full test suite, the container gauntlet,
+the operator surface), then builds a receipt for each layer, each
+extending the one before, terminated by a release receipt that names the
+built wheel's digest and the pinned toolchain. Verification requires the
+chain to be *complete* — every layer present, contiguous, and linked to
+its predecessor — so a partial chain standing in for the missing layers
+cannot pass. A release cannot be cut on a proof with a hole in it.
+
 ## Design versioning
 
 Typography and layout are part of the pinned contract, not an
