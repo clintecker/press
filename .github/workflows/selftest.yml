@@ -110,6 +110,7 @@ jobs:
       - name: A bare wheel refuses the desk cleanly, without Textual
         run: |
           set -euo pipefail
+          python3 -m pip install --quiet build
           python3 -m build --wheel --outdir /tmp/dw
           python3 -m venv /tmp/bare
           /tmp/bare/bin/pip install --quiet /tmp/dw/*.whl
