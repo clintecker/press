@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "press"
-version = "1.9.0"
+version = "1.10.0"
 description = "Book production pipeline: pandoc/LuaLaTeX builds, editorial checks, and artifact verification"
 license = "MIT"
 license-files = ["LICENSE"]
