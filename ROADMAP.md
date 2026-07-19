@@ -51,10 +51,6 @@ The current compatible release train, ordered by intended delivery. Each milesto
 
 Accumulated delivery/release trust: clean installed distributions, chained machine-verifiable trust receipts, ordered CI gates, mutation/sabotage ratchets, invariant-aware test impact, live second-party boundaries, and release identity across commit/wheel/action/image/artifacts/tag. Milestone/issues: <https://github.com/clintecker/press/milestone/10>. Prerequisites: <https://github.com/clintecker/press/milestone/8> and <https://github.com/clintecker/press/milestone/9>. Receipt chain: <https://github.com/clintecker/press/issues/93>. Layered CI: <https://github.com/clintecker/press/issues/94>. Release gate: <https://github.com/clintecker/press/issues/97>.
 
-#### [v1.15 — Operator desk](https://github.com/clintecker/press/milestone/11) · Open
-
-Post-v1.14 optional operator desk: a single typed command catalog, digest/receipt-backed artifact status (never mtimes), typed doctor findings, a versioned child-event protocol, deterministic single-child control, DESK/target-picker/RUN views, headless active-signal tests, installed-wheel proof, and public documentation. Milestone/issues: <https://github.com/clintecker/press/milestone/11>. Start with command catalog <https://github.com/clintecker/press/issues/100>, events <https://github.com/clintecker/press/issues/102>, packaging boundary <https://github.com/clintecker/press/issues/104>, and test harness <https://github.com/clintecker/press/issues/108>. Evidence status <https://github.com/clintecker/press/issues/101> depends on trust receipts <https://github.com/clintecker/press/issues/93>. Release gate: <https://github.com/clintecker/press/issues/114>. Durable plan: <https://github.com/clintecker/press/blob/main/docs/TUI-PLAN.md>. Architecture: <https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md>. Textual testing: <https://textual.textualize.io/guide/testing/>.
-
 ### Future and breaking horizons
 
 Work deliberately held beyond the current v1 delivery train because it is breaking, optional, or depends on a mature single-book contract.
@@ -98,6 +94,10 @@ Accumulated-trust foundation: pytest/selftest structure, executable invariant an
 #### [v1.13 — Adversarial artifact proof](https://github.com/clintecker/press/milestone/9) · Complete
 
 Adversarial artifact proof built on v1.12: named damage operators, fixture-specific negative diagnostics, deterministic build/mutate/verify state models, pairwise/high-risk scenarios, real-tool integrations, compatibility, and design-major visual regression. Milestone/issues: <https://github.com/clintecker/press/milestone/9>. Prerequisite foundation: <https://github.com/clintecker/press/milestone/8>. Damage harness: <https://github.com/clintecker/press/issues/88>. Real-tool runner: <https://github.com/clintecker/press/issues/91>. Feeds delivery trust: <https://github.com/clintecker/press/milestone/10>.
+
+#### [v1.15 — Operator desk](https://github.com/clintecker/press/milestone/11) · Complete
+
+Post-v1.14 optional operator desk: a single typed command catalog, digest/receipt-backed artifact status (never mtimes), typed doctor findings, a versioned child-event protocol, deterministic single-child control, DESK/target-picker/RUN views, headless active-signal tests, installed-wheel proof, and public documentation. Milestone/issues: <https://github.com/clintecker/press/milestone/11>. Start with command catalog <https://github.com/clintecker/press/issues/100>, events <https://github.com/clintecker/press/issues/102>, packaging boundary <https://github.com/clintecker/press/issues/104>, and test harness <https://github.com/clintecker/press/issues/108>. Evidence status <https://github.com/clintecker/press/issues/101> depends on trust receipts <https://github.com/clintecker/press/issues/93>. Release gate: <https://github.com/clintecker/press/issues/114>. Durable plan: <https://github.com/clintecker/press/blob/main/docs/TUI-PLAN.md>. Architecture: <https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md>. Textual testing: <https://textual.textualize.io/guide/testing/>.
 
 <!-- END GENERATED MILESTONES -->
 
