@@ -102,6 +102,72 @@ def check_format_witnesses() -> None:
     assert normalized("The \u201cWitness\u201d") == 'the "witness"'
 
 
+def check_authorities_ledger() -> None:
+    """Each ledger refusal is its own diagnostic: malformed, duplicate,
+    missing, moved, and ambiguous are named, and a sound ledger yields a
+    companion carrying its durable locators."""
+
+    import os
+    import tempfile
+
+    from . import booklib, gen_authorities, scaffold
+
+    with tempfile.TemporaryDirectory() as tmp:
+        book = Path(tmp) / "ledger-proof"
+        scaffold.main([str(book), "--author", "Ledger Prover"])
+        preface = book / "book" / "chapters" / "00-preface.md"
+        preface.write_text(preface.read_text() + (
+            "\n\nThe lead type was cast at dawn by careful hands."
+            "\nIt is said the press ran all night. Some say the press ran all night twice.\n"
+        ))
+        ledger = book / "config" / "authorities.yaml"
+        os.environ["BOOK_ROOT"] = str(book)
+        booklib.root.cache_clear()
+        booklib.metadata.cache_clear()
+        booklib.book.cache_clear()
+        try:
+            ledger.write_text("""
+- claim: "cast at dawn by careful hands"
+  file: "book/chapters/00-preface.md"
+  authority: "A Founder's Manual (1888)"
+  url: "https://example.org/founders-manual"
+- claim: "cast at dawn by careful hands"
+  authority: "Duplicate"
+- claim: "no such sentence anywhere"
+  authority: "Ghost"
+- claim: "cast at dawn"
+  file: "book/chapters/99-nonexistent.md"
+  authority: "Wrong address"
+- claim: "the press ran all night"
+  authority: "Ambiguous"
+- authority: "No claim at all"
+""")
+            try:
+                gen_authorities.generate()
+            except SystemExit as exc:
+                message = str(exc)
+                for marker in ("duplicate claim", "missing", "unknown file",
+                               "ambiguous", "malformed"):
+                    assert marker in message, (marker, message)
+            else:
+                raise AssertionError("defective ledger accepted")
+            ledger.write_text("""
+- claim: "cast at dawn by careful hands"
+  file: "book/chapters/00-preface.md"
+  authority: "A Founder's Manual (1888)"
+  url: "https://example.org/founders-manual"
+""")
+            gen_authorities.generate()
+            companion = book / "dist" / "ledger-proof-sources.md"
+            text = companion.read_text()
+            assert "example.org/founders-manual" in text, "locator lost"
+        finally:
+            del os.environ["BOOK_ROOT"]
+            booklib.root.cache_clear()
+            booklib.metadata.cache_clear()
+            booklib.book.cache_clear()
+
+
 def check_registry() -> None:
     """The artifact graph is acyclic, outputs are unique, and every
     published artifact resolves to concrete filenames."""
@@ -261,6 +327,7 @@ def main() -> int:
     check_book_model()
     check_registry()
     check_format_witnesses()
+    check_authorities_ledger()
     check_docs()
     print(f"Selftest passed: {len(modules())} modules import, arithmetic agrees "
           "with the canonical examples, usage and README name every target")

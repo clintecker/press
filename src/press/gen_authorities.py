@@ -8,10 +8,18 @@ every claimed fragment still exists in the text and regenerates the
 run, because an orphaned attribution is a citation for a sentence the book
 no longer says. Books without the file simply have no such appendix.
 
-Entry shape:
+Entry shape (the authorities-research workflow writes the same schema):
   - claim: "industrialize verification"        # exact fragment, whitespace-normalized
+    file: "book/chapters/02-copy.md"           # optional but preferred; pins the claim
     authority: "Moxon, Mechanick Exercises (1683)"
+    url: "https://archive.org/details/..."     # optional durable locator
     note: "optional dry line on what the source establishes"
+
+Validation distinguishes its refusals: a malformed entry, a duplicate
+claim, a claim missing from the whole book, a claim that moved out of
+its declared file (with the file it moved to), and a claim matching
+more than once (ambiguous: a citation should pin one sentence) each
+say exactly what they are.
 """
 
 from __future__ import annotations
@@ -84,21 +92,94 @@ def generate() -> Path | None:
         for path in booklib.chapter_files()
     ]
 
-    orphans: list[str] = []
+    diagnostics: list[str] = []
     located: list[tuple[str, str, dict]] = []
-    for entry in entries:
-        fragment = normalize(entry["claim"])
-        hits = [(path.name, label) for path, label, text in sources if fragment in text]
-        if not hits:
-            orphans.append(entry["claim"])
-            continue
-        located.append((hits[0][0], hits[0][1], entry))
-
-    if orphans:
+    seen: dict[str, int] = {}
+    if not isinstance(entries, list):
         raise SystemExit(
-            "gen_authorities: claims match nothing in the text: "
-            + "; ".join(f'"{c}"' for c in orphans)
-            + " (the text moved out from under its citations; update the ledger)"
+            "gen_authorities: config/authorities.yaml must be a list of entries"
+        )
+    by_relpath = {
+        str(path.relative_to(booklib.root())): (path, label, text)
+        for path, label, text in sources
+    }
+    for index, entry in enumerate(entries, start=1):
+        if not isinstance(entry, dict):
+            diagnostics.append(f"entry {index}: malformed (not a mapping)")
+            continue
+        claim = entry.get("claim")
+        authority = entry.get("authority")
+        structural = False
+        if not isinstance(claim, str) or not claim.strip():
+            diagnostics.append(f"entry {index}: malformed (claim missing or empty)")
+            structural = True
+        if not isinstance(authority, str) or not authority.strip():
+            diagnostics.append(f"entry {index}: malformed (authority missing or empty)")
+            structural = True
+        if structural:
+            continue
+        fragment = normalize(claim)
+        if fragment in seen:
+            diagnostics.append(
+                f'entry {index}: duplicate claim "{claim}" (first stated at '
+                f"entry {seen[fragment]})"
+            )
+            continue
+        seen[fragment] = index
+
+        counts = [
+            (path, label, text.count(fragment)) for path, label, text in sources
+        ]
+        hits = [(p, l, n) for p, l, n in counts if n]
+        declared = entry.get("file")
+        if declared:
+            home = by_relpath.get(str(declared))
+            if home is None:
+                diagnostics.append(
+                    f'entry {index}: declares unknown file "{declared}"'
+                )
+                continue
+            count_here = home[2].count(fragment)
+            if count_here == 1:
+                located.append((home[0].name, home[1], entry))
+            elif count_here > 1:
+                diagnostics.append(
+                    f'entry {index}: ambiguous, "{claim}" appears '
+                    f"{count_here} times in {declared}; lengthen the fragment"
+                )
+            elif hits:
+                where = ", ".join(str(p.relative_to(booklib.root())) for p, _, _ in hits)
+                diagnostics.append(
+                    f'entry {index}: moved, "{claim}" is no longer in '
+                    f"{declared} but appears in {where}; update file:"
+                )
+            else:
+                diagnostics.append(
+                    f'entry {index}: missing, "{claim}" matches nothing in the '
+                    "book (the text moved out from under its citation)"
+                )
+        else:
+            total = sum(n for _, _, n in hits)
+            if total == 1:
+                located.append((hits[0][0].name, hits[0][1], entry))
+            elif total == 0:
+                diagnostics.append(
+                    f'entry {index}: missing, "{claim}" matches nothing in the '
+                    "book (the text moved out from under its citation)"
+                )
+            else:
+                where = ", ".join(
+                    f"{p.relative_to(booklib.root())} x{n}" for p, _, n in hits
+                )
+                diagnostics.append(
+                    f'entry {index}: ambiguous, "{claim}" matches {total} '
+                    f"times ({where}); lengthen the fragment or declare file:"
+                )
+
+    if diagnostics:
+        raise SystemExit(
+            "gen_authorities: the ledger does not hold:\n"
+            + "\n".join(f"  - {d}" for d in diagnostics)
         )
 
     # The full table of authorities is published as its own document rather
@@ -125,7 +206,11 @@ def generate() -> Path | None:
             lines.append("")
             current = label
         note = f" {print_safe(entry['note'])}" if entry.get("note") else ""
-        lines.append(f'- "{print_safe(entry["claim"])}": {print_safe(entry["authority"])}.{note}')
+        locator = f" <{print_safe(entry['url'])}>" if entry.get("url") else ""
+        lines.append(
+            f'- "{print_safe(entry["claim"])}": '
+            f'{print_safe(entry["authority"])}.{locator}{note}'
+        )
         lines.append("")
 
     output = booklib.root() / "dist" / f"{booklib.slug()}-sources.md"
