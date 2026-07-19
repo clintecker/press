@@ -108,3 +108,84 @@ def test_emit_marks_dirty_tree_as_local_dev():
 def test_unknown_layer_is_refused():
     with pytest.raises(SystemExit, match="unknown trust layer"):
         receipts.emit("not-a-layer", proofs=[])
+
+
+# ---- release receipt (#97) ----
+
+def test_pinned_toolchain_digest_reads_build_yml():
+    from press import receipts
+    digest = receipts.pinned_toolchain_digest()
+    assert digest.startswith("sha-") or digest == "unpinned"
+
+
+def test_release_receipt_names_package_and_toolchain(monkeypatch):
+    from press import receipts
+    monkeypatch.setattr(receipts, "pinned_toolchain_digest", lambda: "sha-abc")
+    monkeypatch.setattr(receipts, "current_inputs",
+                        lambda toolchain_digest="unpinned": (
+                            {"invariants": "d", "fixtures": "d", "scenarios": "d",
+                             "surfaces": "d", "toolchain": toolchain_digest},
+                            "commit", True))
+    chain = [_receipt("collection", clean=True,
+                      inputs={"invariants": "d", "fixtures": "d", "scenarios": "d",
+                              "surfaces": "d", "toolchain": "sha-abc"}, commit="commit")]
+    release = receipts.build_release_receipt("PKGDIGEST", chain)
+    assert release.layer == "release"
+    assert release.artifacts["package"] == "PKGDIGEST"
+    assert release.artifacts["toolchain"] == "sha-abc"
+
+
+def test_verify_release_accepts_a_matching_clean_chain(monkeypatch):
+    from press import receipts
+    monkeypatch.setattr(receipts, "pinned_toolchain_digest", lambda: "sha-abc")
+    inputs = {"invariants": "d", "fixtures": "d", "scenarios": "d",
+              "surfaces": "d", "toolchain": "sha-abc"}
+    collection = _receipt("collection", clean=True, inputs=inputs, commit="c")
+    release = receipts.Receipt(
+        schema_version=receipts.SCHEMA_VERSION, layer="release",
+        source_commit="c", tree_clean=True, inputs=inputs,
+        prerequisites=[collection.digest()], proofs=[],
+        artifacts={"package": "PKG", "toolchain": "sha-abc"})
+    assert receipts.verify_release([collection, release], "PKG") == []
+
+
+def test_verify_release_refuses_a_package_mismatch(monkeypatch):
+    from press import receipts
+    monkeypatch.setattr(receipts, "pinned_toolchain_digest", lambda: "sha-abc")
+    inputs = {"invariants": "d", "fixtures": "d", "scenarios": "d",
+              "surfaces": "d", "toolchain": "sha-abc"}
+    release = receipts.Receipt(
+        schema_version=receipts.SCHEMA_VERSION, layer="release",
+        source_commit="c", tree_clean=True, inputs=inputs,
+        prerequisites=[], proofs=[],
+        artifacts={"package": "PKG", "toolchain": "sha-abc"})
+    problems = receipts.verify_release([release], "DIFFERENT")
+    assert any("package digest does not match" in p for p in problems)
+
+
+def test_verify_release_refuses_a_toolchain_mismatch(monkeypatch):
+    from press import receipts
+    monkeypatch.setattr(receipts, "pinned_toolchain_digest", lambda: "sha-NEW")
+    inputs = {"invariants": "d", "fixtures": "d", "scenarios": "d",
+              "surfaces": "d", "toolchain": "sha-OLD"}
+    release = receipts.Receipt(
+        schema_version=receipts.SCHEMA_VERSION, layer="release",
+        source_commit="c", tree_clean=True, inputs=inputs,
+        prerequisites=[], proofs=[],
+        artifacts={"package": "PKG", "toolchain": "sha-OLD"})
+    problems = receipts.verify_release([release], "PKG")
+    assert any("toolchain does not match" in p for p in problems)
+
+
+def test_verify_release_refuses_a_dirty_tree():
+    from press import receipts
+    inputs = {"invariants": "d", "fixtures": "d", "scenarios": "d",
+              "surfaces": "d", "toolchain": receipts.pinned_toolchain_digest()}
+    release = receipts.Receipt(
+        schema_version=receipts.SCHEMA_VERSION, layer="release",
+        source_commit="c", tree_clean=False, inputs=inputs,
+        prerequisites=[], proofs=[],
+        artifacts={"package": "PKG", "toolchain": receipts.pinned_toolchain_digest()},
+        local_dev=True)
+    problems = receipts.verify_release([release], "PKG")
+    assert any("dirty tree" in p for p in problems)

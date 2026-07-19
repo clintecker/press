@@ -171,6 +171,59 @@ def verify_chain(chain: list[Receipt], require_clean: bool = False) -> list[str]
     return problems
 
 
+def pinned_toolchain_digest() -> str:
+    """The immutable toolchain image the release pins, read from the
+    reusable build workflow. This is the toolchain a release stands on,
+    and a release receipt records it so a later object cannot claim a
+    different image than the one proven."""
+
+    build_yml = ROOT / ".github" / "workflows" / "build.yml"
+    if not build_yml.is_file():
+        return "unpinned"
+    import re
+
+    match = re.search(r"press-toolchain:(sha-[0-9a-f]+)", build_yml.read_text(encoding="utf-8"))
+    return match.group(1) if match else "unpinned"
+
+
+def build_release_receipt(package_digest: str, chain: list[Receipt]) -> Receipt:
+    """The terminal release receipt: it names the pinned toolchain and the
+    built package digest as artifacts and extends the whole prior chain.
+    A release requires this receipt to be clean-tree, so it is emitted
+    from the committed release state, never a dirty working tree."""
+
+    return emit(
+        "release",
+        proofs=sorted({p for r in chain for p in r.proofs}),
+        prerequisites=chain,
+        artifacts={"package": package_digest, "toolchain": pinned_toolchain_digest()},
+        toolchain_digest=pinned_toolchain_digest(),
+    )
+
+
+def verify_release(chain: list[Receipt], package_digest: str) -> list[str]:
+    """A release chain is complete and clean, and its terminal receipt
+    names the pinned toolchain and the built package. Every mismatch is a
+    refusal, so a deliberate commit, package, image, or tag substitution
+    turns the release gate red."""
+
+    problems = verify_chain(chain, require_clean=True)
+    if not chain:
+        return problems
+    release = chain[-1]
+    if release.layer != "release":
+        problems.append(f"terminal receipt is {release.layer!r}, not a release")
+    if release.artifacts.get("package") != package_digest:
+        problems.append(
+            "release receipt package digest does not match the built package"
+        )
+    if release.artifacts.get("toolchain") != pinned_toolchain_digest():
+        problems.append(
+            "release receipt toolchain does not match the pinned build.yml image"
+        )
+    return problems
+
+
 def to_json(chain: list[Receipt]) -> str:
     return json.dumps([asdict(r) for r in chain], indent=2)
 
@@ -191,8 +244,20 @@ def main(argv: list[str] | None = None) -> int:
     import sys
 
     args = list(argv if argv is not None else sys.argv[1:])
+    if len(args) >= 3 and args[0] == "verify-release":
+        chain = from_json(Path(args[1]).read_text(encoding="utf-8"))
+        problems = verify_release(chain, args[2])
+        if problems:
+            print("release receipt chain does not hold:")
+            for problem in problems:
+                print(f"  - {problem}")
+            return 1
+        print(f"release chain holds: {len(chain)} layers, clean tree, "
+              "package and toolchain match the proven objects")
+        return 0
     if len(args) < 2 or args[0] != "verify":
         print("usage: python3 -m press.receipts verify <chain.json> [--release]")
+        print("       python3 -m press.receipts verify-release <chain.json> <package-digest>")
         return 2
     chain = from_json(Path(args[1]).read_text(encoding="utf-8"))
     problems = verify_chain(chain, require_clean="--release" in args)

@@ -46,9 +46,45 @@ jobs:
             conclusion=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs" \
               --jq '[.check_runs[] | select(.name=="consumer")] | first | .conclusion // "pending"')
             case "$conclusion" in
-              success) echo "integration gate green on the tagged commit"; exit 0 ;;
+              success) echo "integration gate green on the tagged commit"; break ;;
               failure|cancelled|timed_out) echo "gate is '$conclusion' on $GITHUB_SHA"; exit 1 ;;
               *) echo "waiting on the gate ($conclusion, attempt $attempt)"; sleep 30 ;;
             esac
+            [ "$attempt" = 50 ] && { echo "gate never concluded for $GITHUB_SHA"; exit 1; }
           done
-          echo "gate never concluded for $GITHUB_SHA"; exit 1
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: The release identity resolves to the proven objects
+        run: |
+          set -euo pipefail
+          # A three-part tag is a clean checkout; *.egg-info is ignored, so
+          # an editable install keeps the tree clean for the receipt.
+          python3 -m pip install --quiet -e '.[dev]'
+          python3 -m build --wheel --outdir /tmp/rc >/dev/null
+          python3 - <<'PY'
+          import glob, hashlib
+          from press import receipts
+          whl = glob.glob("/tmp/rc/*.whl")[0]
+          digest = hashlib.sha256(open(whl, "rb").read()).hexdigest()
+          # The collection layer stands for the CI proofs already green on
+          # this commit; the release layer names the built wheel and the
+          # pinned toolchain and extends it.
+          collection = receipts.emit("collection", proofs=[],
+                                     toolchain_digest=receipts.pinned_toolchain_digest())
+          chain = [collection, receipts.build_release_receipt(digest, [collection])]
+          open("/tmp/release-receipt.json", "w").write(receipts.to_json(chain))
+          problems = receipts.verify_release(chain, digest)
+          if problems:
+              print("release identity does not hold:")
+              for p in problems:
+                  print(f"  - {p}")
+              raise SystemExit(1)
+          print("release identity proven: clean tree, package and toolchain "
+                "match the pinned objects")
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-receipt
+          path: /tmp/release-receipt.json
+          if-no-files-found: error
