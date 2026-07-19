@@ -43,14 +43,6 @@ shadow issue tracker.
 
 <!-- BEGIN GENERATED MILESTONES -->
 
-### Active v1 delivery
-
-The current compatible release train, ordered by intended delivery. Each milestone accumulates proof from the milestones before it.
-
-#### [v1.15.2 — Delivery trust completion](https://github.com/clintecker/press/milestone/10) · Open
-
-The delivery-trust work deferred from the v1.14.0/v1.15.1 releases, rescheduled here because it ships on top of v1.15 as a patch, not as v1.14.x. Remaining: the layered CI reorder that emits a receipt per trust layer (<https://github.com/clintecker/press/issues/94)>, which completes the per-layer prerequisite chain the release-identity gate (shipped in v1.15.1) already stands on (<https://github.com/clintecker/press/issues/97)>; the mutation-score ratchet, whose sabotage half shipped (<https://github.com/clintecker/press/issues/95)>; the branch-coverage ratchet, whose change-impact mapper shipped (<https://github.com/clintecker/press/issues/96)>; and the live second-party proofs, which need a second GitHub identity and are documented for a human to run (<https://github.com/clintecker/press/issues/87)>.
-
 ### Future and breaking horizons
 
 Work deliberately held beyond the current v1 delivery train because it is breaking, optional, or depends on a mature single-book contract.
@@ -62,6 +54,10 @@ Reserved for breaking design/extension work that cannot ship under the v1 render
 #### [Later — Catalog](https://github.com/clintecker/press/milestone/5) · Open
 
 Optional multi-book catalog after the single-book publishing contract is mature. Milestone: <https://github.com/clintecker/press/milestone/5>. Scoped feature: <https://github.com/clintecker/press/issues/6>. Roadmap context: <https://github.com/clintecker/press/blob/main/ROADMAP.md>. Artifact contract to preserve: <https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md>.
+
+#### [Delivery trust — live proofs](https://github.com/clintecker/press/milestone/13) · Open
+
+The delivery-trust work that cannot be finished from a single identity or a single CI run: the live second-party proofs (#87, human-run, needs a second GitHub account/org), and assembling the release trust chain from receipts the individual CI jobs emit and upload (#150), rather than synthesizing the chain inside the release-contract job.
 
 ### Completed foundations
 
@@ -94,6 +90,10 @@ Accumulated-trust foundation: pytest/selftest structure, executable invariant an
 #### [v1.13 — Adversarial artifact proof](https://github.com/clintecker/press/milestone/9) · Complete
 
 Adversarial artifact proof built on v1.12: named damage operators, fixture-specific negative diagnostics, deterministic build/mutate/verify state models, pairwise/high-risk scenarios, real-tool integrations, compatibility, and design-major visual regression. Milestone/issues: <https://github.com/clintecker/press/milestone/9>. Prerequisite foundation: <https://github.com/clintecker/press/milestone/8>. Damage harness: <https://github.com/clintecker/press/issues/88>. Real-tool runner: <https://github.com/clintecker/press/issues/91>. Feeds delivery trust: <https://github.com/clintecker/press/milestone/10>.
+
+#### [v1.15.2 — Delivery trust completion](https://github.com/clintecker/press/milestone/10) · Complete
+
+The delivery-trust work deferred from v1.14/v1.15.1, shipped in v1.15.2: the layered CI reorder and the complete accumulated-trust receipt chain (#94/#97 — a release must present every trust layer, contiguous and linked, not a placeholder standing in for them), the deterministic mutation-score ratchet over the pure-computation modules (#95), and the per-module branch-coverage floor ratchet (#96). The live second-party proofs (#87) and the per-job receipt assembly (#150) moved to the 'Delivery trust — live proofs' milestone, which needs a second identity and cross-job CI artifacts.
 
 #### [v1.15 — Operator desk](https://github.com/clintecker/press/milestone/11) · Complete
 

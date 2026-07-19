@@ -84,10 +84,10 @@
     },
     {
       "number": 10,
-      "group": "active-v1",
+      "group": "complete",
       "title": "v1.15.2 \u2014 Delivery trust completion",
-      "state": "open",
-      "description": "The delivery-trust work deferred from the v1.14.0/v1.15.1 releases, rescheduled here because it ships on top of v1.15 as a patch, not as v1.14.x. Remaining: the layered CI reorder that emits a receipt per trust layer (https://github.com/clintecker/press/issues/94), which completes the per-layer prerequisite chain the release-identity gate (shipped in v1.15.1) already stands on (https://github.com/clintecker/press/issues/97); the mutation-score ratchet, whose sabotage half shipped (https://github.com/clintecker/press/issues/95); the branch-coverage ratchet, whose change-impact mapper shipped (https://github.com/clintecker/press/issues/96); and the live second-party proofs, which need a second GitHub identity and are documented for a human to run (https://github.com/clintecker/press/issues/87)."
+      "state": "closed",
+      "description": "The delivery-trust work deferred from v1.14/v1.15.1, shipped in v1.15.2: the layered CI reorder and the complete accumulated-trust receipt chain (#94/#97 \u2014 a release must present every trust layer, contiguous and linked, not a placeholder standing in for them), the deterministic mutation-score ratchet over the pure-computation modules (#95), and the per-module branch-coverage floor ratchet (#96). The live second-party proofs (#87) and the per-job receipt assembly (#150) moved to the 'Delivery trust \u2014 live proofs' milestone, which needs a second identity and cross-job CI artifacts."
     },
     {
       "number": 11,
@@ -95,6 +95,13 @@
       "title": "v1.15 \u2014 Operator desk",
       "state": "closed",
       "description": "Post-v1.14 optional operator desk: a single typed command catalog, digest/receipt-backed artifact status (never mtimes), typed doctor findings, a versioned child-event protocol, deterministic single-child control, DESK/target-picker/RUN views, headless active-signal tests, installed-wheel proof, and public documentation. Milestone/issues: https://github.com/clintecker/press/milestone/11. Start with command catalog https://github.com/clintecker/press/issues/100, events https://github.com/clintecker/press/issues/102, packaging boundary https://github.com/clintecker/press/issues/104, and test harness https://github.com/clintecker/press/issues/108. Evidence status https://github.com/clintecker/press/issues/101 depends on trust receipts https://github.com/clintecker/press/issues/93. Release gate: https://github.com/clintecker/press/issues/114. Durable plan: https://github.com/clintecker/press/blob/main/docs/TUI-PLAN.md. Architecture: https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md. Textual testing: https://textual.textualize.io/guide/testing/."
+    },
+    {
+      "number": 13,
+      "group": "future",
+      "title": "Delivery trust \u2014 live proofs",
+      "state": "open",
+      "description": "The delivery-trust work that cannot be finished from a single identity or a single CI run: the live second-party proofs (#87, human-run, needs a second GitHub account/org), and assembling the release trust chain from receipts the individual CI jobs emit and upload (#150), rather than synthesizing the chain inside the release-contract job."
     }
   ]
 }
