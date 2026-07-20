@@ -43,7 +43,7 @@ modules:
       run: adapter
       subtitle_stack_html: pure
       download_names: pure
-  catalog: {default: pure, overrides: {render_usage: producer}}
+  catalog: {default: pure, overrides: {render_usage: producer, render_global_help: producer, render_command_help: producer}}
   check_source: verifier
   check_the_checkers: verifier
   commerce: {default: producer, overrides: {load: parser, validate: verifier, should_emit: pure}}

@@ -38,6 +38,7 @@ A book you make with the press is yours entirely.
 
 ```sh
 pip install -e .          # from a clone of this repo
+press --version           # confirm the install; press --help lists commands
 press new my-book         # scaffold a new book repository
 cd my-book && git init && make all
 ```

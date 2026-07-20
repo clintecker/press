@@ -13,6 +13,8 @@ import sys
 from typing import Callable
 
 from . import booklib
+from . import catalog
+from . import version
 
 from .registry import FORMATS
 
@@ -331,12 +333,30 @@ ROUTES: dict[str, Callable[[list[str]], int]] = {
 }
 
 
+_HELP_FLAGS = {"--help", "-h", "help"}
+_VERSION_FLAGS = {"--version", "-V"}
+
+
 def main(argv: list[str] | None = None) -> int:
     args = list(argv if argv is not None else sys.argv[1:])
     if not args:
         print(USAGE)
         return 2
     target = args[0]
+
+    # Discovery flags never execute a handler, build, or need a book or a
+    # TTY: they answer and exit 0 (#175).
+    if target in _HELP_FLAGS:
+        print(catalog.render_global_help(), end="")
+        return 0
+    if target in _VERSION_FLAGS:
+        print(f"press {version()}")
+        return 0
+
+    is_command = target in ROUTES or target in FORMATS or target == "print"
+    if is_command and _HELP_FLAGS.intersection(args[1:]):
+        print(catalog.render_command_help(target), end="")
+        return 0
 
     handler = ROUTES.get(target)
     if handler is not None:
@@ -348,6 +368,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     print(USAGE)
     print(f"unknown target: {target}")
+    hint = catalog.suggest(target)
+    if hint:
+        print(f"did you mean `press {hint}`? (see `press --help`)")
+    else:
+        print("see `press --help` for the full command list")
     return 2
 
 

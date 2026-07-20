@@ -1,5 +1,8 @@
 # Support
 
+- `press --version` reports the installed version and `press --help` lists
+  every command; `press <command> --help` explains one. All three exit 0
+  and need no book or toolchain.
 - `press doctor` diagnoses the machine; `press selftest` diagnoses the
   install; both outputs belong in any report.
 - Questions and defects: [the issue tracker](https://github.com/clintecker/press/issues)

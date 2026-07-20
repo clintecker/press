@@ -9,6 +9,18 @@ audit).
 
 ## [Unreleased]
 
+### Added
+
+- Conventional CLI discovery (#175). `press --help`/`-h` prints every
+  command grouped with its summary; `press <command> --help` explains one
+  command; `press --version` reports the installed version. All exit 0 and
+  never execute a handler, build, mutate, or need a book, a TTY, or the
+  toolchain, so `press doctor --help` no longer runs the diagnostic and
+  `press desk --help` no longer tries to launch the TUI. An unknown command
+  exits 2 with the nearest valid suggestion and a pointer to `press --help`.
+  Help is rendered from the one command catalog, so it cannot describe a
+  command the CLI does not dispatch or omit one it does.
+
 ### Changed
 
 - One YAML library, one version. Press read config with PyYAML (YAML 1.1,

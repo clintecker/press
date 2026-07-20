@@ -115,3 +115,75 @@ def render_usage() -> str:
             words.append(token)
         lines.append(f"{group:<{label_width}}  {'  '.join(words)}")
     return "\n".join(lines) + "\n"
+
+
+# The one documentation home each command group points at; the reference is
+# generated, so these anchors cannot describe a command that does not exist.
+_REFERENCE = "https://github.com/clintecker/press/blob/main/docs/REFERENCE.md"
+
+
+def render_global_help() -> str:
+    """Full help: every command grouped with its one-line summary, plus how
+    to reach per-command help and the version. Derived entirely from the
+    catalog, so it lists exactly what the CLI dispatches."""
+
+    lines = [
+        "press - build, check, and verify books from Markdown.",
+        "",
+        "usage: press <command> [arguments]",
+        "       press <command> --help",
+        "       press --version",
+        "",
+    ]
+    width = max(len(c.name) for c in COMMANDS)
+    for group in GROUP_ORDER:
+        members = [c for c in COMMANDS if c.group == group and not c.alias_of]
+        if not members:
+            continue
+        lines.append(f"{group}:")
+        for command in members:
+            grammar = f" {command.args}" if command.args else ""
+            lines.append(f"  {command.name:<{width}}  {command.summary}{grammar}")
+        lines.append("")
+    lines.append(f"Reference: {_REFERENCE}")
+    return "\n".join(lines) + "\n"
+
+
+def render_command_help(name: str) -> str:
+    """Help for one command: its summary, argument grammar, whether it
+    builds an artifact, and where the reference documents it."""
+
+    command = by_name().get(name)
+    if command is None:
+        # An alias resolves to its canonical command's help.
+        for candidate in COMMANDS:
+            if name in candidate.aliases or name == candidate.alias_of:
+                command = candidate
+                break
+    if command is None:
+        return render_global_help()
+
+    grammar = f" {command.args}" if command.args else ""
+    lines = [
+        f"press {command.name}{grammar}",
+        "",
+        f"  {command.summary}.",
+        "",
+    ]
+    if command.build_format:
+        lines.append("  Builds an artifact into dist/ (needs the pandoc/TeX toolchain).")
+    if command.args:
+        lines.append(f"  Arguments: {command.args}")
+    lines.append("  --help, -h   show this help and exit")
+    lines.append("")
+    lines.append(f"Reference: {_REFERENCE}")
+    return "\n".join(lines) + "\n"
+
+
+def suggest(unknown: str) -> str | None:
+    """The nearest valid command name to a mistyped one, or None."""
+
+    import difflib
+
+    matches = difflib.get_close_matches(unknown, sorted(canonical_targets()), n=1)
+    return matches[0] if matches else None
