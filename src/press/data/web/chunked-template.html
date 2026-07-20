@@ -78,15 +78,26 @@ $endif$
 </header>
 $endif$
 $endif$
+<main id="content">
+$if(top)$
+$else$
+<p class="reader-lede">This is the reading edition: a page for each part, with
+previous and next links throughout. Start at the beginning, or choose a part
+from the contents below.</p>
+$if(next.url)$
+<p class="reader-start">
+  <a class="start-reading" href="$next.url$" rel="next" accesskey="s">Start reading &#8594;</a>
+</p>
+$endif$
+$endif$
 $if(toc)$
-<nav id="$idprefix$TOC" role="doc-toc">
+<nav id="$idprefix$TOC" role="doc-toc" aria-label="Contents">
 $if(toc-title)$
 <h2 id="$idprefix$toc-title">$toc-title$</h2>
 $endif$
 $table-of-contents$
 </nav>
 $endif$
-<main id="content">
 $body$
 </main>
 $if(top)$

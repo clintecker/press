@@ -11,6 +11,13 @@ audit).
 
 ### Fixed
 
+- The chunked reader's index is a start-reading page, not an empty shell. Its
+  `<main id="content">` -- the target of the "Skip to chapter" link -- was
+  empty, so the skip link went nowhere and there was no explicit way to begin
+  reading. It now opens with an orienting line and one primary "Start
+  reading" action pointing at the first part (by the same ordered manifest
+  the previous/next pager uses), above the chapter contents; a chapter page
+  keeps its own body in `main` and gets no start-reading block (#160).
 - Git subprocesses observe only their own repository. A `git commit` runs
   its hooks with `GIT_INDEX_FILE` (and `GIT_DIR`) pointing at the outer
   commit's transient index, so the test suite -- and press itself -- would

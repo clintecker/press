@@ -154,6 +154,16 @@ p.author, p.date { font-variant: small-caps; letter-spacing: .16em;
 .cover-plate { margin: 2rem 0 .5rem; }
 .cover-plate img { width: min(17rem, 70%); height: auto; border: 1px solid var(--foil);
   box-shadow: 0 .8rem 2rem rgba(0,0,0,.28); }
+/* The reader index's opening: an orienting line and one primary action to
+   start reading at the first part, above the chapter contents. */
+.reader-lede { max-width: 30rem; margin: 1.8rem auto 0; text-align: center;
+  color: var(--ink-soft); font-size: .98rem; }
+.reader-start { text-align: center; margin: 1.5rem auto 0; }
+.start-reading { display: inline-block; padding: .7rem 1.7rem;
+  background: var(--cloth); color: var(--paper); border: 1px solid var(--cloth-deep);
+  font-weight: 600; letter-spacing: .04em; border-radius: 2px; }
+.start-reading:hover { background: var(--cloth-deep); color: var(--paper); }
+
 #TOC { border-bottom: none; margin-top: 2.2rem; }
 #TOC h2 { text-align: center; letter-spacing: .18em; font-size: 1.15rem; }
 #TOC > ul { list-style: none; padding-left: 0; max-width: 30rem; margin: 1.2rem auto; }
