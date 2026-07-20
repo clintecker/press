@@ -11,15 +11,15 @@ audit).
 
 Nothing yet.
 
-## [1.16.2] - 2026-07-20
+## [1.16.3] - 2026-07-20
 
 Seller-of-record print ordering plus a public-experience pass: a validated
 configuration CLI and desk wizard, conventional CLI discovery, one YAML
 library and version, an independently consumable public toolchain image, an
 executable beginner quickstart, and a redesigned documentation site.
-(Earlier 1.16.0 and 1.16.1 tags did not release: the release contract
-surfaced two CI-only issues, both fixed here, before the major floated or a
-Release was published.)
+(Earlier 1.16.0-1.16.2 tags did not release: the release contract, which
+only floats the major and publishes after every trust gate proves, surfaced
+three CI-only issues fixed here before any Release existed.)
 
 ### Fixed
 
@@ -27,9 +27,10 @@ Release was published.)
   packaged `__file__`-relative path is absent, so the desk end-to-end proof
   (which runs the suite against an installed wheel) can load it instead of
   breaking collection.
-- `press.wordcount` carries its own coverage test rather than relying on a
-  quickstart doc example to exercise it, so a doc edit cannot drop its
-  branch coverage below the floor.
+- The per-module coverage baselines are restored to the values CI measures.
+  A local `--update` had re-measured them on a machine where the ratchet's
+  integration-deselection and toolchain-hiding did not take effect the same
+  way, inflating many baselines above the deterministic floor CI enforces.
 
 ### Added
 

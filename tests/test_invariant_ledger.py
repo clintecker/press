@@ -33,6 +33,23 @@ def test_ledger_resolves_from_cwd_when_the_packaged_path_is_absent(monkeypatch):
     assert isinstance(invariants.load(), list)
 
 
+def test_ledger_path_returns_the_packaged_path_when_nothing_resolves(monkeypatch, tmp_path):
+    # Both the packaged path and the cwd path absent: return the packaged
+    # path so the caller's open() reports the real, expected location.
+    from pathlib import Path
+
+    missing = Path("/nonexistent/quality/invariants.yaml")
+    monkeypatch.setattr(invariants, "LEDGER", missing)
+    monkeypatch.chdir(tmp_path)  # no quality/ here
+    assert invariants._ledger_path() == missing
+
+
+def test_load_accepts_an_explicit_path(tmp_path):
+    ledger = tmp_path / "l.yaml"
+    ledger.write_text("invariants: []\n", encoding="utf-8")
+    assert invariants.load(ledger) == []
+
+
 def test_generated_doc_matches_ledger():
     from pathlib import Path
 
