@@ -386,15 +386,14 @@ def check_aesthetic_schema() -> None:
     reach the site and PDF; drift fails here, not in an author's
     confused draft."""
 
-    import yaml
+    from . import yamlio
 
     here = Path(__file__).resolve().parent
     skill = (here / "data" / "skills" / "book-aesthetics.md").read_text(encoding="utf-8")
     source = (here / "aesthetic.py").read_text(encoding="utf-8")
     consumed = set(re.findall(r'(?:merged|overrides)\.get\("([a-z-]+)"\)', source))
     consumed |= set(re.findall(r'\.get\("((?:web|pdf)-family)"\)', source))
-    with (here / "data" / "aesthetic-house.yaml").open(encoding="utf-8") as handle:
-        house = set(yaml.safe_load(handle) or {})
+    house = set(yamlio.load(here / "data" / "aesthetic-house.yaml") or {})
     undocumented = sorted(
         key for key in consumed | house if key not in skill
     )

@@ -23,7 +23,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import yaml
+from press import yamlio
 
 SRC = Path(__file__).resolve().parent.parent / "src"
 if str(SRC) not in sys.path:
@@ -174,7 +174,7 @@ class BookFactory:
             metadata = {"__raw__": raw}
         else:
             (book / "config" / "metadata.yaml").write_text(
-                yaml.safe_dump(metadata, sort_keys=False), encoding="utf-8"
+                yamlio.dump(metadata), encoding="utf-8"
             )
 
         chapters = self._chapters or {"00-only.md": _default_chapter(self._sentinels)}
@@ -211,23 +211,23 @@ class BookFactory:
         config = book / "config"
         if self._authorities is not None:
             (config / "authorities.yaml").write_text(
-                yaml.safe_dump(self._authorities, sort_keys=False), encoding="utf-8"
+                yamlio.dump(self._authorities), encoding="utf-8"
             )
         if self._index_terms is not None:
             (config / "index-terms.yaml").write_text(
-                yaml.safe_dump(self._index_terms, sort_keys=False), encoding="utf-8"
+                yamlio.dump(self._index_terms), encoding="utf-8"
             )
         if self._front_matter is not None:
             (config / "front-matter.yaml").write_text(
-                yaml.safe_dump(self._front_matter, sort_keys=False), encoding="utf-8"
+                yamlio.dump(self._front_matter), encoding="utf-8"
             )
         if self._aesthetic is not None:
             (config / "aesthetic.yaml").write_text(
-                yaml.safe_dump(self._aesthetic, sort_keys=False), encoding="utf-8"
+                yamlio.dump(self._aesthetic), encoding="utf-8"
             )
         if self._house_rules is not None:
             (config / "house-rules.yaml").write_text(
-                yaml.safe_dump(self._house_rules, sort_keys=False), encoding="utf-8"
+                yamlio.dump(self._house_rules), encoding="utf-8"
             )
         if self._reader_css is not None or self._extra_css is not None:
             (book / "assets" / "web").mkdir(parents=True, exist_ok=True)

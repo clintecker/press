@@ -9,7 +9,7 @@ the art look like" for authors and agents alike.
 
 from __future__ import annotations
 
-import yaml
+from . import yamlio
 
 from . import booklib
 
@@ -18,11 +18,11 @@ HOUSE = booklib.DATA / "aesthetic-house.yaml"
 
 def effective() -> dict:
     with HOUSE.open(encoding="utf-8") as handle:
-        merged = yaml.safe_load(handle)
+        merged = yamlio.loads(handle.read())
     book_file = booklib.root() / "config" / "aesthetic.yaml"
     if book_file.is_file():
         with book_file.open(encoding="utf-8") as handle:
-            overrides = yaml.safe_load(handle) or {}
+            overrides = yamlio.loads(handle.read()) or {}
         merged.update(overrides)
     return merged
 
@@ -81,7 +81,7 @@ def write_tex_overrides() -> None:
             out.unlink()
         return
     with book_file.open(encoding="utf-8") as handle:
-        overrides = yaml.safe_load(handle) or {}
+        overrides = yamlio.loads(handle.read()) or {}
     colors = overrides.get("book-colors") or {}
     family = (overrides.get("typography") or {}).get("pdf-family") or ""
     lines = ["% Generated from config/aesthetic.yaml; regenerated every build."]
@@ -104,5 +104,5 @@ def show() -> int:
     book_file = booklib.root() / "config" / "aesthetic.yaml"
     source = book_file if book_file.is_file() else HOUSE
     print(f"# effective aesthetic ({source})")
-    print(yaml.safe_dump(effective(), sort_keys=False, allow_unicode=True))
+    print(yamlio.dump(effective()))
     return 0

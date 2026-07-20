@@ -26,12 +26,12 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "PyYAML>=6.0",
     "Pillow>=10.0",
     "pypdf>=4.0",
-    # ruamel.yaml preserves comments and unknown keys on round-trip; the
-    # `press config` writer edits a book's YAML in place without discarding
-    # the template's guidance comments or a user's own additions.
+    # ruamel.yaml is the package's one YAML library (see press.yamlio): it
+    # reads and writes at YAML 1.2 so a bare no/yes/on is always a string,
+    # and its round-trip mode lets `press config` edit a book's YAML in
+    # place without discarding the template's comments or a user's additions.
     "ruamel.yaml>=0.18",
 ]
 
@@ -44,7 +44,6 @@ tui = [
 dev = [
     "ruff>=0.5",
     "mypy>=1.10",
-    "types-PyYAML",
     "pre-commit>=3.5",
     "build>=1.0",
     "twine>=5.0",

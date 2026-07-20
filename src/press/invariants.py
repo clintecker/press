@@ -31,7 +31,7 @@ import importlib
 from pathlib import Path
 from typing import Any
 
-import yaml
+from . import yamlio
 
 REQUIRED = {
     "id", "statement", "risk", "criticality", "owner", "enforcer",
@@ -88,7 +88,7 @@ TITLES = {
 
 def load(path: Path = LEDGER) -> list[dict[str, Any]]:
     with path.open(encoding="utf-8") as handle:
-        data = yaml.safe_load(handle)
+        data = yamlio.loads(handle.read())
     if not isinstance(data, dict) or not isinstance(data.get("invariants"), list):
         raise SystemExit(f"{path}: must be a mapping with an 'invariants' list")
     return data["invariants"]

@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import yaml
+from . import yamlio
 
 from . import booklib
 
@@ -100,7 +100,7 @@ def generate(include_cover: bool = True) -> Path | None:
         return None
 
     with config.open(encoding="utf-8") as handle:
-        front = yaml.safe_load(handle) or {}
+        front = yamlio.loads(handle.read()) or {}
     meta = booklib.metadata()
     missing = [
         key for key in ("title", "author", "copyright", "publisher", "publisher-place")

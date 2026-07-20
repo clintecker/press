@@ -3,7 +3,7 @@
   "tolerance": 0.5,
   "modules": {
     "__init__": 66.7,
-    "__main__": 42.1,
+    "__main__": 43.0,
     "adapters.__init__": 100.0,
     "adapters.fakes": 96.8,
     "adapters.http": 100.0,
@@ -15,16 +15,16 @@
     "art_commission": 11.4,
     "artifact_status": 98.3,
     "barcode": 100.0,
-    "booklib": 69.4,
+    "booklib": 69.1,
     "bookmodel": 81.9,
-    "build": 14.4,
+    "build": 14.5,
     "catalog": 95.6,
     "check_source": 73.7,
     "check_the_checkers": 73.8,
     "commerce": 89.2,
-    "config_cli": 83.8,
-    "config_schema": 93.4,
-    "config_store": 90.7,
+    "config_cli": 84.2,
+    "config_schema": 93.6,
+    "config_store": 90.9,
     "desk_model": 100.0,
     "doctor": 95.2,
     "edition": 84.4,
@@ -62,6 +62,7 @@
     "verify_formats": 45.6,
     "verify_pages": 78.4,
     "verify_pdf": 10.5,
-    "wordcount": 90.5
+    "wordcount": 90.5,
+    "yamlio": 96.2
   }
 }

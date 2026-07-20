@@ -26,7 +26,7 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
-import yaml
+from . import yamlio
 
 CONFIG = Path(__file__).resolve().parent.parent.parent / "quality" / "scenarios.yaml"
 
@@ -48,7 +48,7 @@ def load(path: Path | None = None) -> dict[str, Any]:
     malformed dimension surfaces here and not deep in the generator."""
 
     with (path or CONFIG).open(encoding="utf-8") as handle:
-        config = yaml.safe_load(handle)
+        config = yamlio.loads(handle.read())
     if not isinstance(config, dict):
         raise ValueError("scenarios.yaml must be a mapping")
     dims = config.get("dimensions")

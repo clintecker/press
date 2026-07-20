@@ -155,50 +155,56 @@ def test_a_malformed_file_is_a_config_error_not_a_traceback(tmp_path):
 # ---- write-safety: agree with the build's YAML 1.1 loader --------------
 
 @pytest.mark.parametrize("text", ["no", "yes", "on", "off", "true", "2026", "3.5", "null", "~"])
-def test_a_scalar_the_build_would_misread_is_written_quoted(text, tmp_path):
-    import yaml as pyyaml
+def test_a_string_typed_value_survives_as_the_string_set(text, tmp_path):
+    from press import yamlio
 
     path = tmp_path / "m.yaml"
     data = cs.load(path)
     cs.set_path(data, "subtitle", cs.write_safe(text))
     cs.write_atomic(path, data)
-    # The build reads config through PyYAML (YAML 1.1); it must see the
-    # same string the user set, not a bool/int/None.
-    reloaded = pyyaml.safe_load(path.read_text(encoding="utf-8"))
+    # Read back through the package's own loader: whether write_safe quoted
+    # it or not, the value must be the string the user set, never a
+    # bool/int/None.
+    reloaded = yamlio.loads(path.read_text(encoding="utf-8"))
     assert reloaded["subtitle"] == text
     assert isinstance(reloaded["subtitle"], str)
 
 
-def test_an_unambiguous_string_is_not_needlessly_quoted():
+def test_write_safe_quotes_only_what_the_loader_would_retype():
     from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 
-    assert not isinstance(cs.write_safe("Hello World"), DoubleQuotedScalarString)
-    assert isinstance(cs.write_safe("no"), DoubleQuotedScalarString)
+    def quoted(v):
+        return isinstance(cs.write_safe(v), DoubleQuotedScalarString)
+
+    # Under YAML 1.2, no/yes/on are already strings -- no quoting needed.
+    assert not quoted("Hello World") and not quoted("no") and not quoted("yes")
+    # But a value the loader would read as a bool/number/null is quoted.
+    assert quoted("true") and quoted("2026") and quoted("3.5") and quoted("~")
     # An already-quoted scalar is left as is (not double-wrapped).
     assert cs.write_safe(DoubleQuotedScalarString("x")) == "x"
     # A value that will not even parse as bare YAML is quoted, not crashed.
-    assert isinstance(cs.write_safe("[unterminated"), DoubleQuotedScalarString)
+    assert quoted("[unterminated")
     # Non-string leaves pass through untouched.
     assert cs.write_safe(24) == 24 and cs.write_safe(True) is True
 
 
-def test_as_build_reads_parses_like_pyyaml_and_tolerates_non_mappings():
-    m = {"verify-min-pages": 24, "flag": cs.write_safe("no")}
-    assert cs.as_build_reads(m) == {"verify-min-pages": 24, "flag": "no"}
-    # A document that is not a mapping (or empty) reads back as {}.
+def test_as_build_reads_returns_parsed_types_and_tolerates_non_mappings():
+    m = {"verify-min-pages": 24, "flag": cs.write_safe("true")}
+    # The quoted "true" reads back as a string; the bare 24 as an int.
+    assert cs.as_build_reads(m) == {"verify-min-pages": 24, "flag": "true"}
     from ruamel.yaml.comments import CommentedSeq
     assert cs.as_build_reads(CommentedSeq()) == {}
 
 
 def test_write_safe_reaches_string_leaves_in_collections(tmp_path):
-    import yaml as pyyaml
+    from press import yamlio
 
     path = tmp_path / "m.yaml"
     data = cs.load(path)
-    cs.set_path(data, "keywords", cs.write_safe(["yes", "plain", "off"]))
+    cs.set_path(data, "keywords", cs.write_safe(["true", "plain", "2026"]))
     cs.write_atomic(path, data)
-    # Every ambiguous element survives as a string through the build loader.
-    assert pyyaml.safe_load(path.read_text())["keywords"] == ["yes", "plain", "off"]
+    # Every retypeable element survives as a string through the loader.
+    assert yamlio.loads(path.read_text())["keywords"] == ["true", "plain", "2026"]
 
 
 def test_write_is_atomic_leaving_no_temp_behind(tmp_path):

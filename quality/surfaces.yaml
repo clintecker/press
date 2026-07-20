@@ -80,6 +80,7 @@ modules:
   verify_pages: {default: verifier, overrides: {scan_page: parser, check_refs: pure, check_downloads: pure, check_reading_surface: verifier}}
   verify_pdf: {default: verifier, overrides: {run_capture: adapter, looks_blank: pure, ink_bbox: pure, edge_has_ink: pure, parse_args: parser}}
   wordcount: presenter
+  yamlio: {default: parser, overrides: {dump: producer, write: producer}}
 
 # Callables that owe no direct proof, each with a reason and a review
 # date. An exemption is a decision on the record, not an escape hatch.

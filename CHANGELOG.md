@@ -9,6 +9,20 @@ audit).
 
 ## [Unreleased]
 
+### Changed
+
+- One YAML library, one version. Press read config with PyYAML (YAML 1.1,
+  where a bare `no`/`yes`/`on`/`off` is a boolean) while the `press config`
+  writer used ruamel (YAML 1.2, where they are strings); the two disagreed
+  about the document itself. The package now reads and writes all YAML
+  through `press.yamlio` (ruamel at YAML 1.2, pure parser), so a bare `no`
+  is the string "no" everywhere and the writer and reader can never drift
+  apart. A boundary test forbids a raw `import yaml` outside the one door,
+  and PyYAML is dropped as a dependency. No book's valid config changes
+  meaning under 1.2 except a value a book explicitly wrote as a bare
+  `yes`/`no`/`on`/`off` and relied on being a boolean; write it as
+  `true`/`false` instead.
+
 ### Added
 
 - `press config get|set|unset|list|validate`: a validated command surface

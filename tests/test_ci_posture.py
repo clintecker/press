@@ -26,11 +26,11 @@ def _workflow_files():
 
 
 def _all_job_names() -> set[str]:
-    import yaml
+    from press import yamlio
 
     names: set[str] = set()
     for f in _workflow_files():
-        data = yaml.safe_load(f.read_text(encoding="utf-8"))
+        data = yamlio.loads(f.read_text(encoding="utf-8"))
         names |= set((data.get("jobs") or {}).keys())
     return names
 
@@ -49,9 +49,9 @@ def test_workflow_declares_permissions(workflow):
     """Every workflow declares an explicit permissions block, so a fork
     PR never inherits the default broad token."""
 
-    import yaml
+    from press import yamlio
 
-    data = yaml.safe_load(workflow.read_text(encoding="utf-8"))
+    data = yamlio.loads(workflow.read_text(encoding="utf-8"))
     has_top = "permissions" in data
     jobs = data.get("jobs", {})
     all_jobs_scoped = jobs and all("permissions" in job for job in jobs.values())
@@ -82,11 +82,11 @@ def _effective_check_names() -> set[str]:
     job overrides it with `name:`. The release poll matches on this name,
     not the job key, so this is what a required check must resolve to."""
 
-    import yaml
+    from press import yamlio
 
     names: set[str] = set()
     for f in _workflow_files():
-        data = yaml.safe_load(f.read_text(encoding="utf-8"))
+        data = yamlio.loads(f.read_text(encoding="utf-8"))
         for key, job in (data.get("jobs") or {}).items():
             names.add(job.get("name", key) if isinstance(job, dict) else key)
     return names
@@ -119,9 +119,9 @@ def test_the_integration_gate_runs_privileged_in_the_container():
     in that container with registry credentials and packages:read. If this
     privilege regressed, the integration layer could not run at all."""
 
-    import yaml
+    from press import yamlio
 
-    data = yaml.safe_load((WORKFLOWS / "integration.yml").read_text(encoding="utf-8"))
+    data = yamlio.loads((WORKFLOWS / "integration.yml").read_text(encoding="utf-8"))
     consumer = data["jobs"]["consumer"]
     assert "container" in consumer, "consumer does not run in the toolchain container"
     assert "credentials" in consumer["container"], "container pulls without credentials"

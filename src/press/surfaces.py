@@ -16,7 +16,7 @@ import ast
 from pathlib import Path
 from typing import Any
 
-import yaml
+from . import yamlio
 
 SRC = Path(__file__).resolve().parent
 CONFIG = SRC.parent.parent / "quality" / "surfaces.yaml"
@@ -45,7 +45,7 @@ def public_callables() -> dict[str, list[str]]:
 
 def load_config(path: Path = CONFIG) -> dict[str, Any]:
     with path.open(encoding="utf-8") as handle:
-        return yaml.safe_load(handle)
+        return yamlio.loads(handle.read())
 
 
 def classify(config: dict[str, Any], module: str, func: str) -> str | None:

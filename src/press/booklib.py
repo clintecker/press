@@ -14,7 +14,7 @@ import re
 from functools import lru_cache
 from pathlib import Path
 
-import yaml
+from . import yamlio
 
 DATA = Path(__file__).resolve().parent / "data"
 
@@ -45,14 +45,13 @@ def load_config_mapping(path, required: bool = False) -> dict:
         if required:
             raise SystemExit(f"{path}: missing (a book requires this file)")
         return {}
-    with path.open(encoding="utf-8") as handle:
-        try:
-            loaded = yaml.safe_load(handle)
-        except yaml.YAMLError as exc:
-            mark = getattr(exc, "problem_mark", None)
-            where = f":{mark.line + 1}" if mark is not None else ""
-            problem = getattr(exc, "problem", None) or "invalid YAML"
-            raise SystemExit(f"{path}{where}: {problem}") from exc
+    try:
+        loaded = yamlio.loads(path.read_text(encoding="utf-8"))
+    except yamlio.YAMLError as exc:
+        mark = getattr(exc, "problem_mark", None)
+        where = f":{mark.line + 1}" if mark is not None else ""
+        problem = getattr(exc, "problem", None) or "invalid YAML"
+        raise SystemExit(f"{path}{where}: {problem}") from exc
     if loaded is None:
         if required:
             raise SystemExit(f"{path}: empty")

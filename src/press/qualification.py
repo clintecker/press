@@ -23,7 +23,7 @@ import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-import yaml
+from . import yamlio
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 SOURCE_RECORD = ROOT / "quality" / "providers.yaml"
@@ -69,7 +69,7 @@ def _record_path() -> Path:
 
 def load(path: Path | None = None) -> dict:
     selected = path if path is not None else _record_path()
-    return yaml.safe_load(selected.read_text(encoding="utf-8"))
+    return yamlio.loads(selected.read_text(encoding="utf-8"))
 
 
 def providers(record: dict | None = None) -> dict[str, Provider]:
@@ -223,7 +223,7 @@ def book_inspections(root: Path) -> list[PhysicalInspection]:
     path = root / "config" / "qualification.yaml"
     if not path.is_file():
         return []
-    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    data = yamlio.loads(path.read_text(encoding="utf-8")) or {}
     out: list[PhysicalInspection] = []
     for raw in data.get("inspections", ()):
         out.append(PhysicalInspection(

@@ -250,10 +250,10 @@ def validate_file(root: Path, file: str, proposed: dict) -> list[str]:
     """Run the real validator for a config file against a proposed
     document, returning every problem (empty when it would be accepted).
 
-    The proposed document is read back through the build's own loader
-    first, so the validator judges exactly the bytes that will land on
-    disk, not ruamel's in-memory view (the two YAML versions disagree on
-    bare yes/no/on/off)."""
+    The proposed document is read back through the package's plain loader
+    first, so the validator judges the parsed types that will land on disk
+    (a quoted number as a string, a bare number as an int), not ruamel's
+    round-trip nodes."""
 
     from . import config_store
 

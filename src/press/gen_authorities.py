@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import yaml
+from . import yamlio
 
 from . import booklib
 
@@ -146,7 +146,7 @@ def generate() -> Path | None:
     if not ledger.is_file():
         return None
     with ledger.open(encoding="utf-8") as handle:
-        entries = yaml.safe_load(handle) or []
+        entries = yamlio.loads(handle.read()) or []
 
     sources = [
         (path, chapter_label(path), normalize(path.read_text(encoding="utf-8")))

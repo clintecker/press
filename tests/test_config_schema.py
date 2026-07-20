@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import yaml
+from press import yamlio
 
 from press import config_schema as schema
 from press import config_store as store
@@ -78,7 +78,7 @@ def test_every_documented_yaml_key_is_covered_by_the_registry():
         if file is None or file in WHOLE_FILE_FILES:
             continue  # asset/tex sections have no keys; list files are whole-file
         for block in re.findall(r"```yaml\n(.*?)```", body, re.S):
-            parsed = yaml.safe_load(block)
+            parsed = yamlio.loads(block)
             if not isinstance(parsed, dict):
                 continue  # a top-level list is a whole-file structure
             for path in _leaf_paths(parsed):

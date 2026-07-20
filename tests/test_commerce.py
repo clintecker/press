@@ -179,14 +179,14 @@ def test_the_documented_commerce_example_actually_validates():
     # parses, validates, and carries no secret. (A #138 documentation test.)
     import re
 
-    import yaml
+    from press import yamlio
 
     doc = (Path(__file__).resolve().parent.parent / "docs" / "PRINT-ORDERING.md")
     blocks = re.findall(r"```yaml\n(.*?)```", doc.read_text(encoding="utf-8"), re.S)
     examples = [b for b in blocks if "print-ordering" in b]
     assert examples, "the print-ordering guide has no commerce example"
     for block in examples:
-        cfg = commerce.load(yaml.safe_load(block))
+        cfg = commerce.load(yamlio.loads(block))
         assert commerce.validate(cfg) == []
 
 
@@ -329,7 +329,7 @@ def _write_pdf(path, pages):
 
 @pytest.mark.layer("integration")
 def test_release_gate_end_to_end(scaffolded_book, monkeypatch):
-    import yaml
+    from press import yamlio
 
     from press import booklib, edition, qualification, registry
 
@@ -359,7 +359,7 @@ def test_release_gate_end_to_end(scaffolded_book, monkeypatch):
     qual_path = root / "config" / "qualification.yaml"
 
     def write_inspection(edition_id):
-        qual_path.write_text(yaml.safe_dump({"schema_version": 1, "inspections": [{
+        qual_path.write_text(yamlio.dump({"schema_version": 1, "inspections": [{
             "provider": "lulu", "product_id": "PB-BW-6x9", "region": "US",
             "edition_id": edition_id, "inspector": "tester",
             "results": {p: "pass" for p in qualification.REQUIRED_CHECKLIST}}]}),

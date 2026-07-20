@@ -32,7 +32,7 @@ class ConfigError(Exception):
 
 
 def _yaml() -> YAML:
-    yaml = YAML()  # round-trip mode: comments and order preserved
+    yaml = YAML(pure=True)  # round-trip mode: comments and order preserved
     yaml.preserve_quotes = True
     yaml.width = 4096  # do not rewrap long scalars we did not touch
     # Match the scaffold template's house style ("  - item") so writing one
@@ -82,25 +82,25 @@ def dumps(data: Any) -> str:
 
 
 def _ambiguous(text: str) -> bool:
-    """True when the build's YAML 1.1 loader (PyYAML) would read this bare
-    string as something other than the same string: 'no'/'yes'/'on'/'off'
-    become booleans, '3' an int, '2026-01-01' a date. Such a value must be
-    quoted on write so the reader and the writer agree on the document."""
+    """True when the package's YAML 1.2 loader would read this bare string
+    as something other than the same string: '3' becomes an int, 'true' a
+    bool, '2026-01-01' a date, '~' null. A string-typed field holding such
+    a value must be quoted on write so it stays the string the user set."""
 
-    import yaml as pyyaml
+    from . import yamlio
 
     try:
-        parsed = pyyaml.safe_load(text)
+        parsed = yamlio.loads(text)
     except Exception:
         return True  # unparseable bare; quoting makes it an unambiguous string
     return not (isinstance(parsed, str) and parsed == text)
 
 
 def write_safe(value: Any) -> Any:
-    """Prepare a coerced value for writing so the file round-trips through
-    the build's loader unchanged: any string leaf the build would misread
-    is emitted double-quoted. Booleans and numbers are unambiguous in both
-    YAML versions and pass through."""
+    """Prepare a coerced value for writing so a string-typed field stays a
+    string: any string leaf the loader would otherwise read as a bool,
+    number, date, or null is emitted double-quoted. Booleans and numbers
+    pass through unchanged."""
 
     from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 
@@ -114,14 +114,14 @@ def write_safe(value: Any) -> Any:
 
 
 def as_build_reads(data: Any) -> dict:
-    """The document exactly as the build's PyYAML loader will parse the
-    written bytes: serialize the round-trip doc and re-read it with
-    yaml.safe_load, so validation sees what the build sees, not what ruamel
-    holds in memory."""
+    """The document exactly as the build will parse the written bytes:
+    serialize the round-trip doc and re-read it with the package's plain
+    loader, so validation sees the parsed types (a quoted "24" as a string,
+    a bare 24 as an int), not ruamel's round-trip nodes."""
 
-    import yaml as pyyaml
+    from . import yamlio
 
-    parsed = pyyaml.safe_load(dumps(data))
+    parsed = yamlio.loads(dumps(data))
     return parsed if isinstance(parsed, dict) else {}
 
 

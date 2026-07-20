@@ -15,13 +15,12 @@ import shutil
 import time
 from pathlib import Path
 
-import yaml
-
 from . import adapters
 from . import booklib
 from . import gen_authorities
 from . import gen_front_matter
 from . import gen_index
+from . import yamlio
 
 
 def run(command: list[str]) -> None:
@@ -111,8 +110,7 @@ def cover_fragment_html(title: str) -> str:
 def render_defaults(name: str) -> Path:
     """Materialize a press defaults template for this book into build/."""
 
-    with (booklib.DATA / "defaults" / f"{name}.yaml").open(encoding="utf-8") as handle:
-        defaults = yaml.safe_load(handle)
+    defaults = yamlio.load(booklib.DATA / "defaults" / f"{name}.yaml")
 
     root = booklib.root()
     if name == "html":
@@ -149,7 +147,7 @@ def render_defaults(name: str) -> Path:
     resolved = _resolve_paths(defaults)
     out = root / "build" / "defaults" / f"{name}.yaml"
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(yaml.safe_dump(resolved, sort_keys=False), encoding="utf-8")
+    out.write_text(yamlio.dump(resolved), encoding="utf-8")
     return out
 
 

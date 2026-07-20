@@ -106,18 +106,18 @@ def test_a_non_https_url_is_refused(scaffolded_book):
     assert _meta_bytes(scaffolded_book) == before
 
 
-def test_a_yaml_1_1_ambiguous_value_survives_as_the_string_set(scaffolded_book):
-    # `config set subtitle no` must not become the boolean False (and then
-    # the literal "False") when the build reads the file with PyYAML.
-    import yaml as pyyaml
+@pytest.mark.parametrize("value", ["no", "true", "2026"])
+def test_a_retypeable_value_survives_as_the_string_set(scaffolded_book, value):
+    # `config set subtitle true` must not become the boolean True (and then
+    # the literal "True") when the build reads the file back.
+    from press import bookmodel, yamlio
 
-    assert cli.main(["config", "set", "subtitle", "no"]) == cli.EXIT_OK
+    assert cli.main(["config", "set", "subtitle", value]) == cli.EXIT_OK
     raw = (scaffolded_book / "config" / "metadata.yaml").read_text()
-    assert pyyaml.safe_load(raw)["subtitle"] == "no"
+    assert yamlio.loads(raw)["subtitle"] == value
     # And the typed model the build uses agrees.
-    from press import bookmodel
-    book = bookmodel.load(scaffolded_book, pyyaml.safe_load(raw))
-    assert book.subtitle == "no"
+    book = bookmodel.load(scaffolded_book, yamlio.loads(raw))
+    assert book.subtitle == value
 
 
 def test_a_bad_type_value_that_looks_secret_is_not_echoed(scaffolded_book, capsys):

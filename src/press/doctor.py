@@ -131,7 +131,7 @@ def _default_deps_probe() -> str | None:
     try:
         from PIL import Image  # noqa: F401
         import pypdf  # noqa: F401
-        import yaml  # noqa: F401
+        import ruamel.yaml  # noqa: F401
     except ImportError as exc:
         return str(exc)
     return None
@@ -218,7 +218,7 @@ def examine(
                 "python-deps",
                 "deps",
                 "ok",
-                "Pillow, pypdf, PyYAML importable",
+                "Pillow, pypdf, ruamel.yaml importable",
                 True,
             )
         )

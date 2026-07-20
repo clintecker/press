@@ -30,7 +30,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import yaml
+from . import yamlio
 
 from .check_the_checkers import EXPECT
 
@@ -49,7 +49,7 @@ RESULTS = {"rejected"}
 
 def load(path: Path = MANIFEST) -> list[dict[str, Any]]:
     with path.open(encoding="utf-8") as handle:
-        data = yaml.safe_load(handle)
+        data = yamlio.loads(handle.read())
     if not isinstance(data, dict) or not isinstance(data.get("fixtures"), list):
         raise SystemExit(f"{path}: must be a mapping with a 'fixtures' list")
     return data["fixtures"]

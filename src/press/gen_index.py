@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import yaml
+from . import yamlio
 
 from . import booklib, gen_authorities
 
@@ -42,7 +42,7 @@ def generate() -> Path | None:
     if not terms_path.is_file():
         return None
     with terms_path.open(encoding="utf-8") as handle:
-        entries = yaml.safe_load(handle)
+        entries = yamlio.loads(handle.read())
 
     # The index takes the first free appendix letter.
     from .gen_authorities import next_letter, taken_letters
