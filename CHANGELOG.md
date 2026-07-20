@@ -11,6 +11,12 @@ audit).
 
 ### Added
 
+- The documentation site declares its metadata instead of leaving search
+  engines and link previews to infer it: every page carries a canonical URL,
+  a meta description derived from its own first paragraph, and Open
+  Graph/Twitter-card tags, and the build emits a deterministic `sitemap.xml`
+  and `robots.txt`. The build fails if a page lacks a canonical URL or
+  description (part of #158; book-page structured data is separate).
 - Every documentation-site page declares its language (`<html lang="en">`),
   exposes one `main` landmark, and leads with a skip-to-content link as the
   first focusable element; the build fails if a page lacks any of them

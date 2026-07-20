@@ -30,6 +30,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "build" / "site"
 
+# The site's public home. Canonical URLs, social cards, and the sitemap are
+# absolute against it; a page never claims a canonical URL it is not served
+# from. (This is the press's own docs site, not a book's site-url.)
+SITE_URL = "https://clintecker.github.io/press/"
+
 # The site navigation, grouped so it stays scannable as the docs grow.
 # Each group is (label, [(source, output name, nav label), ...]).
 NAV_GROUPS = [
@@ -183,6 +188,51 @@ def rewrite_internal_links(html: str) -> str:
     return html
 
 
+def page_description(source: str) -> str:
+    """A one-line description from the source's first real paragraph, so
+    search results and link previews read a meaningful summary rather than
+    inferring one from the body. Deterministic: derived from the doc, not
+    hand-maintained per page."""
+
+    import html as html_mod
+
+    text = (ROOT / source).read_text(encoding="utf-8")
+    for block in re.split(r"\n\s*\n", text):
+        block = block.strip()
+        # Skip headings, code fences, tables, lists, and front-matter fences.
+        if not block or block.startswith(("#", "```", "|", "-", "*", ">", "<!--")):
+            continue
+        one = " ".join(block.split())
+        one = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", one)   # link text only
+        one = re.sub(r"[`*_]", "", one)                        # drop md marks
+        if len(one) > 157:
+            one = one[:157].rsplit(" ", 1)[0] + "..."
+        return html_mod.escape(one)
+    return "The press: build, check, and verify books from Markdown."
+
+
+def head_metadata(name: str, title: str, description: str) -> str:
+    """Canonical, Open Graph, and Twitter-card tags for one page, injected
+    into <head> so identity is declared, not inferred."""
+
+    import html as html_mod
+
+    canonical = SITE_URL if name == "index.html" else SITE_URL + name
+    t = html_mod.escape(title)
+    return "\n".join([
+        f'  <meta name="description" content="{description}" />',
+        f'  <link rel="canonical" href="{canonical}" />',
+        '  <meta property="og:type" content="website" />',
+        '  <meta property="og:site_name" content="press" />',
+        f'  <meta property="og:title" content="{t}" />',
+        f'  <meta property="og:description" content="{description}" />',
+        f'  <meta property="og:url" content="{canonical}" />',
+        '  <meta name="twitter:card" content="summary" />',
+        f'  <meta name="twitter:title" content="{t}" />',
+        f'  <meta name="twitter:description" content="{description}" />',
+    ]) + "\n"
+
+
 def build_page(source: str, name: str, label: str) -> None:
     title = "press" if name == "index.html" else f"press: {label}"
     nav_file = OUT / f".nav-{name}"
@@ -220,6 +270,10 @@ def build_page(source: str, name: str, label: str) -> None:
     # colors live in press.css, theme-aware. This is the only inline style
     # on the page — the stylesheet arrives through --css as a <link>.
     html = re.sub(r"<style[^>]*>.*?</style>", "", html, flags=re.S)
+    # Canonical URL and social-card metadata, so identity/description is
+    # declared rather than inferred (#158).
+    description = page_description(source)
+    html = html.replace("</head>", head_metadata(name, title, description) + "</head>", 1)
     # Wrap the pandoc content in one <main class="prose"> between the
     # toolbar and the colophon, so the whole column is a single centered
     # container and no element can detach from it. The toolbar and footer
@@ -301,6 +355,9 @@ def check_accessibility() -> None:
         '<main ': "a main landmark",
         'class="skip-link"': "a skip-to-content link",
         'id="main-content"': "a skip-link target",
+        'rel="canonical"': "a canonical URL",
+        'name="description"': "a meta description",
+        'property="og:title"': "an Open Graph title",
     }
     problems = []
     for page in OUT.glob("*.html"):
@@ -315,6 +372,24 @@ def check_accessibility() -> None:
         )
 
 
+def write_sitemap_and_robots() -> None:
+    """A deterministic sitemap of every published page and a robots.txt that
+    points at it; both absolute against SITE_URL (#158)."""
+
+    urls = [SITE_URL] + [
+        SITE_URL + name for _, name, _ in PAGES + FOOTER_PAGES if name != "index.html"
+    ]
+    entries = "\n".join(f"  <url><loc>{u}</loc></url>" for u in urls)
+    (OUT / "sitemap.xml").write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f"{entries}\n</urlset>\n",
+        encoding="utf-8")
+    (OUT / "robots.txt").write_text(
+        f"User-agent: *\nAllow: /\nSitemap: {SITE_URL}sitemap.xml\n",
+        encoding="utf-8")
+
+
 def main() -> int:
     check_completeness()
     if OUT.exists():
@@ -325,6 +400,7 @@ def main() -> int:
     shutil.copytree(ROOT / "site" / "fonts", OUT / "fonts")
     for source, name, label in PAGES + FOOTER_PAGES:
         build_page(source, name, label)
+    write_sitemap_and_robots()
     check_links()
     check_internal_links()
     check_accessibility()
