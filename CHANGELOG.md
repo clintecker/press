@@ -9,6 +9,15 @@ audit).
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.17.0] - 2026-07-20
+
+A public-experience and maintenance pass: accessibility landmarks and
+declared metadata on every docs page, community scaffolding and governance,
+one contributor verify command, every Action off the deprecated Node 20
+runtime, and the code deprecation warnings cleared.
+
 ### Added
 
 - Public-project scaffolding: structured GitHub issue forms (defect,
