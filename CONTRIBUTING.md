@@ -49,10 +49,14 @@ can push the committed baselines above the floor CI enforces.
 Open issues through the [issue forms](https://github.com/clintecker/press/issues/new/choose)
 (defect, proposal, documentation); a defect asks for `press doctor`,
 `press selftest`, the version, and a minimal reproduction. Report security
-vulnerabilities privately per [SECURITY.md](SECURITY.md), never as a public
-issue. Pull requests follow the template: a test that fails before and
-passes after, regenerated projections, and the compatibility impact.
+vulnerabilities privately per
+[the security policy](https://github.com/clintecker/press/blob/main/SECURITY.md),
+never as a public issue. Pull requests follow the template: a test that
+fails before and passes after, regenerated projections, and the
+compatibility impact.
 
 This project has one maintainer; how decisions, releases, and conduct are
-handled is in [GOVERNANCE.md](GOVERNANCE.md), and participation is under the
-[Code of Conduct](CODE_OF_CONDUCT.md).
+handled is in
+[the governance doc](https://github.com/clintecker/press/blob/main/GOVERNANCE.md),
+and participation is under the
+[Code of Conduct](https://github.com/clintecker/press/blob/main/CODE_OF_CONDUCT.md).
