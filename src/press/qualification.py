@@ -26,7 +26,12 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-RECORD = ROOT / "quality" / "providers.yaml"
+SOURCE_RECORD = ROOT / "quality" / "providers.yaml"
+PACKAGED_RECORD = Path(__file__).resolve().parent / "data" / "providers.yaml"
+# Compatibility for callers that link to the repository ledger. Runtime
+# loading goes through _record_path() so an installed wheel uses its packaged
+# mirror instead of guessing that the repository exists above site-packages.
+RECORD = SOURCE_RECORD
 
 SCHEMA_VERSION = 1
 DISPOSITIONS = frozenset({
@@ -58,8 +63,13 @@ class Provider:
     notes: str = ""
 
 
-def load(path: Path = RECORD) -> dict:
-    return yaml.safe_load(path.read_text(encoding="utf-8"))
+def _record_path() -> Path:
+    return SOURCE_RECORD if SOURCE_RECORD.is_file() else PACKAGED_RECORD
+
+
+def load(path: Path | None = None) -> dict:
+    selected = path if path is not None else _record_path()
+    return yaml.safe_load(selected.read_text(encoding="utf-8"))
 
 
 def providers(record: dict | None = None) -> dict[str, Provider]:
@@ -112,8 +122,15 @@ def validate(record: dict | None = None) -> list[str]:
     checklist missing a required inspection point, or a provider with an
     unknown disposition, no evidence, or an implicit capability."""
 
+    default_record = record is None
     record = record if record is not None else load()
     problems: list[str] = []
+    if default_record and SOURCE_RECORD.is_file():
+        if not PACKAGED_RECORD.is_file():
+            problems.append("packaged provider record is missing: press/data/providers.yaml")
+        elif load(SOURCE_RECORD) != load(PACKAGED_RECORD):
+            problems.append(
+                "packaged provider record has drifted from quality/providers.yaml")
     if record.get("schema_version") != SCHEMA_VERSION:
         problems.append(
             f"unknown schema version {record.get('schema_version')} "
