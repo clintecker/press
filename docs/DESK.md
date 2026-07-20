@@ -52,15 +52,29 @@ rebuild to identical bytes is not new work. The five states:
 | key | action |
 |---|---|
 | `p` | open the target picker and run a target |
+| `w` | open the setup wizard (guided book configuration) |
 | `r` | refresh the model (never caches a fact a rebuild would change) |
 | `q` | quit |
-| `escape` | leave a run or the picker, back to DESK |
+| `escape` | leave a run, the picker, or the wizard, back to DESK |
 
 The picker is generated from the one command catalog, so it offers
 exactly the commands the CLI runs. Selecting one opens a RUN view that
 streams the child's output and shows its exact verdict: a nonzero or
 cancelled run reports its precise exit code, because the return code is
 the verdict, never re-derived from the output.
+
+## The setup wizard
+
+`w` opens a guided flow for a book's identity, pre-filled with the current
+values and their help. Every read and write goes through the same typed
+configuration boundary as `press config` (the #155 door), so the wizard
+validates and preserves a book's YAML exactly as CLI automation does. An
+edit is collected in memory and shown as an exact diff with the real
+validator's verdict before a byte is written; `Ctrl+R` reviews, `Ctrl+A`
+applies a clean preview, and cancel, back, or a validation failure leaves
+the file unchanged. A secret-looking value is refused before it can reach
+the config, and a completed wizard hands back a runnable next step
+(`press check`), never a claim that the book is ready.
 
 ## The CLI escape hatch
 

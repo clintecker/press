@@ -52,12 +52,16 @@ class DeskApp(App):
         ("q", "quit", "quit"),
         ("r", "refresh", "refresh"),
         ("p", "pick", "run a target"),
+        ("w", "wizard", "set up the book"),
     ]
 
     def __init__(self, root: Path | None = None) -> None:
         super().__init__()
         self._root = root
         self._error: str | None = None
+        # The last wizard outcome, surfaced as a runnable next step; None
+        # until a wizard applies an edit.
+        self.wizard_result: str | None = None
 
     def _model(self) -> desk_model.DeskModel | None:
         from .. import booklib
@@ -119,6 +123,16 @@ class DeskApp(App):
         # toolchain blocks.
         model = self._model()
         self.push_screen(PickerScreen(root, model))
+
+    def action_wizard(self) -> None:
+        from .. import booklib
+        from .wizard import WizardScreen
+
+        try:
+            root = self._root or booklib.root()
+        except SystemExit:
+            return
+        self.push_screen(WizardScreen(root))
 
 
 def command_names() -> list[str]:

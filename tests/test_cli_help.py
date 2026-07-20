@@ -74,6 +74,20 @@ def test_an_alias_command_renders_its_own_help():
     assert "press verify-pages" in text and "Reference:" in text
 
 
+def test_help_for_an_unknown_command_falls_back_to_global():
+    text = catalog.render_command_help("no-such-command")
+    assert "usage: press <command>" in text
+
+
+def test_a_build_command_help_notes_the_artifact_and_toolchain():
+    text = catalog.render_command_help("pdf")
+    assert "dist/" in text and "toolchain" in text
+
+
+def test_suggest_returns_none_for_gibberish():
+    assert catalog.suggest("zzzzzzzz") is None
+
+
 # ---- unknown commands ------------------------------------------------
 
 def test_unknown_command_exits_two_with_a_pointer(capsys):

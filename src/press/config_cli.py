@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 from . import booklib, config_schema as schema, config_store as store
@@ -152,27 +153,83 @@ def _get(ns: argparse.Namespace, root: Path) -> int:
     return EXIT_OK
 
 
+# ---- the reusable edit boundary (shared by the CLI and the desk wizard) --
+
+@dataclass(frozen=True)
+class Preview:
+    """A proposed, validated edit to one config file, not yet written: the
+    deterministic diff and the real validator's problems. `problems` empty
+    means the edit would be accepted. Both the `press config` CLI and the
+    desk wizard build one of these and only write on an empty-problem
+    confirm, so a rejected edit changes not a byte."""
+
+    file: str
+    diff: str
+    problems: tuple[str, ...]
+    path: Path
+    after: object
+
+
+def check_value(field: schema.Field, raw: str, *, as_json: bool = False):
+    """Coerce one raw string to a field's type and refuse a secret or a
+    bad shape, exactly as `press config set` does. Raises store.ConfigError
+    on any refusal, so callers handle one exception type."""
+
+    try:
+        _refuse_secret(field, raw)  # scan before coercion so no secret is echoed
+        value = store.coerce(raw, field.type, as_json=as_json)
+        _refuse_secret(field, value)
+        _refuse_bad_shape(field, value)
+        return value
+    except _Refusal as exc:
+        raise store.ConfigError(str(exc)) from exc
+
+
+def preview_edits(root: Path, file: str, edits: list[tuple[str, object]]) -> Preview:
+    """Apply (dotted-path, coerced-value) edits to one config file in
+    memory and return the diff and the validator's verdict, writing
+    nothing. An empty value list previews a no-op."""
+
+    path = root / file
+    before = store.load(path)
+    after = store.load(path)
+    for dotted, value in edits:
+        store.set_path(after, dotted, store.write_safe(value))
+    problems = tuple(schema.validate_file(root, file, after))
+    diff = _diff(store.dumps(before), store.dumps(after), path.name)
+    return Preview(file=file, diff=diff, problems=problems, path=path, after=after)
+
+
+def commit(preview: Preview) -> None:
+    """Write a previewed edit atomically. Caller must have confirmed the
+    preview carries no problems."""
+
+    if preview.problems:
+        raise store.ConfigError("refusing to write an edit that failed validation")
+    store.write_atomic(preview.path, preview.after)
+
+
 # ---- set -------------------------------------------------------------
 
 def _set(ns: argparse.Namespace, root: Path) -> int:
     field = _writable_or_refuse(ns.path)
-    # Scan the raw input before coercion, so a coercion error can never echo
-    # a secret-looking value back to the terminal.
-    _refuse_secret(field, ns.value)
-    value = store.coerce(ns.value, field.type, as_json=ns.json)
-    _refuse_secret(field, value)
-    _refuse_bad_shape(field, value)
-
-    path = root / field.file
-    before = store.load(path)
-    after = store.load(path)
-    store.set_path(after, ns.path, store.write_safe(value))
-
-    problems = schema.validate_file(root, field.file, after)
-    if problems:
-        raise _Refusal(_problem_report(field.file, problems), EXIT_REFUSED)
-
-    return _commit(path, before, after, ns.dry_run)
+    value = check_value(field, ns.value, as_json=ns.json)
+    preview = preview_edits(root, field.file, [(ns.path, value)])
+    if preview.problems:
+        raise _Refusal(_problem_report(field.file, list(preview.problems)), EXIT_REFUSED)
+    diff = preview.diff
+    if not diff:
+        print(f"{preview.path.name}: no change")
+        return EXIT_OK
+    print(diff, end="")
+    if ns.dry_run:
+        print("(dry run: nothing written)")
+        return EXIT_OK
+    try:
+        commit(preview)
+    except OSError as exc:
+        raise _Refusal(f"could not write {preview.path.name}: {exc}", EXIT_REFUSED) from exc
+    return EXIT_OK
 
 
 # ---- unset -----------------------------------------------------------
@@ -237,6 +294,14 @@ def _refuse_secret(field: schema.Field, value) -> None:
             f"refusing to write {field.path}: the value looks like a secret. "
             "A book's config holds no credential; keep it in your environment "
             "or the provider's dashboard.", EXIT_REFUSED)
+
+
+def is_secretish(value) -> bool:
+    """True if a value (or any string leaf inside it) looks like a
+    credential. The desk wizard shares this with the CLI so both refuse a
+    secret before it can reach a book's config."""
+
+    return _has_secret_leaf(value)
 
 
 def _has_secret_leaf(value) -> bool:

@@ -25,6 +25,35 @@ def _meta_bytes(book):
 
 # ---- get / list ------------------------------------------------------
 
+def test_preview_and_commit_are_the_shared_edit_boundary(scaffolded_book):
+    from press import config_cli, config_schema as schema
+
+    root = scaffolded_book
+    field = schema.field_for("subtitle")
+    value = config_cli.check_value(field, "A Shared Boundary")
+    preview = config_cli.preview_edits(root, field.file, [("subtitle", value)])
+    assert preview.problems == () and "A Shared Boundary" in preview.diff
+    config_cli.commit(preview)
+    assert store.load(root / "config" / "metadata.yaml")["subtitle"] == "A Shared Boundary"
+    # An empty edit list previews a no-op; committing a problem-laden
+    # preview is refused rather than written.
+    assert config_cli.preview_edits(root, field.file, []).diff == ""
+    bad = config_cli.preview_edits(root, field.file, [("slug", "Not A Slug")])
+    assert bad.problems
+    with pytest.raises(store.ConfigError):
+        config_cli.commit(bad)
+
+
+def test_check_value_refuses_a_secret_as_config_error(scaffolded_book):
+    from press import config_cli, config_schema as schema
+
+    field = schema.field_for("commerce.print-ordering.seller-of-record")
+    with pytest.raises(store.ConfigError):
+        config_cli.check_value(field, "api_key=sk-abcdefghijklmnop0123")
+    assert config_cli.is_secretish("token=sk-abcdefghijklmnop0123")
+    assert not config_cli.is_secretish("Lulu")
+
+
 def test_get_reads_a_scalar(scaffolded_book, capsys):
     assert cli.main(["config", "get", "title"]) == cli.EXIT_OK
     assert capsys.readouterr().out.strip() == scaffolded_book.name

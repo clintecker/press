@@ -155,12 +155,6 @@ def render_command_help(name: str) -> str:
 
     command = by_name().get(name)
     if command is None:
-        # An alias resolves to its canonical command's help.
-        for candidate in COMMANDS:
-            if name in candidate.aliases or name == candidate.alias_of:
-                command = candidate
-                break
-    if command is None:
         return render_global_help()
 
     grammar = f" {command.args}" if command.args else ""

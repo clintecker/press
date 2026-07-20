@@ -11,6 +11,18 @@ audit).
 
 ### Added
 
+- A guided setup wizard in the operator desk (`w`), a keyboard-driven flow
+  for a book's identity that projects the typed configuration boundary
+  (#155) onto the desk rather than being a second YAML editor. It reads and
+  writes only through `config_cli`/`config_store`, shows an edit as an exact
+  deterministic diff with the real validator's verdict before writing, and
+  applies only a clean preview; cancel, back, or a validation failure
+  leaves the file byte-for-byte unchanged. A secret-looking value is
+  refused before it can reach a book's config, and a completed wizard hands
+  back a runnable next step rather than a readiness claim. A bare install
+  stays Textual-free; the `tui` extra proves the flow with headless
+  active-signal tests (first run, edit-and-apply, invalid value, cancel,
+  secret refusal) (#166).
 - Conventional CLI discovery (#175). `press --help`/`-h` prints every
   command grouped with its summary; `press <command> --help` explains one
   command; `press --version` reports the installed version. All exit 0 and
