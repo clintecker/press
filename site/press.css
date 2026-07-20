@@ -110,6 +110,50 @@ body {
   gap: 0.4rem 1.6rem;
 }
 
+/* The hamburger: a CSS-only toggle (no script), shown only when the bar
+   is too narrow to lay the groups out inline. */
+.nav-toggle, .nav-burger { display: none; }
+
+@media (max-width: 760px) {
+  .toolbar { flex-wrap: wrap; }
+  .nav-burger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    margin-left: auto;
+    cursor: pointer;
+    border: 1px solid var(--rule, #d8cdb8);
+    border-radius: 6px;
+  }
+  .nav-burger span,
+  .nav-burger span::before,
+  .nav-burger span::after {
+    content: "";
+    display: block;
+    width: 1.1rem;
+    height: 2px;
+    background: var(--ink);
+    position: relative;
+  }
+  .nav-burger span::before { position: absolute; top: -6px; }
+  .nav-burger span::after { position: absolute; top: 6px; }
+  .toolbar nav {
+    flex-basis: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.8rem;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 200ms ease;
+  }
+  .nav-toggle:checked ~ nav {
+    max-height: 40rem;
+    margin-top: 0.8rem;
+  }
+}
+
 .nav-group {
   display: flex;
   flex-wrap: wrap;

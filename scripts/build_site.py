@@ -47,10 +47,6 @@ NAV_GROUPS = [
         ("docs/PROVIDER-QUALIFICATION.md", "provider-qualification.html", "providers"),
         ("docs/COMPATIBILITY.md", "compatibility.html", "compatibility"),
     ]),
-    ("Plans", [
-        ("docs/TUI-PLAN.md", "desk-plan.html", "desk plan"),
-        ("docs/DIRECT-ORDERING-PLAN.md", "direct-ordering-plan.html", "ordering plan"),
-    ]),
     ("Project", [
         ("ROADMAP.md", "roadmap.html", "roadmap"),
         ("CHANGELOG.md", "changelog.html", "changelog"),
@@ -71,6 +67,8 @@ FOOTER_PAGES = [
 NOT_PUBLISHED = {
     "CLAUDE.md": "agent working instructions for this repo, not documentation",
     "AGENTS.md": "the same working instructions in the agents.md convention",
+    "docs/TUI-PLAN.md": "internal design plan; lives in the repo and issues, not the docs site",
+    "docs/DIRECT-ORDERING-PLAN.md": "internal PRD/TRD; lives in the repo and issues, not the docs site",
 }
 
 
@@ -120,6 +118,8 @@ def nav_html(current: str) -> str:
     return (
         '<header class="toolbar">\n'
         '  <a class="wordmark" href="index.html">press<span class="mark">.</span></a>\n'
+        '  <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Toggle menu">\n'
+        '  <label for="nav-toggle" class="nav-burger" title="Menu"><span></span></label>\n'
         '  <nav aria-label="Site">\n'
         f"{joined_groups}\n"
         '    <a class="repo" href="https://github.com/clintecker/press">source</a>\n'
