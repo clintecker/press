@@ -149,6 +149,15 @@ def check_commerce(pages: Path, config) -> list[str]:
                          *[(name, url) for name, url in config.policy_links()]]:
         if value not in index:
             failures.append(f"print-order CTA is missing the {label}")
+    # A policy the publisher did not host is generated on the site; it must
+    # exist and honestly disclose the seller of record.
+    for kind in config.generated_kinds():
+        filename = commerce.POLICY_KINDS[kind][3]
+        page_path = pages / filename
+        if not page_path.is_file():
+            failures.append(f"generated {kind} policy page {filename} is missing")
+        elif config.seller_of_record not in page_path.read_text(encoding="utf-8", errors="replace"):
+            failures.append(f"generated {kind} policy page does not disclose the seller of record")
     for page in sorted(pages.rglob("*.html")):
         if commerce._SECRET_MARKERS.search(page.read_text(encoding="utf-8", errors="replace")):
             failures.append(f"a rendered page appears to leak a secret: {page.name}")

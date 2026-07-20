@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<meta name="robots" content="noindex">
+<style>
+  :root {
+    --cloth: #5a7d2a;
+    --cloth-deep: #46621f;
+    --foil: #b8963f;
+    --foil-bright: #c9a961;
+    --foil-deep: #8f7226;
+    --paper: #f4efe3;
+    --paper-warm: #ece5d3;
+    --ink: #23201a;
+    --ink-soft: #4d463a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--cloth);
+    color: var(--ink);
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    line-height: 1.62;
+  }
+  .leaf {
+    max-width: 40rem;
+    margin: 2.5rem auto;
+    background: var(--paper);
+    padding: 2.6rem 2.4rem;
+    border: 1px solid var(--foil);
+    box-shadow: 0 1rem 2.4rem rgba(0, 0, 0, 0.22);
+  }
+  .back {
+    display: inline-block;
+    margin-bottom: 1.6rem;
+    color: var(--cloth-deep);
+    text-decoration: none;
+    font-size: 0.9rem;
+    border-bottom: 1px solid var(--foil);
+  }
+  h1 { font-size: 1.7rem; margin-bottom: 1.1rem; color: var(--ink); }
+  p { margin-bottom: 1.05rem; }
+  a { color: var(--cloth-deep); }
+  .policy-note {
+    margin-top: 1.6rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--foil);
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+  <main class="leaf">
+    <a class="back" href="index.html">&larr; {{BOOK_TITLE}}</a>
+    {{BODY}}
+  </main>
+</body>
+</html>

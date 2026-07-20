@@ -45,8 +45,8 @@ Ordering is **off by default**. Turning it on is four steps.
    your book repository.
 
 2. **Enable ordering.** Add a `commerce.print-ordering` block to
-   `config/metadata.yaml` with the HTTPS storefront URL, who the seller of
-   record is, and your policy links:
+   `config/metadata.yaml` with the HTTPS storefront URL and who the seller
+   of record is:
 
    ```yaml
    commerce:
@@ -60,8 +60,12 @@ Ordering is **off by default**. Turning it on is four steps.
        refund-url: "https://example.test/refunds"
    ```
 
-   `press check` refuses a non-HTTPS link, a missing policy link, an
-   unnamed seller, an unknown key, or anything that looks like a secret.
+   The three policy links are optional: give a URL to link your own hosted
+   page, or omit one and press generates an honest support / privacy /
+   returns page on your book site that discloses the seller of record and
+   what they handle (add `policies.{support,privacy,refund}` text to append
+   your own words). `press check` refuses a non-HTTPS link, an unnamed
+   seller, an unknown key, or anything that looks like a secret.
 
 3. **Qualify the edition.** Marketing does not prove a provider can print
    *your* object. Order one real copy through the route above and inspect

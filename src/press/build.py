@@ -408,6 +408,11 @@ def pages_build(output_dir: str) -> None:
         page = page.replace("</head>", overrides, 1)
     (out / "index.html").write_text(page, encoding="utf-8")
 
+    # Generate the support/privacy/returns pages the CTA links to but the
+    # publisher did not host themselves (#151), so every policy link
+    # resolves to an honest page the book owns.
+    _write_policy_pages(out, meta, booklib.book())
+
     for optional in ("cover.jpg", "press-logo.png"):
         source = root / "assets" / optional
         if source.is_file():
@@ -427,6 +432,31 @@ def pages_build(output_dir: str) -> None:
             )
         shutil.copy(source, downloads / name)
     print(f"+ assembled pages site -> {output_dir}")
+
+
+def _write_policy_pages(out, meta, book) -> None:
+    """Write a generated support/privacy/returns page for each policy the
+    publisher did not host themselves, styled in the book's palette. A no-op
+    unless a valid, enabled commerce block asks for it."""
+
+    import html as html_mod
+
+    from . import aesthetic, booklib
+    from . import commerce as commerce_mod
+
+    config = commerce_mod.load(meta)
+    if config is None or not config.enabled or commerce_mod.validate(config):
+        return
+
+    template = (booklib.DATA / "web" / "policy-template.html").read_text(encoding="utf-8")
+    for kind in config.generated_kinds():
+        heading, filename = commerce_mod.POLICY_KINDS[kind][2], commerce_mod.POLICY_KINDS[kind][3]
+        page = template
+        page = page.replace("{{TITLE}}", html_mod.escape(f"{book.title} — {heading}"))
+        page = page.replace("{{BOOK_TITLE}}", html_mod.escape(book.title))
+        page = page.replace("{{BODY}}", commerce_mod.render_policy_body(
+            config, book.publisher, kind))
+        (out / filename).write_text(aesthetic.substitute_web(page), encoding="utf-8")
 
 
 def build_target(target: str) -> None:

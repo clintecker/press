@@ -15,13 +15,17 @@ import pytest
 from press import commerce, verify_pages
 
 
-def _cfg(**over):
+def _meta(**over):
     block = {"enabled": True, "edition": "paperback",
              "storefront-url": "https://store.example.test/book",
              "seller-of-record": "Lulu", "support-url": "https://ex.test/s",
              "privacy-url": "https://ex.test/p", "refund-url": "https://ex.test/r"}
     block.update(over)
-    return commerce.load({"commerce": {"print-ordering": block}})
+    return {"commerce": {"print-ordering": block}}
+
+
+def _cfg(**over):
+    return commerce.load(_meta(**over))
 
 
 # ---- load ----
@@ -51,12 +55,26 @@ def test_a_non_https_storefront_is_refused():
                for p in commerce.validate(_cfg(**{"storefront-url": "http://x.test"})))
 
 
+def test_an_omitted_policy_link_is_allowed_and_generated():
+    # Omitting a policy url means press generates the page on the site.
+    cfg = _cfg(**{"refund-url": ""})
+    assert commerce.validate(cfg) == []
+    assert cfg.policy_href("refund") == "refunds.html"
+    assert "refund" in cfg.generated_kinds()
+
+
+def test_a_provided_policy_link_is_used_and_not_generated():
+    cfg = _cfg()  # all three urls provided
+    assert cfg.policy_href("support") == "https://ex.test/s"
+    assert cfg.generated_kinds() == []
+
+
 @pytest.mark.invariant("INV-commerce-config")
 @pytest.mark.layer("unit")
 @pytest.mark.proof("negative")
-def test_a_missing_policy_link_is_refused():
-    assert any("refund-url is required" in p
-               for p in commerce.validate(_cfg(**{"refund-url": ""})))
+def test_a_non_https_policy_link_is_refused():
+    assert any("privacy-url must be https" in p
+               for p in commerce.validate(_cfg(**{"privacy-url": "http://x.test"})))
 
 
 @pytest.mark.invariant("INV-commerce-config")
@@ -115,6 +133,45 @@ def test_html_in_config_is_escaped():
     html = commerce.render(cfg)
     assert "<me>" not in html
     assert "&lt;me&gt;" in html
+
+
+# ---- generated policy pages (#151) ----
+
+def test_generated_policy_body_discloses_the_seller_and_publisher():
+    cfg = _cfg(**{"privacy-url": ""})
+    body = commerce.render_policy_body(cfg, "My Press", "privacy")
+    assert "Lulu" in body and "seller of record" in body
+    assert "My Press" in body
+
+
+def test_publisher_policy_text_appears_and_a_secret_is_refused():
+    cfg = _cfg(policies={"support": "Email books@example.test with questions."})
+    body = commerce.render_policy_body(cfg, "P", "support")
+    assert "Email books@example.test" in body
+    leaky = _cfg(policies={"privacy": "our api_key=sk_live_oops"})
+    assert any("policies.privacy" in p for p in commerce.validate(leaky))
+
+
+def test_unknown_policy_key_is_refused():
+    bad = _cfg(policies={"shipping": "we ship fast"})
+    assert any("policies has unknown key" in p for p in commerce.validate(bad))
+
+
+@pytest.mark.layer("integration")
+def test_build_writes_generated_policy_pages_only_where_no_url(scaffolded_book, tmp_path):
+    from types import SimpleNamespace
+
+    from press import build
+
+    out = tmp_path / "pages"
+    out.mkdir()
+    meta = _meta(**{"support-url": "", "privacy-url": ""})  # refund keeps its url
+    build._write_policy_pages(out, meta, SimpleNamespace(title="My Book", publisher="My Press"))
+    assert (out / "support.html").is_file()
+    assert (out / "privacy.html").is_file()
+    assert not (out / "refunds.html").exists()
+    privacy = (out / "privacy.html").read_text(encoding="utf-8")
+    assert "Lulu" in privacy and "My Book" in privacy and "seller of record" in privacy
 
 
 def test_the_documented_commerce_example_actually_validates():
@@ -178,6 +235,27 @@ def test_verifier_refuses_a_leaked_secret_in_a_page(tmp_path):
             "<!-- oops api_key=sk_live_leak --></body></html>")
     pages = _pages_with(page, tmp_path)
     assert any("leak a secret" in p for p in verify_pages.check_commerce(pages, cfg))
+
+
+@pytest.mark.invariant("INV-commerce-config")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
+def test_verifier_requires_a_generated_policy_page(tmp_path):
+    cfg = _cfg(**{"support-url": ""})  # support is generated, not linked out
+    page = f"<html><body>{commerce.render(cfg)}</body></html>"
+    pages = _pages_with(page, tmp_path)  # but support.html was not written
+    problems = verify_pages.check_commerce(pages, cfg)
+    assert any("support policy page support.html is missing" in p for p in problems)
+
+
+def test_verifier_accepts_a_present_disclosing_policy_page(tmp_path):
+    cfg = _cfg(**{"support-url": ""})
+    page = f"<html><body>{commerce.render(cfg)}</body></html>"
+    pages = _pages_with(page, tmp_path)
+    (pages / "support.html").write_text(
+        "<html><body>Sold by Lulu, the seller of record.</body></html>",
+        encoding="utf-8")
+    assert verify_pages.check_commerce(pages, cfg) == []
 
 
 # ---- the release gate (pure decision) ----

@@ -602,27 +602,29 @@ def check_provider_qualification() -> None:
 
 
 def check_commerce_config() -> None:
-    """The print-order config verifier refuses an insecure origin, a
-    missing policy link, and an embedded secret, and the CTA is emitted
-    only for a sellable edition."""
+    """The print-order config verifier refuses an insecure origin, an
+    unnamed seller, and an embedded secret; a policy page may be linked out
+    or generated; and the CTA is emitted only for a sellable edition."""
 
     from . import commerce
 
     good = commerce.load({"commerce": {"print-ordering": {
         "enabled": True, "edition": "paperback",
         "storefront-url": "https://store.example.test/x", "seller-of-record": "Lulu",
-        "support-url": "https://ex.test/s", "privacy-url": "https://ex.test/p",
-        "refund-url": "https://ex.test/r"}}})
-    if commerce.validate(good):
+        "support-url": "https://ex.test/s"}}})  # privacy/refund omitted -> generated
+    if good is None or commerce.validate(good):
         raise SystemExit("selftest: commerce verifier rejected a valid config")
+    if good.generated_kinds() != ["privacy", "refund"]:
+        raise SystemExit("selftest: an omitted policy link should be generated")
     if not commerce.should_emit(good, sellable=True) or commerce.should_emit(good, sellable=False):
         raise SystemExit("selftest: commerce CTA emission ignored edition sellability")
     bad = commerce.load({"commerce": {"print-ordering": {
         "enabled": True, "edition": "paperback", "storefront-url": "http://insecure",
         "seller-of-record": "", "support-url": "https://ex.test/s?api_key=sk_live_x",
-        "privacy-url": "", "refund-url": "https://ex.test/r"}}})
+        "privacy-url": "http://x"}}})
     problems = commerce.validate(bad)
-    for needle in ("must be https", "seller-of-record", "is required", "secret"):
+    for needle in ("storefront-url must be https", "seller-of-record",
+                   "privacy-url must be https", "secret"):
         if not any(needle in p for p in problems):
             raise SystemExit(f"selftest: commerce verifier missed {needle!r}")
 

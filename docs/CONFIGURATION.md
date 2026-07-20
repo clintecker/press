@@ -95,19 +95,26 @@ commerce:
     edition: paperback
     storefront-url: "https://www.lulu.com/shop/..."
     seller-of-record: "Lulu"
-    support-url: "https://example.test/support"
-    privacy-url: "https://example.test/privacy"
-    refund-url: "https://example.test/refunds"
+    support-url: "https://example.test/support"   # optional; omit to generate
+    # privacy-url / refund-url omitted -> press generates those pages
+    policies:                                      # optional publisher text
+      privacy: "We keep no reader data; the provider handles your order."
 ```
 
 - When `enabled`, the landing page generates an accessible, script-free
   CTA linking to `storefront-url`, disclosing the `seller-of-record`
   before the reader leaves the site, alongside the three policy links.
-- `storefront-url` and every policy link must be `https`; `press check`
-  refuses a non-HTTPS origin, a missing policy link, an unnamed seller,
-  an unknown key, or anything that looks like a secret.
+- Each policy link (`support-url`, `privacy-url`, `refund-url`) is
+  **optional**: give a URL to link your own hosted page, or omit it and
+  press generates an honest page on the book site (`support.html`,
+  `privacy.html`, `refunds.html`) that discloses the seller of record and
+  what they handle. `policies.{support,privacy,refund}` appends your own
+  text to a generated page; press never invents legal terms.
+- `storefront-url` and any policy link you supply must be `https`;
+  `press check` refuses a non-HTTPS origin, an unnamed seller, an unknown
+  key, or anything that looks like a secret.
 - Disabled or absent: no CTA is generated, and `press verify` refuses a
-  stray CTA that does not match the config.
+  stray CTA or a missing generated policy page.
 - A release of an ordering-enabled book fails closed (`press all` under
   `PRESS_RELEASE=1`, advisory otherwise) unless its exact edition passed a
   physical qualification recorded in `config/qualification.yaml`.

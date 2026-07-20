@@ -47,12 +47,16 @@ verify-min-pages: 1
 # provider is the seller of record and owns payment, tax, fulfillment,
 # and support; this block holds only URLs and a name, never a credential
 # or a price. Enable it once the edition is qualified (press qualify).
+# A policy link is optional: give a URL to link your own hosted page, or
+# omit it and press generates an honest page on your book site. Add
+# policies: {support,privacy,refund} text to append your own words.
 # commerce:
 #   print-ordering:
 #     enabled: true
 #     edition: paperback
 #     storefront-url: "https://www.lulu.com/shop/..."
 #     seller-of-record: "Lulu"     # who the reader actually buys from
-#     support-url: "https://example.test/support"
-#     privacy-url: "https://example.test/privacy"
-#     refund-url: "https://example.test/refunds"
+#     support-url: "https://example.test/support"   # optional; omit to generate
+#     # privacy-url / refund-url omitted -> press generates those pages
+#     policies:
+#       privacy: "We keep no reader data; the provider handles your order."

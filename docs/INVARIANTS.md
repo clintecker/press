@@ -77,7 +77,7 @@ A failing tool's exit code passes through the console, never a traceback.
 
 `INV-commerce-config` · standard
 
-The print-order CTA is generated only for an enabled, valid config; verification refuses an enabled block with a non-HTTPS storefront or policy link, an unnamed seller of record, an embedded secret, or an unknown key, and the rendered landing page carries the CTA (with the storefront, seller, and every policy link) exactly when ordering is enabled, and no page leaks a secret.
+The print-order CTA is generated only for an enabled, valid config; verification refuses a non-HTTPS storefront or policy link, an unnamed seller of record, an embedded secret, or an unknown key. A policy link the publisher omits is generated as an honest page on the site that discloses the seller of record; the rendered landing page carries the CTA exactly when ordering is enabled, every generated policy page exists, and no page leaks a secret.
 
 | | |
 |---|---|
