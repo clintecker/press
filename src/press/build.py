@@ -374,12 +374,16 @@ def pages_build(output_dir: str) -> None:
             f'    and finished releases live on the <a href="{repo}/releases">releases page</a>.</p>'
         )
 
+    from . import commerce as commerce_mod
+    commerce_block = commerce_mod.render(commerce_mod.load(meta))
+
     template = (booklib.DATA / "web" / "index-template.html").read_text(encoding="utf-8")
     replacements = {
         "{{TITLE}}": title,
         "{{DESCRIPTION}}": html_mod.escape(str(meta.get("description", "")).strip()),
         "{{SUBTITLE_STACK}}": subtitle_stack_html(str(meta.get("subtitle") or "")),
         "{{COVER_BLOCK}}": cover_block,
+        "{{COMMERCE_BLOCK}}": commerce_block,
         "{{EDITION_ROWS}}": "\n".join(rows),
         "{{REPO_PARAGRAPH}}": repo_paragraph,
         "{{LOGO_BLOCK}}": logo_block,

@@ -85,9 +85,10 @@ def main() -> int:
     failures, seen = _source_failures(root)
     failures.extend(_metadata_failures())
 
-    from . import registrations
+    from . import commerce, registrations
 
     failures.extend(registrations.failures())
+    failures.extend(commerce.failures())
     failures.extend(_sentinel_failures(seen))
     failures.extend(_plate_failures(root, seen))
 

@@ -430,3 +430,26 @@ invariants:
       Validates the record's shape and the physical-gate logic; it cannot
       confirm a claimed inspection actually happened, only that a
       qualification carries a passed, edition-scoped inspection digest.
+
+  - id: INV-commerce-config
+    statement: >-
+      The print-order CTA is generated only for an enabled, valid config;
+      verification refuses an enabled block with a non-HTTPS storefront or
+      policy link, an unnamed seller of record, an embedded secret, or an
+      unknown key, and the rendered landing page carries the CTA (with the
+      storefront, seller, and every policy link) exactly when ordering is
+      enabled, and no page leaks a secret.
+    risk: >-
+      A book site advertises ordering with an insecure or broken link,
+      leaks a credential into a public page, or hides who the seller is.
+    criticality: standard
+    owner: commerce
+    enforcer: commerce.validate
+    layers: [selftest, pytest]
+    negative: [check_commerce_config]
+    ci_tier: quality
+    limitations: >-
+      Validates the config's shape and safety and the rendered page's
+      shape; it cannot confirm the storefront URL is reachable or that the
+      linked product is the qualified edition (the release gate and
+      physical qualification do that).

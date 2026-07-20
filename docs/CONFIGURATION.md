@@ -83,6 +83,32 @@ registrations:
 - `registrations.retail: true` turns missing or pending numbers
   into check failures; false leaves them advisory.
 
+Direct print ordering (optional) adds a reader-facing "Order a print
+copy" link to a provider-hosted checkout. The provider is the seller of
+record and owns payment, tax, fulfillment, and support; this block holds
+only URLs and a name, never a credential or a price.
+
+```yaml
+commerce:
+  print-ordering:
+    enabled: true
+    edition: paperback
+    storefront-url: "https://www.lulu.com/shop/..."
+    seller-of-record: "Lulu"
+    support-url: "https://example.test/support"
+    privacy-url: "https://example.test/privacy"
+    refund-url: "https://example.test/refunds"
+```
+
+- When `enabled`, the landing page generates an accessible, script-free
+  CTA linking to `storefront-url`, disclosing the `seller-of-record`
+  before the reader leaves the site, alongside the three policy links.
+- `storefront-url` and every policy link must be `https`; `press check`
+  refuses a non-HTTPS origin, a missing policy link, an unnamed seller,
+  an unknown key, or anything that looks like a secret.
+- Disabled or absent: no CTA is generated, and `press verify` refuses a
+  stray CTA that does not match the config.
+
 Absent file: refusal. There is no book without metadata.
 
 ## config/house-rules.yaml (optional)

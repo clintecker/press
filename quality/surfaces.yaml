@@ -46,6 +46,7 @@ modules:
   catalog: {default: pure, overrides: {render_usage: producer}}
   check_source: verifier
   check_the_checkers: verifier
+  commerce: {default: producer, overrides: {load: parser, validate: verifier, should_emit: pure}}
   desk_model: producer
   doctor: {default: presenter, overrides: {tool_runs: adapter, examine: adapter, render_finding: pure}}
   edition: {default: verifier, overrides: {build: producer, observe: adapter, interior_path: pure, cover_path: pure, to_json: pure, from_json: pure, is_sellable: pure}}
