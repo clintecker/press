@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Build and verify
-        uses: clintecker/press@v1.16.1
+        uses: clintecker/press@v1.16.2
         env:
           # Tag builds are releases; releases refuse vacuous witnesses.
           PRESS_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') && '1' || '' }}
