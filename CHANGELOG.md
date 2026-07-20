@@ -9,6 +9,18 @@ audit).
 
 ## [Unreleased]
 
+### Added
+
+- The book's landing page declares structured metadata generated from the
+  book's own config (#158, book half): Open Graph and Twitter-card tags, and
+  a schema.org `Book` JSON-LD node (name, authors, publisher, description,
+  date, and the available editions as `workExample`). Nothing is invented --
+  a canonical URL, `og:url`, and cover image appear only when a `site-url`
+  (and cover) is configured, so an offline build never claims a false
+  canonical. `press verify` fails if the landing metadata drifts from the
+  config: a stale JSON-LD title, a canonical without a site-url, or a
+  site-url without a canonical.
+
 ### Fixed
 
 - The chunked reader's index is a start-reading page, not an empty shell. Its

@@ -164,8 +164,43 @@ def check_commerce(pages: Path, config) -> list[str]:
     return failures
 
 
+def check_landing_metadata(pages: Path, title: str, site_url: str) -> list[str]:
+    """The landing page's structured metadata matches the book's config and
+    invents nothing (#158): the JSON-LD names the book, a canonical URL is
+    present exactly when a site-url is configured, and never otherwise (a
+    false canonical on an offline build would misdirect search engines)."""
+
+    import html as html_mod
+    import json
+    import re
+
+    failures: list[str] = []
+    text = (pages / "index.html").read_text(encoding="utf-8", errors="replace")
+    m = re.search(r'<script type="application/ld\+json">\n(.*?)\n</script>', text, re.S)
+    if not m:
+        return ["landing page carries no JSON-LD structured metadata"]
+    try:
+        node = json.loads(m.group(1))
+    except json.JSONDecodeError as exc:
+        return [f"landing page JSON-LD is not valid JSON: {exc}"]
+    if node.get("name") != html_mod.unescape(title):
+        failures.append(
+            f"landing JSON-LD names {node.get('name')!r}, not the book "
+            f"{html_mod.unescape(title)!r}")
+    base = (site_url or "").strip().rstrip("/")
+    has_canonical = 'rel="canonical"' in text
+    if base and not has_canonical:
+        failures.append("site-url is set but the landing page has no canonical URL")
+    if not base and has_canonical:
+        failures.append("landing page claims a canonical URL but no site-url is configured")
+    if base and node.get("url") not in (base, base + "/"):
+        failures.append(
+            f"landing JSON-LD url {node.get('url')!r} does not match the site-url")
+    return failures
+
+
 def crawl(pages: Path, sentinels: list[str], downloads: list[str],
-          title: str, commerce_config=None) -> list[str]:
+          title: str, commerce_config=None, site_url: str = "") -> list[str]:
     """Every defect found, as human-readable failure lines."""
 
     pages = pages.resolve()
@@ -184,6 +219,7 @@ def crawl(pages: Path, sentinels: list[str], downloads: list[str],
     failures += check_downloads(scans[pages / "index.html"].refs, pages, downloads)
     failures += check_reading_surface(pages, sentinels, title)
     failures += check_commerce(pages, commerce_config)
+    failures += check_landing_metadata(pages, title, site_url)
     return failures
 
 
@@ -203,6 +239,7 @@ def main() -> int:
         download_names(),
         html_mod.escape(str(booklib.metadata()["title"])),
         commerce.load(booklib.metadata()),
+        booklib.book().site_url,
     )
     if failures:
         print("Pages verification failed:")

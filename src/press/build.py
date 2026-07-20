@@ -310,6 +310,97 @@ def subtitle_stack_html(subtitle: str) -> str:
     return "\n".join(lines)
 
 
+_SCHEMA_FORMATS = {
+    ".epub": ("https://schema.org/EBook", "application/epub+zip"),
+    ".pdf": ("https://schema.org/EBook", "application/pdf"),
+}
+
+
+def _landing_social_tags(book, base: str, desc: str, has_cover: bool) -> list[str]:
+    """Open Graph and Twitter-card tags; a canonical/og:url and og:image only
+    when a site-url (and cover) exists, so nothing is invented."""
+
+    import html as html_mod
+
+    def esc(value: str) -> str:
+        return html_mod.escape(str(value or ""), quote=True)
+
+    tags = [
+        '<meta property="og:type" content="book">',
+        f'<meta property="og:title" content="{esc(book.title)}">',
+        '<meta name="twitter:card" content="summary_large_image">',
+        f'<meta name="twitter:title" content="{esc(book.title)}">',
+    ]
+    if desc:
+        tags.append(f'<meta property="og:description" content="{esc(desc)}">')
+        tags.append(f'<meta name="twitter:description" content="{esc(desc)}">')
+    if book.publisher:
+        tags.append(f'<meta property="og:site_name" content="{esc(book.publisher)}">')
+    for author in book.authors:
+        tags.append(f'<meta property="book:author" content="{esc(author)}">')
+    if base:
+        tags.append(f'<link rel="canonical" href="{esc(base)}">')
+        tags.append(f'<meta property="og:url" content="{esc(base)}">')
+        if has_cover:
+            tags.append(f'<meta property="og:image" content="{esc(base + "cover.jpg")}">')
+    return tags
+
+
+def _landing_jsonld(book, base: str, desc: str, has_cover: bool,
+                    format_names: list[str]) -> dict:
+    """A schema.org Book node carrying only the facts the book actually has."""
+
+    node: dict = {
+        "@context": "https://schema.org", "@type": "Book",
+        "name": book.title, "inLanguage": "en",
+    }
+    if book.authors:
+        node["author"] = [{"@type": "Person", "name": a} for a in book.authors]
+    if book.publisher:
+        node["publisher"] = {"@type": "Organization", "name": book.publisher}
+    if desc:
+        node["description"] = desc
+    if book.year:
+        node["datePublished"] = book.year
+    if not base:
+        return node
+    node["url"] = base
+    if has_cover:
+        node["image"] = base + "cover.jpg"
+    examples = [
+        {"@type": "Book", "bookFormat": fmt, "encodingFormat": enc,
+         "url": base + "downloads/" + name}
+        for name in format_names
+        for suffix, (fmt, enc) in _SCHEMA_FORMATS.items() if name.endswith(suffix)
+    ]
+    if examples:
+        node["workExample"] = examples
+    return node
+
+
+def landing_head_metadata(book, has_cover: bool, format_names: list[str]) -> str:
+    """Canonical, social-card, and schema.org JSON-LD for the book's landing
+    page, generated from the book's own config (#158). No fact is invented: a
+    canonical/og:url and og:image appear only when a `site-url` is set (and a
+    cover exists); absent facts are simply omitted, so an offline build never
+    claims a false canonical URL."""
+
+    import json
+
+    base = (book.site_url or "").strip()
+    base = (base.rstrip("/") + "/") if base else ""
+    desc = str(book.description or "").strip()
+
+    tags = _landing_social_tags(book, base, desc, has_cover)
+    node = _landing_jsonld(book, base, desc, has_cover, format_names)
+    tags.append(
+        '<script type="application/ld+json">\n'
+        + json.dumps(node, ensure_ascii=False, indent=2)
+        + "\n</script>"
+    )
+    return "\n".join(tags)
+
+
 def pages_build(output_dir: str) -> None:
     """Assemble the GitHub Pages site: landing page, chapters, downloads.
 
@@ -376,9 +467,15 @@ def pages_build(output_dir: str) -> None:
     commerce_block = commerce_mod.render(commerce_mod.load(meta))
 
     template = (booklib.DATA / "web" / "index-template.html").read_text(encoding="utf-8")
+    head_meta = landing_head_metadata(
+        booklib.book(),
+        has_cover=(root / "assets" / "cover.jpg").is_file(),
+        format_names=list(download_names()),
+    )
     replacements = {
         "{{TITLE}}": title,
         "{{DESCRIPTION}}": html_mod.escape(str(meta.get("description", "")).strip()),
+        "{{HEAD_META}}": head_meta,
         "{{SUBTITLE_STACK}}": subtitle_stack_html(str(meta.get("subtitle") or "")),
         "{{COVER_BLOCK}}": cover_block,
         "{{COMMERCE_BLOCK}}": commerce_block,

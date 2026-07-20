@@ -809,7 +809,9 @@ def check_pages_verifier() -> None:
         (pages / "downloads").mkdir()
         (pages / "downloads" / "proof.pdf").write_text("x", encoding="utf-8")
         (pages / "index.html").write_text(
-            '<html><body>Proof Book <a href="read/index.html">read</a> '
+            '<html><head>\n<script type="application/ld+json">\n'
+            '{"@type": "Book", "name": "Proof Book"}\n</script>\n</head>'
+            '<body>Proof Book <a href="read/index.html">read</a> '
             '<a href="downloads/proof.pdf">pdf</a></body></html>',
             encoding="utf-8",
         )
@@ -846,7 +848,9 @@ def check_pages_verifier() -> None:
         assert any("missing.png" in f for f in damaged), damaged
         (pages / "reader.css").unlink()
         (pages / "index.html").write_text(
-            '<html><body id="top">Proof Book <a href="#top">top</a> '
+            '<html><head>\n<script type="application/ld+json">\n'
+            '{"@type": "Book", "name": "Proof Book"}\n</script>\n</head>'
+            '<body id="top">Proof Book <a href="#top">top</a> '
             '<a href="read/index.html">read</a> '
             '<a href="downloads/proof.pdf">pdf</a></body></html>',
             encoding="utf-8",

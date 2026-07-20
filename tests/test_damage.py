@@ -18,6 +18,20 @@ from press import verify_archives, verify_formats, verify_pages
 from tests import damage, factories
 
 
+def _landing(title: str) -> str:
+    """A minimal but valid landing page: it names the book, links the reader,
+    and carries the JSON-LD a real landing page has, so a clean crawl is
+    clean and a damage test isolates the mutation it applies."""
+
+    return (
+        "<html><head>\n"
+        '<script type="application/ld+json">\n'
+        f'{{"@type": "Book", "name": "{title}"}}\n'
+        "</script>\n"
+        f"</head><body>{title} <a href='read/index.html'>r</a></body></html>"
+    )
+
+
 def _valid_source_zip(book_root: Path, slug: str, tmp: Path) -> bytes:
     """A real source zip from a git-tracked factory book."""
 
@@ -117,8 +131,7 @@ def test_dead_css_url_is_caught(tmp_path):
     pages = tmp_path / "pages"
     (pages / "read").mkdir(parents=True)
     (pages / "downloads").mkdir()
-    (pages / "index.html").write_text(
-        "<html><body>Book <a href='read/index.html'>r</a></body></html>")
+    (pages / "index.html").write_text(_landing("Book"))
     (pages / "read" / "index.html").write_text("<html><body>sentinel here</body></html>")
     (pages / "reader.css").write_text("body{color:black}")
     assert verify_pages.crawl(pages, ["sentinel here"], [], "Book") == []
@@ -134,8 +147,7 @@ def test_dead_css_url_is_caught(tmp_path):
 def test_dead_fragment_is_caught(tmp_path):
     pages = tmp_path / "pages"
     (pages / "read").mkdir(parents=True)
-    (pages / "index.html").write_text(
-        "<html><body>Book <a href='read/index.html'>r</a></body></html>")
+    (pages / "index.html").write_text(_landing("Book"))
     (pages / "read" / "index.html").write_text("<html><body>sentinel here</body></html>")
     (pages / "reader.css").write_text("body{}")
     assert verify_pages.crawl(pages, ["sentinel here"], [], "Book") == []
