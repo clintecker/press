@@ -33,7 +33,11 @@
   --sans:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
 
-  --measure:70ch; --measure-wide:84ch;
+  /* rem, not ch: a ch-based measure scales with each element's own
+     font-size, so a big heading or lead paragraph would get a wider pixel
+     column than body text and their left edges would not align. A rem
+     measure gives every element one shared column. */
+  --measure:42rem; --measure-wide:54rem;
   --gutter:clamp(20px,5vw,40px);
   --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px; --s8:32px; --s10:40px; --s12:48px; --s16:64px;
 }
@@ -60,24 +64,22 @@ body{
 }
 ::selection{background:color-mix(in srgb,var(--accent) 22%,transparent)}
 
-/* Reading column: applied to direct body children (fixed DOM). Lists and
-   the JS copy-button wrapper are handled separately below. */
-body > *:not(.toolbar):not(.colophon):not(table):not(pre):not(ul):not(ol):not(.code-wrap){
-  max-width:var(--measure); margin-inline:auto; padding-inline:var(--gutter);
+/* One reading column. Every piece of content lives inside <main class="prose">
+   (added by build_site.py), so the whole column is a single centered
+   container and nothing can detach from it. The toolbar and footer sit
+   outside .prose and stay full-width. */
+.prose{
+  max-width:var(--measure-wide); margin-inline:auto;
+  padding-inline:var(--gutter);
 }
-/* Lists carry the reading gutter PLUS room for the marker, so bullets sit
-   inside the gutter instead of against the screen edge on narrow viewports. */
-body > ul, body > ol{
-  max-width:var(--measure); margin-inline:auto;
-  padding-left:calc(var(--gutter) + 1.35rem); padding-right:var(--gutter);
+/* Prose text keeps a comfortable measure and left-aligns to the column edge;
+   tables and code use the column's full width. All share one left edge, so
+   headings, paragraphs, lists, and tables line up. */
+.prose > :is(p, ul, ol, blockquote, dl){
+  max-width:var(--measure); margin-left:0; margin-right:auto;
 }
-/* Tables and code get a wider measure but never exceed the viewport (less
-   its gutters), so long lines scroll inside the box instead of off-screen.
-   .code-wrap is the copy-button wrapper the script adds around a <pre>; it
-   takes the same measure so the layout is identical with JS on or off. */
-body > table, body > pre, body > .code-wrap{
-  max-width:min(var(--measure-wide), calc(100% - var(--gutter) * 2));
-  margin-inline:auto;
+.prose > table, .prose > pre, .prose > .code-wrap{
+  width:100%; max-width:100%; margin-inline:0;
 }
 
 /* ---- Headings ---------------------------------------------- */
@@ -91,13 +93,14 @@ h4{font-weight:700; font-size:.735rem; text-transform:uppercase; letter-spacing:
 h1 + h2{border-top:0; padding-top:0; margin-top:1.4rem}
 
 /* ---- Text -------------------------------------------------- */
-p{margin:0 auto .9em; text-wrap:pretty}
+p{margin:0 auto .9em; text-wrap:pretty; overflow-wrap:break-word}
 strong{font-weight:700; color:var(--ink)}
 em{font-style:italic}
 hr{border:0; border-top:1px solid var(--rule); margin:2rem auto}
 
 a{color:var(--accent-ink); text-decoration:underline; text-underline-offset:2px;
-  text-decoration-thickness:1px; transition:text-decoration-thickness .12s ease}
+  text-decoration-thickness:1px; transition:text-decoration-thickness .12s ease;
+  overflow-wrap:anywhere}
 a:hover,a:focus-visible{text-decoration-thickness:2px}
 
 ul,ol{margin:0 auto 1rem; padding-left:1.35rem}
@@ -190,12 +193,15 @@ body.doc-entries h2{
   font-size:1.2rem; margin-top:2.4rem; padding-top:1.4rem;
   border-top:1px solid var(--rule-strong);
 }
-body.doc-entries h2:first-of-type{border-top:0; padding-top:0; margin-top:1.2rem}
+/* Only drop the top rule when a record heading follows the page title
+   directly; a first record that comes after intro prose keeps its
+   separator, so the intro and the first record are visibly divided. */
+body.doc-entries h1 + h2{border-top:0; padding-top:0; margin-top:1.2rem}
 body.doc-entries h2 + p{                       /* id · criticality subtitle */
   font-family:var(--mono); font-size:12.5px; color:var(--muted); margin-bottom:.9rem;
 }
 body.doc-entries h2 + p code{color:var(--accent-ink); font-weight:600}
-body.doc-entries table{max-width:440px; margin-left:0;
+body.doc-entries table{max-width:min(440px, 100%); margin-left:0;
   border:1px solid var(--rule); border-radius:9px; overflow:hidden; display:table}
 body.doc-entries td:first-child{
   font-family:var(--sans); font-weight:600; color:var(--muted);

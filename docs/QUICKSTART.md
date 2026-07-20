@@ -123,19 +123,16 @@ You do not have to invent any value the press did not ask for.
 
 ## 4. Add a first chapter (decisions)
 
-Chapters live in `book/chapters/`, ordered by their number prefix. Add
-one:
+Chapters live in `book/chapters/`, ordered by their number prefix. Create
+`book/chapters/01-beginning.md` with a heading and a paragraph in your own
+voice. The house rules the checker enforces — straight quotes, no em
+dashes, sentence-case headings, paragraphs under 190 words — are listed in
+the book's own `CLAUDE.md`; write to them rather than fixing after. When
+you are ready, delete the scaffolded preface's two throwaway sentences and
+make it yours.
 
-```sh
-press wordcount
-```
-
-Create `book/chapters/01-beginning.md` with a heading and a paragraph in
-your own voice. The house rules the checker enforces — straight quotes,
-no em dashes, sentence-case headings, paragraphs under 190 words — are
-listed in the book's own `CLAUDE.md`; write to them rather than fixing
-after. When you are ready, delete the scaffolded preface's two throwaway
-sentences and make it yours.
+To see how the manuscript is growing at any point, `press wordcount`
+prints a per-file and total word count.
 
 ## 5. Check and build (mechanical)
 
@@ -160,15 +157,20 @@ finish.
 ## 6. When something is refused (mechanical, and deliberate)
 
 The press fails loudly and specifically rather than shipping a wrong book.
-The common first-run refusals and what they mean:
+The common first-run refusals, what each means, and what to do:
 
-| What you see | What it means | What to do |
-| --- | --- | --- |
-| `pandoc is required` | The toolchain is not installed | Run `press doctor`, then [install](https://github.com/clintecker/press/blob/main/docs/INSTALL.md) what it reports missing |
-| A style or jargon failure from `press check` | Prose broke a house rule | Read the named line and rule; rewrite to it |
-| `sentinel ... not found` in a release build | A verify-sentinel is no longer in your prose | Restore the phrase, or update the sentinel to text that exists |
-| A build that hangs for minutes on the first run | The one-time LuaLaTeX font scan | Wait; it is not a hang |
-| CI dies at "Initialize containers" | The runner could not pull the toolchain image | Retry; the image is public, so no grant is needed |
+- **`pandoc is required`** — the toolchain is not installed. Run `press
+  doctor`, then [install](https://github.com/clintecker/press/blob/main/docs/INSTALL.md)
+  what it reports missing.
+- **A style or jargon failure from `press check`** — your prose broke a
+  house rule. Read the named line and rule, and rewrite to it.
+- **`sentinel ... not found` in a release build** — a verify-sentinel is no
+  longer in your prose. Restore the phrase, or update the sentinel to text
+  that exists.
+- **A build that hangs for minutes on the first run** — the one-time
+  LuaLaTeX font scan. Wait; it is not a hang.
+- **CI dies at "Initialize containers"** — the runner could not pull the
+  toolchain image. Retry; the image is public, so no grant is needed.
 
 A refusal is the press protecting the book. None of these are dead ends;
 each names its own fix.

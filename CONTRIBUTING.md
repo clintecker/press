@@ -1,8 +1,9 @@
 # Contributing
 
 The press accepts contributions that follow its laws (see
-docs/ARCHITECTURE.md: facts once, generators over checkers over
-conventions, artifacts verified as objects, scars become law).
+[the architecture guide](https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md):
+facts once, generators over checkers over conventions, artifacts verified
+as objects, scars become law).
 
 - Run `press doctor`, then `press selftest`, before and after your
   change; both must be green.

@@ -178,7 +178,7 @@ inspections:
   production-affecting change mints a new identity, so the old inspection
   becomes stale and the release gate fails until a new copy is inspected.
 - Every checklist point must be `pass`; a single failure cannot qualify.
-  See `docs/PROVIDER-QUALIFICATION.md` for the checklist and the
+  See [provider qualification](https://github.com/clintecker/press/blob/main/docs/PROVIDER-QUALIFICATION.md) for the checklist and the
   researched providers.
 
 Absent file: no qualification, so an ordering-enabled release fails closed.

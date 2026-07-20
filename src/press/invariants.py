@@ -210,10 +210,10 @@ def render() -> str:
         "one would let a corrupt or unsafe book through, so they must carry a "
         "test that proves the guard can fail.",
         "",
-        "See also the narrative matrix in "
-        "[docs/ARCHITECTURE.md](https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md) "
-        "and the artifact table in "
-        "[docs/REFERENCE.md](https://github.com/clintecker/press/blob/main/docs/REFERENCE.md).",
+        "See also the narrative matrix in the "
+        "[architecture guide](https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md) "
+        "and the artifact table in the "
+        "[command reference](https://github.com/clintecker/press/blob/main/docs/REFERENCE.md).",
         "",
     ]
     for inv in sorted(invariants, key=lambda i: i["id"]):

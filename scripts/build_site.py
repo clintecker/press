@@ -34,7 +34,7 @@ OUT = ROOT / "build" / "site"
 # Each group is (label, [(source, output name, nav label), ...]).
 NAV_GROUPS = [
     ("Guide", [
-        ("README.md", "index.html", "press"),
+        ("site/landing.md", "index.html", "press"),
         ("docs/QUICKSTART.md", "quickstart.html", "quickstart"),
         ("docs/INSTALL.md", "install.html", "install"),
         ("docs/CONFIGURATION.md", "configuration.html", "configuration"),
@@ -66,6 +66,8 @@ FOOTER_PAGES = [
 
 # Repo Markdown that deliberately stays off the site, with the reason.
 NOT_PUBLISHED = {
+    "README.md": "the repository's front page; the site's home is site/landing.md, "
+                 "written for a first-time author rather than a browsing developer",
     "CLAUDE.md": "agent working instructions for this repo, not documentation",
     "AGENTS.md": "the same working instructions in the agents.md convention",
     "docs/TUI-PLAN.md": "internal design plan; lives in the repo and issues, not the docs site",
@@ -215,6 +217,13 @@ def build_page(source: str, name: str, label: str) -> None:
     # colors live in press.css, theme-aware. This is the only inline style
     # on the page — the stylesheet arrives through --css as a <link>.
     html = re.sub(r"<style[^>]*>.*?</style>", "", html, flags=re.S)
+    # Wrap the pandoc content in one <main class="prose"> between the
+    # toolbar and the colophon, so the whole column is a single centered
+    # container and no element can detach from it. The toolbar and footer
+    # stay full-width outside it.
+    html = html.replace("</header>", '</header>\n<main class="prose">', 1)
+    html = html.replace('<footer class="colophon">',
+                        '</main>\n<footer class="colophon">', 1)
     html = rewrite_internal_links(html)
     # The one script: a progressive-enhancement copy button on code blocks.
     # Deferred and optional; the page is complete without it.

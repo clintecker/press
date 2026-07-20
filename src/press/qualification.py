@@ -260,11 +260,19 @@ _DISPOSITION_TITLE = {
 
 
 def _evidence_links(prov: Provider) -> str:
+    """Render each evidence source as a labeled link. The label is the
+    entry's own claim (what the source shows), not the bare hostname, so two
+    links to the same host do not read as identical text and an opaque CDN
+    URL still has a meaningful label."""
+
     from urllib.parse import urlparse
 
     parts = []
     for entry in prov.evidence:
-        label = urlparse(entry.get("url", "")).netloc or "source"
+        claim = (entry.get("claim") or "").strip()
+        label = claim or urlparse(entry.get("url", "")).netloc or "source"
+        if len(label) > 60:
+            label = label[:57].rstrip() + "..."
         parts.append(f"[{label}]({entry['url']})")
     return " · ".join(parts)
 

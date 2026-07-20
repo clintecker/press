@@ -71,8 +71,8 @@ enforcer and proof it names still resolves to a real function or
 fixture, so the matrix cannot cite something deleted or renamed, and a
 critical invariant left undefended fails the build.
 
-The traceable table is generated from the ledger into
-[docs/INVARIANTS.md](https://github.com/clintecker/press/blob/main/docs/INVARIANTS.md);
+The traceable table is generated from the ledger into the
+[invariant ledger](https://github.com/clintecker/press/blob/main/docs/INVARIANTS.md);
 read it there rather than in a second copy here. An honest limitation
 column is the point: a guarantee whose edges are unstated is a
 guarantee waiting to be overtrusted. Universal fixtures live in

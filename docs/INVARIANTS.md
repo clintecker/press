@@ -6,7 +6,7 @@ Each promise is kept by real code (**enforced by**). Because a guard you never t
 
 The promises are declared in one file, `quality/invariants.yaml`, and validated on every build: a promise with no real test -- or a critical one with no way to prove it can fail -- fails the build. So this page cannot drift from what the code actually does; it is generated from that ledger. A few are marked **critical**: breaking one would let a corrupt or unsafe book through, so they must carry a test that proves the guard can fail.
 
-See also the narrative matrix in [docs/ARCHITECTURE.md](https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md) and the artifact table in [docs/REFERENCE.md](https://github.com/clintecker/press/blob/main/docs/REFERENCE.md).
+See also the narrative matrix in the [architecture guide](https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md) and the artifact table in the [command reference](https://github.com/clintecker/press/blob/main/docs/REFERENCE.md).
 
 ## Reader archive matches the site
 

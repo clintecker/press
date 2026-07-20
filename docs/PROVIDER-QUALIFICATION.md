@@ -33,7 +33,7 @@ Primary provider for the seller-of-record storefront route and, if the publisher
 | **Unsupported** | seller of record |
 | **Unknown** | cancellation, webhooks |
 | **Open questions** | exact trim/paper/binding qualification for the press 6x9 single-ink object; cancellation and webhook semantics; commercial terms and per-region production sites |
-| **Evidence** | [developers.lulu.com](https://developers.lulu.com/home) · [www.lulu.com](https://www.lulu.com/sell) · [developers.lulu.com](https://developers.lulu.com/privacy-policy) |
+| **Evidence** | [REST/JSON sandbox and production Print API, one-copy POD,...](https://developers.lulu.com/home) · [custom direct sales remain the publisher's sale; the read...](https://www.lulu.com/sell) · [API privacy policy confirms order contact/address and con...](https://developers.lulu.com/privacy-policy) |
 
 ## Bookvault
 
@@ -48,7 +48,7 @@ Preferred second adapter and a strong hosted-commerce route, especially for spec
 | **Unsupported** | seller of record |
 | **Unknown** | cancellation, file validation, pricing api, sandbox, webhooks, worldwide |
 | **Open questions** | API contract, sandbox, webhook, region coverage, account-funding behavior |
-| **Evidence** | [help.bookvault.app](https://help.bookvault.app/how-much-does-it-cost-to-print-and-ship-my-book) · [help.bookvault.app](https://help.bookvault.app/i-have-connected-my-store-to-bookvault-how-do-i-pay-for-the-orders) |
+| **Evidence** | [direct-sale fulfillment and a custom API with no integrat...](https://help.bookvault.app/how-much-does-it-cost-to-print-and-ship-my-book) · [the store receives reader funds while Bookvault charges p...](https://help.bookvault.app/i-have-connected-my-store-to-bookvault-how-do-i-pay-for-the-orders) |
 
 ## Peecho
 
@@ -62,7 +62,7 @@ Best route when avoiding merchant-of-record work matters, because Peecho can be 
 | **Supported** | api, one copy pod, order creation, pricing api, seller of record, shipping, worldwide |
 | **Unknown** | cancellation, file validation, sandbox, webhooks |
 | **Open questions** | trade-book geometry and monochrome economics; data terms, checkout branding, support ownership, API access |
-| **Evidence** | [www.peecho.com](https://www.peecho.com/solutions/print-api) · [www.peecho.com](https://www.peecho.com/self-publishing) |
+| **Evidence** | [REST print API and checkout, single-copy books, pricing/s...](https://www.peecho.com/solutions/print-api) · [self-publishing route with no minimum and dropshipping](https://www.peecho.com/self-publishing) |
 
 ## Mixam
 
@@ -78,7 +78,7 @@ Good hosted-checkout candidate; do not make it a first custom adapter without sa
 | **Unsupported** | seller of record |
 | **Unknown** | cancellation, file validation, pricing api, sandbox, webhooks, worldwide |
 | **Open questions** | API access is approval-gated; public technical material is thin |
-| **Evidence** | [d1e8vjamx1ssze.cloudfront.net](https://d1e8vjamx1ssze.cloudfront.net/support/how-to-print-a-book.pdf) · [apps.shopify.com](https://apps.shopify.com/mixam) |
+| **Evidence** | [product discovery, options, order submission, and status...](https://d1e8vjamx1ssze.cloudfront.net/support/how-to-print-a-book.pdf) · [PrintLink POD, fulfillment, shipping, no inventory (Shopi...](https://apps.shopify.com/mixam) |
 
 ## Cloudprinter
 
@@ -93,7 +93,7 @@ Strong multi-provider/network candidate for geographic routing and resilience; r
 | **Unsupported** | seller of record |
 | **Unknown** | cancellation, file validation |
 | **Open questions** | variable production sites complicate physical consistency and qualification |
-| **Evidence** | [www.cloudprinter.com](https://www.cloudprinter.com/) |
+| **Evidence** | [REST print API, sandbox, live pricing, webhooks/signals,...](https://www.cloudprinter.com/) |
 
 ## Prodigi
 
@@ -108,7 +108,7 @@ Technically credible, product-fit uncertain for trade books.
 | **Unsupported** | seller of record |
 | **Unknown** | cancellation, file validation, webhooks |
 | **Open questions** | range leans to photo books/magazines; trade-book typography and black-only interiors need qualification |
-| **Evidence** | [www.prodigi.com](https://www.prodigi.com/print-api/docs/) |
+| **Evidence** | [v4 API with sandbox/live environments and order APIs; sin...](https://www.prodigi.com/print-api/docs/) |
 
 ## Onpress
 
@@ -121,7 +121,7 @@ Obtain auth, quote, idempotency, status, cancellation, sandbox, SLA, and privacy
 | **Routes** | custom-api |
 | **Unknown** | api, cancellation, file validation, one copy pod, order creation, pricing api, sandbox, seller of record, shipping, webhooks, worldwide |
 | **Open questions** | public operational/API detail is insufficient for a release commitment |
-| **Evidence** | [www.onpressbookprinting.com](https://www.onpressbookprinting.com/resources/book-printing-api) |
+| **Evidence** | [announced a book-printing API for automated printing and...](https://www.onpressbookprinting.com/resources/book-printing-api) |
 
 ## Print Bind Ship
 
@@ -137,7 +137,7 @@ Later 3PL/volume route if inventory, kitting, or mixed POD/stock fulfillment bec
 | **Unsupported** | seller of record |
 | **Unknown** | cancellation, file validation, pricing api, sandbox, webhooks, worldwide |
 | **Open questions** | more sales- and contract-led than a self-service API |
-| **Evidence** | [printbindship.com](https://printbindship.com/book-fulfillment-services/) |
+| **Evidence** | [book fulfillment and Shopify/API fulfillment; setup, auto...](https://printbindship.com/book-fulfillment-services/) |
 
 ## 48 Hour Books
 
@@ -152,4 +152,4 @@ Not a one-reader/one-copy adapter; keep as a bulk proof or launch-stock option o
 | **Unsupported** | api, one copy pod, order creation, pricing api, sandbox, seller of record, webhooks, worldwide |
 | **Unknown** | cancellation, file validation |
 | **Open questions** | none material -- the 10-copy minimum rules out one-reader/one-copy |
-| **Evidence** | [www.48hrbooks.com](https://www.48hrbooks.com/faq) |
+| **Evidence** | [10-copy minimum, shipping to the US and Canada](https://www.48hrbooks.com/faq) |

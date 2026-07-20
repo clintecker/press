@@ -1,6 +1,6 @@
 # Security
 
-Report vulnerabilities privately to clint@lgtm.systems; expect an
+Report vulnerabilities privately to [clint@lgtm.systems](mailto:clint@lgtm.systems); expect an
 acknowledgement within a week. Do not open public issues for
 exploitable defects.
 

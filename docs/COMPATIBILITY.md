@@ -51,8 +51,8 @@ container init rather than build against an unverified toolchain.
 
 ## Governing a support change
 
-Compatibility follows the versioning contract in
-[ARCHITECTURE.md](https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md):
+Compatibility follows the versioning contract in the
+[architecture guide](https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md):
 the toolchain image is part of the pinned contract, so a change that
 alters a valid book's output (a new pandoc or LuaLaTeX with different
 layout) requires a new major, while a within-major fix may correct

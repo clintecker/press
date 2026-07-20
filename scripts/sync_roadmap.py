@@ -25,6 +25,57 @@ END = "<!-- END GENERATED MILESTONES -->"
 BARE_URL = re.compile(r"https://[^\s]+")
 
 
+def _link_label(url: str) -> str:
+    """A readable label for a bare GitHub/other URL, so the roadmap shows
+    words instead of raw links. On the site the href is later rewritten to
+    the local page; the label reads well on GitHub and the site alike."""
+
+    import re as _re
+
+    m = _re.search(r"/milestone/(\d+)", url)
+    if m:
+        return f"milestone {m.group(1)}"
+    m = _re.search(r"/issues/(\d+)", url)
+    if m:
+        return f"issue {m.group(1)}"
+    if "/issues?" in url or "/issues/" in url:
+        return "the tracked issues"
+    m = _re.search(r"/releases/tag/(v[\d.]+)", url)
+    if m:
+        return f"the {m.group(1)} release"
+    m = _re.search(r"/blob/main/(?:docs/)?([A-Za-z][\w-]*)\.md", url)
+    if m:
+        name = m.group(1)
+        friendly = {
+            "ARCHITECTURE": "the architecture guide",
+            "REFERENCE": "the command reference",
+            "INSTALL": "the installation guide",
+            "CONTRIBUTING": "the contributing guide",
+            "ROADMAP": "the roadmap",
+            "CHANGELOG": "the changelog",
+            "TUI-PLAN": "the TUI plan",
+            "INVARIANTS": "the invariant ledger",
+        }
+        return friendly.get(name, name.lower())
+    m = _re.match(r"https?://([^/]+)", url)
+    return m.group(1) if m else url
+
+
+def _label_bare_urls(text: str) -> str:
+    """Turn every bare URL in prose into a labeled Markdown link, keeping any
+    trailing punctuation outside the link."""
+
+    def repl(match: "re.Match[str]") -> str:
+        raw = match.group(0)
+        trail = ""
+        while raw and raw[-1] in ".,;:":
+            trail = raw[-1] + trail
+            raw = raw[:-1]
+        return f"[{_link_label(raw)}]({raw}){trail}"
+
+    return BARE_URL.sub(repl, text)
+
+
 def validate_groups(data: dict[str, Any]) -> set[str]:
     groups = data.get("groups")
     if not isinstance(groups, list) or not groups:
@@ -106,19 +157,15 @@ def render(data: dict[str, Any]) -> str:
         ]
         if not members:
             continue
-        blocks.extend([f"### {group['heading']}", "", group["description"], ""])
+        blocks.extend([f"## {group['heading']}", "", group["description"], ""])
         for item in members:
             number = item["number"]
             url = f"https://github.com/{repository}/milestone/{number}"
             state = "Open" if item["state"] == "open" else "Complete"
-            description = BARE_URL.sub(
-                lambda match: f"<{match.group(0).rstrip('.,;:')}>"
-                + match.group(0)[len(match.group(0).rstrip('.,;:')) :],
-                item["description"],
-            )
+            description = _label_bare_urls(item["description"])
             blocks.extend(
                 [
-                    f"#### [{item['title']}]({url}) · {state}",
+                    f"### [{item['title']}]({url}) · {state}",
                     "",
                     description,
                     "",

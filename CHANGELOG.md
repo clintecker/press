@@ -9,20 +9,6 @@ audit).
 
 ## [Unreleased]
 
-### Changed
-
-- The toolchain image is public, so press is independently consumable
-  (#161). A book repository under any account or org now builds the
-  advertised CI path with no owner-granted package permission and no
-  configured secret: the pull is authenticated with the workflow's own
-  `GITHUB_TOKEN`, which works for a public image on fork and Dependabot
-  pull requests too. The build still pins the exact toolchain image and the
-  release contract still proves the pin is immutable, so every build runs
-  against the toolchain bytes the release was proven on. Installation,
-  compatibility, README, and the quickstart drop the per-repo grant step;
-  a posture test guards that they cannot silently ask for one again. The
-  owner's private-image workflow is retired, not merely hidden.
-
 ### Added
 
 - A guided setup wizard in the operator desk (`w`), a keyboard-driven flow
@@ -46,22 +32,6 @@ audit).
   exits 2 with the nearest valid suggestion and a pointer to `press --help`.
   Help is rendered from the one command catalog, so it cannot describe a
   command the CLI does not dispatch or omit one it does.
-
-### Changed
-
-- One YAML library, one version. Press read config with PyYAML (YAML 1.1,
-  where a bare `no`/`yes`/`on`/`off` is a boolean) while the `press config`
-  writer used ruamel (YAML 1.2, where they are strings); the two disagreed
-  about the document itself. The package now reads and writes all YAML
-  through `press.yamlio` (ruamel at YAML 1.2, pure parser), so a bare `no`
-  is the string "no" everywhere and the writer and reader can never drift
-  apart. A boundary test forbids a raw `import yaml` outside the one door,
-  and PyYAML is dropped as a dependency. No book's valid config changes
-  meaning under 1.2 except a value a book explicitly wrote as a bare
-  `yes`/`no`/`on`/`off` and relied on being a boolean; write it as
-  `true`/`false` instead.
-
-### Added
 
 - `press config get|set|unset|list|validate`: a validated command surface
   over every book-configuration field, so ordinary configuration no longer
@@ -98,6 +68,32 @@ audit).
   seller of record and what they handle, and appends the publisher's own
   words from an optional `policies` block; `press verify` fails closed if
   a generated page is missing or omits the seller disclosure (#151).
+
+### Changed
+
+- The toolchain image is public, so press is independently consumable
+  (#161). A book repository under any account or org now builds the
+  advertised CI path with no owner-granted package permission and no
+  configured secret: the pull is authenticated with the workflow's own
+  `GITHUB_TOKEN`, which works for a public image on fork and Dependabot
+  pull requests too. The build still pins the exact toolchain image and the
+  release contract still proves the pin is immutable, so every build runs
+  against the toolchain bytes the release was proven on. Installation,
+  compatibility, README, and the quickstart drop the per-repo grant step;
+  a posture test guards that they cannot silently ask for one again. The
+  owner's private-image workflow is retired, not merely hidden.
+
+- One YAML library, one version. Press read config with PyYAML (YAML 1.1,
+  where a bare `no`/`yes`/`on`/`off` is a boolean) while the `press config`
+  writer used ruamel (YAML 1.2, where they are strings); the two disagreed
+  about the document itself. The package now reads and writes all YAML
+  through `press.yamlio` (ruamel at YAML 1.2, pure parser), so a bare `no`
+  is the string "no" everywhere and the writer and reader can never drift
+  apart. A boundary test forbids a raw `import yaml` outside the one door,
+  and PyYAML is dropped as a dependency. No book's valid config changes
+  meaning under 1.2 except a value a book explicitly wrote as a bare
+  `yes`/`no`/`on`/`off` and relied on being a boolean; write it as
+  `true`/`false` instead.
 
 ## [1.15.2] - 2026-07-19
 

@@ -67,7 +67,8 @@ the verdict, never re-derived from the output.
 
 `w` opens a guided flow for a book's identity, pre-filled with the current
 values and their help. Every read and write goes through the same typed
-configuration boundary as `press config` (the #155 door), so the wizard
+configuration boundary as `press config` (the one validated door every
+config edit passes through), so the wizard
 validates and preserves a book's YAML exactly as CLI automation does. An
 edit is collected in memory and shown as an exact diff with the real
 validator's verdict before a byte is written; `Ctrl+R` reviews, `Ctrl+A`
