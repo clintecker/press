@@ -11,14 +11,15 @@ audit).
 
 Nothing yet.
 
-## [1.16.1] - 2026-07-20
+## [1.16.2] - 2026-07-20
 
 Seller-of-record print ordering plus a public-experience pass: a validated
 configuration CLI and desk wizard, conventional CLI discovery, one YAML
 library and version, an independently consumable public toolchain image, an
 executable beginner quickstart, and a redesigned documentation site.
-(1.16.0 was tagged but did not release: its desk trust gate failed to
-resolve the invariant ledger from an installed wheel; this fixes that.)
+(Earlier 1.16.0 and 1.16.1 tags did not release: the release contract
+surfaced two CI-only issues, both fixed here, before the major floated or a
+Release was published.)
 
 ### Fixed
 
@@ -26,6 +27,9 @@ resolve the invariant ledger from an installed wheel; this fixes that.)
   packaged `__file__`-relative path is absent, so the desk end-to-end proof
   (which runs the suite against an installed wheel) can load it instead of
   breaking collection.
+- `press.wordcount` carries its own coverage test rather than relying on a
+  quickstart doc example to exercise it, so a doc edit cannot drop its
+  branch coverage below the floor.
 
 ### Added
 
