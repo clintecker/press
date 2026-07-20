@@ -74,6 +74,16 @@ jobs:
           python3 -m venv /tmp/fresh
           /tmp/fresh/bin/pip install --quiet /tmp/dist-check/*.whl
           /tmp/fresh/bin/press selftest
+      - name: Emit this tier's trust receipt (#150)
+        run: |
+          # Reached only if every quality check above passed; the receipt
+          # is the quality tier the release chain is assembled from.
+          python3 -m press.receipts emit quality --out "${RUNNER_TEMP}/receipt-quality.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: receipt-quality
+          path: ${{ runner.temp }}/receipt-quality.json
+          if-no-files-found: error
 
   selftest:
     runs-on: ${{ matrix.os }}

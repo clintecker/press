@@ -370,8 +370,10 @@ invariants:
       A release chain refuses a missing, tampered, reordered, or
       input-mismatched prerequisite, a dirty-tree receipt, a terminal
       receipt whose package or toolchain does not match the built and
-      pinned objects, and an incomplete chain that skips any trust layer
-      or breaks a layer's extension of its predecessor.
+      pinned objects, an incomplete chain that skips any trust layer or
+      breaks a layer's extension of its predecessor, and, when assembled
+      from per-job receipts, a missing CI tier (a job that did not run
+      leaves no receipt) or receipts that disagree on the source commit.
     risk: A release ships objects that differ from the ones the tests proved.
     criticality: critical
     owner: receipts
@@ -380,10 +382,10 @@ invariants:
     negative: [check_receipt_chain]
     ci_tier: integration
     limitations: >-
-      Completeness proves every layer is present, contiguous, and linked;
-      it trusts the CI check-runs (asserted green before the chain is
-      built) that each layer's proofs actually ran, rather than
-      re-executing them inside the release job.
+      The per-job assembly makes the chain reflect the CI jobs that
+      actually ran and uploaded a receipt; it trusts that an uploaded tier
+      receipt attests real work, and the cross-workflow artifact download
+      is proven only by a live release, not the fast suite.
 
   - id: INV-edition-manifest
     statement: >-

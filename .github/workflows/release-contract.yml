@@ -14,6 +14,7 @@ permissions:
   contents: read
   packages: read
   checks: read
+  actions: read  # to download the per-job tier receipts (#150)
 
 jobs:
   contract:
@@ -74,42 +75,30 @@ jobs:
         with:
           python-version: "3.12"
       - name: The release identity resolves to the proven objects
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # A three-part tag is a clean checkout; *.egg-info is ignored, so
-          # an editable install keeps the tree clean for the receipt.
           python3 -m pip install --quiet -e '.[dev]'
           python3 -m build --wheel --outdir /tmp/rc >/dev/null
-          python3 - <<'PY'
-          import glob, hashlib
-          from press import receipts
-          whl = glob.glob("/tmp/rc/*.whl")[0]
-          digest = hashlib.sha256(open(whl, "rb").read()).hexdigest()
-          # The per-layer EVIDENCE is the check-runs step above: it
-          # refused to reach here unless every trust-layer check was green
-          # on this commit. This step records that as a complete,
-          # independently verifiable audit artifact -- a receipt per
-          # layer, each extending the one before, terminated by the
-          # release receipt naming the built wheel and the pinned
-          # toolchain -- and proves the release identity (clean tree,
-          # package and toolchain match the built and pinned objects).
-          # verify_complete holds the record to every layer, and is the
-          # real gate for the standalone `python -m press.receipts
-          # verify-release <chain.json>` path over an externally supplied
-          # chain. Assembling the chain from receipts the other jobs emit
-          # (rather than synthesizing it here) is tracked as a follow-up.
-          chain = receipts.build_full_chain(
-              digest, receipts.pinned_toolchain_digest())
-          open("/tmp/release-receipt.json", "w").write(receipts.to_json(chain))
-          problems = receipts.verify_release(chain, digest)
-          if problems:
-              print("release identity does not hold:")
-              for p in problems:
-                  print(f"  - {p}")
-              raise SystemExit(1)
-          print(f"release identity proven: complete {len(chain)}-layer chain, "
-                "clean tree, package and toolchain match the pinned objects")
-          PY
+          # Assemble the release chain from the tier receipts the quality
+          # and integration jobs actually emitted and uploaded for THIS
+          # commit -- not synthesized here (#150). A job that did not run
+          # left no receipt, and press.receipts.verify_ci_release fails
+          # closed on a missing tier. Download each from its own workflow
+          # run for the tagged commit.
+          mkdir -p /tmp/receipts
+          for spec in "Press selftest:receipt-quality" "Press integration gate:receipt-integration"; do
+            wf="${spec%%:*}"; art="${spec##*:}"
+            runid=$(gh run list --workflow "$wf" --limit 40 \
+              --json databaseId,headSha,conclusion \
+              --jq "[.[] | select(.headSha==\"${GITHUB_SHA}\" and .conclusion==\"success\")][0].databaseId")
+            test -n "$runid" || { echo "no successful ${wf} run for ${GITHUB_SHA}"; exit 1; }
+            gh run download "$runid" --name "$art" --dir /tmp/receipts \
+              || { echo "could not download ${art} from ${wf}"; exit 1; }
+          done
+          digest=$(python3 -c "import glob,hashlib; print(hashlib.sha256(open(glob.glob('/tmp/rc/*.whl')[0],'rb').read()).hexdigest())")
+          python3 -m press.receipts assemble /tmp/receipts "$digest" --out /tmp/release-receipt.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-receipt

@@ -531,6 +531,15 @@ def check_receipt_chain() -> None:
     if not any("incomplete release chain" in p
                for p in receipts.verify_release([collection, placeholder_release], "PKG")):
         raise SystemExit("selftest: release chain blessed a skipped trust layer")
+    # The per-job release (#150) fails closed when a CI tier's receipt is
+    # absent: a job that did not run leaves a missing receipt.
+    tiers = [receipts.Receipt(
+        schema_version=receipts.SCHEMA_VERSION, layer="quality", source_commit="c",
+        tree_clean=True, inputs=inputs, prerequisites=[], proofs=[], artifacts={})]
+    # 'integration' deliberately absent: its job did not run.
+    if not any("missing tier receipt 'integration'" in p
+               for p in receipts.verify_ci_release(tiers, "PKG")):
+        raise SystemExit("selftest: per-job release blessed a missing CI tier")
 
 
 def check_edition_manifest() -> None:

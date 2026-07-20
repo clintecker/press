@@ -207,6 +207,55 @@ def test_build_full_chain_is_complete():
     assert receipts.verify_complete(chain) == []
 
 
+# ---- per-job release assembly (#150) ----
+
+def _clean_ci(monkeypatch, commit="c"):
+    from press import receipts
+    monkeypatch.setattr(receipts, "pinned_toolchain_digest", lambda: "sha-abc")
+    inputs = {"invariants": "d", "fixtures": "d", "scenarios": "d",
+              "surfaces": "d", "toolchain": "sha-abc"}
+    monkeypatch.setattr(receipts, "current_inputs",
+                        lambda toolchain_digest="unpinned": (inputs, commit, True))
+    return inputs
+
+
+def _tiers(inputs, tiers=("quality", "integration"), commit="c"):
+    return [_receipt(t, clean=True, inputs=inputs, commit=commit, proofs=[]) for t in tiers]
+
+
+def test_ci_release_holds_when_every_tier_is_present(monkeypatch):
+    from press import receipts
+    inputs = _clean_ci(monkeypatch)
+    chain = receipts.assemble_release(_tiers(inputs), "PKG")
+    assert receipts.verify_ci_release(chain, "PKG") == []
+
+
+def test_ci_release_fails_closed_when_a_job_did_not_run(monkeypatch):
+    from press import receipts
+    inputs = _clean_ci(monkeypatch)
+    chain = receipts.assemble_release(_tiers(inputs, tiers=("quality",)), "PKG")
+    assert any("missing tier receipt 'integration'" in p
+               for p in receipts.verify_ci_release(chain, "PKG"))
+
+
+def test_ci_release_fails_when_a_receipt_is_from_another_commit(monkeypatch):
+    from press import receipts
+    inputs = _clean_ci(monkeypatch)
+    tiers = _tiers(inputs)
+    tiers[1] = _receipt("integration", clean=True, inputs=inputs, commit="OTHER", proofs=[])
+    chain = receipts.assemble_release(tiers, "PKG")
+    assert any("disagree on source commit" in p
+               for p in receipts.verify_ci_release(chain, "PKG"))
+
+
+def test_ci_release_fails_on_a_package_mismatch(monkeypatch):
+    from press import receipts
+    inputs = _clean_ci(monkeypatch)
+    chain = receipts.assemble_release(_tiers(inputs), "PKG")
+    assert any("package does not match" in p
+               for p in receipts.verify_ci_release(chain, "DIFFERENT"))
+
+
 def test_verify_release_refuses_a_package_mismatch(monkeypatch):
     from press import receipts
     monkeypatch.setattr(receipts, "pinned_toolchain_digest", lambda: "sha-abc")

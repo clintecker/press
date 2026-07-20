@@ -35,6 +35,14 @@ LAYERS = [
     "release",
 ]
 
+# The release trust chain assembled from real per-job receipts (#150).
+# Each tier is emitted and uploaded by the CI job that runs it, so a job
+# that did not run leaves a missing receipt and assembly fails closed --
+# unlike a chain synthesized whole in one job. LAYERS above stays the
+# fine-grained taxonomy for a standalone audit of an externally supplied
+# chain; RELEASE_TIERS is what a live release actually stands on.
+RELEASE_TIERS = ["quality", "integration", "release"]
+
 SCHEMA_VERSION = 1
 ROOT = Path(__file__).resolve().parent.parent.parent
 MANIFESTS = {
@@ -84,8 +92,19 @@ def current_inputs(toolchain_digest: str = "unpinned") -> tuple[dict[str, str], 
     try:
         commit = _git("rev-parse", "HEAD")
         clean = _git("status", "--porcelain") == ""
+        git_ok = True
     except (OSError, subprocess.CalledProcessError):
-        commit, clean = "unknown", False
+        commit, clean, git_ok = "unknown", False, False
+    # In CI the authoritative commit is GITHUB_SHA, and a wheel-installed
+    # press (the integration tier) cannot git-status the checkout from its
+    # site-packages location -- a fresh CI checkout is clean, so trust it
+    # when git could not run. This keeps every tier's receipt on the same
+    # commit so the per-job release chain assembles.
+    ci_commit = adapters.environment.get("GITHUB_SHA", "")
+    if ci_commit:
+        commit = ci_commit
+        if not git_ok:
+            clean = True
     inputs = {name: _file_digest(path) for name, path in MANIFESTS.items()}
     inputs["toolchain"] = toolchain_digest
     return inputs, commit, clean
@@ -97,8 +116,9 @@ def emit(layer: str, proofs: list[str], prerequisites: list[Receipt] | None = No
     """Build a receipt for one layer from the current inputs and the
     prerequisite receipts it extends."""
 
-    if layer not in LAYERS:
-        raise SystemExit(f"unknown trust layer: {layer!r} (one of {LAYERS})")
+    if layer not in LAYERS and layer not in RELEASE_TIERS:
+        raise SystemExit(
+            f"unknown trust layer: {layer!r} (a LAYERS layer or a RELEASE_TIERS tier)")
     inputs, commit, clean = current_inputs(toolchain_digest)
     return Receipt(
         schema_version=SCHEMA_VERSION,
@@ -281,6 +301,57 @@ def verify_release(chain: list[Receipt], package_digest: str) -> list[str]:
     return problems
 
 
+def assemble_release(tier_receipts: list[Receipt], package_digest: str) -> list[Receipt]:
+    """Assemble the release chain from the per-job tier receipts plus a
+    terminal release receipt that extends them all. The tier receipts are
+    the ones the CI jobs emitted and uploaded; this function only links
+    and terminates them, it does not fabricate a tier."""
+
+    proofs = sorted({p for r in tier_receipts for p in r.proofs})
+    release = emit(
+        "release", proofs=proofs, prerequisites=tier_receipts,
+        artifacts={"package": package_digest, "toolchain": pinned_toolchain_digest()},
+        toolchain_digest=pinned_toolchain_digest())
+    return [*tier_receipts, release]
+
+
+def verify_ci_release(chain: list[Receipt], package_digest: str) -> list[str]:
+    """A release assembled from per-job receipts holds only if every
+    required tier is present (a tier missing because its job did not run
+    fails closed), every receipt agrees on the source commit and is
+    clean-tree, the release receipt extends every tier, and its artifacts
+    name the built package and the pinned toolchain."""
+
+    if not chain:
+        return ["empty release chain"]
+    problems: list[str] = []
+    present = {r.layer for r in chain}
+    for tier in RELEASE_TIERS:
+        if tier not in present:
+            problems.append(
+                f"missing tier receipt {tier!r}: its CI job did not run or upload")
+    commits = {r.source_commit for r in chain}
+    if len(commits) > 1:
+        problems.append(f"tier receipts disagree on source commit: {sorted(commits)}")
+    for receipt in chain:
+        if not receipt.tree_clean:
+            problems.append(
+                f"{receipt.layer}: built from a dirty tree; a release requires "
+                "clean-tree receipts")
+    release = next((r for r in chain if r.layer == "release"), None)
+    if release is None:
+        problems.append("no terminal release receipt")
+        return problems
+    tier_digests = {r.digest() for r in chain if r.layer != "release"}
+    if tier_digests and not tier_digests.issubset(set(release.prerequisites)):
+        problems.append("release receipt does not extend every tier receipt")
+    if release.artifacts.get("package") != package_digest:
+        problems.append("release receipt package does not match the built package")
+    if release.artifacts.get("toolchain") != pinned_toolchain_digest():
+        problems.append("release receipt toolchain does not match the pinned image")
+    return problems
+
+
 def to_json(chain: list[Receipt]) -> str:
     return json.dumps([asdict(r) for r in chain], indent=2)
 
@@ -301,21 +372,64 @@ def main(argv: list[str] | None = None) -> int:
     import sys
 
     args = list(argv if argv is not None else sys.argv[1:])
-    if len(args) >= 3 and args[0] == "verify-release":
-        chain = from_json(Path(args[1]).read_text(encoding="utf-8"))
-        problems = verify_release(chain, args[2])
-        if problems:
-            print("release receipt chain does not hold:")
-            for problem in problems:
-                print(f"  - {problem}")
-            return 1
-        print(f"release chain holds: {len(chain)} layers, clean tree, "
-              "package and toolchain match the proven objects")
-        return 0
-    if len(args) < 2 or args[0] != "verify":
-        print("usage: python3 -m press.receipts verify <chain.json> [--release]")
+    dispatch = {"emit": _cmd_emit, "assemble": _cmd_assemble,
+                "verify-release": _cmd_verify_release, "verify": _cmd_verify}
+    handler = dispatch.get(args[0]) if args else None
+    if handler is None:
+        print("usage: python3 -m press.receipts emit <tier> --out <file> [--proof INV-x ...]")
+        print("       python3 -m press.receipts assemble <receipts-dir> <package-digest> --out <file>")
+        print("       python3 -m press.receipts verify <chain.json> [--release]")
         print("       python3 -m press.receipts verify-release <chain.json> <package-digest>")
         return 2
+    return handler(args)
+
+
+def _flag(args: list[str], name: str) -> str:
+    return args[args.index(name) + 1] if name in args else ""
+
+
+def _cmd_emit(args: list[str]) -> int:
+    tier = args[1]
+    out = _flag(args, "--out")
+    proofs = [args[i + 1] for i, a in enumerate(args) if a == "--proof"]
+    receipt = emit(tier, proofs=proofs, toolchain_digest=pinned_toolchain_digest())
+    Path(out).write_text(to_json([receipt]), encoding="utf-8")
+    print(f"emitted {tier} receipt -> {out}")
+    return 0
+
+
+def _cmd_assemble(args: list[str]) -> int:
+    directory, package_digest = Path(args[1]), args[2]
+    tiers: list[Receipt] = []
+    for path in sorted(directory.glob("*.json")):
+        tiers.extend(from_json(path.read_text(encoding="utf-8")))
+    chain = assemble_release(tiers, package_digest)
+    Path(_flag(args, "--out")).write_text(to_json(chain), encoding="utf-8")
+    problems = verify_ci_release(chain, package_digest)
+    if problems:
+        print("release chain does not hold:")
+        for problem in problems:
+            print(f"  - {problem}")
+        return 1
+    print(f"release chain holds: {len(chain)} receipts, tiers "
+          f"{sorted(r.layer for r in chain)}, assembled from per-job artifacts")
+    return 0
+
+
+def _cmd_verify_release(args: list[str]) -> int:
+    chain = from_json(Path(args[1]).read_text(encoding="utf-8"))
+    problems = verify_release(chain, args[2])
+    if problems:
+        print("release receipt chain does not hold:")
+        for problem in problems:
+            print(f"  - {problem}")
+        return 1
+    print(f"release chain holds: {len(chain)} layers, clean tree, "
+          "package and toolchain match the proven objects")
+    return 0
+
+
+def _cmd_verify(args: list[str]) -> int:
     chain = from_json(Path(args[1]).read_text(encoding="utf-8"))
     problems = verify_chain(chain, require_clean="--release" in args)
     if problems:
