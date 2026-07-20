@@ -194,12 +194,19 @@ body {
 
 /* ── the text well ───────────────────────────────────────── */
 
-body > *:not(.toolbar):not(.colophon) {
+body > *:not(.toolbar):not(.colophon):not(table):not(pre) {
   max-width: 41rem;
   margin-left: auto;
   margin-right: auto;
   padding-left: 1.5rem;
   padding-right: 1.5rem;
+}
+
+/* Tables and code blocks are allowed a wider measure than the prose and
+   are centred on the page; they scroll within themselves when they must. */
+body > table, body > pre {
+  margin-left: auto;
+  margin-right: auto;
 }
 
 h1, h2, h3, h4 {
@@ -288,7 +295,9 @@ code {
   border: 1px solid var(--rule);
   border-radius: 4px;
   font-size: 0.85em;
-  word-break: break-word;
+  /* Break only when a token genuinely cannot fit, and at a boundary --
+     never shred `module.function` into pieces mid-name. */
+  overflow-wrap: break-word;
 }
 
 pre {
@@ -324,7 +333,7 @@ pre code {
 table {
   display: block;
   width: fit-content;
-  max-width: min(64rem, 92vw);
+  max-width: min(72rem, 94vw);
   margin: 1.7rem auto;
   overflow-x: auto;
   border: 1px solid var(--rule);
@@ -343,9 +352,9 @@ th, td {
   vertical-align: top;
 }
 
-/* Long prose cells (statements, limitations) wrap instead of stretching
-   the table into a wide horizontal scroll. */
-td { max-width: 24rem; }
+/* Long prose cells (statements, limitations) wrap to a readable width
+   instead of stretching the table into a very wide horizontal scroll. */
+td { max-width: 26rem; min-width: 6rem; }
 
 tbody tr:nth-child(even) { background: var(--zebra); }
 
