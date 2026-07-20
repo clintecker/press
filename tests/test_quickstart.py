@@ -38,13 +38,14 @@ MUST_SUCCEED = {"new", "check", "wordcount", "config"}
 
 
 def _console_commands() -> list[str]:
-    """Every command line in a ```console block, in document order. Each
+    """Every command line in a ```sh block, in document order. Each
     non-empty line is one copyable command; this is the machine contract
-    the guide's runnable blocks honor."""
+    the guide's runnable blocks honor. (The shell fences are ```sh so the
+    site highlights them; the metadata example is ```yaml and excluded.)"""
 
     text = QUICKSTART.read_text(encoding="utf-8")
     commands: list[str] = []
-    for block in re.findall(r"```console\n(.*?)```", text, re.S):
+    for block in re.findall(r"```sh\n(.*?)```", text, re.S):
         for line in block.splitlines():
             stripped = line.strip()
             if stripped:

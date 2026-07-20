@@ -16,10 +16,16 @@ your book's CI, not your laptop, is the reference machine.
 
 There are two kinds of thing in the steps below:
 
-- **Decisions only you can make** — your title, your author name, your
-  words. The press never invents these.
-- **Mechanical defaults** — layout, fonts, file names, the build order.
-  The press owns these so your book matches every other book it makes.
+- **Yours to decide** — your title, your author name, your words, and the
+  book's visual identity. Fonts, the color palette, and the design's
+  register are all configurable in `config/aesthetic.yaml` (draft it from a
+  one-line brief with `press aesthetic "<brief>"`); absent that file, a
+  restrained house design applies. The press never invents your content.
+- **The press owns** — the build order, the verification pipeline, the file
+  names, and the formats it produces, so every book is made and checked the
+  same way. A few craft laws are fixed rather than styled: in v1 the page
+  trim is 6 x 9, print interiors are single ink, and your title and author
+  appear verbatim on the art.
 
 Every step below is one or the other, and says which.
 
@@ -30,7 +36,7 @@ once for your platform, then let `press doctor` tell you what is ready.
 
 On macOS:
 
-```console
+```sh
 pip install "press @ git+https://github.com/clintecker/press@v1"
 brew install pandoc poppler
 brew install --cask mactex-no-gui
@@ -41,7 +47,7 @@ all), follow [the installation guide](https://github.com/clintecker/press/blob/m
 it is the authority on packages per platform. Then, from anywhere, ask
 the press what it sees:
 
-```console
+```sh
 press doctor
 ```
 
@@ -50,12 +56,16 @@ present-but-broken, and says what each absence would cost. It is the one
 authority on a machine's readiness; run it now and after any install
 step. You do not need every optional tool to build your first book.
 
+Two discovery commands work anywhere, with no book or toolchain:
+`press --version` reports the installed version, and `press --help` lists
+every command (`press <command> --help` explains one).
+
 ## 2. Scaffold a book (mechanical)
 
 The directory name becomes the book's slug (its file-name identity), so
 pick a short, lowercase, hyphenated name.
 
-```console
+```sh
 press new my-first-book
 cd my-first-book
 ```
@@ -83,14 +93,18 @@ description: >-
 or set them without touching YAML, which validates each value before it
 writes:
 
-```console
+```sh
 press config set subtitle "And how it came to be"
 press config get subtitle
 ```
 
 `press config list` shows every field you can set; `press config validate`
-checks the whole configuration. Everything else in the metadata file is a
-mechanical default with a comment explaining it. Two you will meet later, not now:
+checks the whole configuration. Or, if you installed the desk
+(`pip install 'press[tui]'`), run `press desk` and press `w` for a guided
+setup wizard that previews the exact diff and validates before it writes.
+
+Everything else in the metadata file is a mechanical default with a comment
+explaining it. Two you will meet later, not now:
 
 - **`verify-sentinels`** are short, distinctive phrases from your own
   prose — a memorable clause, not a common word. The verifiers search for
@@ -109,7 +123,7 @@ You do not have to invent any value the press did not ask for.
 Chapters live in `book/chapters/`, ordered by their number prefix. Add
 one:
 
-```console
+```sh
 press wordcount
 ```
 
@@ -124,14 +138,14 @@ sentences and make it yours.
 
 Two commands. The first is editorial law; run it after every change:
 
-```console
+```sh
 press check
 ```
 
 `press check` runs the source, style, and jargon checks and tells you
 exactly what to fix. When it passes, build every edition:
 
-```console
+```sh
 press all
 ```
 
@@ -160,7 +174,7 @@ each names its own fix.
 
 Everything the build made lands in `dist/`:
 
-```console
+```sh
 ls dist/
 ```
 
@@ -169,7 +183,7 @@ source archive, and — if you built it — the site. To preview the reading
 website locally before publishing, build the pages bundle and open its
 `index.html`:
 
-```console
+```sh
 press pages
 ```
 
@@ -177,7 +191,7 @@ press pages
 
 Put the book on GitHub so its CI builds and publishes it:
 
-```console
+```sh
 git init
 git add -A
 git commit -m "First book"
@@ -193,7 +207,22 @@ push then builds and verifies the book and publishes the site. Enabling
 GitHub Pages once (Settings → Pages → Source: GitHub Actions) turns on the
 published reading site.
 
-## 9. Optional: sell a print copy (decision)
+## Optional: shape the look (decision)
+
+The reading site and PDF ship with a restrained house design. To make it
+yours, draft a visual identity from a one-line brief:
+
+```sh
+press aesthetic "1970s pulp paperback"
+```
+
+That writes `config/aesthetic.yaml` — the color palette, web and PDF fonts,
+and the cover, plate, and logomark direction — which every build and art
+commission then applies. `press aesthetic` with no argument shows the
+effective design. The craft laws stay fixed: the trim, single-ink print
+interiors, and your title and author verbatim on the art.
+
+## Optional: sell a print copy (decision)
 
 When your edition is final and you want readers to be able to order a
 physical copy, the press can add an accessible "Order a print copy" link
