@@ -151,7 +151,7 @@ The common first-run refusals and what they mean:
 | A style or jargon failure from `press check` | Prose broke a house rule | Read the named line and rule; rewrite to it |
 | `sentinel ... not found` in a release build | A verify-sentinel is no longer in your prose | Restore the phrase, or update the sentinel to text that exists |
 | A build that hangs for minutes on the first run | The one-time LuaLaTeX font scan | Wait; it is not a hang |
-| CI dies at "Initialize containers" | The private toolchain image is not granted to your repo | Grant it once (step 8) |
+| CI dies at "Initialize containers" | The runner could not pull the toolchain image | Retry; the image is public, so no grant is needed |
 
 A refusal is the press protecting the book. None of these are dead ends;
 each names its own fix.
@@ -173,7 +173,7 @@ website locally before publishing, build the pages bundle and open its
 press pages
 ```
 
-## 8. Push, and the container boundary (mechanical, one grant)
+## 8. Push (mechanical)
 
 Put the book on GitHub so its CI builds and publishes it:
 
@@ -185,13 +185,13 @@ git remote add origin https://github.com/OWNER/my-first-book
 git push -u origin main
 ```
 
-The book's CI builds inside a private toolchain image. Each new repository
-needs a one-time read grant to that image, done by hand under the
-package's Manage Actions access settings; until then the build stops at
-"Initialize containers" with a pull denial. This is the only cross-repo
-step, and [the installation guide](https://github.com/clintecker/press/blob/main/docs/INSTALL.md)
-explains it. After the grant, every push builds and verifies the book, and
-publishes the site.
+The book's CI builds inside a public, versioned toolchain image, so a book
+under any account builds with no package grant and no configured secret:
+the pull is authenticated with the workflow's own `GITHUB_TOKEN`, which
+works for a public image even on fork and Dependabot pull requests. Every
+push then builds and verifies the book and publishes the site. Enabling
+GitHub Pages once (Settings → Pages → Source: GitHub Actions) turns on the
+published reading site.
 
 ## 9. Optional: sell a print copy (decision)
 
@@ -210,5 +210,5 @@ sell it: [print ordering](https://github.com/clintecker/press/blob/main/docs/PRI
 
 - [Configuration reference](https://github.com/clintecker/press/blob/main/docs/CONFIGURATION.md) — every knob in `config/`.
 - [Command reference](https://github.com/clintecker/press/blob/main/docs/REFERENCE.md) — every `press` target.
-- [Installation](https://github.com/clintecker/press/blob/main/docs/INSTALL.md) — platforms, the container, and the toolchain grant.
+- [Installation](https://github.com/clintecker/press/blob/main/docs/INSTALL.md) — platforms, the container, and the public toolchain image.
 - [Support](https://github.com/clintecker/press/blob/main/SUPPORT.md) — where to ask when a refusal is not self-explanatory.

@@ -18,11 +18,43 @@ from pathlib import Path
 
 import pytest
 
-WORKFLOWS = Path(__file__).resolve().parent.parent / ".github" / "workflows"
+ROOT = Path(__file__).resolve().parent.parent
+WORKFLOWS = ROOT / ".github" / "workflows"
 
 
 def _workflow_files():
     return sorted(WORKFLOWS.glob("*.yml")) if WORKFLOWS.is_dir() else []
+
+
+# The toolchain image is public (#161), so a book under any account builds
+# with no package grant. These guard that the docs and the workflow keep
+# that promise: a live second-party proof (blocked on a second identity)
+# would exercise it, and this catches a doc or pin regression without one.
+_GRANT_PHRASES = (
+    "granted read access",
+    "Manage Actions access",
+    "grant it once",
+    "not granted to your repo",
+    "one-time read grant",
+    "private toolchain",
+)
+_CONSUMER_DOCS = ("README.md", "docs/INSTALL.md", "docs/COMPATIBILITY.md",
+                  "docs/QUICKSTART.md")
+
+
+@pytest.mark.parametrize("relpath", _CONSUMER_DOCS)
+def test_consumer_docs_do_not_require_a_toolchain_grant(relpath):
+    text = (ROOT / relpath).read_text(encoding="utf-8")
+    hits = [p for p in _GRANT_PHRASES if p in text]
+    assert not hits, f"{relpath} still tells a consumer to obtain a grant: {hits}"
+
+
+def test_the_build_pins_a_versioned_toolchain_image():
+    # A public image is only trustworthy if the build pins an exact version;
+    # the release contract additionally proves the pin is immutable.
+    build = (WORKFLOWS / "build.yml").read_text(encoding="utf-8")
+    assert re.search(r"image:\s*ghcr\.io/clintecker/press-toolchain:sha-[0-9a-f]+", build), \
+        "build.yml does not pin an exact toolchain image"
 
 
 def _all_job_names() -> set[str]:

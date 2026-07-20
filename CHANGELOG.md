@@ -9,6 +9,20 @@ audit).
 
 ## [Unreleased]
 
+### Changed
+
+- The toolchain image is public, so press is independently consumable
+  (#161). A book repository under any account or org now builds the
+  advertised CI path with no owner-granted package permission and no
+  configured secret: the pull is authenticated with the workflow's own
+  `GITHUB_TOKEN`, which works for a public image on fork and Dependabot
+  pull requests too. The build still pins the exact toolchain image and the
+  release contract still proves the pin is immutable, so every build runs
+  against the toolchain bytes the release was proven on. Installation,
+  compatibility, README, and the quickstart drop the per-repo grant step;
+  a posture test guards that they cannot silently ask for one again. The
+  owner's private-image workflow is retired, not merely hidden.
+
 ### Added
 
 - A guided setup wizard in the operator desk (`w`), a keyboard-driven flow

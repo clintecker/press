@@ -44,9 +44,10 @@ Windows is not tested.
 An unsupported combination does not fail silently. A missing or broken
 tool is named by `press doctor` with its cost and the install hint for
 your platform; a Python version outside the tested range is flagged;
-and the toolchain image pull fails loudly at container init when a
-book repository has not been granted read access to the private
-package.
+and the toolchain image is public, so a book under any account pulls it
+with no grant. The build pins the image, so a pull that resolved a
+different set of bytes than the pinned reference would fail loudly at
+container init rather than build against an unverified toolchain.
 
 ## Governing a support change
 

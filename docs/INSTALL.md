@@ -70,8 +70,11 @@ docker run --rm -v "$PWD":/book ghcr.io/clintecker/press-toolchain:latest \
   bash -c "pip install --break-system-packages 'press @ git+https://github.com/clintecker/press@v1' && cd /book && press all"
 ```
 
-The image is private by default; a repository needs a one-time read
-grant under the package's Manage Actions access settings.
+The toolchain image is public: any repository, under any account, pulls
+it with no grant and no configured secret. In a book's CI the pull is
+authenticated with the workflow's own `GITHUB_TOKEN` (which works for a
+public image, including on fork and Dependabot pull requests); locally
+the `docker run` above pulls it anonymously.
 
 ## Optional capabilities
 

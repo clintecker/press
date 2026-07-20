@@ -29,13 +29,15 @@ book repository that consumes this package.
 - `.github/workflows/build.yml` is the reusable workflow books call. It
   hardcodes the press action ref and the toolchain image tag; they are part
   of the pinned contract.
-- The toolchain image `ghcr.io/clintecker/press-toolchain` is private by
-  Clint's decision. Every new book repo must be granted read access once,
-  by hand, under the package's Manage Actions access settings
-  (https://github.com/users/clintecker/packages/container/press-toolchain/settings);
-  until then its builds die at "Initialize containers" with a pull denial.
-  The workflow already authenticates with the calling repo's token, so the
-  grant is the only step.
+- The toolchain image `ghcr.io/clintecker/press-toolchain` is public
+  (since 2026-07-20; #161): a book under any account pulls it with no
+  package grant and no configured secret. In CI the pull is authenticated
+  with the workflow's own `GITHUB_TOKEN` (which works for a public image,
+  including on fork and Dependabot pull requests); locally it pulls
+  anonymously. The image is still pinned in build.yml and the pin is part
+  of the immutable release contract, so every build runs against the exact
+  toolchain bytes the release was proven on. Making it public was a
+  one-time visibility change; there is no per-repo step anymore.
 - `src/press/data/workflows/editorial-passes.js` is the editorial machine:
   an agent workflow (per-chapter skill passes plus whole-book cadence,
   repetition, and arc passes producing suggestions; per-chapter
