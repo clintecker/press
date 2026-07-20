@@ -11,3 +11,6 @@ tests/_collection-index.json
 
 # Local pet/mascot experiment output, not part of the press
 .pet-runs/
+
+# CI build logs (quality job writes build.log via `python -m build 2>build.log`)
+build.log
