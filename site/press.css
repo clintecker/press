@@ -436,10 +436,15 @@ img { max-width: 100%; }
    column and a value that wraps natively (a real table aligns its own
    cells). The empty header row is hidden. This is the whole point of the
    redesign -- one small table per record, not one table for everything. */
+/* Field tables stay in the prose column (they were excluded from the
+   well so the big data tables could break out; put these back). 38rem is
+   the 41rem measure minus its padding, so a field table lines up with the
+   prose above it. */
 .doc-entries table {
   display: table;
+  table-layout: fixed;
   width: 100%;
-  max-width: 100%;
+  max-width: 38rem;
   margin: 0.7rem auto 0;
   border: none;
   border-radius: 0;
@@ -459,6 +464,7 @@ img { max-width: 100%; }
   vertical-align: top;
   background: none;
   white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .doc-entries table tr:last-child td { border-bottom: none; }
