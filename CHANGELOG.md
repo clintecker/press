@@ -11,6 +11,17 @@ audit).
 
 ### Added
 
+- Public-project scaffolding: structured GitHub issue forms (defect,
+  proposal, documentation) that ask for the diagnostics a report needs and
+  route security privately, a pull-request template tied to the project's
+  actual contracts (#163); a Contributor Covenant Code of Conduct and an
+  honest single-maintainer `GOVERNANCE.md` covering decision/release/security
+  authority and bus-factor (#164); and `scripts/verify.sh`, one fast-to-
+  complete command that runs the local half of CI's quality gate
+  (lint/type/selftest/pytest, then the coverage and mutation ratchets and
+  the site build), documented in CONTRIBUTING (#162). The repository's
+  discovery metadata (homepage, topics) and auxiliary-surface flags are set
+  (#165).
 - The documentation site declares its metadata instead of leaving search
   engines and link previews to infer it: every page carries a canonical URL,
   a meta description derived from its own first paragraph, and Open

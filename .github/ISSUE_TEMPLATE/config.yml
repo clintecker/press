@@ -1,0 +1,10 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability (private)
+    url: https://github.com/clintecker/press/security/policy
+    about: >-
+      Do not open a public issue for a vulnerability. Report it privately
+      per SECURITY.md; public exploit details are never requested here.
+  - name: Question or support
+    url: https://github.com/clintecker/press/blob/main/SUPPORT.md
+    about: How to get help, and what to include in a report.

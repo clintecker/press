@@ -1,0 +1,48 @@
+name: Proposal
+description: A new capability or a design change to the press.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: User outcome
+      description: What a book author or maintainer can do afterward that they cannot now.
+    validations:
+      required: true
+  - type: textarea
+    id: source-of-truth
+    attributes:
+      label: Source of truth
+      description: >-
+        Where the new facts live (which config, ledger, or generator), so a
+        fact is stated once and generated, not duplicated.
+    validations:
+      required: true
+  - type: textarea
+    id: invariants
+    attributes:
+      label: Invariants
+      description: What must always hold, and how a verifier would catch a violation.
+    validations:
+      required: true
+  - type: dropdown
+    id: compat
+    attributes:
+      label: Compatibility impact
+      description: >-
+        Within a major, fixes may correct broken output but must not change
+        the typography or layout of a valid book; design changes need a new
+        major.
+      options:
+        - Backward-compatible (no valid book changes)
+        - Corrects broken output only
+        - Breaking (requires a new major)
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification layers
+      description: Which test layers would prove it (unit/property, integration, real-tool, consumer).
+    validations:
+      required: true

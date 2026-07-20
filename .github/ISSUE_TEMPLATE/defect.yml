@@ -1,0 +1,54 @@
+name: Defect
+description: Something the press does wrong, refuses incorrectly, or fails to verify.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Do not paste a private manuscript, credentials, addresses, or
+        copyrighted book content. Sanitize logs before pasting.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The observed behavior, and what you expected instead.
+      placeholder: "`press all` exited 0 but the EPUB is missing the last chapter; I expected it verified present."
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: The smallest steps or book that shows it. A public repo link is ideal.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: press version / tag
+      description: "Output of `press --version` (and the `@vN` your book pins, if in CI)."
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: press doctor
+      description: Paste the output of `press doctor` (names your toolchain and platform).
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: selftest
+    attributes:
+      label: press selftest (if relevant)
+      description: Output of `press selftest`, when the defect is in the pipeline itself.
+      render: text
+    validations:
+      required: false
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      description: OS and where it ran (local macOS/Linux, the container, CI).
+    validations:
+      required: true

@@ -34,6 +34,11 @@ MIT licensed, code and bundled content alike (the authoring skills,
 templates, and design files ship under the same terms; see LICENSE).
 A book you make with the press is yours entirely.
 
+The press is maintained by one person (Clint Ecker, LGTM Systems, LLC);
+[GOVERNANCE.md](GOVERNANCE.md) says plainly how decisions, releases, and
+conduct are handled, and [CONTRIBUTING.md](CONTRIBUTING.md) is the one
+command to verify a change.
+
 ## Start a book
 
 ```sh

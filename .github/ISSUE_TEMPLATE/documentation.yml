@@ -1,0 +1,25 @@
+name: Documentation gap
+description: Something the docs get wrong, omit, or explain unclearly.
+labels: ["documentation"]
+body:
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: The page or file (a docs-site URL or a repo path).
+    validations:
+      required: true
+  - type: textarea
+    id: gap
+    attributes:
+      label: What is wrong or missing
+      description: What it says (or omits) versus what is true or needed.
+    validations:
+      required: true
+  - type: textarea
+    id: fix
+    attributes:
+      label: Suggested fix
+      description: How you would word or structure it. Optional.
+    validations:
+      required: false

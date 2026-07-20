@@ -73,6 +73,8 @@ FOOTER_PAGES = [
 NOT_PUBLISHED = {
     "README.md": "the repository's front page; the site's home is site/landing.md, "
                  "written for a first-time author rather than a browsing developer",
+    "CODE_OF_CONDUCT.md": "GitHub community-profile file, surfaced by GitHub itself",
+    "GOVERNANCE.md": "GitHub community-profile file, surfaced by GitHub itself",
     "CLAUDE.md": "agent working instructions for this repo, not documentation",
     "AGENTS.md": "the same working instructions in the agents.md convention",
     "docs/TUI-PLAN.md": "internal design plan; lives in the repo and issues, not the docs site",

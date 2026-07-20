@@ -26,3 +26,33 @@ as objects, scars become law).
 - CI runs the selftest and the integration gate (wheel build, clean
   scaffold, full gauntlet, tamper test) on every PR. Toolchain PRs
   additionally build and smoke the image without publishing.
+
+## One command to verify
+
+From a clean checkout with `pip install -e '.[dev]'`, run the whole local
+proof, fast layers first:
+
+```sh
+scripts/verify.sh          # lint + type + selftest + pytest, then the
+                           # coverage and mutation ratchets and the site build
+scripts/verify.sh --quick  # stop after the fast lint/type/test layer
+```
+
+CI calls these same tools. What `verify.sh` cannot run locally — the
+integration gauntlet inside the toolchain container, the consumer proof, and
+the live second-party proofs — runs on push and on a release tag. Do not run
+`scripts/coverage_ratchet.py --update`: it re-measures on your machine and
+can push the committed baselines above the floor CI enforces.
+
+## Filing and proposing
+
+Open issues through the [issue forms](https://github.com/clintecker/press/issues/new/choose)
+(defect, proposal, documentation); a defect asks for `press doctor`,
+`press selftest`, the version, and a minimal reproduction. Report security
+vulnerabilities privately per [SECURITY.md](SECURITY.md), never as a public
+issue. Pull requests follow the template: a test that fails before and
+passes after, regenerated projections, and the compatibility impact.
+
+This project has one maintainer; how decisions, releases, and conduct are
+handled is in [GOVERNANCE.md](GOVERNANCE.md), and participation is under the
+[Code of Conduct](CODE_OF_CONDUCT.md).
