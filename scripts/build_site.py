@@ -120,10 +120,11 @@ def nav_html(current: str) -> str:
         '<header class="toolbar">\n'
         '  <a class="wordmark" href="index.html">press<span class="mark">.</span></a>\n'
         '  <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Toggle menu">\n'
-        '  <label for="nav-toggle" class="nav-burger" title="Menu"><span></span></label>\n'
+        '  <label for="nav-toggle" class="nav-burger" title="Menu" aria-hidden="true">'
+        "<span></span><span></span><span></span></label>\n"
         '  <nav aria-label="Site">\n'
         f"{joined_groups}\n"
-        '    <a class="repo" href="https://github.com/clintecker/press">source</a>\n'
+        '    <a class="repo" href="https://github.com/clintecker/press">source ↗</a>\n'
         "  </nav>\n"
         "</header>\n"
     )
@@ -142,16 +143,21 @@ def footer_html(current: str) -> str:
         f"{joined}\n"
         "  </nav>\n"
         f'  <p class="stamp">built from '
-        f'<a href="https://github.com/clintecker/press/commit/{sha}">{sha}</a>'
+        f'<a class="sha" href="https://github.com/clintecker/press/commit/{sha}">{sha}</a>'
         f" ({date}); the site tracks main and is regenerated on every push</p>\n"
         "</footer>\n"
     )
 
 
-# Pages whose content is a list of generated entries (an id/name heading,
-# a subtitle line, prose, and labelled fields) rather than free prose; they
-# get a body class so the stylesheet can render the entries as cards.
-ENTRY_PAGES = {"invariants.html", "provider-qualification.html"}
+# A page's <body> class, so the stylesheet can specialize a surface without
+# any per-page markup: the landing gets its front-door treatment, and the
+# generated-record pages (an id/name heading, a subtitle, prose, and
+# labelled fields) render as cards.
+BODY_CLASSES = {
+    "index.html": "home",
+    "invariants.html": "doc-entries",
+    "provider-qualification.html": "doc-entries",
+}
 
 
 def build_page(source: str, name: str, label: str) -> None:
@@ -183,11 +189,12 @@ def build_page(source: str, name: str, label: str) -> None:
     )
     nav_file.unlink()
     footer_file.unlink()
-    if name in ENTRY_PAGES:
+    body_class = BODY_CLASSES.get(name)
+    if body_class:
         page = OUT / name
         page.write_text(
             page.read_text(encoding="utf-8").replace(
-                "<body>", '<body class="doc-entries">', 1),
+                "<body>", f'<body class="{body_class}">', 1),
             encoding="utf-8")
 
 

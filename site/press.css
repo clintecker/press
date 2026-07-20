@@ -1,512 +1,210 @@
-/* The press's own site. Deliberately not the house book style: the
-   reader stylesheet a book ships is bookish by design, and this site
-   exists partly to prove nothing about a press-built page's look is
-   baked in. Two-ink letterpress idiom: warm paper, hard ink, one
-   vermillion, used the way a second ink is used, sparingly. Type is
-   self-hosted so the page asks nothing of third parties: Source
-   Serif for the text well, Space Grotesk for display, Plex Mono for
-   the machine voice. */
+/* ============================================================
+   press — documentation site
+   One stylesheet · no JS · self-hosted fonts · light + dark
+   Design system: cool graphite paper, one warm cinnabar ink.
+   Authored in Claude Design; see DESIGN.md for the full system
+   and the rationale behind every token.
+   ============================================================ */
 
-@font-face {
-  font-family: "Source Serif";
-  src: url("fonts/source-serif.woff2") format("woff2");
-  font-weight: 200 900;
-  font-style: normal;
-  font-display: swap;
+/* ---- Fonts (self-hosted, OFL; subset to Latin) ------------- */
+@font-face{font-family:"Literata";src:url("fonts/Literata-Regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Literata";src:url("fonts/Literata-Italic.woff2") format("woff2");font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:"Literata";src:url("fonts/Literata-SemiBold.woff2") format("woff2");font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:"Literata";src:url("fonts/Literata-Bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:"Hanken Grotesk";src:url("fonts/HankenGrotesk-Regular.woff2") format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Hanken Grotesk";src:url("fonts/HankenGrotesk-Medium.woff2") format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"Hanken Grotesk";src:url("fonts/HankenGrotesk-SemiBold.woff2") format("woff2");font-weight:600;font-display:swap}
+@font-face{font-family:"Hanken Grotesk";src:url("fonts/HankenGrotesk-Bold.woff2") format("woff2");font-weight:700;font-display:swap}
+@font-face{font-family:"Hanken Grotesk";src:url("fonts/HankenGrotesk-ExtraBold.woff2") format("woff2");font-weight:800;font-display:swap}
+@font-face{font-family:"JetBrains Mono";src:url("fonts/JetBrainsMono-Regular.woff2") format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"JetBrains Mono";src:url("fonts/JetBrainsMono-Medium.woff2") format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"JetBrains Mono";src:url("fonts/JetBrainsMono-SemiBold.woff2") format("woff2");font-weight:600;font-display:swap}
+
+/* ---- Tokens ------------------------------------------------ */
+:root{
+  --paper:#FAFAFB; --surface:#F2F3F6; --zebra:#F6F7F9;
+  --ink:#1B1D22; --muted:#565C66;
+  --accent:#D64A2A; --accent-ink:#B23A1E;
+  --rule:#E5E7EC; --rule-strong:#CCD0D8; --code-ink:#33373F;
+
+  --serif:"Literata",Georgia,"Times New Roman",serif;
+  --sans:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+
+  --measure:66ch; --measure-wide:82ch;
+  --gutter:clamp(20px,5vw,40px);
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px; --s8:32px; --s10:40px; --s12:48px; --s16:64px;
 }
-
-@font-face {
-  font-family: "Source Serif";
-  src: url("fonts/source-serif-italic.woff2") format("woff2");
-  font-weight: 200 900;
-  font-style: italic;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Space Grotesk";
-  src: url("fonts/space-grotesk.woff2") format("woff2");
-  font-weight: 300 700;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Plex Mono";
-  src: url("fonts/plex-mono.woff2") format("woff2");
-  font-weight: 400;
-  font-display: swap;
-}
-
-:root {
-  --paper: #faf7f0;
-  --ink: #211e1a;
-  --muted: #6d6759;
-  --accent: #b93a1a;
-  --rule: #e4ddcf;
-  --rule-strong: #c9c0ad;
-  --code-bg: #f1ecdf;
-  --code-ink: #45402f;
-  --zebra: #f3eee1;
-  --serif: "Source Serif", Georgia, serif;
-  --grotesk: "Space Grotesk", "Helvetica Neue", sans-serif;
-  --mono: "Plex Mono", ui-monospace, Menlo, monospace;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #1b1a18;
-    --ink: #e8e3d8;
-    --muted: #a39c8c;
-    --accent: #f07d55;
-    --rule: #35322c;
-    --rule-strong: #4d4941;
-    --code-bg: #262420;
-    --code-ink: #cfc8b8;
-    --zebra: #222019;
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#17191D; --surface:#1E2126; --zebra:#1B1E22;
+    --ink:#E8EAEE; --muted:#98A0AB;
+    --accent:#F0774E; --accent-ink:#F0774E;
+    --rule:#2A2E34; --rule-strong:#3B4048; --code-ink:#D7DBE1;
   }
 }
 
-* { box-sizing: border-box; }
+/* ---- Reset & base ------------------------------------------ */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--serif); font-size:17px; line-height:1.62;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  padding-bottom:var(--s16);
+}
+::selection{background:color-mix(in srgb,var(--accent) 22%,transparent)}
 
-html { scroll-behavior: smooth; }
-
-@media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
+/* Reading column: applied to direct body children (fixed DOM). Lists are
+   handled separately so the gutter does not swallow their marker indent. */
+body > *:not(.toolbar):not(.colophon):not(table):not(pre):not(ul):not(ol){
+  max-width:var(--measure); margin-inline:auto; padding-inline:var(--gutter);
+}
+/* Lists carry the reading gutter PLUS room for the marker, so bullets sit
+   inside the gutter instead of against the screen edge on narrow viewports. */
+body > ul, body > ol{
+  max-width:var(--measure); margin-inline:auto;
+  padding-left:calc(var(--gutter) + 1.35rem); padding-right:var(--gutter);
+}
+/* Tables and code get a wider measure but never exceed the viewport (less
+   its gutters), so long lines scroll inside the box instead of off-screen. */
+body > table, body > pre{
+  max-width:min(var(--measure-wide), calc(100% - var(--gutter) * 2));
+  margin-inline:auto;
 }
 
-body {
-  margin: 0;
-  background: var(--paper);
-  color: var(--ink);
-  font: 400 1.0625rem/1.72 var(--serif);
-  font-optical-sizing: auto;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+/* ---- Headings ---------------------------------------------- */
+h1,h2,h3,h4{font-family:var(--sans); color:var(--ink); margin:0; text-wrap:balance}
+h1{font-weight:800; font-size:2rem; line-height:1.14; letter-spacing:-.022em; margin:2.2rem auto .5rem}
+h2{font-weight:700; font-size:1.36rem; line-height:1.2; letter-spacing:-.012em;
+   margin:2.4rem auto .6rem; padding-top:1rem; border-top:1px solid var(--rule)}
+h3{font-weight:700; font-size:1.06rem; line-height:1.3; margin:1.8rem auto .45rem}
+h4{font-weight:700; font-size:.735rem; text-transform:uppercase; letter-spacing:.08em;
+   color:var(--muted); margin:1.5rem auto .4rem}
+h1 + h2{border-top:0; padding-top:0; margin-top:1.4rem}
+
+/* ---- Text -------------------------------------------------- */
+p{margin:0 auto .9em; text-wrap:pretty}
+strong{font-weight:700; color:var(--ink)}
+em{font-style:italic}
+hr{border:0; border-top:1px solid var(--rule); margin:2rem auto}
+
+a{color:var(--accent-ink); text-decoration:underline; text-underline-offset:2px;
+  text-decoration-thickness:1px; transition:text-decoration-thickness .12s ease}
+a:hover,a:focus-visible{text-decoration-thickness:2px}
+
+ul,ol{margin:0 auto 1rem; padding-left:1.35rem}
+li{margin-bottom:.4rem}
+li::marker{color:var(--accent)}
+
+blockquote{
+  margin:1.4rem auto; padding:.8rem 1.1rem; background:var(--surface);
+  border-left:3px solid var(--accent); border-radius:0 7px 7px 0; color:var(--ink);
+}
+blockquote > :first-child{margin-top:0} blockquote > :last-child{margin-bottom:0}
+
+/* ---- Code -------------------------------------------------- */
+code{font-family:var(--mono); font-size:.85em; color:var(--code-ink);
+  background:var(--surface); border:1px solid var(--rule); border-radius:4px; padding:1px 5px}
+pre{
+  font-family:var(--mono); font-size:13.5px; line-height:1.6; color:var(--code-ink);
+  background:var(--surface); border:1px solid var(--rule); border-radius:9px;
+  padding:16px 18px; overflow-x:auto; margin:1.2rem auto; tab-size:2;
+}
+pre > code{background:none; border:0; padding:0; font-size:inherit; color:inherit}
+
+/* ---- Tables ------------------------------------------------ */
+table{
+  border-collapse:collapse; width:100%; display:block; overflow-x:auto;
+  font-family:var(--sans); font-size:14px; color:var(--ink); margin:1.3rem auto;
+}
+thead th{
+  font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--muted); text-align:left; white-space:nowrap;
+  padding:11px 16px; border-bottom:2px solid var(--rule-strong); background:var(--paper);
+}
+tbody td{padding:10px 16px; border-bottom:1px solid var(--rule); vertical-align:top}
+tbody tr:nth-child(even){background:var(--zebra)}
+td[style*="right"],th[style*="right"]{font-variant-numeric:tabular-nums}   /* pandoc alignment */
+
+/* ---- Reference records (body.doc-entries) ------------------ */
+/* Records are h2 in the generated docs (## per record); each is carded by
+   rhythm, not a box: a strong top rule, its id/criticality subtitle, and a
+   compact field spec-box. */
+body.doc-entries h2{
+  font-size:1.2rem; margin-top:2.4rem; padding-top:1.4rem;
+  border-top:1px solid var(--rule-strong);
+}
+body.doc-entries h2:first-of-type{border-top:0; padding-top:0; margin-top:1.2rem}
+body.doc-entries h2 + p{                       /* id · criticality subtitle */
+  font-family:var(--mono); font-size:12.5px; color:var(--muted); margin-bottom:.9rem;
+}
+body.doc-entries h2 + p code{color:var(--accent-ink); font-weight:600}
+body.doc-entries table{max-width:440px; margin-left:0;
+  border:1px solid var(--rule); border-radius:9px; overflow:hidden; display:table}
+body.doc-entries td:first-child{
+  font-family:var(--sans); font-weight:600; color:var(--muted);
+  background:var(--surface); width:40%; white-space:nowrap;
+}
+body.doc-entries td{font-family:var(--mono); font-size:12.5px}
+
+/* ---- Landing (body.home) ----------------------------------- */
+/* The landing is h1 then a description paragraph (no eyebrow in the
+   generated README); the first paragraph reads as the lead. */
+body.home h1{font-size:clamp(3rem,7vw,3.75rem); letter-spacing:-.045em; line-height:1; margin-top:1.4rem}
+body.home > p:first-of-type{font-size:1.24rem; line-height:1.5; color:var(--ink)}  /* lead */
+
+/* ---- Toolbar ----------------------------------------------- */
+.toolbar{
+  display:flex; align-items:center; gap:18px 26px; flex-wrap:wrap;
+  padding:13px var(--gutter); background:var(--paper);
+  border-bottom:1px solid var(--rule); font-family:var(--sans);
+  position:sticky; top:0; z-index:20;
+}
+.wordmark{display:inline-flex; align-items:baseline; font-weight:800; font-size:20px;
+  letter-spacing:-.03em; color:var(--ink); text-decoration:none}
+.wordmark .mark{color:var(--accent); margin-left:1px}
+.nav-toggle{position:absolute; width:1px; height:1px; opacity:0; pointer-events:none}
+.nav-burger{display:none}                       /* shown < 760px */
+nav[aria-label="Site"]{display:flex; flex-wrap:wrap; align-items:baseline;
+  gap:12px 24px; margin-left:auto}
+.nav-group{display:flex; align-items:baseline; flex-wrap:wrap; gap:7px 13px}
+.nav-group + .nav-group{border-left:1px solid var(--rule); padding-left:26px}
+.nav-group-label{font-size:10.5px; font-weight:700; letter-spacing:.11em;
+  text-transform:uppercase; color:var(--muted)}
+nav[aria-label="Site"] a{font-size:13.5px; font-weight:500; color:var(--ink);
+  text-decoration:none; padding-bottom:2px; border-bottom:2px solid transparent; white-space:nowrap}
+nav[aria-label="Site"] a:hover{color:var(--accent-ink)}
+nav[aria-label="Site"] a[aria-current="page"]{font-weight:700; border-bottom-color:var(--accent)}
+.repo{border-left:1px solid var(--rule); padding-left:24px; color:var(--muted) !important;
+  font-weight:600}
+.repo:hover{color:var(--ink) !important}
+
+@media (max-width:760px){
+  .nav-burger{display:flex; flex-direction:column; justify-content:center; gap:4px;
+    margin-left:auto; width:40px; height:36px; padding:9px;
+    border:1px solid var(--rule-strong); border-radius:9px; cursor:pointer}
+  .nav-burger span{display:block; height:2px; background:var(--ink); border-radius:2px}
+  nav[aria-label="Site"]{display:none; flex-direction:column; align-items:flex-start;
+    gap:20px; width:100%; margin-top:12px; padding-top:18px; border-top:1px solid var(--rule)}
+  #nav-toggle:checked ~ nav[aria-label="Site"]{display:flex}       /* CSS-only menu */
+  .nav-group{flex-direction:column; align-items:flex-start; gap:10px}
+  .nav-group + .nav-group{border-left:0; padding-left:0}
+  .repo{border-left:0; padding-left:0}
 }
 
-::selection { background: var(--accent); color: var(--paper); }
-
-/* ── toolbar ─────────────────────────────────────────────── */
-
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
-  border-bottom: 1px solid var(--rule-strong);
-  padding: 1.1rem 1.5rem;
-  font-family: var(--grotesk);
-  font-size: 0.9rem;
-  font-weight: 500;
+/* ---- Footer ------------------------------------------------ */
+.colophon{
+  border-top:1px solid var(--rule); padding:24px var(--gutter); background:var(--paper);
+  font-family:var(--sans); display:flex; align-items:center; justify-content:space-between;
+  flex-wrap:wrap; gap:12px 28px; margin-top:var(--s16);
 }
-
-.wordmark {
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--ink);
-  text-decoration: none;
-}
-
-.wordmark .mark { color: var(--accent); }
-
-.toolbar nav {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.4rem 1.6rem;
-}
-
-/* The hamburger: a CSS-only toggle (no script), shown only when the bar
-   is too narrow to lay the groups out inline. */
-.nav-toggle, .nav-burger { display: none; }
-
-@media (max-width: 760px) {
-  .toolbar { flex-wrap: wrap; }
-  .nav-burger {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.2rem;
-    height: 2.2rem;
-    margin-left: auto;
-    cursor: pointer;
-    border: 1px solid var(--rule, #d8cdb8);
-    border-radius: 6px;
-  }
-  .nav-burger span,
-  .nav-burger span::before,
-  .nav-burger span::after {
-    content: "";
-    display: block;
-    width: 1.1rem;
-    height: 2px;
-    background: var(--ink);
-    position: relative;
-  }
-  .nav-burger span::before { position: absolute; top: -6px; }
-  .nav-burger span::after { position: absolute; top: 6px; }
-  .toolbar nav {
-    flex-basis: 100%;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.8rem;
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 200ms ease;
-  }
-  .nav-toggle:checked ~ nav {
-    max-height: 40rem;
-    margin-top: 0.8rem;
-  }
-}
-
-.nav-group {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.2rem 0.9rem;
-}
-
-.nav-group-label {
-  font-size: 0.66rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--accent);
-  opacity: 0.7;
-}
-
-.toolbar nav a {
-  color: var(--muted);
-  text-decoration: none;
-  transition: color 120ms ease;
-}
-
-.toolbar nav a:hover { color: var(--ink); }
-
-.toolbar nav a[aria-current="page"] {
-  color: var(--ink);
-  box-shadow: inset 0 -2px var(--accent);
-}
-
-.toolbar nav .repo { color: var(--accent); }
-
-/* ── the text well ───────────────────────────────────────── */
-
-body > *:not(.toolbar):not(.colophon):not(table):not(pre) {
-  max-width: 41rem;
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
-}
-
-/* Tables and code blocks are allowed a wider measure than the prose and
-   are centred on the page; they scroll within themselves when they must. */
-body > table, body > pre {
-  margin-left: auto;
-  margin-right: auto;
-}
-
-h1, h2, h3, h4 {
-  font-family: var(--grotesk);
-  font-weight: 600;
-  line-height: 1.15;
-  letter-spacing: -0.015em;
-  text-wrap: balance;
-  scroll-margin-top: 1.5rem;
-}
-
-h1 {
-  font-size: clamp(2.1rem, 5vw, 2.9rem);
-  font-weight: 700;
-  line-height: 1.08;
-  margin: 3rem auto 1.3rem;
-}
-
-h1::after {
-  content: "";
-  display: block;
-  width: 2.5rem;
-  border-bottom: 4px solid var(--accent);
-  margin-top: 0.75rem;
-}
-
-h2 {
-  font-size: clamp(1.4rem, 3vw, 1.6rem);
-  margin: 3rem auto 0.85rem;
-  padding-top: 0.4rem;
-  border-top: 1px solid var(--rule);
-}
-
-/* The first heading after the title does not need the divider rule. */
-h1 + h2 { border-top: none; padding-top: 0; margin-top: 1.6rem; }
-
-h3 {
-  font-size: 1.22rem;
-  margin: 2.2rem auto 0.55rem;
-}
-
-h4 {
-  font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  margin: 1.8rem auto 0.5rem;
-}
-
-p { margin: 0 auto 1.1rem; text-wrap: pretty; }
-
-ul, ol { margin: 0 auto 1.1rem; padding-left: 1.35rem; }
-
-li { margin-bottom: 0.4rem; padding-left: 0.15rem; }
-
-li::marker { color: var(--accent); }
-
-/* Nested lists keep the same step and do not add stray vertical space. */
-li > ul, li > ol { margin: 0.4rem auto 0.2rem; }
-
-strong { font-weight: 640; }
-
-/* Prose links stay ink; the second ink lives in the underline. */
-a {
-  color: inherit;
-  text-decoration: underline;
-  text-decoration-color: var(--accent);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 0.2em;
-  transition: color 120ms ease;
-}
-
-a:hover { color: var(--accent); }
-
-/* ── the machine voice ───────────────────────────────────── */
-
-code, pre, kbd {
-  font-family: var(--mono);
-}
-
-/* Inline code: sized to sit on the serif baseline without looming. */
-code {
-  background: var(--code-bg);
-  color: var(--code-ink);
-  padding: 0.1em 0.36em;
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  font-size: 0.85em;
-  /* Break only when a token genuinely cannot fit, and at a boundary --
-     never shred `module.function` into pieces mid-name. */
-  overflow-wrap: break-word;
-}
-
-pre {
-  background: var(--code-bg);
-  color: var(--code-ink);
-  border: 1px solid var(--rule-strong);
-  border-left: 3px solid var(--accent);
-  border-radius: 6px;
-  padding: 1rem 1.2rem;
-  overflow-x: auto;
-  line-height: 1.6;
-  font-size: 0.9rem;
-  margin: 1.5rem auto;
-  -webkit-overflow-scrolling: touch;
-  tab-size: 2;
-}
-
-pre code {
-  padding: 0;
-  background: none;
-  border: none;
-  color: inherit;
-  font-size: inherit;
-  word-break: normal;
-}
-
-/* ── apparatus ───────────────────────────────────────────── */
-
-/* Tables need more room than the 41rem prose column, so they run wider
-   and scroll horizontally rather than cramming many columns into the
-   measure. `display: block` makes the element its own scroll container;
-   the rows still lay out as a table inside it. */
-table {
-  display: block;
-  width: fit-content;
-  max-width: min(72rem, 94vw);
-  margin: 1.7rem auto;
-  overflow-x: auto;
-  border: 1px solid var(--rule);
-  border-radius: 8px;
-  border-collapse: collapse;
-  font-variant-numeric: tabular-nums;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  -webkit-overflow-scrolling: touch;
-}
-
-th, td {
-  text-align: left;
-  padding: 0.6rem 0.95rem;
-  border-bottom: 1px solid var(--rule);
-  vertical-align: top;
-}
-
-/* Long prose cells (statements, limitations) wrap to a readable width
-   instead of stretching the table into a very wide horizontal scroll. */
-td { max-width: 26rem; min-width: 6rem; }
-
-tbody tr:nth-child(even) { background: var(--zebra); }
-
-tbody tr:last-child td { border-bottom: none; }
-
-th {
-  font-family: var(--grotesk);
-  font-size: 0.76rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
-  background: var(--code-bg);
-  border-bottom: 2px solid var(--rule-strong);
-  white-space: nowrap;
-}
-
-/* First column tends to be an identifier; keep it from wrapping oddly. */
-tbody td:first-child { white-space: nowrap; }
-
-blockquote {
-  margin: 0.8rem auto 1.7rem;
-  padding: 0.5rem 1.1rem;
-  border-left: 3px solid var(--rule-strong);
-  color: var(--muted);
-  font-size: 0.95rem;
-  line-height: 1.6;
-}
-
-blockquote p { margin: 0; }
-
-/* Code inside a note stays upright even when the note is set in italic. */
-blockquote code { font-style: normal; font-size: 0.85em; }
-
-hr {
-  border: none;
-  width: 2.5rem;
-  border-top: 4px solid var(--rule-strong);
-  margin: 2.8rem auto;
-}
-
-img { max-width: 100%; }
-
-/* ── entry pages (invariants, providers) ─────────────────── */
-
-/* These pages are a list of generated records. Each is a card: a name
-   heading, a subtitle line (id + criticality), the statement, and a set
-   of labelled fields. */
-.doc-entries h2 {
-  border-top: none;
-  padding-top: 0;
-  margin: 2.7rem auto 0.1rem;
-  font-size: 1.32rem;
-}
-
-.doc-entries h1 + h2 { margin-top: 1.8rem; }
-
-/* The subtitle directly under a card's title: the id and its criticality. */
-.doc-entries h2 + p {
-  margin: 0 auto 0.75rem;
-  font-family: var(--grotesk);
-  font-size: 0.76rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.doc-entries h2 + p code {
-  border: none;
-  background: none;
-  padding: 0;
-  color: var(--accent);
-  font-size: 0.98em;
-  text-transform: none;
-  letter-spacing: 0;
-}
-
-/* Each record's fields are a small two-column table: an uppercase label
-   column and a value that wraps natively (a real table aligns its own
-   cells). The empty header row is hidden. This is the whole point of the
-   redesign -- one small table per record, not one table for everything. */
-/* Field tables stay in the prose column (they were excluded from the
-   well so the big data tables could break out; put these back). 38rem is
-   the 41rem measure minus its padding, so a field table lines up with the
-   prose above it. */
-.doc-entries table {
-  display: table;
-  table-layout: fixed;
-  width: 100%;
-  max-width: 38rem;
-  margin: 0.7rem auto 0;
-  border: none;
-  border-radius: 0;
-  border-top: 1px solid var(--rule);
-  font-size: 0.95rem;
-  font-variant-numeric: normal;
-}
-
-.doc-entries table thead { display: none; }
-
-.doc-entries table td {
-  border: none;
-  border-bottom: 1px solid var(--rule);
-  padding: 0.5rem 0.6rem 0.5rem 0;
-  max-width: none;
-  min-width: 0;
-  vertical-align: top;
-  background: none;
-  white-space: normal;
-  overflow-wrap: break-word;
-}
-
-.doc-entries table tr:last-child td { border-bottom: none; }
-
-.doc-entries table td:first-child {
-  width: 8.5rem;
-  padding-right: 1rem;
-  color: var(--muted);
-  font-family: var(--grotesk);
-  font-size: 0.72rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  line-height: 1.5;
-}
-
-.doc-entries table td:first-child strong { font-weight: 600; }
-
-@media (max-width: 560px) {
-  .doc-entries table td:first-child { width: 7rem; }
-}
-
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* ── colophon ────────────────────────────────────────────── */
-
-.colophon {
-  max-width: 41rem;
-  margin: 4rem auto 0;
-  padding: 1.3rem 1.5rem 2.2rem;
-  border-top: 1px solid var(--rule-strong);
-  font-family: var(--grotesk);
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-
-.colophon nav { display: flex; gap: 1.3rem; margin-bottom: 0.6rem; }
-
-.colophon a { color: var(--muted); text-decoration-color: var(--accent); }
-
-.colophon a:hover { color: var(--accent); }
-
-.colophon .stamp { margin: 0; }
+.colophon nav{display:flex; gap:22px; flex-wrap:wrap}
+.colophon a{color:var(--muted); font-size:13.5px; font-weight:500; text-decoration:none}
+.colophon a:hover{color:var(--accent-ink)}
+.stamp{margin:0; font-family:var(--mono); font-size:12.5px; color:var(--muted)}
+.stamp code, .stamp .sha{color:var(--accent-ink); background:none; border:0; padding:0}
+
+/* ---- Accessibility ----------------------------------------- */
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none !important; scroll-behavior:auto !important}}
