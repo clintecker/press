@@ -117,6 +117,22 @@ def test_html_in_config_is_escaped():
     assert "&lt;me&gt;" in html
 
 
+def test_the_documented_commerce_example_actually_validates():
+    # The guide's config example must stay in sync with the runtime: it
+    # parses, validates, and carries no secret. (A #138 documentation test.)
+    import re
+
+    import yaml
+
+    doc = (Path(__file__).resolve().parent.parent / "docs" / "PRINT-ORDERING.md")
+    blocks = re.findall(r"```yaml\n(.*?)```", doc.read_text(encoding="utf-8"), re.S)
+    examples = [b for b in blocks if "print-ordering" in b]
+    assert examples, "the print-ordering guide has no commerce example"
+    for block in examples:
+        cfg = commerce.load(yaml.safe_load(block))
+        assert commerce.validate(cfg) == []
+
+
 # ---- the site verifier ----
 
 def _pages_with(index_html: str, tmp_path: Path) -> Path:
