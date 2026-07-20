@@ -260,6 +260,6 @@ providers:
       worldwide: unsupported
       seller_of_record: unsupported
     unknowns:
-      - none material: the 10-copy minimum rules out one-reader/one-copy
+      - none material -- the 10-copy minimum rules out one-reader/one-copy
     notes: Not a one-reader/one-copy adapter; keep as a bulk proof or launch-stock
       option only.

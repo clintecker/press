@@ -398,6 +398,84 @@ hr {
 
 img { max-width: 100%; }
 
+/* ── entry pages (invariants, providers) ─────────────────── */
+
+/* These pages are a list of generated records. Each is a card: a name
+   heading, a subtitle line (id + criticality), the statement, and a set
+   of labelled fields. */
+.doc-entries h2 {
+  border-top: none;
+  padding-top: 0;
+  margin: 2.7rem auto 0.1rem;
+  font-size: 1.32rem;
+}
+
+.doc-entries h1 + h2 { margin-top: 1.8rem; }
+
+/* The subtitle directly under a card's title: the id and its criticality. */
+.doc-entries h2 + p {
+  margin: 0 auto 0.75rem;
+  font-family: var(--grotesk);
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.doc-entries h2 + p code {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: 0.98em;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* The labelled fields (enforced by / fails via / limit; routes / caps). */
+.doc-entries ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0.8rem auto 0;
+  border-top: 1px solid var(--rule);
+}
+
+/* Each field is a label column and a value that wraps under itself, not
+   back under the label. The whole row is indented by the label width, and
+   the label is pulled back into that indent, so every value line -- first
+   and wrapped -- sits at the same left edge. */
+.doc-entries ul li {
+  margin: 0;
+  padding: 0.5rem 0;
+  padding-left: 10.5rem;
+  border-bottom: 1px solid var(--rule);
+  line-height: 1.55;
+}
+
+.doc-entries ul li:last-child { border-bottom: none; }
+
+.doc-entries ul li::marker { content: none; }
+
+.doc-entries ul li strong:first-child {
+  display: inline-block;
+  width: 9.5rem;
+  margin-left: -10.5rem;
+  padding-right: 1rem;
+  color: var(--muted);
+  font-family: var(--grotesk);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  vertical-align: top;
+}
+
+/* On a narrow screen the label sits above its value instead. */
+@media (max-width: 560px) {
+  .doc-entries ul li { padding-left: 0; text-indent: 0; }
+  .doc-entries ul li strong:first-child { display: block; width: auto; margin-bottom: 0.15rem; }
+}
+
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;

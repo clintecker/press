@@ -43,6 +43,48 @@ ROOT = Path(__file__).resolve().parent
 LEDGER = ROOT.parent.parent / "quality" / "invariants.yaml"
 KNOWN_BAD = ROOT / "data" / "known-bad"
 
+# A short human name for each invariant, shown alongside its id so the
+# generated reference reads as a scannable list of guarantees rather than
+# a wall of INV- slugs. Every invariant must have one (validate enforces
+# it), so a new invariant cannot ship nameless.
+TITLES = {
+    "INV-config-slug": "Safe slugs",
+    "INV-config-trim": "Fixed v1 trim",
+    "INV-config-locatable": "Locatable config errors",
+    "INV-config-release-witness": "No vacuous releases",
+    "INV-config-registrations": "Computed check digits",
+    "INV-editorial-battery": "The prose battery",
+    "INV-editorial-jargon": "Jargon watchlist",
+    "INV-editorial-checkers": "Checkers proven by fixtures",
+    "INV-editorial-banned-regex": "Guarded banned patterns",
+    "INV-authorities-claims": "Authorities claims exist",
+    "INV-authorities-printsafe": "Print-safe sources",
+    "INV-pdf-detector": "Proven blank-page detector",
+    "INV-pdf-ink": "Every page carries ink",
+    "INV-format-witness": "A witness in every format",
+    "INV-format-site-identity": "One witness per chapter",
+    "INV-pages-refs": "Every reference resolves",
+    "INV-archive-site-bytes": "Reader archive matches the site",
+    "INV-archive-source-policy": "Policy-clean source archive",
+    "INV-coverwrap-geometry": "Cover-wrap geometry",
+    "INV-coverwrap-barcode": "Scannable barcode panel",
+    "INV-graph-acyclic": "Acyclic artifact graph",
+    "INV-graph-no-stale": "No stale artifact is blessed",
+    "INV-graph-escaping": "Escaped interpolation",
+    "INV-cli-exit-code": "Honest exit codes",
+    "INV-release-tag-grammar": "Strict release tags",
+    "INV-release-contract": "Immutable release contract",
+    "INV-scaffold-neutral": "Neutral scaffold",
+    "INV-docs-no-drift": "Docs never drift",
+    "INV-contract-mirror": "AGENTS mirrors CLAUDE",
+    "INV-release-receipt-chain": "Complete release chain",
+    "INV-edition-manifest": "Immutable edition identity",
+    "INV-provider-qualification": "Honest provider record",
+    "INV-commerce-config": "Safe ordering config",
+    "INV-commerce-release-gate": "Qualified before sale",
+    "INV-provider-contract": "Provider-neutral contract",
+}
+
 
 def load(path: Path = LEDGER) -> list[dict[str, Any]]:
     with path.open(encoding="utf-8") as handle:
@@ -131,6 +173,8 @@ def validate(invariants: list[dict[str, Any]]) -> None:
         if inv["id"] in seen:
             problems.append(f"{where}: duplicate id")
         seen.add(inv["id"])
+        if inv["id"] not in TITLES:
+            problems.append(f"{where}: no human title in invariants.TITLES")
         problems.extend(_entry_problems(where, inv))
     if problems:
         raise SystemExit(
@@ -145,10 +189,26 @@ def render() -> str:
     lines = [
         "# Invariants",
         "",
-        "Generated from quality/invariants.yaml; do not edit by hand. Run",
-        "`python3 -m press selftest --write-docs` after changing the ledger.",
-        "Each entry traces an invariant to where it is enforced, the proof it",
-        "can fail, and the honest limit of that proof.",
+        "An **invariant** is a promise the press keeps about what it produces "
+        "-- something that must be true of a finished book no matter which "
+        "book it is. *Every page carries ink. A release ships the exact bytes "
+        "the tests approved. A slug can't escape its directory.* This page is "
+        "the whole list of those promises.",
+        "",
+        "Each promise is kept by real code (**enforced by**). Because a guard "
+        "you never test is a guard you can't trust, each promise also has a "
+        "test that deliberately breaks it and confirms the guard catches the "
+        "violation (**tested by**). And each states, honestly, what its guard "
+        "does *not* cover (**known limit**), so a narrow check is never "
+        "mistaken for a broad one.",
+        "",
+        "The promises are declared in one file, `quality/invariants.yaml`, and "
+        "validated on every build: a promise with no real test -- or a "
+        "critical one with no way to prove it can fail -- fails the build. So "
+        "this page cannot drift from what the code actually does; it is "
+        "generated from that ledger. A few are marked **critical**: breaking "
+        "one would let a corrupt or unsafe book through, so they must carry a "
+        "test that proves the guard can fail.",
         "",
         "See also the narrative matrix in "
         "[docs/ARCHITECTURE.md](https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md) "
@@ -158,14 +218,18 @@ def render() -> str:
     ]
     for inv in sorted(invariants, key=lambda i: i["id"]):
         proofs = ", ".join(f"`{p}`" for p in inv["negative"])
-        crit = "**critical**" if inv["criticality"] == "critical" else "standard"
+        badge = "critical" if inv["criticality"] == "critical" else "standard"
         lines += [
-            f"## {inv['id']}",
+            f"## {TITLES[inv['id']]}",
+            "",
+            f"`{inv['id']}` · {badge}",
             "",
             inv["statement"],
             "",
-            f"> Enforced by `{inv['enforcer']}` · fails via {proofs} · {crit}. "
-            f"**Limit:** {inv['limitations']}",
+            f"- **If it breaks** {inv['risk']}",
+            f"- **Enforced by** `{inv['enforcer']}`",
+            f"- **Tested by** {proofs}",
+            f"- **Known limit** {inv['limitations']}",
             "",
         ]
     return "\n".join(lines)

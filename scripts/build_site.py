@@ -147,6 +147,12 @@ def footer_html(current: str) -> str:
     )
 
 
+# Pages whose content is a list of generated entries (an id/name heading,
+# a subtitle line, prose, and labelled fields) rather than free prose; they
+# get a body class so the stylesheet can render the entries as cards.
+ENTRY_PAGES = {"invariants.html", "provider-qualification.html"}
+
+
 def build_page(source: str, name: str, label: str) -> None:
     title = "press" if name == "index.html" else f"press: {label}"
     nav_file = OUT / f".nav-{name}"
@@ -176,6 +182,12 @@ def build_page(source: str, name: str, label: str) -> None:
     )
     nav_file.unlink()
     footer_file.unlink()
+    if name in ENTRY_PAGES:
+        page = OUT / name
+        page.write_text(
+            page.read_text(encoding="utf-8").replace(
+                "<body>", '<body class="doc-entries">', 1),
+            encoding="utf-8")
 
 
 def check_links() -> None:

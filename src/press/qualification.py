@@ -97,6 +97,13 @@ def _validate_provider(name: str, prov: Provider) -> list[str]:
         if value not in CAPABILITY_VALUES:
             problems.append(f"{name}: capability {cap}={value!r} is not one of "
                             f"{sorted(CAPABILITY_VALUES)}")
+    # A `- text: more` line is YAML for a mapping, not a string; catch that
+    # so an unknowns or routes entry cannot silently become a dict.
+    if any(not isinstance(u, str) for u in prov.unknowns):
+        problems.append(f"{name}: every 'unknowns' entry must be a string "
+                        "(a colon made one a mapping)")
+    if any(not isinstance(r, str) for r in prov.routes):
+        problems.append(f"{name}: every 'routes' entry must be a string")
     return problems
 
 
@@ -115,6 +122,9 @@ def validate(record: dict | None = None) -> list[str]:
     for point in REQUIRED_CHECKLIST:
         if point not in checklist:
             problems.append(f"physical checklist missing required point: {point}")
+    for point in checklist:
+        if point not in CHECKLIST_HELP:
+            problems.append(f"checklist point {point!r} has no description in CHECKLIST_HELP")
     for name, prov in providers(record).items():
         problems.extend(_validate_provider(name, prov))
     return problems
@@ -209,9 +219,42 @@ def book_inspections(root: Path) -> list[PhysicalInspection]:
     return out
 
 
+# What each physical inspection point actually checks on the ordered copy.
+CHECKLIST_HELP = {
+    "content": "the interior text matches the release-approved manuscript",
+    "pagination": "page count and page order match the manifest",
+    "trim": "the cut size matches the declared trim within tolerance",
+    "bleed": "full-bleed art reaches the trimmed edge without white slivers",
+    "spine": "spine text is centred and square for the page count",
+    "barcode": "the EAN-13 scans and matches the declared ISBN",
+    "color": "single-ink interior and cover reproduce as specified",
+    "paper": "stock weight and shade match the declared paper",
+    "binding": "the binding is square, tight, and opens flat enough to read",
+    "packaging": "the copy arrives undamaged and appropriately protected",
+    "tracking": "the tracking link resolves and matches the destination",
+}
+
+_CAP_LABELS = {"supported": "Supported", "by_approval": "By approval",
+               "unsupported": "Unsupported", "unknown": "Unknown"}
+_DISPOSITION_TITLE = {
+    "primary": "Primary provider", "secondary": "Second adapter",
+    "hosted-candidate": "Hosted-checkout candidate", "candidate": "Candidate",
+    "not-fit": "Not a fit"}
+
+
+def _evidence_links(prov: Provider) -> str:
+    from urllib.parse import urlparse
+
+    parts = []
+    for entry in prov.evidence:
+        label = urlparse(entry.get("url", "")).netloc or "source"
+        parts.append(f"[{label}]({entry['url']})")
+    return " · ".join(parts)
+
+
 def render(record: dict | None = None) -> str:
-    """The human-readable projection of the record, generated so it cannot
-    drift from the evidence it summarizes."""
+    """The human-readable projection of the record, one card per provider,
+    generated so it cannot drift from the evidence it summarizes."""
 
     record = record if record is not None else load()
     lines = [
@@ -224,25 +267,36 @@ def render(record: dict | None = None) -> str:
         "qualified for a provider only when a physically ordered copy passes "
         "every inspection point below, scoped to that edition's identity.",
         "",
-        "## Physical inspection checklist",
-        "",
-        "Every point must pass on a copy ordered through the real route; "
-        "none may be skipped.",
+        "**Physical inspection** — order a copy through the real route; every "
+        "point must pass, none may be skipped:",
         "",
     ]
     for point in record.get("physical_checklist", ()):
-        lines.append(f"- {point}")
-    lines += ["", "## Researched providers", "",
-              "| provider | disposition | one-copy POD | API | sandbox | "
-              "seller-of-record | open unknowns |",
-              "|---|---|---|---|---|---|---|"]
-    for name, prov in providers(record).items():
-        caps = prov.capabilities
-        lines.append(
-            f"| {name} | {prov.disposition} | {caps.get('one_copy_pod', '?')} | "
-            f"{caps.get('api', '?')} | {caps.get('sandbox', '?')} | "
-            f"{caps.get('seller_of_record', '?')} | {len(prov.unknowns)} |")
+        help_text = CHECKLIST_HELP.get(point, "")
+        lines.append(f"- **{point}** {help_text}" if help_text else f"- {point}")
     lines.append("")
+
+    for name, prov in providers(record).items():
+        by_value: dict[str, list[str]] = {}
+        for cap, value in prov.capabilities.items():
+            by_value.setdefault(value, []).append(cap.replace("_", " "))
+        lines += [
+            f"## {name.replace('-', ' ').title()}",
+            "",
+            f"`{name}` · {_DISPOSITION_TITLE.get(prov.disposition, prov.disposition)}",
+            "",
+            prov.notes,
+            "",
+            f"- **Routes** {', '.join(prov.routes)}",
+        ]
+        for value in ("supported", "by_approval", "unsupported", "unknown"):
+            if by_value.get(value):
+                lines.append(f"- **{_CAP_LABELS[value]}** {', '.join(sorted(by_value[value]))}")
+        if prov.unknowns:
+            lines.append(f"- **Open questions** {'; '.join(prov.unknowns)}")
+        if prov.evidence:
+            lines.append(f"- **Evidence** {_evidence_links(prov)}")
+        lines.append("")
     return "\n".join(lines)
 
 

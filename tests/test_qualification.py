@@ -113,8 +113,12 @@ def test_an_unknown_provider_is_refused():
 
 def test_render_lists_the_checklist_and_providers():
     text = q.render()
+    # The checklist points and their descriptions are present.
     assert "content" in text and "tracking" in text
-    assert "lulu" in text and "primary" in text
+    assert "the EAN-13 scans" in text  # a checklist description
+    # Providers render as cards with their id and disposition.
+    assert "## Lulu" in text and "`lulu`" in text
+    assert "Primary provider" in text
 
 
 # ---- helpers tying qualification to the edition manifest ----
