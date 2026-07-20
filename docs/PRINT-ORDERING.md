@@ -109,8 +109,20 @@ invariant in [the ledger](https://github.com/clintecker/press/blob/main/docs/INV
 
 The verifiers are `press check` (static config), `press verify` (the
 rendered page), and the release gate in `press all`. A new provider is
-added to the record with its capabilities recorded explicitly; a print
-API adapter for the custom-MoR path is out of scope here.
+added to the record with its capabilities recorded explicitly.
+
+For the custom merchant-of-record path (deferred, but the adapter layer
+is built), `press.providers` is the provider-neutral print contract: one
+set of typed operations (quote, file validation, submission, lookup,
+cancellation, event verification, status normalization), a stateful smart
+fake, and a shared conformance suite every adapter passes. `press.providers.lulu`
+is the Lulu Print API adapter, built to Lulu's public API and proven
+against a canned transport; it stops Lulu's own vocabulary (its
+`pod_package_id` SKUs, status words, webhook HMAC) at the boundary and
+records what Lulu does not document (no order-creation idempotency) as
+unknown rather than guessing. The live sandbox exchange awaits
+credentials. HTTP is injected, so the adapter is boundary-clean and the
+real transport lives in `press.adapters`.
 
 ## Security and privacy
 

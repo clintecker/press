@@ -640,6 +640,29 @@ def check_commerce_release_gate() -> None:
         raise SystemExit("selftest: release gate blocked a book that sells nothing")
 
 
+def check_provider_contract() -> None:
+    """A print provider adapter keeps the neutral contract: money parses
+    without float error, an unsupported capability is a typed refusal, an
+    unknown status quarantines, and a submission timeout is an unknown
+    outcome -- never a fabricated acceptance or a guessed transition."""
+
+    from .providers import contract, fake
+
+    cents = (contract.Money.parse("USD", "0.1")
+             + contract.Money.parse("USD", "0.2")).minor_units
+    if cents != 30:
+        raise SystemExit("selftest: provider money parsing lost a cent to float")
+    limited = fake.FakeProvider(capabilities=frozenset({contract.Capability.SUBMIT}))
+    if not isinstance(limited.cancel("x"), contract.TypedError):
+        raise SystemExit("selftest: adapter simulated an unsupported capability")
+    if limited.normalize_status("mystery") != contract.ProviderStatus.UNKNOWN:
+        raise SystemExit("selftest: adapter guessed an unknown provider status")
+    timing_out = fake.FakeProvider()
+    timing_out.script_submit("timeout")
+    if not isinstance(timing_out.submit(fake.sample_submission()), contract.UnknownOutcome):
+        raise SystemExit("selftest: adapter turned a submission timeout into a definite outcome")
+
+
 def check_release_grammar() -> None:
     """The release script's tag validation, exercised without any
     network: exactly vN.x.y, and the composite action's command
@@ -1037,6 +1060,7 @@ CHECKS = [
     check_provider_qualification,
     check_commerce_config,
     check_commerce_release_gate,
+    check_provider_contract,
     check_coverwrap_detectors,
     check_aesthetic_schema,
     check_contract_mirror,

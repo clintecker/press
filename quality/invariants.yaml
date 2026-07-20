@@ -475,3 +475,27 @@ invariants:
       print pack and matches inspections against it is proven by the pytest
       component test, and enforcement is release-gated (PRESS_RELEASE),
       advisory otherwise.
+
+  - id: INV-provider-contract
+    statement: >-
+      Every print-provider adapter maps its own vocabulary to the neutral
+      contract: money is integer minor units parsed without binary float,
+      an unrecognized status quarantines to UNKNOWN, a submission timeout
+      is an unknown outcome that forces a lookup before any resubmission
+      (never a hidden retry or a fabricated acceptance), an unsupported
+      capability is a typed refusal rather than a simulation, and a webhook
+      is authentic only when its signature matches the raw body.
+    risk: >-
+      A provider coupling leaks SDK types into the domain, a lost response
+      prints a second copy, an unknown status is guessed, or a forged
+      webhook is trusted.
+    criticality: critical
+    owner: providers
+    enforcer: providers.contract
+    layers: [selftest, pytest]
+    negative: [check_provider_contract]
+    ci_tier: quality
+    limitations: >-
+      The contract and the conformance suite are proven against the smart
+      fake and the Lulu adapter under a canned transport; the live Lulu
+      sandbox exchange awaits credentials (the deferred end-to-end proof).
