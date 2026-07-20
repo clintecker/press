@@ -8,3 +8,6 @@ dist/
 .coverage.*
 coverage.json
 tests/_collection-index.json
+
+# Local pet/mascot experiment output, not part of the press
+.pet-runs/
