@@ -493,6 +493,185 @@ BAD_TAGS = ("v1.0", "v1.0.0.0", "v1.0.0-rc1", "v1.0.0x", "v01.0.0",
             "1.0.0", "v1..0", "v1.0.0 ")
 
 
+def check_receipt_chain() -> None:
+    """The trust-receipt chain refuses a broken chain: a dirty-tree
+    release receipt, a release whose package digest does not match the
+    built object, and an incomplete chain that skips trust layers are
+    each rejected."""
+
+    from . import receipts
+
+    inputs = {"invariants": "d", "fixtures": "d", "scenarios": "d",
+              "surfaces": "d", "toolchain": "sha-x"}
+    dirty = receipts.Receipt(
+        schema_version=receipts.SCHEMA_VERSION, layer="release",
+        source_commit="c", tree_clean=False, inputs=inputs,
+        prerequisites=[], proofs=[],
+        artifacts={"package": "PKG", "toolchain": "sha-x"}, local_dev=True)
+    if not any("dirty tree" in p for p in receipts.verify_chain([dirty], require_clean=True)):
+        raise SystemExit("selftest: receipt chain blessed a dirty-tree release")
+    clean = receipts.Receipt(
+        schema_version=receipts.SCHEMA_VERSION, layer="release",
+        source_commit="c", tree_clean=True, inputs=inputs,
+        prerequisites=[], proofs=[],
+        artifacts={"package": "PKG", "toolchain": receipts.pinned_toolchain_digest()})
+    if not any("package digest" in p for p in receipts.verify_release([clean], "OTHER")):
+        raise SystemExit("selftest: release receipt blessed a package mismatch")
+    # A two-layer placeholder standing in for every layer must be refused:
+    # completeness is what turns the chain from an assertion into a proof.
+    collection = receipts.Receipt(
+        schema_version=receipts.SCHEMA_VERSION, layer="collection",
+        source_commit="c", tree_clean=True, inputs=inputs, prerequisites=[],
+        proofs=[], artifacts={})
+    placeholder_release = receipts.Receipt(
+        schema_version=receipts.SCHEMA_VERSION, layer="release",
+        source_commit="c", tree_clean=True, inputs=inputs,
+        prerequisites=[collection.digest()], proofs=[],
+        artifacts={"package": "PKG", "toolchain": receipts.pinned_toolchain_digest()})
+    if not any("incomplete release chain" in p
+               for p in receipts.verify_release([collection, placeholder_release], "PKG")):
+        raise SystemExit("selftest: release chain blessed a skipped trust layer")
+    # The per-job release (#150) fails closed when a CI tier's receipt is
+    # absent: a job that did not run leaves a missing receipt.
+    tiers = [receipts.Receipt(
+        schema_version=receipts.SCHEMA_VERSION, layer="quality", source_commit="c",
+        tree_clean=True, inputs=inputs, prerequisites=[], proofs=[], artifacts={})]
+    # 'integration' deliberately absent: its job did not run.
+    if not any("missing tier receipt 'integration'" in p
+               for p in receipts.verify_ci_release(tiers, "PKG")):
+        raise SystemExit("selftest: per-job release blessed a missing CI tier")
+
+
+def check_edition_manifest() -> None:
+    """The edition manifest holds for a valid release-gated edition and
+    refuses a forged identity and a byte mismatch: an order can only name
+    the exact bytes the release approved."""
+
+    import dataclasses
+
+    from . import edition
+
+    interior_sha = "1" * 64
+    cover_sha = "2" * 64
+    base = edition.EditionManifest(
+        schema_version=edition.SCHEMA_VERSION, edition_id="",
+        slug="proof-book", title="Proof", format="paperback", isbn=None,
+        trim_width=6.0, trim_height=9.0, page_count=120, paper="cream",
+        spine_width_in=0.3, bleed_in=0.125,
+        interior=edition.ArtifactRef("interior", interior_sha, 4096),
+        cover=edition.ArtifactRef("cover", cover_sha, 2048),
+        toolchain_digest="sha-abc", source_commit="c0ffee", tree_clean=True,
+        input_digests={"invariants": "d"}, receipt_digests=("r0",))
+    manifest = dataclasses.replace(
+        base, edition_id=edition._identity_digest(base))
+    observed = edition.Observed(interior_sha, 4096, 120, cover_sha, 2048)
+    if edition.verify_facts(manifest, observed):
+        raise SystemExit("selftest: edition manifest rejected a valid edition")
+    # A production fact changed without re-deriving identity is a forgery.
+    forged = dataclasses.replace(manifest, page_count=manifest.page_count + 10)
+    if not any("identity digest" in p for p in edition.verify_facts(forged, observed)):
+        raise SystemExit("selftest: edition manifest blessed a forged identity")
+    # The artifact on disk no longer hashes to the recorded digest.
+    tampered = edition.Observed("0" * 64, 4096, 120, cover_sha, 2048)
+    if not any("interior digest" in p for p in edition.verify_facts(manifest, tampered)):
+        raise SystemExit("selftest: edition manifest blessed a byte mismatch")
+
+
+def check_provider_qualification() -> None:
+    """The provider record is well-formed, and only a passed physical
+    inspection scoped to the edition qualifies a provider: marketing alone
+    and a stale or wrong-edition inspection are refused."""
+
+    from . import qualification as q
+
+    problems = q.validate()
+    if problems:
+        raise SystemExit(f"selftest: provider qualification record invalid: {problems[:2]}")
+    passed = {point: q.PASS for point in q.REQUIRED_CHECKLIST}
+    # A single failed point cannot qualify: the physical gate is real.
+    failed = q.PhysicalInspection("ed1", "lulu", "PB", "US", "inspector",
+                                  {**passed, "barcode": "fail"})
+    qual, probs = q.qualify(failed, "ed1")
+    if qual is not None or not any("not passed" in p for p in probs):
+        raise SystemExit("selftest: qualification honored a failed physical inspection")
+    # A copy inspected against a different edition is stale.
+    other = q.PhysicalInspection("edX", "lulu", "PB", "US", "inspector", passed)
+    qual2, probs2 = q.qualify(other, "ed1")
+    if qual2 is not None or not any("different edition" in p for p in probs2):
+        raise SystemExit("selftest: qualification honored a stale inspection")
+
+
+def check_commerce_config() -> None:
+    """The print-order config verifier refuses an insecure origin, a
+    missing policy link, and an embedded secret, and the CTA is emitted
+    only for a sellable edition."""
+
+    from . import commerce
+
+    good = commerce.load({"commerce": {"print-ordering": {
+        "enabled": True, "edition": "paperback",
+        "storefront-url": "https://store.example.test/x", "seller-of-record": "Lulu",
+        "support-url": "https://ex.test/s", "privacy-url": "https://ex.test/p",
+        "refund-url": "https://ex.test/r"}}})
+    if commerce.validate(good):
+        raise SystemExit("selftest: commerce verifier rejected a valid config")
+    if not commerce.should_emit(good, sellable=True) or commerce.should_emit(good, sellable=False):
+        raise SystemExit("selftest: commerce CTA emission ignored edition sellability")
+    bad = commerce.load({"commerce": {"print-ordering": {
+        "enabled": True, "edition": "paperback", "storefront-url": "http://insecure",
+        "seller-of-record": "", "support-url": "https://ex.test/s?api_key=sk_live_x",
+        "privacy-url": "", "refund-url": "https://ex.test/r"}}})
+    problems = commerce.validate(bad)
+    for needle in ("must be https", "seller-of-record", "is required", "secret"):
+        if not any(needle in p for p in problems):
+            raise SystemExit(f"selftest: commerce verifier missed {needle!r}")
+
+
+def check_commerce_release_gate() -> None:
+    """The print-ordering release gate fails closed: a book advertising
+    ordering cannot ship unless its edition passed a physical
+    qualification; a book that sells nothing ships freely."""
+
+    from . import commerce
+
+    enabled = commerce.load({"commerce": {"print-ordering": {
+        "enabled": True, "edition": "paperback",
+        "storefront-url": "https://store.example.test/x", "seller-of-record": "Lulu",
+        "support-url": "https://ex.test/s", "privacy-url": "https://ex.test/p",
+        "refund-url": "https://ex.test/r"}}})
+    if not any("no passed physical qualification" in p
+               for p in commerce.release_problems(enabled, edition_qualified=False)):
+        raise SystemExit("selftest: release gate shipped an unqualified commerce edition")
+    if commerce.release_problems(enabled, edition_qualified=True):
+        raise SystemExit("selftest: release gate blocked a qualified, valid edition")
+    disabled = commerce.load({"commerce": {"print-ordering": {"enabled": False}}})
+    if commerce.release_problems(disabled, edition_qualified=False):
+        raise SystemExit("selftest: release gate blocked a book that sells nothing")
+
+
+def check_provider_contract() -> None:
+    """A print provider adapter keeps the neutral contract: money parses
+    without float error, an unsupported capability is a typed refusal, an
+    unknown status quarantines, and a submission timeout is an unknown
+    outcome -- never a fabricated acceptance or a guessed transition."""
+
+    from .providers import contract, fake
+
+    cents = (contract.Money.parse("USD", "0.1")
+             + contract.Money.parse("USD", "0.2")).minor_units
+    if cents != 30:
+        raise SystemExit("selftest: provider money parsing lost a cent to float")
+    limited = fake.FakeProvider(capabilities=frozenset({contract.Capability.SUBMIT}))
+    if not isinstance(limited.cancel("x"), contract.TypedError):
+        raise SystemExit("selftest: adapter simulated an unsupported capability")
+    if limited.normalize_status("mystery") != contract.ProviderStatus.UNKNOWN:
+        raise SystemExit("selftest: adapter guessed an unknown provider status")
+    timing_out = fake.FakeProvider()
+    timing_out.script_submit("timeout")
+    if not isinstance(timing_out.submit(fake.sample_submission()), contract.UnknownOutcome):
+        raise SystemExit("selftest: adapter turned a submission timeout into a definite outcome")
+
+
 def check_release_grammar() -> None:
     """The release script's tag validation, exercised without any
     network: exactly vN.x.y, and the composite action's command
@@ -760,12 +939,24 @@ def render_reference() -> str:
     return "\n".join(lines)
 
 
+def _repo_root() -> Path | None:
+    """The source checkout root, or None when the press runs from an
+    installed wheel. Checks that read repo files (contract mirror,
+    invariant ledger, doc drift) prove nothing from an install and skip
+    rather than crash, so `press selftest` works either way."""
+
+    root = Path(__file__).resolve().parent.parent.parent
+    return root if (root / "CLAUDE.md").is_file() else None
+
+
 def check_contract_mirror() -> None:
     """AGENTS.md is a generated mirror of CLAUDE.md (same contract,
     agents.md convention): identical below the heading line, so the
     two cannot drift apart again."""
 
-    root = Path(__file__).resolve().parent.parent.parent
+    root = _repo_root()
+    if root is None:
+        return
     claude = (root / "CLAUDE.md").read_text(encoding="utf-8")
     agents = (root / "AGENTS.md").read_text(encoding="utf-8")
     if agents.split("\n", 1)[1] != claude.split("\n", 1)[1]:
@@ -773,6 +964,29 @@ def check_contract_mirror() -> None:
             "AGENTS.md has drifted from CLAUDE.md; regenerate it "
             "(the body below the heading must be identical)"
         )
+
+
+def check_command_catalog() -> None:
+    """The CLI and the desk read one command catalog, so their surfaces
+    cannot drift: every catalog command is dispatchable, every route is
+    a catalog command, and the usage text is the catalog's own
+    rendering."""
+
+    from . import __main__ as cli, catalog
+
+    routes = set(cli.ROUTES)
+    formats = set(cli.FORMATS) | {"print"}
+    for command in catalog.COMMANDS:
+        target = command.alias_of or command.name
+        if not (command.name in routes or command.name in formats
+                or target in routes or target in formats):
+            raise SystemExit(f"catalog command {command.name!r} is not dispatchable")
+    known = catalog.canonical_targets()
+    for route in routes:
+        if route not in known:
+            raise SystemExit(f"route {route!r} is not in the command catalog")
+    if cli.USAGE != catalog.render_usage():
+        raise SystemExit("cli.USAGE is not the catalog's rendering; regenerate it")
 
 
 def check_docs() -> None:
@@ -804,12 +1018,23 @@ def check_docs() -> None:
             "docs/INVARIANTS.md drifted from quality/invariants.yaml; "
             "regenerate with `press selftest --write-docs`"
         )
+    from . import qualification
+    quals_doc = here.parent.parent / "docs" / "PROVIDER-QUALIFICATION.md"
+    if quals_doc.is_file() and quals_doc.read_text(encoding="utf-8") != qualification.render():
+        raise SystemExit(
+            "docs/PROVIDER-QUALIFICATION.md drifted from quality/providers.yaml; "
+            "regenerate with `press selftest --write-docs`"
+        )
 
 
 def check_invariant_ledger() -> None:
     """The invariant ledger validates: schema holds and every enforcer
-    and proof it names resolves to a real function or fixture."""
+    and proof it names resolves to a real function or fixture. The
+    ledger is a repo file, not package data, so an installed wheel has
+    nothing to validate here."""
 
+    if not invariants.LEDGER.is_file():
+        return
     invariants.validate(invariants.load())
 
 
@@ -839,11 +1064,18 @@ CHECKS = [
     check_authorities_ledger,
     check_honest_refusals,
     check_release_grammar,
+    check_receipt_chain,
+    check_edition_manifest,
+    check_provider_qualification,
+    check_commerce_config,
+    check_commerce_release_gate,
+    check_provider_contract,
     check_coverwrap_detectors,
     check_aesthetic_schema,
     check_contract_mirror,
     check_invariant_ledger,
     check_fixture_provenance,
+    check_command_catalog,
     check_docs,
 ]
 
@@ -852,9 +1084,13 @@ def main(argv: list[str] | None = None) -> int:
     if argv and "--write-docs" in argv:
         docs = Path(__file__).resolve().parent.parent.parent / "docs"
         docs.mkdir(parents=True, exist_ok=True)
+        from . import qualification
         (docs / "REFERENCE.md").write_text(render_reference(), encoding="utf-8")
         (docs / "INVARIANTS.md").write_text(invariants.render(), encoding="utf-8")
-        print(f"wrote {docs / 'REFERENCE.md'} and {docs / 'INVARIANTS.md'}")
+        (docs / "PROVIDER-QUALIFICATION.md").write_text(
+            qualification.render(), encoding="utf-8")
+        print(f"wrote {docs / 'REFERENCE.md'}, {docs / 'INVARIANTS.md'}, "
+              f"and {docs / 'PROVIDER-QUALIFICATION.md'}")
     for check in CHECKS:
         check()
     print(f"Selftest passed: {len(modules())} modules import, arithmetic agrees "

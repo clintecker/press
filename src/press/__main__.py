@@ -16,16 +16,11 @@ from . import booklib
 
 from .registry import FORMATS
 
-USAGE = """usage: press <target>
+from .catalog import render_usage
 
-building        pdf epub html markdown site txt docx pages source all
-checking        check style verify verify-formats verify-pages
-print pack      print verify-print coverwrap publish kdp|ingram
-utilities       render wordcount clean new <directory> selftest doctor
-instruments     skills workflows
-art             art commission [targets] | art accept <file> --as <target>
-operator        improve [--apply] | research | aesthetic ["<brief>"]
-"""
+# Generated from the one command catalog so the usage text cannot drift
+# from the commands the CLI dispatches or the desk offers.
+USAGE = render_usage()
 
 
 def jargon_check() -> int:
@@ -135,6 +130,12 @@ def _run_workflows(args: list[str]) -> int:
     return instruments.list_workflows()
 
 
+def _run_desk(args: list[str]) -> int:
+    from . import desk
+
+    return desk.run(args[1:])
+
+
 def _run_source(args: list[str]) -> int:
     from . import package_source
 
@@ -238,7 +239,33 @@ def _run_all(args: list[str]) -> int:
         return code
     from . import verify_archives
 
-    return verify_archives.main()
+    code = verify_archives.main()
+    if code:
+        return code
+    return _commerce_gate()
+
+
+def _commerce_gate() -> int:
+    """The print-ordering release gate: a book advertising ordering may not
+    ship unless its exact edition passed a physical qualification. Advisory
+    in a development build; fail-closed under PRESS_RELEASE, like the
+    witness gate."""
+
+    import os
+
+    from . import booklib, commerce
+
+    problems, summary = commerce.release_gate(booklib.root(), booklib.book())
+    print(f"commerce release gate: {summary}")
+    if not problems:
+        return 0
+    for problem in problems:
+        print(f"  - {problem}")
+    if os.environ.get("PRESS_RELEASE"):
+        return 1
+    print("(commerce gate is advisory here; a release build (PRESS_RELEASE=1) "
+          "enforces it)")
+    return 0
 
 
 def _run_render(args: list[str]) -> int:
@@ -279,6 +306,7 @@ ROUTES: dict[str, Callable[[list[str]], int]] = {
     "research": _run_research,
     "skills": _run_skills,
     "workflows": _run_workflows,
+    "desk": _run_desk,
     "source": _run_source,
     "pages": _run_pages,
     "verify-pages": _run_pages,

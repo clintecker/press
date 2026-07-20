@@ -24,6 +24,7 @@ import subprocess
 import zipfile
 from pathlib import Path
 
+from . import adapters
 from . import booklib
 
 EXCLUDE_PARTS = {"build", "dist", ".git", "__pycache__"}
@@ -44,9 +45,9 @@ def tracked_paths(root: Path) -> set[str] | None:
     governs."""
 
     try:
-        listing = subprocess.run(
+        listing = adapters.process_runner.run(
             ["git", "-C", str(root), "ls-files", "-z"],
-            capture_output=True, check=True,
+            capture=True, check=True,
         )
     except (OSError, subprocess.CalledProcessError):
         return None

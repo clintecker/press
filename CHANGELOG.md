@@ -11,6 +11,226 @@ audit).
 
 Nothing yet.
 
+## [1.15.2] - 2026-07-19
+
+Completes the accumulated-delivery-trust work deferred from v1.14: the
+release chain now proves every layer, and two new ratchets guard the
+tests that do the proving.
+
+### Added
+
+- The release trust chain is complete, not a placeholder. A release used
+  to be witnessed by a two-layer chain in which one "collection" receipt
+  stood in for every CI proof, and the verifier checked ordering and
+  linkage but not completeness — so the stand-in passed and the release
+  proved nothing about the layers between. Verification now requires the
+  chain to be complete: every trust layer present, contiguous, and each
+  extending its immediate predecessor. The release contract builds the
+  full per-layer chain only after asserting that every trust-layer check
+  (the whole test suite, the container gauntlet, the operator surface) is
+  green on the tagged commit, so each layer's receipt is backed by a
+  proof that actually ran. Closes the per-layer prerequisite chain (#97)
+  and the layered-CI trust ordering (#94).
+- A per-module branch-coverage floor gate. Repository-wide coverage can
+  stay green while one module's branches rot; the ratchet holds each
+  module to the minimum coverage it shows when the rendering toolchain is
+  absent. It hides that toolchain internally before measuring, so the
+  gate is deterministic whether or not the machine has pandoc or
+  LuaLaTeX, and because ambient coverage is always at or above the floor,
+  no toolchain posture can push a module below baseline — the gate goes
+  red only on a real regression (#96).
+- A deterministic mutation-score ratchet over the pure-computation
+  modules. It mutates the EAN-13 checksum and bar encoding and the
+  artifact-state derivation one edit at a time and runs each module's
+  example-based tests against the mutant; a surviving mutant is a
+  missing proof. Each mutant runs once with no retry, against a shadow
+  source tree with bytecode caching forbidden so no mutant is ever
+  measured against another's compiled code (#95).
+- The change-impact mapper: on a pull request, changed policy code that
+  maps to no classified surface or no invariant fails the build, so a new
+  verifier or parser cannot land ungated (#96).
+
+### Changed
+
+- The operator desk is a usable tool: a run can be cancelled and reports
+  the child's exact verdict; the target picker prompts for a command's
+  arguments before launching and grays out a command a missing toolchain
+  would only let fail (#147, #148, #149).
+
+## [1.15.1] - 2026-07-19
+
+### Added
+
+- The release boundary verifies accumulated provenance, not just a
+  green workflow name. A release receipt names the source commit, the
+  built wheel digest, the pinned toolchain image, and the quality
+  manifest digests; the release contract builds the wheel on the clean
+  tagged checkout, assembles the receipt, and refuses a chain that is
+  not clean-tree or whose package or toolchain does not match the
+  objects actually built and pinned, so a deliberate commit, wheel, or
+  image substitution turns the release gate red. Because the contract
+  must be green before the floating major moves, the identity gate is
+  enforced before the tag floats. Part of the accumulated-delivery-trust
+  work (#97); the full per-layer receipt chain follows with the
+  layered-CI change.
+
+## [1.15.0] - 2026-07-19
+
+### Added
+
+- The operator desk: `press desk`, an optional Textual interface over
+  the command line. It is genuinely optional, behind a `tui` extra: a
+  bare install builds books untouched and the entry refuses cleanly
+  with the install hint when the extra or a terminal is absent.
+- Its foundations are pure Python, provable without the UI. One typed
+  command catalog is the single source the CLI usage text and the desk
+  surface both read, so they cannot drift (#100). doctor.examine
+  returns the machine's capabilities as typed findings and main()
+  renders them byte-identically (#103). Artifact status is projected
+  from content digests and recorded verification, never mtimes: a
+  touched-but-unchanged file is not stale and a rebuild to identical
+  bytes is not new (#101). A versioned structured event protocol lets
+  a child emit stage and diagnostic events without a consumer scraping
+  text, and a malformed event is a surfaced failure that never hides
+  raw output (#102). A single-child process controller streams a
+  child's output and reports its exact exit code as the verdict, with
+  cancellation and the single-child invariant proven against a fake
+  process (#105). The DESK read model assembles the desk's facts from
+  those registries and reads only (#106).
+- The desk itself: the DESK dashboard renders the read model with the
+  digest-based evidence vocabulary and grays out actions a missing
+  toolchain blocks (#112); a RUN view streams a press child and shows
+  its exact verdict (#109); a picker generated from the catalog offers
+  exactly the CLI's targets (#111); the app shell carries a house
+  theme (#104, #107). A headless Pilot harness drives the real app
+  against a scaffolded book (#108), and a bare-and-tui wheel matrix
+  plus an installed end-to-end proof gate the milestone
+  (#110, #114). docs/DESK.md documents it (#113).
+
+## [1.14.0] - 2026-07-19
+
+This release ships the completed, self-contained portion of the
+accumulated-delivery-trust milestone. The receipt library is the
+foundation; the remaining CI-workflow integration (layered CI, the
+release receipt gate, coverage impact selection, mutation-score
+ratchets) and the live second-party proofs are tracked for a
+follow-up point release.
+
+### Fixed
+
+- The distributions are clean and reproducible: the broad data glob
+  used to ship __pycache__ and bytecode from running the packaged
+  scripts, so the wheel's contents depended on prior execution and the
+  interpreter version. exclude-package-data and a pruning MANIFEST.in
+  drop bytecode from both wheel and sdist; a build emits no warnings,
+  passes twine --strict, and CI installs the wheel into a fresh
+  environment to run its selftest. That fresh-install run surfaced two
+  real defects, now fixed: the pytest collection plugin (pure test
+  infrastructure) was shipping in the runtime package, and several
+  selftest checks read repo files a wheel does not carry; the plugin
+  moved to tests/ and the repo-only checks skip cleanly from an
+  install (#73).
+
+### Added
+
+- Chained trust receipts: a receipt records the source commit and
+  tree-clean state, the digests of the source, toolchain, and quality
+  manifests a layer consumed, the proofs it executed, and the digests
+  of the prerequisite receipts it extends. Receipts are deterministic
+  and independently verifiable (`python3 -m press.receipts verify`),
+  and verify_chain refuses a missing or tampered prerequisite, layers
+  out of accumulated-trust order, a changed input, and a dirty-tree
+  receipt in a release chain, each with a negative test (#93).
+- A consolidated sabotage suite proves each trust gate reddens when
+  its protection is removed (unclassified callable, dangling proof
+  reference, orphan fixture, removed graph edge, dirty release
+  receipt, wrong fake command), indexed so a gate cannot lose its
+  sabotage case unnoticed (part of #95).
+- The CI privilege posture the second-party proofs would exercise is
+  proven mechanically: no pull_request_target and every workflow
+  least-privilege, so a regression is caught without a second account
+  (part of #87, whose live runs are documented for a second party).
+
+## [1.13.0] - 2026-07-19
+
+### Added
+
+- Adversarial artifact proof: the verifiers are now proven to fail, not
+  just to pass. A library of named single-purpose damage operators
+  (archive member add, remove, escaping-path, uncompressed-store,
+  byte-flip; reader-site chapter duplication, dead stylesheet url, dead
+  fragment) each records source and result digests and asserts the
+  invariant-specific diagnostic, with a coverage gate so no
+  deliberate-damage invariant loses its negative proof (#88). The
+  artifact graph is modeled as deterministic build-mutate-verify state
+  transitions over the git-only source archive, proving a mutated or
+  missing output cannot be blessed, rebuild restores validity, and
+  clean removes every declared output, in both cwd and BOOK_ROOT modes
+  (#89).
+- Mechanical configuration coverage: quality/scenarios.yaml declares
+  ten optional-configuration dimensions, press.scenarios generates a
+  deterministic eleven-combination pairwise covering set plus five
+  named high-risk interactions, and gates fail on an untested surface
+  or an unrealizable high-risk scenario (#90).
+- Real-tool integration runners for every artifact family (PDF/print,
+  EPUB, HTML and site and Pages, Markdown and text and DOCX, archives
+  and the sources companion, cover wrap) build source-only factory
+  books through the actual toolchain and inspect them with their real
+  verifiers, capability-gated so a missing tool skips cleanly, each
+  recording tool versions and input and output digests (#91).
+- Design-major visual regression: a fixture book's built PDF is
+  measured for toolchain-stable geometry (page count, embedded fonts,
+  trim, per-page ink bounds) against a committed v1 baseline, so a
+  margin shift, font swap, or displaced plate is a drift while an
+  encoder patch is not; baselines update only with a recorded reason
+  (#92).
+- docs/COMPATIBILITY.md states the supported Python range (3.10 to
+  3.13, tested), the pinned Ubuntu 24.04 toolchain image as the
+  contract, and the OS families, and press doctor warns outside the
+  tested Python range (#35).
+
+## [1.12.0] - 2026-07-19
+
+### Added
+
+- Trust foundations: a test-quality architecture the press proves
+  itself against. A pytest harness runs the selftest's invariant
+  checks as individual cases from one ordered CHECKS list both runners
+  consume (#78). An executable invariant ledger, quality/invariants.yaml,
+  is the single source of what the press promises: its validator proves
+  every enforcer and proof it names resolves to a real function or
+  fixture, it generates docs/INVARIANTS.md, and the narrative matrix in
+  ARCHITECTURE.md now points at it rather than duplicating it (#79). The
+  public surface is classified in quality/surfaces.yaml with a
+  mechanical AST inventory that fails on an unclassified new callable
+  (#81). Every regression fixture has a provenance entry reconciled
+  against its inline expect comment (#84). Twenty-two hypothesis
+  properties cover the pure policy, parsing, graph, and normalization
+  code (#85). A deterministic fuzz corpus proves the hostile parsers
+  refuse locatably instead of crashing (#86). A typed BookFactory with
+  named presets builds isolated source-only books whose facts are
+  inspectable and whose scenarios cannot contaminate one another (#83).
+- Typed boundary adapters: subprocess, environment, credential, and
+  image-HTTP calls move behind protocols with production and recording
+  fake pairs; build, doctor, operator, art_commission, and
+  package_source drive them through injected singletons with behavior
+  preserved, domain results and exceptions give the layer a vocabulary,
+  retry is deterministic, and a boundary lint keeps raw calls out of
+  every module but the adapters, its legacy allowlist able only to
+  shrink (#82).
+- A pytest collection plugin enforces the invariant, layer, and proof
+  markers where present, rejects an assertionless marked test, requires
+  an xfail to cite a declared limitation and a skip to name a toolchain
+  capability, and writes a test-to-invariant index before execution
+  (#80).
+
+### Fixed
+
+- docx_visible_text returned the empty string on unparseable bytes
+  instead of raising an XML traceback, so a corrupt DOCX now surfaces
+  as its caller's locatable witness failure (found by the new fuzz
+  corpus).
+
 ## [1.11.0] - 2026-07-19
 
 ### Changed

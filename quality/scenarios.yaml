@@ -1,0 +1,117 @@
+# The configuration-scenario ledger: the dimensions a book's optional
+# features span, the mechanical covering strategy over them, and the
+# hand-named high-risk interactions that a pairwise set can never be
+# trusted to hit on its own.
+#
+# Optional features interact, but testing every Cartesian product is
+# wasteful and hand-picked scenarios silently stop covering new
+# dimensions. So the generator (press.scenarios) builds a deterministic
+# all-pairs covering set from `dimensions`, and the gates in
+# tests/test_scenarios.py fail when a surface dimension is not covered
+# both present and absent, or when a declared high-risk interaction has
+# no collected test.
+#
+# A dimension is `kind: surface` (an optional config surface a book may
+# supply or omit; its `absent` value names the omitted state and every
+# other value is a present variant) or `kind: mode` (a runtime axis with
+# no absent state -- how the build is driven, not what the book carries).
+# Add a dimension here and the surface gate demands the covering set
+# exercise it both ways; that is the whole point.
+
+dimensions:
+  chapters:
+    kind: mode
+    describes: One chapter versus several, so multi-chapter identity holds.
+    values: [single, multi]
+  authorities:
+    kind: surface
+    absent: absent
+    describes: config/authorities.yaml and the sources-and-authorities appendix.
+    values: [absent, present]
+  index:
+    kind: surface
+    absent: absent
+    describes: config/index-terms.yaml and the generated subject index.
+    values: [absent, present]
+  art:
+    kind: surface
+    absent: absent
+    describes: config/aesthetic.yaml and the art the commissions consume.
+    values: [absent, present]
+  css:
+    kind: surface
+    absent: none
+    describes: assets/web reader.css override and extra.css append.
+    values: [none, reader-override, extra-append]
+  front-matter:
+    kind: surface
+    absent: absent
+    describes: config/front-matter.yaml and the generated title/colophon pages.
+    values: [absent, present]
+  registrations:
+    kind: surface
+    absent: absent
+    describes: the print/registrations metadata a retail wrap and barcode read.
+    values: [absent, present]
+  root-mode:
+    kind: mode
+    describes: press run from the book's cwd versus BOOK_ROOT.
+    values: [cwd, BOOK_ROOT]
+  release-mode:
+    kind: mode
+    describes: a draft build versus a release build with the witness gate.
+    values: [draft, release]
+  execution:
+    kind: mode
+    describes: a clean build versus an incremental rebuild.
+    values: [clean, incremental]
+
+# The interactions a pairwise set cannot be trusted to hit, named by
+# hand. Each fixes the dimensions that carry its risk; the generator
+# fills the rest with each dimension's absent/first value so the
+# scenario is buildable, and the high-risk gate fails if any of the
+# required interactions below leaves this list.
+high_risk:
+  - id: css-pages-crawl
+    rationale: >-
+      A book-supplied reader.css override plus the Pages crawl: the
+      verifier must resolve every stylesheet url the override introduces
+      across a multi-chapter site, not the house stylesheet alone.
+    dimensions:
+      css: reader-override
+      chapters: multi
+
+  - id: authorities-sources-companion
+    rationale: >-
+      Authorities present drives the sources-and-authorities companion:
+      a claim whose sentence has left the text must fail the run, so the
+      ledger and the manuscript must be verified together.
+    dimensions:
+      authorities: present
+
+  - id: index-tex-safety
+    rationale: >-
+      Curated index terms render into the TeX index appendix; a term
+      carrying a backslash or brace must reach the engine escaped, so
+      index generation and TeX safety are one interaction.
+    dimensions:
+      index: present
+
+  - id: retail-registrations
+    rationale: >-
+      A retail release reads the print and registrations blocks for the
+      spine math and the wrap barcode; a pending or malformed identifier
+      must fail before it reaches the channel.
+    dimensions:
+      registrations: present
+      release-mode: release
+
+  - id: overrides-design
+    rationale: >-
+      A book that overrides the reader CSS, the aesthetic, and the front
+      matter at once must still pass design verification: the overrides
+      and the house design guarantees are proven in the same build.
+    dimensions:
+      css: reader-override
+      art: present
+      front-matter: present

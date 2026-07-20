@@ -86,3 +86,13 @@ jobs:
             echo "verifier blessed a tampered site" && exit 1
           fi
           echo "verifier refused the tampered site, as it must"
+      - name: Emit this tier's trust receipt (#150)
+        run: |
+          # Reached only if the whole gauntlet passed; the integration tier
+          # the release chain is assembled from. GITHUB_SHA is the commit.
+          python3 -m press.receipts emit integration --out "${RUNNER_TEMP}/receipt-integration.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: receipt-integration
+          path: ${{ runner.temp }}/receipt-integration.json
+          if-no-files-found: error

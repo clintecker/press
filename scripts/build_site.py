@@ -30,18 +30,32 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "build" / "site"
 
-# (source, output name, navigation label)
-PAGES = [
-    ("README.md", "index.html", "press"),
-    ("docs/INSTALL.md", "install.html", "install"),
-    ("docs/ARCHITECTURE.md", "architecture.html", "architecture"),
-    ("docs/REFERENCE.md", "reference.html", "reference"),
-    ("docs/CONFIGURATION.md", "configuration.html", "configuration"),
-    ("docs/INVARIANTS.md", "invariants.html", "invariants"),
-    ("ROADMAP.md", "roadmap.html", "roadmap"),
-    ("docs/TUI-PLAN.md", "desk-plan.html", "desk plan"),
-    ("CHANGELOG.md", "changelog.html", "changelog"),
+# The site navigation, grouped so it stays scannable as the docs grow.
+# Each group is (label, [(source, output name, nav label), ...]).
+NAV_GROUPS = [
+    ("Guide", [
+        ("README.md", "index.html", "press"),
+        ("docs/INSTALL.md", "install.html", "install"),
+        ("docs/CONFIGURATION.md", "configuration.html", "configuration"),
+        ("docs/PRINT-ORDERING.md", "print-ordering.html", "print ordering"),
+        ("docs/DESK.md", "desk.html", "desk"),
+    ]),
+    ("Reference", [
+        ("docs/REFERENCE.md", "reference.html", "reference"),
+        ("docs/ARCHITECTURE.md", "architecture.html", "architecture"),
+        ("docs/INVARIANTS.md", "invariants.html", "invariants"),
+        ("docs/PROVIDER-QUALIFICATION.md", "provider-qualification.html", "providers"),
+        ("docs/COMPATIBILITY.md", "compatibility.html", "compatibility"),
+    ]),
+    ("Project", [
+        ("ROADMAP.md", "roadmap.html", "roadmap"),
+        ("CHANGELOG.md", "changelog.html", "changelog"),
+    ]),
 ]
+
+# (source, output name, navigation label) — flat, for the build loop and
+# the completeness check.
+PAGES = [page for _, group in NAV_GROUPS for page in group]
 
 FOOTER_PAGES = [
     ("CONTRIBUTING.md", "contributing.html", "contributing"),
@@ -56,6 +70,8 @@ NOT_PUBLISHED = {
     "docs/META-FRAMEWORK-EXTRACTION.md": (
         "exploration notebook for a possible later extraction, not a press contract"
     ),
+    "docs/TUI-PLAN.md": "internal design plan; lives in the repo and issues, not the docs site",
+    "docs/DIRECT-ORDERING-PLAN.md": "internal PRD/TRD; lives in the repo and issues, not the docs site",
 }
 
 
@@ -88,16 +104,27 @@ def built_from() -> tuple[str, str]:
 
 
 def nav_html(current: str) -> str:
-    links = []
-    for _, name, label in PAGES:
-        aria = ' aria-current="page"' if name == current else ""
-        links.append(f'    <a href="{name}"{aria}>{label}</a>')
-    joined = "\n".join(links)
+    groups = []
+    for group_label, pages in NAV_GROUPS:
+        links = []
+        for _, name, label in pages:
+            aria = ' aria-current="page"' if name == current else ""
+            links.append(f'      <a href="{name}"{aria}>{label}</a>')
+        joined = "\n".join(links)
+        groups.append(
+            f'    <span class="nav-group" role="group" aria-label="{group_label}">\n'
+            f'      <span class="nav-group-label">{group_label}</span>\n'
+            f"{joined}\n"
+            "    </span>"
+        )
+    joined_groups = "\n".join(groups)
     return (
         '<header class="toolbar">\n'
         '  <a class="wordmark" href="index.html">press<span class="mark">.</span></a>\n'
+        '  <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Toggle menu">\n'
+        '  <label for="nav-toggle" class="nav-burger" title="Menu"><span></span></label>\n'
         '  <nav aria-label="Site">\n'
-        f"{joined}\n"
+        f"{joined_groups}\n"
         '    <a class="repo" href="https://github.com/clintecker/press">source</a>\n'
         "  </nav>\n"
         "</header>\n"

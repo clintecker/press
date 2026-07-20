@@ -83,7 +83,74 @@ registrations:
 - `registrations.retail: true` turns missing or pending numbers
   into check failures; false leaves them advisory.
 
+Direct print ordering (optional) adds a reader-facing "Order a print
+copy" link to a provider-hosted checkout. The provider is the seller of
+record and owns payment, tax, fulfillment, and support; this block holds
+only URLs and a name, never a credential or a price.
+
+```yaml
+commerce:
+  print-ordering:
+    enabled: true
+    edition: paperback
+    storefront-url: "https://www.lulu.com/shop/..."
+    seller-of-record: "Lulu"
+    support-url: "https://example.test/support"
+    privacy-url: "https://example.test/privacy"
+    refund-url: "https://example.test/refunds"
+```
+
+- When `enabled`, the landing page generates an accessible, script-free
+  CTA linking to `storefront-url`, disclosing the `seller-of-record`
+  before the reader leaves the site, alongside the three policy links.
+- `storefront-url` and every policy link must be `https`; `press check`
+  refuses a non-HTTPS origin, a missing policy link, an unnamed seller,
+  an unknown key, or anything that looks like a secret.
+- Disabled or absent: no CTA is generated, and `press verify` refuses a
+  stray CTA that does not match the config.
+- A release of an ordering-enabled book fails closed (`press all` under
+  `PRESS_RELEASE=1`, advisory otherwise) unless its exact edition passed a
+  physical qualification recorded in `config/qualification.yaml`.
+
 Absent file: refusal. There is no book without metadata.
+
+## config/qualification.yaml (optional)
+
+The record that an ordered copy of a named edition passed every physical
+inspection point. Required only for a book that enables print ordering;
+the release gate refuses to advertise a copy no one has verified a
+provider can print.
+
+```yaml
+schema_version: 1
+inspections:
+  - provider: lulu                # a key from the provider record
+    product_id: "PB-BW-6x9"
+    region: US
+    edition_id: "<the edition_id the copy was ordered against>"
+    inspector: "Your Name"
+    results:
+      content: pass
+      pagination: pass
+      trim: pass
+      bleed: pass
+      spine: pass
+      barcode: pass
+      color: pass
+      paper: pass
+      binding: pass
+      packaging: pass
+      tracking: pass
+```
+
+- `edition_id` scopes the inspection to an exact edition; a
+  production-affecting change mints a new identity, so the old inspection
+  becomes stale and the release gate fails until a new copy is inspected.
+- Every checklist point must be `pass`; a single failure cannot qualify.
+  See `docs/PROVIDER-QUALIFICATION.md` for the checklist and the
+  researched providers.
+
+Absent file: no qualification, so an ordering-enabled release fails closed.
 
 ## config/house-rules.yaml (optional)
 

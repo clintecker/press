@@ -155,8 +155,11 @@ def audit(
                     problems.append(f"fixture {name!r}: duplicate manifest entry")
                 seen.add(name)
 
-    for fixture in sorted(fixture_dir.glob("*.md")):
-        if fixture.name not in seen:
+    # Every file, not only markdown: the schema supports damaged-artifact
+    # and recorded-response kinds (docx, epub, json), and those must not
+    # escape the provenance audit by not ending in .md.
+    for fixture in sorted(fixture_dir.rglob("*")):
+        if fixture.is_file() and fixture.name not in seen:
             problems.append(
                 f"fixture {fixture.name!r}: on disk but absent from quality/fixtures.yaml"
             )

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "press"
-version = "1.11.0"
+version = "1.15.2"
 description = "Book production pipeline: pandoc/LuaLaTeX builds, editorial checks, and artifact verification"
 readme = "README.md"
 authors = [
@@ -32,6 +32,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# The operator desk is optional: a bare install builds books from the
+# command line without Textual, and `press desk` asks for this extra.
+tui = [
+    "textual>=8,<9",
+]
 dev = [
     "ruff>=0.5",
     "mypy>=1.10",
@@ -40,12 +45,16 @@ dev = [
     "build>=1.0",
     "twine>=5.0",
     "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=5.0",
     "hypothesis>=6.100",
+    "textual>=8,<9",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+asyncio_mode = "auto"
 # The suite proves the press against real scaffolded books; a run that
 # collected nothing is a mistake, not a pass.
 python_files = ["test_*.py"]
@@ -63,6 +72,13 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 press = ["data/**/*"]
+
+[tool.setuptools.exclude-package-data]
+# The data glob is broad on purpose (it ships the house design, skills,
+# and templates), so bytecode and cache from running the packaged
+# scripts locally must be excluded explicitly, or the wheel's contents
+# would depend on prior local execution and the interpreter version.
+press = ["**/__pycache__/**", "**/*.pyc", "**/*.pyo", "**/.DS_Store", "**/*.swp"]
 
 [project.urls]
 Repository = "https://github.com/clintecker/press"

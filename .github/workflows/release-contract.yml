@@ -14,6 +14,7 @@ permissions:
   contents: read
   packages: read
   checks: read
+  actions: read  # to download the per-job tier receipts (#150)
 
 jobs:
   contract:
@@ -35,20 +36,71 @@ jobs:
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           docker manifest inspect "$image" > /dev/null
           echo "toolchain manifest resolves: $image"
-      - name: The integration gate is green on this commit
+      - name: Every trust-layer check is green on this commit
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # The release commit's own gate starts with the same push that
-          # carries the tag; the contract waits for its verdict rather
-          # than demanding prescience.
-          for attempt in $(seq 1 50); do
-            conclusion=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs" \
-              --jq '[.check_runs[] | select(.name=="consumer")] | first | .conclusion // "pending"')
-            case "$conclusion" in
-              success) echo "integration gate green on the tagged commit"; exit 0 ;;
-              failure|cancelled|timed_out) echo "gate is '$conclusion' on $GITHUB_SHA"; exit 1 ;;
-              *) echo "waiting on the gate ($conclusion, attempt $attempt)"; sleep 30 ;;
-            esac
+          # The release chain claims every layer ran and passed; back that
+          # with the real check-runs. Each named job proves a band of the
+          # trust layers: quality runs the full pytest suite (collection
+          # through scenario) plus the coverage, mutation, distribution,
+          # and boundary gates; consumer runs the integration gauntlet in
+          # the container; desk runs the operator surface. All must be
+          # green before the chain is built, or a layer's receipt would be
+          # a claim with no proof. The commit's own gates start with the
+          # push that carries the tag, so the contract waits for them.
+          required="quality consumer desk"
+          for attempt in $(seq 1 60); do
+            pending=""
+            for check in $required; do
+              # The MOST RECENT run of the check decides: a re-run adds a
+              # second same-named check-run, and an older green attempt
+              # must not mask a newer red one (sort_by started_at | last).
+              # per_page=100 in one call, not --paginate: a reducing jq
+              # under --paginate runs per page and concatenates, so a
+              # commit with >30 check-runs would never read a bare verdict.
+              conclusion=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs?per_page=100" \
+                --jq "[.check_runs[] | select(.name==\"${check}\")] | sort_by(.started_at) | last | .conclusion // \"pending\"")
+              case "$conclusion" in
+                success) ;;
+                failure|cancelled|timed_out) echo "check '${check}' is '${conclusion}' on ${GITHUB_SHA}"; exit 1 ;;
+                *) pending="${pending} ${check}(${conclusion})" ;;
+              esac
+            done
+            [ -z "$pending" ] && { echo "all trust-layer checks green: ${required}"; break; }
+            echo "waiting on:${pending} (attempt ${attempt})"; sleep 30
+            [ "$attempt" = 60 ] && { echo "checks never all concluded for ${GITHUB_SHA}"; exit 1; }
           done
-          echo "gate never concluded for $GITHUB_SHA"; exit 1
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: The release identity resolves to the proven objects
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet -e '.[dev]'
+          python3 -m build --wheel --outdir /tmp/rc >/dev/null
+          # Assemble the release chain from the tier receipts the quality
+          # and integration jobs actually emitted and uploaded for THIS
+          # commit -- not synthesized here (#150). A job that did not run
+          # left no receipt, and press.receipts.verify_ci_release fails
+          # closed on a missing tier. Download each from its own workflow
+          # run for the tagged commit.
+          mkdir -p /tmp/receipts
+          for spec in "Press selftest:receipt-quality" "Press integration gate:receipt-integration"; do
+            wf="${spec%%:*}"; art="${spec##*:}"
+            runid=$(gh run list --workflow "$wf" --limit 40 \
+              --json databaseId,headSha,conclusion \
+              --jq "[.[] | select(.headSha==\"${GITHUB_SHA}\" and .conclusion==\"success\")][0].databaseId")
+            test -n "$runid" || { echo "no successful ${wf} run for ${GITHUB_SHA}"; exit 1; }
+            gh run download "$runid" --name "$art" --dir /tmp/receipts \
+              || { echo "could not download ${art} from ${wf}"; exit 1; }
+          done
+          digest=$(python3 -c "import glob,hashlib; print(hashlib.sha256(open(glob.glob('/tmp/rc/*.whl')[0],'rb').read()).hexdigest())")
+          python3 -m press.receipts assemble /tmp/receipts "$digest" --out /tmp/release-receipt.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-receipt
+          path: /tmp/release-receipt.json
+          if-no-files-found: error

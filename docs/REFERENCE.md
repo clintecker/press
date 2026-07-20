@@ -43,11 +43,11 @@ file drifts from the machinery it describes.
 ```text
 usage: press <target>
 
-building        pdf epub html markdown site txt docx pages source all
-checking        check style verify verify-formats verify-pages
-print pack      print verify-print coverwrap publish kdp|ingram
-utilities       render wordcount clean new <directory> selftest doctor
-instruments     skills workflows
-art             art commission [targets] | art accept <file> --as <target>
-operator        improve [--apply] | research | aesthetic ["<brief>"]
+building     pdf  epub  html  markdown  site  txt  docx  pages  source  all
+checking     check  style  verify  verify-formats  verify-pages
+print pack   print  verify-print  coverwrap  publish kdp|ingram [--report-only]
+utilities    render  wordcount  clean  new <directory>  selftest  doctor
+instruments  skills  workflows  desk
+art          art commission [targets] | accept <file> --as <target>
+operator     improve [--apply]  research  aesthetic ["<brief>"]
 ```

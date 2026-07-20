@@ -122,8 +122,41 @@ def check_reading_surface(pages: Path, sentinels: list[str],
     return failures
 
 
+def check_commerce(pages: Path, config) -> list[str]:
+    """The rendered print-order control matches the declared config: when
+    ordering is enabled the landing page carries the CTA with the
+    storefront, seller, and every policy link, and no page leaks a secret;
+    when it is off, no stray CTA appears."""
+
+    from . import commerce
+
+    failures: list[str] = []
+    index = (pages / "index.html").read_text(encoding="utf-8", errors="replace")
+    has_cta = 'class="print-order"' in index
+    if config is None or not config.enabled:
+        if has_cta:
+            failures.append("landing page shows a print-order CTA but ordering is not enabled")
+        return failures
+    if commerce.validate(config):
+        failures.append("ordering is enabled but the CTA was not rendered "
+                        "(config invalid; see press check)")
+        return failures
+    if not has_cta:
+        failures.append("ordering is enabled but the landing page has no print-order CTA")
+        return failures
+    for label, value in [("storefront", config.storefront_url),
+                         ("seller-of-record", config.seller_of_record),
+                         *[(name, url) for name, url in config.policy_links()]]:
+        if value not in index:
+            failures.append(f"print-order CTA is missing the {label}")
+    for page in sorted(pages.rglob("*.html")):
+        if commerce._SECRET_MARKERS.search(page.read_text(encoding="utf-8", errors="replace")):
+            failures.append(f"a rendered page appears to leak a secret: {page.name}")
+    return failures
+
+
 def crawl(pages: Path, sentinels: list[str], downloads: list[str],
-          title: str) -> list[str]:
+          title: str, commerce_config=None) -> list[str]:
     """Every defect found, as human-readable failure lines."""
 
     pages = pages.resolve()
@@ -141,12 +174,14 @@ def crawl(pages: Path, sentinels: list[str], downloads: list[str],
         failures += check_refs(sheet, refs, pages, ids_by_page)
     failures += check_downloads(scans[pages / "index.html"].refs, pages, downloads)
     failures += check_reading_surface(pages, sentinels, title)
+    failures += check_commerce(pages, commerce_config)
     return failures
 
 
 def main() -> int:
     import html as html_mod
 
+    from . import commerce
     from .build import download_names
 
     root = booklib.root()
@@ -158,6 +193,7 @@ def main() -> int:
         booklib.sentinels(),
         download_names(),
         html_mod.escape(str(booklib.metadata()["title"])),
+        commerce.load(booklib.metadata()),
     )
     if failures:
         print("Pages verification failed:")

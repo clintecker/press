@@ -47,21 +47,9 @@ shadow issue tracker.
 
 The current compatible release train, ordered by intended delivery. Each milestone accumulates proof from the milestones before it.
 
-#### [v1.12 — Trust foundations](https://github.com/clintecker/press/milestone/8) · Open
+#### [v1.16 — Direct print ordering](https://github.com/clintecker/press/milestone/12) · Open
 
-Accumulated-trust foundation: pytest/selftest structure, executable invariant and callable-surface ledgers, collection-time proof enforcement, typed deterministic adapters, composable book factories, fixture provenance, property tests, and bounded replayable fuzzing. Milestone/issues: <https://github.com/clintecker/press/milestone/8>. Start at <https://github.com/clintecker/press/issues/78>, then invariant ledger <https://github.com/clintecker/press/issues/79>. Feeds adversarial artifact proof: <https://github.com/clintecker/press/milestone/9>. Architecture: <https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md>.
-
-#### [v1.13 — Adversarial artifact proof](https://github.com/clintecker/press/milestone/9) · Open
-
-Adversarial artifact proof built on v1.12: named damage operators, fixture-specific negative diagnostics, deterministic build/mutate/verify state models, pairwise/high-risk scenarios, real-tool integrations, compatibility, and design-major visual regression. Milestone/issues: <https://github.com/clintecker/press/milestone/9>. Prerequisite foundation: <https://github.com/clintecker/press/milestone/8>. Damage harness: <https://github.com/clintecker/press/issues/88>. Real-tool runner: <https://github.com/clintecker/press/issues/91>. Feeds delivery trust: <https://github.com/clintecker/press/milestone/10>.
-
-#### [v1.14 — Accumulated delivery trust](https://github.com/clintecker/press/milestone/10) · Open
-
-Accumulated delivery/release trust: clean installed distributions, chained machine-verifiable trust receipts, ordered CI gates, mutation/sabotage ratchets, invariant-aware test impact, live second-party boundaries, and release identity across commit/wheel/action/image/artifacts/tag. Milestone/issues: <https://github.com/clintecker/press/milestone/10>. Prerequisites: <https://github.com/clintecker/press/milestone/8> and <https://github.com/clintecker/press/milestone/9>. Receipt chain: <https://github.com/clintecker/press/issues/93>. Layered CI: <https://github.com/clintecker/press/issues/94>. Release gate: <https://github.com/clintecker/press/issues/97>.
-
-#### [v1.15 — Operator desk](https://github.com/clintecker/press/milestone/11) · Open
-
-Post-v1.14 optional operator desk: a single typed command catalog, digest/receipt-backed artifact status (never mtimes), typed doctor findings, a versioned child-event protocol, deterministic single-child control, DESK/target-picker/RUN views, headless active-signal tests, installed-wheel proof, and public documentation. Milestone/issues: <https://github.com/clintecker/press/milestone/11>. Start with command catalog <https://github.com/clintecker/press/issues/100>, events <https://github.com/clintecker/press/issues/102>, packaging boundary <https://github.com/clintecker/press/issues/104>, and test harness <https://github.com/clintecker/press/issues/108>. Evidence status <https://github.com/clintecker/press/issues/101> depends on trust receipts <https://github.com/clintecker/press/issues/93>. Release gate: <https://github.com/clintecker/press/issues/114>. Durable plan: <https://github.com/clintecker/press/blob/main/docs/TUI-PLAN.md>. Architecture: <https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md>. Textual testing: <https://textual.textualize.io/guide/testing/>.
+Post-v1.15 direct-to-reader print ordering on the seller-of-record model: the provider (Lulu first) is the legal seller and owns payment, tax, fulfillment, and support, so press ships no payment infrastructure. Remaining after the manifest (#118, done): provider qualification and physical sample protocol (#117), a generated accessible storefront CTA with a no-JS fallback (#123) linking to the provider-hosted checkout (#139), a capped golden-copy inspection (#143), documentation (#138), and the release gate (#144). The custom merchant-of-record machinery (broker, Stripe checkout, provider API adapters, state machines, webhooks, outbox, reconciliation) is deferred to the 'Custom MoR (deferred)' milestone. Plan: <https://github.com/clintecker/press/blob/main/docs/DIRECT-ORDERING-PLAN.md>.
 
 ### Future and breaking horizons
 
@@ -74,6 +62,14 @@ Reserved for breaking design/extension work that cannot ship under the v1 render
 #### [Later — Catalog](https://github.com/clintecker/press/milestone/5) · Open
 
 Optional multi-book catalog after the single-book publishing contract is mature. Milestone: <https://github.com/clintecker/press/milestone/5>. Scoped feature: <https://github.com/clintecker/press/issues/6>. Roadmap context: <https://github.com/clintecker/press/blob/main/ROADMAP.md>. Artifact contract to preserve: <https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md>.
+
+#### [Delivery trust — live proofs](https://github.com/clintecker/press/milestone/13) · Open
+
+The delivery-trust work that cannot be finished from a single identity or a single CI run: the live second-party proofs (#87, human-run, needs a second GitHub account/org), and assembling the release trust chain from receipts the individual CI jobs emit and upload (#150), rather than synthesizing the chain inside the release-contract job.
+
+#### [Custom MoR (deferred)](https://github.com/clintecker/press/milestone/14) · Open
+
+The custom merchant-of-record commerce machinery, deferred from v1.16 when the publisher chose a provider seller-of-record model. Built only if the publisher ever becomes merchant of record: the order broker, hosted Stripe checkout, provider API adapters, payment/fulfillment state machines, verified webhooks, exactly-once outbox, reconciliation, artifact delivery, and the privacy/operator/observability infrastructure. Plan: <https://github.com/clintecker/press/blob/main/docs/DIRECT-ORDERING-PLAN.md>.
 
 ### Completed foundations
 
@@ -98,6 +94,22 @@ Completed boundary-integrity release: source/publication safety, archive and for
 #### [v1.11 — Workflow coherence](https://github.com/clintecker/press/milestone/7) · Complete
 
 Workflow and public-contract coherence: durable editorial/research outcomes, domain-neutral instruments, aesthetic/config documentation, contributor guidance, package metadata, and complexity debt. Milestone/issues: <https://github.com/clintecker/press/milestone/7>. Public architecture/reference issue: <https://github.com/clintecker/press/issues/33>. Contributor contract: <https://github.com/clintecker/press/blob/main/CONTRIBUTING.md>. Testing traceability is implemented separately in <https://github.com/clintecker/press/milestone/8>.
+
+#### [v1.12 — Trust foundations](https://github.com/clintecker/press/milestone/8) · Complete
+
+Accumulated-trust foundation: pytest/selftest structure, executable invariant and callable-surface ledgers, collection-time proof enforcement, typed deterministic adapters, composable book factories, fixture provenance, property tests, and bounded replayable fuzzing. Milestone/issues: <https://github.com/clintecker/press/milestone/8>. Start at <https://github.com/clintecker/press/issues/78>, then invariant ledger <https://github.com/clintecker/press/issues/79>. Feeds adversarial artifact proof: <https://github.com/clintecker/press/milestone/9>. Architecture: <https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md>.
+
+#### [v1.13 — Adversarial artifact proof](https://github.com/clintecker/press/milestone/9) · Complete
+
+Adversarial artifact proof built on v1.12: named damage operators, fixture-specific negative diagnostics, deterministic build/mutate/verify state models, pairwise/high-risk scenarios, real-tool integrations, compatibility, and design-major visual regression. Milestone/issues: <https://github.com/clintecker/press/milestone/9>. Prerequisite foundation: <https://github.com/clintecker/press/milestone/8>. Damage harness: <https://github.com/clintecker/press/issues/88>. Real-tool runner: <https://github.com/clintecker/press/issues/91>. Feeds delivery trust: <https://github.com/clintecker/press/milestone/10>.
+
+#### [v1.15.2 — Delivery trust completion](https://github.com/clintecker/press/milestone/10) · Complete
+
+The delivery-trust work deferred from v1.14/v1.15.1, shipped in v1.15.2: the layered CI reorder and the complete accumulated-trust receipt chain (#94/#97 — a release must present every trust layer, contiguous and linked, not a placeholder standing in for them), the deterministic mutation-score ratchet over the pure-computation modules (#95), and the per-module branch-coverage floor ratchet (#96). The live second-party proofs (#87) and the per-job receipt assembly (#150) moved to the 'Delivery trust — live proofs' milestone, which needs a second identity and cross-job CI artifacts.
+
+#### [v1.15 — Operator desk](https://github.com/clintecker/press/milestone/11) · Complete
+
+Post-v1.14 optional operator desk: a single typed command catalog, digest/receipt-backed artifact status (never mtimes), typed doctor findings, a versioned child-event protocol, deterministic single-child control, DESK/target-picker/RUN views, headless active-signal tests, installed-wheel proof, and public documentation. Milestone/issues: <https://github.com/clintecker/press/milestone/11>. Start with command catalog <https://github.com/clintecker/press/issues/100>, events <https://github.com/clintecker/press/issues/102>, packaging boundary <https://github.com/clintecker/press/issues/104>, and test harness <https://github.com/clintecker/press/issues/108>. Evidence status <https://github.com/clintecker/press/issues/101> depends on trust receipts <https://github.com/clintecker/press/issues/93>. Release gate: <https://github.com/clintecker/press/issues/114>. Durable plan: <https://github.com/clintecker/press/blob/main/docs/TUI-PLAN.md>. Architecture: <https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md>. Textual testing: <https://textual.textualize.io/guide/testing/>.
 
 <!-- END GENERATED MILESTONES -->
 

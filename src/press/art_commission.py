@@ -15,12 +15,9 @@ command reports what it will submit and to which model before it does.
 from __future__ import annotations
 
 import base64
-import json
-import os
-import urllib.error
-import urllib.request
 from pathlib import Path
 
+from . import adapters
 from . import booklib
 
 # Model choices are print-driven, researched 2026-07: a 6 x 9 cover at
@@ -113,22 +110,15 @@ def parse_commissions(path: Path) -> dict[str, str]:
 
 
 def post_json(url: str, payload: dict, headers: dict[str, str]) -> dict:
-    request = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", **headers},
-    )
     try:
-        with urllib.request.urlopen(request, timeout=300) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")[:500]
-        raise SystemExit(f"{url.split('/')[2]} refused ({exc.code}): {detail}")
+        return adapters.image_client.post_json(url, payload, headers)
+    except adapters.HttpError as exc:
+        raise SystemExit(f"{exc.host} refused ({exc.code}): {exc.detail}")
 
 
 def key_for(model: str) -> str:
     var = {"openai": "OPENAI_API_KEY", "gemini": "GEMINI_API_KEY"}[model]
-    value = os.environ.get(var)
+    value = adapters.environment.get(var)
     if not value:
         raise SystemExit(f"{var} is not set; the press does not store keys")
     return value
@@ -165,18 +155,15 @@ def generate_openai(prompt: str, spec: tuple, count: int,
             f"Content-Type: {mime}\r\n\r\n".encode() + blob + b"\r\n"
         )
     parts.append(f"--{boundary}--\r\n".encode())
-    request = urllib.request.Request(
-        "https://api.openai.com/v1/images/edits",
-        data=b"".join(parts),
-        headers={**headers,
-                 "Content-Type": f"multipart/form-data; boundary={boundary}"},
-    )
     try:
-        with urllib.request.urlopen(request, timeout=300) as response:
-            body = json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")[:500]
-        raise SystemExit(f"api.openai.com refused ({exc.code}): {detail}")
+        body = adapters.image_client.post_multipart(
+            "https://api.openai.com/v1/images/edits",
+            b"".join(parts),
+            {**headers,
+             "Content-Type": f"multipart/form-data; boundary={boundary}"},
+        )
+    except adapters.HttpError as exc:
+        raise SystemExit(f"api.openai.com refused ({exc.code}): {exc.detail}")
     return [base64.b64decode(item["b64_json"]) for item in body.get("data", [])]
 
 

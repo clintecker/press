@@ -1,0 +1,30 @@
+{
+  "design_major": "v1",
+  "reason": "reason: initial v1 house-design baseline",
+  "features": {
+    "page_count": 4,
+    "fonts": [
+      "LibertinusSans-Bold",
+      "LibertinusSerif-Bold",
+      "LibertinusSerif-Regular"
+    ],
+    "pages": [
+      {
+        "width_pt": 432.0,
+        "height_pt": 648.0,
+        "ink_left": 0.13,
+        "ink_right": 0.498,
+        "ink_top": 0.204,
+        "ink_bottom": 0.849
+      },
+      {
+        "width_pt": 432.0,
+        "height_pt": 648.0,
+        "ink_left": 0.095,
+        "ink_right": 0.944,
+        "ink_top": 0.091,
+        "ink_bottom": 0.951
+      }
+    ]
+  }
+}

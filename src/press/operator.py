@@ -11,10 +11,9 @@ deliberate hand on the manuscript.
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 
-from . import booklib, instruments
+from . import adapters, booklib, instruments
 
 
 TIMEOUT_SECONDS = 3600
@@ -31,7 +30,7 @@ def run_workflow(name: str, args_obj: dict, full_bash: bool,
     meaning of --apply, and the counsel modes never receive it.
     """
 
-    if shutil.which("claude") is None:
+    if adapters.environment.which("claude") is None:
         raise SystemExit(
             "the operator needs the Claude Code CLI on PATH "
             "(https://claude.com/claude-code); inside a session, run the "
@@ -49,7 +48,7 @@ def run_workflow(name: str, args_obj: dict, full_bash: bool,
     bash_grant += extra_tools or []
     print(f"operator: {name} on {args_obj['root']} (this runs agents; minutes, not seconds)")
     try:
-        completed = subprocess.run(
+        completed = adapters.process_runner.run(
             ["claude", "-p", prompt,
              "--allowedTools", "Workflow", *bash_grant,
              "--permission-mode", "acceptEdits",

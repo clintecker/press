@@ -364,3 +364,140 @@ invariants:
     negative: [check_contract_mirror]
     ci_tier: quality
     limitations: Only the body below the first line is compared.
+
+  - id: INV-release-receipt-chain
+    statement: >-
+      A release chain refuses a missing, tampered, reordered, or
+      input-mismatched prerequisite, a dirty-tree receipt, a terminal
+      receipt whose package or toolchain does not match the built and
+      pinned objects, an incomplete chain that skips any trust layer or
+      breaks a layer's extension of its predecessor, and, when assembled
+      from per-job receipts, a missing CI tier (a job that did not run
+      leaves no receipt) or receipts that disagree on the source commit.
+    risk: A release ships objects that differ from the ones the tests proved.
+    criticality: critical
+    owner: receipts
+    enforcer: receipts.verify_release
+    layers: [selftest, pytest, integration]
+    negative: [check_receipt_chain]
+    ci_tier: integration
+    limitations: >-
+      The per-job assembly makes the chain reflect the CI jobs that
+      actually ran and uploaded a receipt; it trusts that an uploaded tier
+      receipt attests real work, and the cross-workflow artifact download
+      is proven only by a live release, not the fast suite.
+
+  - id: INV-edition-manifest
+    statement: >-
+      An edition manifest is immutable identity: any production-affecting
+      fact mints a new edition_id, and verification refuses a forged
+      identity, an interior or cover byte or page mismatch, an ill-formed
+      or mutable reference, a forbidden price/secret/customer field, a
+      manifest with no receipt chain or built from a dirty tree, and a
+      provider qualification proven against a different edition.
+    risk: >-
+      An order ships bytes that differ from the release-approved edition,
+      or a manifest leaks a price, secret, or customer datum.
+    criticality: critical
+    owner: edition
+    enforcer: edition.verify_facts
+    layers: [selftest, pytest]
+    negative: [check_edition_manifest]
+    ci_tier: quality
+    limitations: >-
+      Verifies content identity against the artifacts on disk and the
+      well-formedness of qualification evidence; it does not re-run a
+      provider's physical qualification, only reject a qualification whose
+      named edition is not this one.
+
+  - id: INV-provider-qualification
+    statement: >-
+      The provider record declares every capability explicitly (an omitted
+      capability is a forbidden implicit claim) and the full physical
+      checklist; a provider is qualified for an edition only by a physical
+      inspection with every checklist point passed, scoped to that
+      edition's identity, so a marketing claim, a failed point, a not-fit
+      provider, and an inspection of a different edition are all refused.
+    risk: >-
+      A book is sold as printable by a provider that cannot produce the
+      exact object, or a qualification survives a production-affecting
+      change to the edition.
+    criticality: standard
+    owner: qualification
+    enforcer: qualification.qualify
+    layers: [selftest, pytest]
+    negative: [check_provider_qualification]
+    ci_tier: quality
+    limitations: >-
+      Validates the record's shape and the physical-gate logic; it cannot
+      confirm a claimed inspection actually happened, only that a
+      qualification carries a passed, edition-scoped inspection digest.
+
+  - id: INV-commerce-config
+    statement: >-
+      The print-order CTA is generated only for an enabled, valid config;
+      verification refuses an enabled block with a non-HTTPS storefront or
+      policy link, an unnamed seller of record, an embedded secret, or an
+      unknown key, and the rendered landing page carries the CTA (with the
+      storefront, seller, and every policy link) exactly when ordering is
+      enabled, and no page leaks a secret.
+    risk: >-
+      A book site advertises ordering with an insecure or broken link,
+      leaks a credential into a public page, or hides who the seller is.
+    criticality: standard
+    owner: commerce
+    enforcer: commerce.validate
+    layers: [selftest, pytest]
+    negative: [check_commerce_config]
+    ci_tier: quality
+    limitations: >-
+      Validates the config's shape and safety and the rendered page's
+      shape; it cannot confirm the storefront URL is reachable or that the
+      linked product is the qualified edition (the release gate and
+      physical qualification do that).
+
+  - id: INV-commerce-release-gate
+    statement: >-
+      A book that advertises print ordering may not ship a release unless
+      its config is valid and its exact edition passed a physical
+      qualification; a missing, invalid, or unqualified edition fails the
+      release gate closed, while a book that sells nothing ships freely.
+    risk: >-
+      A book publishes an "order a print copy" link for an edition no one
+      has verified a provider can actually print.
+    criticality: standard
+    owner: commerce
+    enforcer: commerce.release_problems
+    layers: [selftest, pytest]
+    negative: [check_commerce_release_gate]
+    ci_tier: quality
+    limitations: >-
+      The pure gate decides on the config and whether the edition is
+      qualified; the orchestrator that builds the edition identity from the
+      print pack and matches inspections against it is proven by the pytest
+      component test, and enforcement is release-gated (PRESS_RELEASE),
+      advisory otherwise.
+
+  - id: INV-provider-contract
+    statement: >-
+      Every print-provider adapter maps its own vocabulary to the neutral
+      contract: money is integer minor units parsed without binary float,
+      an unrecognized status quarantines to UNKNOWN, a submission timeout
+      is an unknown outcome that forces a lookup before any resubmission
+      (never a hidden retry or a fabricated acceptance), an unsupported
+      capability is a typed refusal rather than a simulation, and a webhook
+      is authentic only when its signature matches the raw body.
+    risk: >-
+      A provider coupling leaks SDK types into the domain, a lost response
+      prints a second copy, an unknown status is guessed, or a forged
+      webhook is trusted.
+    criticality: critical
+    owner: providers
+    enforcer: providers.contract
+    layers: [selftest, pytest]
+    negative: [check_provider_contract]
+    ci_tier: quality
+    limitations: >-
+      The contract and the conformance suite are proven against the smart
+      fake and the Lulu adapter under a canned transport; the live Lulu
+      sandbox exchange awaits credentials (the deferred end-to-end proof).
