@@ -216,6 +216,10 @@ def build_page(source: str, name: str, label: str) -> None:
     # on the page — the stylesheet arrives through --css as a <link>.
     html = re.sub(r"<style[^>]*>.*?</style>", "", html, flags=re.S)
     html = rewrite_internal_links(html)
+    # The one script: a progressive-enhancement copy button on code blocks.
+    # Deferred and optional; the page is complete without it.
+    html = html.replace(
+        "</body>", '<script src="copy.js" defer></script>\n</body>', 1)
     body_class = BODY_CLASSES.get(name)
     if body_class:
         html = html.replace("<body>", f'<body class="{body_class}">', 1)
@@ -273,6 +277,7 @@ def main() -> int:
         shutil.rmtree(OUT)
     OUT.mkdir(parents=True)
     shutil.copy(ROOT / "site" / "press.css", OUT / "press.css")
+    shutil.copy(ROOT / "site" / "copy.js", OUT / "copy.js")
     shutil.copytree(ROOT / "site" / "fonts", OUT / "fonts")
     for source, name, label in PAGES + FOOTER_PAGES:
         build_page(source, name, label)

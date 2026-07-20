@@ -1,6 +1,8 @@
 /* ============================================================
    press — documentation site
-   One stylesheet · no JS · self-hosted fonts · light + dark
+   One stylesheet · self-hosted fonts · light + dark. The only
+   script is a small progressive-enhancement copy helper (copy.js);
+   the page works fully without it, and asks nothing of third parties.
    Design system: cool graphite paper, one warm cinnabar ink.
    Authored in Claude Design; see DESIGN.md for the full system
    and the rationale behind every token.
@@ -55,9 +57,9 @@ body{
 }
 ::selection{background:color-mix(in srgb,var(--accent) 22%,transparent)}
 
-/* Reading column: applied to direct body children (fixed DOM). Lists are
-   handled separately so the gutter does not swallow their marker indent. */
-body > *:not(.toolbar):not(.colophon):not(table):not(pre):not(ul):not(ol){
+/* Reading column: applied to direct body children (fixed DOM). Lists and
+   the JS copy-button wrapper are handled separately below. */
+body > *:not(.toolbar):not(.colophon):not(table):not(pre):not(ul):not(ol):not(.code-wrap){
   max-width:var(--measure); margin-inline:auto; padding-inline:var(--gutter);
 }
 /* Lists carry the reading gutter PLUS room for the marker, so bullets sit
@@ -67,8 +69,10 @@ body > ul, body > ol{
   padding-left:calc(var(--gutter) + 1.35rem); padding-right:var(--gutter);
 }
 /* Tables and code get a wider measure but never exceed the viewport (less
-   its gutters), so long lines scroll inside the box instead of off-screen. */
-body > table, body > pre{
+   its gutters), so long lines scroll inside the box instead of off-screen.
+   .code-wrap is the copy-button wrapper the script adds around a <pre>; it
+   takes the same measure so the layout is identical with JS on or off. */
+body > table, body > pre, body > .code-wrap{
   max-width:min(var(--measure-wide), calc(100% - var(--gutter) * 2));
   margin-inline:auto;
 }
@@ -134,6 +138,32 @@ pre code .fu, pre code .ex{color:var(--hl-func)}
 pre code .at, pre code .va, pre code .dt{color:var(--hl-attr)}
 pre code .op{color:var(--muted)}
 pre code .er, pre code .al, pre code .wa{color:var(--accent); font-weight:600}
+
+/* ---- Copy button (progressive enhancement; see copy.js) ---- */
+/* The script wraps each <pre> in .code-wrap so the button pins to the block
+   corner while the <pre> scrolls inside. With JS off there is no wrapper and
+   no button, and the block looks and works exactly the same. */
+.code-wrap{position:relative; margin:1.2rem auto}
+.code-wrap > pre{margin:0}
+.copy-btn{
+  position:absolute; top:8px; right:8px; width:30px; height:30px; padding:0;
+  display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
+  background:var(--paper); color:var(--muted);
+  border:1px solid var(--rule); border-radius:7px; opacity:.55;
+  transition:opacity .12s ease, color .12s ease, border-color .12s ease;
+}
+.copy-btn:hover,.copy-btn:focus-visible{color:var(--accent-ink); border-color:var(--rule-strong); opacity:1}
+.copy-btn .i-done{display:none}
+.copy-btn.copied{color:var(--hl-string); border-color:var(--hl-string); opacity:1}
+.copy-btn.copied .i-copy{display:none}
+.copy-btn.copied .i-done{display:inline}
+/* On devices that hover, keep it out of the way until the block is hovered;
+   on touch (no hover) it stays visible so it is reachable. */
+@media (hover:hover){
+  .copy-btn{opacity:0}
+  .code-wrap:hover .copy-btn, .copy-btn:focus-visible{opacity:1}
+}
+@media (prefers-reduced-motion:reduce){.copy-btn{transition:none}}
 
 /* ---- Tables ------------------------------------------------ */
 table{

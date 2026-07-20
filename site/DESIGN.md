@@ -5,7 +5,10 @@ Serious developer-tooling documentation — calm, dense, fast to scan, print-lit
 *read*, not admired; reference-reading and navigation come first.
 
 This system is expressed as **one stylesheet** (`site/press.css`) over the **fixed, pandoc-generated
-DOM** plus vendored `woff2` fonts. It ships **zero JavaScript**, is **theme-aware** (light + dark via
+DOM** plus vendored `woff2` fonts. Its only script is a small
+progressive-enhancement copy-button helper (`copy.js`) — the page works fully
+without it and asks nothing of third parties; everything else, including the
+mobile menu, is pure CSS. It is **theme-aware** (light + dark via
 `prefers-color-scheme`), and makes **no third-party requests**. The canvas preview
 (`Press Docs Design System.dc.html`) shows every component in both themes; this document is the
 authority for `/design-sync`.
@@ -210,7 +213,9 @@ Deliberately near-zero — this is flat, print-literate docs.
 - No second accent hue, no gradients, no decorative flourish.
 - No color-only links (always underline); no accent *text* below large sizes (use `--accent-ink`).
 - No shadows on content cards; no rounded-container-with-left-accent tropes.
-- No JavaScript, no external requests, no web fonts — self-host only.
+- No external requests and no web fonts — self-host only. The only script is
+  the inline copy helper; keep everything else pure CSS (the mobile menu
+  stays `:checked`), and let the page work fully with JS disabled.
 - Don't wrap or restructure pandoc content; style the flat DOM (see §9).
 
 ## 8 · Responsive behavior & breakpoints
@@ -224,7 +229,9 @@ Deliberately near-zero — this is flat, print-literate docs.
 
 ## 9 · Agent prompt guide
 
-> **Constraints (hard):** static, **no JS ever** (mobile menu is CSS `:checked`); **self-host fonts**
+> **Constraints (hard):** static, **CSS-first** — the only script is the
+> progressive-enhancement copy helper and the page must work fully without it
+> (mobile menu stays CSS `:checked`); **self-host fonts**
 > as `woff2` in `site/fonts/`, zero third-party requests; **theme-aware** via `prefers-color-scheme`,
 > both first-class, AA on both; **fixed pandoc DOM** — content elements are **direct children of
 > `<body>`** (`h1`–`h4`, `p`, `ul/ol/li`, `pre>code`, inline `code`, `table…`, `blockquote`, `a`,
