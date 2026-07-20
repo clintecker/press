@@ -5,6 +5,11 @@ doctor` is the authority on any machine's readiness: it names every
 dependency, distinguishes missing from present-but-broken, and says
 what each absence costs. Run it first and after every step here.
 
+If this is your first book, the
+[quickstart](https://github.com/clintecker/press/blob/main/docs/QUICKSTART.md)
+walks the whole path from here to a verified book; this page is the
+per-platform toolchain detail it links into.
+
 ## The press itself
 
 ```sh

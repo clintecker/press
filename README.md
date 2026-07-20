@@ -12,7 +12,11 @@ Extracted from the production of *Mostly Done.* so the next book
 inherits the pipeline, the design, the editorial enforcement, and the
 scars.
 
-Install with docs/INSTALL.md; understand the machine with the
+New here? The
+[quickstart](https://github.com/clintecker/press/blob/main/docs/QUICKSTART.md)
+is the canonical first-run path: a copyable walk from a blank machine to a
+built, verified book. Install with docs/INSTALL.md; understand the machine
+with the
 [architecture](https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md),
 configure a book with the
 [configuration reference](https://github.com/clintecker/press/blob/main/docs/CONFIGURATION.md),

@@ -9,7 +9,24 @@ audit).
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- A task-first beginner quickstart (`docs/QUICKSTART.md`): one copyable
+  path from a blank machine to a built, verified book, naming which steps
+  are the publisher's decisions and which are mechanical defaults, with a
+  table of the common first-run refusals and their fixes. It is the
+  canonical first-run path README, install, configuration, and support
+  now point to, and it is executable documentation: a doc-test extracts
+  the guide's own commands, proves the anchor commands are present and
+  ordered, and runs the toolchain-free spine (`press new` -> `press
+  check`) against the installed package so the guide cannot drift out
+  from under a beginner (#152).
+- When print ordering is enabled, a policy link the publisher does not
+  host is now generated as an honest page on the book site rather than
+  refused. Each generated support, privacy, or returns page discloses the
+  seller of record and what they handle, and appends the publisher's own
+  words from an optional `policies` block; `press verify` fails closed if
+  a generated page is missing or omits the seller disclosure (#151).
 
 ## [1.15.2] - 2026-07-19
 

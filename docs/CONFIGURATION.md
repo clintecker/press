@@ -12,6 +12,11 @@ directory without that file is refused as not a book. Every YAML
 file here must be a mapping (or, where stated, a list) at the top
 level; a parse error refuses with the file and line.
 
+For a first book, the
+[quickstart](https://github.com/clintecker/press/blob/main/docs/QUICKSTART.md)
+names the handful of facts you must supply and leaves the rest at their
+defaults; this page is the exhaustive reference behind it.
+
 ## config/metadata.yaml (required)
 
 The book's identity, read once into a typed model (`bookmodel`) with

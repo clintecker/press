@@ -35,6 +35,7 @@ OUT = ROOT / "build" / "site"
 NAV_GROUPS = [
     ("Guide", [
         ("README.md", "index.html", "press"),
+        ("docs/QUICKSTART.md", "quickstart.html", "quickstart"),
         ("docs/INSTALL.md", "install.html", "install"),
         ("docs/CONFIGURATION.md", "configuration.html", "configuration"),
         ("docs/PRINT-ORDERING.md", "print-ordering.html", "print ordering"),
