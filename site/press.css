@@ -52,10 +52,11 @@
 
 /* ---- Reset & base ------------------------------------------ */
 *,*::before,*::after{box-sizing:border-box}
-/* Fluid root: the whole document (body and rem-sized headings) grows with
-   the viewport, so desktop reads at a comfortable size instead of the phone
-   size. Mobile stays 16px; wide desktop reaches ~18.5px. */
-html{-webkit-text-size-adjust:100%; font-size:clamp(16px, 0.45vw + 14.6px, 18.5px)}
+/* Fluid root: the whole document (body and rem-sized headings, and the
+   rem-based reading measure) grows with the viewport. Mobile stays ~17px;
+   a wide desktop reaches ~34px, about twice the mobile size, so desktop
+   reads large and comfortable. */
+html{-webkit-text-size-adjust:100%; font-size:clamp(17px, 1.3vw + 9px, 34px)}
 body{
   margin:0; background:var(--paper); color:var(--ink);
   font-family:var(--serif); font-size:1.0625rem; line-height:1.62;
@@ -99,9 +100,11 @@ em{font-style:italic}
 hr{border:0; border-top:1px solid var(--rule); margin:2rem auto}
 
 a{color:var(--accent-ink); text-decoration:underline; text-underline-offset:2px;
-  text-decoration-thickness:1px; transition:text-decoration-thickness .12s ease;
-  overflow-wrap:anywhere}
+  text-decoration-thickness:1px; transition:text-decoration-thickness .12s ease}
 a:hover,a:focus-visible{text-decoration-thickness:2px}
+/* Only long prose links may break mid-token to avoid overflow; chrome links
+   (wordmark, nav, footer) must never wrap mid-word. */
+.prose a{overflow-wrap:anywhere}
 
 ul,ol{margin:0 auto 1rem; padding-left:1.35rem}
 li{margin-bottom:.4rem}
@@ -177,7 +180,7 @@ table{
   font-family:var(--sans); font-size:0.82rem; color:var(--ink); margin:1.3rem auto;
 }
 thead th{
-  font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+  font-weight:700; font-size:0.69rem; text-transform:uppercase; letter-spacing:.06em;
   color:var(--muted); text-align:left; white-space:nowrap;
   padding:11px 16px; border-bottom:2px solid var(--rule-strong); background:var(--paper);
 }
@@ -198,7 +201,7 @@ body.doc-entries h2{
    separator, so the intro and the first record are visibly divided. */
 body.doc-entries h1 + h2{border-top:0; padding-top:0; margin-top:1.2rem}
 body.doc-entries h2 + p{                       /* id · criticality subtitle */
-  font-family:var(--mono); font-size:12.5px; color:var(--muted); margin-bottom:.9rem;
+  font-family:var(--mono); font-size:0.78rem; color:var(--muted); margin-bottom:.9rem;
 }
 body.doc-entries h2 + p code{color:var(--accent-ink); font-weight:600}
 body.doc-entries table{max-width:min(440px, 100%); margin-left:0;
@@ -207,7 +210,7 @@ body.doc-entries td:first-child{
   font-family:var(--sans); font-weight:600; color:var(--muted);
   background:var(--surface); width:40%; white-space:nowrap;
 }
-body.doc-entries td{font-family:var(--mono); font-size:12.5px}
+body.doc-entries td{font-family:var(--mono); font-size:0.78rem}
 
 /* ---- Landing (body.home) ----------------------------------- */
 /* The landing is h1 then a description paragraph (no eyebrow in the
@@ -222,8 +225,8 @@ body.home > p:first-of-type{font-size:1.24rem; line-height:1.5; color:var(--ink)
   border-bottom:1px solid var(--rule); font-family:var(--sans);
   position:sticky; top:0; z-index:20;
 }
-.wordmark{display:inline-flex; align-items:baseline; font-weight:800; font-size:20px;
-  letter-spacing:-.03em; color:var(--ink); text-decoration:none}
+.wordmark{display:inline-flex; align-items:baseline; font-weight:800; font-size:1.25rem;
+  letter-spacing:-.03em; color:var(--ink); text-decoration:none; white-space:nowrap}
 .wordmark .mark{color:var(--accent); margin-left:1px}
 .nav-toggle{position:absolute; width:1px; height:1px; opacity:0; pointer-events:none}
 .nav-burger{display:none}                       /* shown < 760px */
@@ -231,9 +234,9 @@ nav[aria-label="Site"]{display:flex; flex-wrap:wrap; align-items:baseline;
   gap:12px 24px; margin-left:auto}
 .nav-group{display:flex; align-items:baseline; flex-wrap:wrap; gap:7px 13px}
 .nav-group + .nav-group{border-left:1px solid var(--rule); padding-left:26px}
-.nav-group-label{font-size:10.5px; font-weight:700; letter-spacing:.11em;
+.nav-group-label{font-size:0.66rem; font-weight:700; letter-spacing:.11em;
   text-transform:uppercase; color:var(--muted)}
-nav[aria-label="Site"] a{font-size:13.5px; font-weight:500; color:var(--ink);
+nav[aria-label="Site"] a{font-size:0.85rem; font-weight:500; color:var(--ink);
   text-decoration:none; padding-bottom:2px; border-bottom:2px solid transparent; white-space:nowrap}
 nav[aria-label="Site"] a:hover{color:var(--accent-ink)}
 nav[aria-label="Site"] a[aria-current="page"]{font-weight:700; border-bottom-color:var(--accent)}
@@ -261,9 +264,9 @@ nav[aria-label="Site"] a[aria-current="page"]{font-weight:700; border-bottom-col
   flex-wrap:wrap; gap:12px 28px; margin-top:var(--s16);
 }
 .colophon nav{display:flex; gap:22px; flex-wrap:wrap}
-.colophon a{color:var(--muted); font-size:13.5px; font-weight:500; text-decoration:none}
+.colophon a{color:var(--muted); font-size:0.85rem; font-weight:500; text-decoration:none}
 .colophon a:hover{color:var(--accent-ink)}
-.stamp{margin:0; font-family:var(--mono); font-size:12.5px; color:var(--muted)}
+.stamp{margin:0; font-family:var(--mono); font-size:0.78rem; color:var(--muted)}
 .stamp code, .stamp .sha{color:var(--accent-ink); background:none; border:0; padding:0}
 
 /* ---- Accessibility ----------------------------------------- */
