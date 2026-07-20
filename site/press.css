@@ -113,6 +113,28 @@ pre{
 }
 pre > code{background:none; border:0; padding:0; font-size:inherit; color:inherit}
 
+/* ---- Syntax highlighting (theme-aware; pandoc/skylighting classes) --- */
+/* Restrained and calm: comments recede, strings/keywords/numbers carry one
+   quiet hue each, and command and function names take the cinnabar so the
+   one accent does the identity work here too. Un-tokenized text stays
+   --code-ink, so console and plain blocks read cleanly. */
+:root{
+  --hl-comment:#6b7280; --hl-string:#2f7d5b; --hl-keyword:#1f6fb2;
+  --hl-number:#8a6100;  --hl-func:var(--accent-ink); --hl-attr:#0f6f80;
+}
+@media (prefers-color-scheme:dark){:root{
+  --hl-comment:#828c99; --hl-string:#82c7a2; --hl-keyword:#72b4ef;
+  --hl-number:#d6a95c;  --hl-func:var(--accent);    --hl-attr:#5cbccf;
+}}
+pre code .co, pre code .do, pre code .cv{color:var(--hl-comment); font-style:italic}
+pre code .st, pre code .ch, pre code .vs, pre code .ss, pre code .sc{color:var(--hl-string)}
+pre code .kw, pre code .cf, pre code .im, pre code .bu{color:var(--hl-keyword)}
+pre code .dv, pre code .fl, pre code .bn, pre code .cn, pre code .bo{color:var(--hl-number)}
+pre code .fu, pre code .ex{color:var(--hl-func)}
+pre code .at, pre code .va, pre code .dt{color:var(--hl-attr)}
+pre code .op{color:var(--muted)}
+pre code .er, pre code .al, pre code .wa{color:var(--accent); font-weight:600}
+
 /* ---- Tables ------------------------------------------------ */
 table{
   border-collapse:collapse; width:100%; display:block; overflow-x:auto;

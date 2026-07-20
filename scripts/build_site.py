@@ -159,6 +159,27 @@ BODY_CLASSES = {
     "provider-qualification.html": "doc-entries",
 }
 
+# The Markdown links to GitHub-blob URLs so it also reads correctly on
+# GitHub. On the site, a link to a doc that IS a site page is rewritten to
+# that local page, so a reader stays on the site; a doc with no site page
+# (an internal plan, a data file) keeps its GitHub link.
+GITHUB_BLOB = "https://github.com/clintecker/press/blob/main/"
+
+
+def published_links() -> dict[str, str]:
+    """GitHub-blob URL -> local page, for every doc this site publishes."""
+
+    return {f"{GITHUB_BLOB}{source}": name for source, name, _ in PAGES + FOOTER_PAGES}
+
+
+def rewrite_internal_links(html: str) -> str:
+    """Point every link-to-a-published-doc at its local page, preserving any
+    #fragment (only the URL prefix inside href="…" is replaced)."""
+
+    for url, name in published_links().items():
+        html = html.replace(f'href="{url}', f'href="{name}')
+    return html
+
 
 def build_page(source: str, name: str, label: str) -> None:
     title = "press" if name == "index.html" else f"press: {label}"
@@ -177,11 +198,10 @@ def build_page(source: str, name: str, label: str) -> None:
             "--css=press.css",
             f"--include-before-body={nav_file}",
             f"--include-after-body={footer_file}",
-            # The site's own stylesheet colors code for both themes;
-            # pandoc's highlighter hard-codes light-scheme span colors.
-            # The old spelling: ubuntu's apt pandoc predates
-            # --syntax-highlighting=none.
-            "--no-highlight",
+            # Highlighting is ON: pandoc emits skylighting token classes on
+            # code spans. Its injected <style> hard-codes light-scheme
+            # colors, so it is stripped below and the stylesheet colors the
+            # tokens for both themes instead (see press.css).
             "--output",
             str(OUT / name),
         ],
@@ -189,13 +209,17 @@ def build_page(source: str, name: str, label: str) -> None:
     )
     nav_file.unlink()
     footer_file.unlink()
+    page = OUT / name
+    html = page.read_text(encoding="utf-8")
+    # Drop pandoc's injected highlight <style> (light-only); the token
+    # colors live in press.css, theme-aware. This is the only inline style
+    # on the page — the stylesheet arrives through --css as a <link>.
+    html = re.sub(r"<style[^>]*>.*?</style>", "", html, flags=re.S)
+    html = rewrite_internal_links(html)
     body_class = BODY_CLASSES.get(name)
     if body_class:
-        page = OUT / name
-        page.write_text(
-            page.read_text(encoding="utf-8").replace(
-                "<body>", f'<body class="{body_class}">', 1),
-            encoding="utf-8")
+        html = html.replace("<body>", f'<body class="{body_class}">', 1)
+    page.write_text(html, encoding="utf-8")
 
 
 def check_links() -> None:
@@ -225,6 +249,24 @@ def check_links() -> None:
         )
 
 
+def check_internal_links() -> None:
+    """No page links to GitHub for a doc the site publishes: that link must
+    point at the local page instead, so a reader stays on the site. Only a
+    doc with no site page may keep its GitHub link."""
+
+    problems = []
+    for _, name, _ in PAGES + FOOTER_PAGES:
+        html = (OUT / name).read_text(encoding="utf-8")
+        for url, target in published_links().items():
+            if f'href="{url}' in html:
+                problems.append(f"{name} links to {url} instead of {target}")
+    if problems:
+        raise SystemExit(
+            "site links to GitHub for a doc it publishes:\n"
+            + "\n".join(f"  - {p}" for p in problems)
+        )
+
+
 def main() -> int:
     check_completeness()
     if OUT.exists():
@@ -235,6 +277,7 @@ def main() -> int:
     for source, name, label in PAGES + FOOTER_PAGES:
         build_page(source, name, label)
     check_links()
+    check_internal_links()
     pages = len(PAGES) + len(FOOTER_PAGES)
     print(f"+ built press site -> {OUT.relative_to(ROOT)} ({pages} pages)")
     return 0
