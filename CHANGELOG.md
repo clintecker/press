@@ -9,6 +9,15 @@ audit).
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.16.0] - 2026-07-20
+
+Seller-of-record print ordering plus a public-experience pass: a validated
+configuration CLI and desk wizard, conventional CLI discovery, one YAML
+library and version, an independently consumable public toolchain image, an
+executable beginner quickstart, and a redesigned documentation site.
+
 ### Added
 
 - A guided setup wizard in the operator desk (`w`), a keyboard-driven flow
@@ -71,6 +80,11 @@ audit).
 
 ### Changed
 
+- The documentation site is redesigned: a cool-graphite, one-cinnabar-ink
+  system (Literata, Hanken Grotesk, JetBrains Mono, self-hosted), a
+  left-sidebar nav, theme-aware syntax highlighting, a copy button on code
+  blocks, and a first-time-author landing. Internal links stay on the site,
+  and a "made with press" section links real books.
 - The toolchain image is public, so press is independently consumable
   (#161). A book repository under any account or org now builds the
   advertised CI path with no owner-granted package permission and no
