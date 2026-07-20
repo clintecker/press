@@ -52,14 +52,18 @@ TITLE_SMALL_WORDS = {
 }
 
 
-def banned_book_patterns() -> dict[re.Pattern, str]:
+def banned_book_patterns(rules: dict | None = None) -> dict[re.Pattern, str]:
     """The book's banned patterns, compiled once; a malformed regex is
     a config mistake and gets a refusal naming the file and pattern,
-    not a traceback out of the re parser mid-audit."""
+    not a traceback out of the re parser mid-audit. Reads house-rules from
+    disk unless a proposed mapping is passed (the `press config` writer
+    validates its edit before it touches a byte)."""
 
+    if rules is None:
+        rules = booklib.house_rules()
     compiled = {}
     for pattern, label in dict(
-        booklib.house_rules().get("banned-patterns") or {}
+        rules.get("banned-patterns") or {}
     ).items():
         try:
             compiled[re.compile(pattern)] = label

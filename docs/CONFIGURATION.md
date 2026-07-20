@@ -17,6 +17,25 @@ For a first book, the
 names the handful of facts you must supply and leaves the rest at their
 defaults; this page is the exhaustive reference behind it.
 
+You do not have to edit YAML by hand. `press config` reads and writes every
+field below through the same typed model that validates a build, so an edit
+is checked before it touches a byte and a rejected edit changes nothing:
+
+```sh
+press config list                       # every field, its type, and status
+press config get commerce.print-ordering.seller-of-record
+press config set print.paper cream      # refused unless white or cream
+press config set keywords '["essays"]' --json   # lists/mappings as JSON
+press config unset motto
+press config validate                   # run every config validator
+```
+
+A field the CLI marks immutable (the v1 trim) or structured (the
+authorities and index lists, managed by their workflows) is classified,
+not writable; direct YAML editing remains available for experts and for
+anything the CLI does not cover. The examples below are the schema of
+record either way.
+
 ## config/metadata.yaml (required)
 
 The book's identity, read once into a typed model (`bookmodel`) with

@@ -29,12 +29,12 @@ QUICKSTART = Path(__file__).resolve().parent.parent / "docs" / "QUICKSTART.md"
 # no network, no repository. Everything else a beginner is shown (a build,
 # a publish, a version-control step) is proven elsewhere and only checked
 # for presence here.
-RUNNABLE = {"new", "check", "doctor", "wordcount"}
+RUNNABLE = {"new", "check", "doctor", "wordcount", "config"}
 
 # Targets that must exit zero on a freshly scaffolded book; ``doctor`` is a
 # diagnostic whose exit code reports the machine, not the book, so it is run
 # but not required to pass.
-MUST_SUCCEED = {"new", "check", "wordcount"}
+MUST_SUCCEED = {"new", "check", "wordcount", "config"}
 
 
 def _console_commands() -> list[str]:

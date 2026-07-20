@@ -68,7 +68,8 @@ working value you may keep or replace.
 
 ## 3. Enter the minimum identity facts (decisions)
 
-Open `config/metadata.yaml` and set the four facts only you can supply:
+Set the four facts only you can supply. You can edit
+`config/metadata.yaml` directly:
 
 ```yaml
 title: "My First Book"
@@ -79,8 +80,17 @@ description: >-
   One honest paragraph on what this book is.
 ```
 
-Everything else in that file is a mechanical default with a comment
-explaining it. Two you will meet later, not now:
+or set them without touching YAML, which validates each value before it
+writes:
+
+```console
+press config set subtitle "And how it came to be"
+press config get subtitle
+```
+
+`press config list` shows every field you can set; `press config validate`
+checks the whole configuration. Everything else in the metadata file is a
+mechanical default with a comment explaining it. Two you will meet later, not now:
 
 - **`verify-sentinels`** are short, distinctive phrases from your own
   prose — a memorable clause, not a common word. The verifiers search for

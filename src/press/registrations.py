@@ -19,8 +19,8 @@ def block() -> dict:
     return booklib.metadata().get("registrations") or {}
 
 
-def isbn_map() -> dict:
-    value = block().get("isbn")
+def _isbn_map(reg: dict) -> dict:
+    value = reg.get("isbn")
     if value is None:
         return {}
     if not isinstance(value, dict):
@@ -29,6 +29,10 @@ def isbn_map() -> dict:
             '(isbn: {print: "...", epub: "..."}), not a single value'
         )
     return value
+
+
+def isbn_map() -> dict:
+    return _isbn_map(block())
 
 
 def raw_isbn(edition: str) -> str | None:
@@ -89,13 +93,16 @@ def lccn_plausible(value: str) -> bool:
     return bool(re.fullmatch(r"[a-z]{0,3}\d{8,12}", value.replace("-", "").replace(" ", "").lower()))
 
 
-def failures() -> list[str]:
-    """Every invalid registration, as check-style failure lines."""
+def failures(reg: dict | None = None) -> list[str]:
+    """Every invalid registration, as check-style failure lines. Reads the
+    book's registrations from disk unless a proposed block is passed (the
+    `press config` writer validates its edit before it touches a byte)."""
 
     found: list[str] = []
-    reg = block()
+    if reg is None:
+        reg = block()
     try:
-        editions = isbn_map()
+        editions = _isbn_map(reg)
     except SystemExit as exc:
         return [str(exc)]
     for edition, value in editions.items():
@@ -114,7 +121,7 @@ def failures() -> list[str]:
         found.append(f"registrations lccn does not look like an LCCN: {lccn}")
 
     if reg.get("retail"):
-        isbns = isbn_map()
+        isbns = editions
         pending = [
             f"isbn {edition} missing"
             for edition in ("print", "epub") if edition not in isbns

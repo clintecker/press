@@ -11,6 +11,25 @@ audit).
 
 ### Added
 
+- `press config get|set|unset|list|validate`: a validated command surface
+  over every book-configuration field, so ordinary configuration no longer
+  depends on hand-editing YAML. A write is checked by the same typed model
+  that validates a build (`bookmodel`, `commerce`, `registrations`, the
+  house-rules regex compiler) against the proposed document *before* a byte
+  is touched, so a rejected edit changes nothing; the edit is applied to a
+  comment-preserving round-trip and written atomically. A value the
+  build's YAML 1.1 loader would misread (a bare `no`/`yes`/`on`/`2026`) is
+  written quoted, so the writer and the build agree on the document. Types
+  are never guessed from a shell string (a list or mapping must arrive as
+  `--json`);
+  a value that looks like a secret is refused and never echoed; and every
+  field is either writable or carries an explicit classification (the v1
+  trim is immutable, the authorities and index lists are structured). A
+  drift test walks the configuration reference and fails if a documented
+  field has neither classification, and the quickstart's `press config`
+  commands are executed against the installed package. Direct YAML editing
+  remains documented for experts (#155).
+
 - A task-first beginner quickstart (`docs/QUICKSTART.md`): one copyable
   path from a blank machine to a built, verified book, naming which steps
   are the publisher's decisions and which are mechanical defaults, with a

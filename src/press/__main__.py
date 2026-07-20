@@ -82,6 +82,12 @@ def _run_new(args: list[str]) -> int:
     return scaffold.main(args[1:])
 
 
+def _run_config(args: list[str]) -> int:
+    from . import config_cli
+
+    return config_cli.main(args)
+
+
 def _run_selftest(args: list[str]) -> int:
     from . import selftest
 
@@ -298,6 +304,7 @@ def _run_clean(args: list[str]) -> int:
 
 ROUTES: dict[str, Callable[[list[str]], int]] = {
     "new": _run_new,
+    "config": _run_config,
     "selftest": _run_selftest,
     "doctor": _run_doctor,
     "art": _run_art,
