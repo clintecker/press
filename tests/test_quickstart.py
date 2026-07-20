@@ -46,10 +46,16 @@ def _console_commands() -> list[str]:
     text = QUICKSTART.read_text(encoding="utf-8")
     commands: list[str] = []
     for block in re.findall(r"```sh\n(.*?)```", text, re.S):
+        # Join backslash line-continuations, then split each logical line on
+        # && and ; so a copy-paste chain runs command by command, as a shell
+        # would. This lets the guide chain commands for the reader while the
+        # test still exercises each one.
+        block = re.sub(r"\\\n\s*", " ", block)
         for line in block.splitlines():
-            stripped = line.strip()
-            if stripped:
-                commands.append(stripped)
+            for part in re.split(r"\s*&&\s*|\s*;\s*", line.strip()):
+                part = part.strip()
+                if part:
+                    commands.append(part)
     return commands
 
 

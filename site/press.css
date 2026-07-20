@@ -33,7 +33,7 @@
   --sans:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
 
-  --measure:66ch; --measure-wide:82ch;
+  --measure:70ch; --measure-wide:84ch;
   --gutter:clamp(20px,5vw,40px);
   --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px; --s8:32px; --s10:40px; --s12:48px; --s16:64px;
 }
@@ -48,10 +48,13 @@
 
 /* ---- Reset & base ------------------------------------------ */
 *,*::before,*::after{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
+/* Fluid root: the whole document (body and rem-sized headings) grows with
+   the viewport, so desktop reads at a comfortable size instead of the phone
+   size. Mobile stays 16px; wide desktop reaches ~18.5px. */
+html{-webkit-text-size-adjust:100%; font-size:clamp(16px, 0.45vw + 14.6px, 18.5px)}
 body{
   margin:0; background:var(--paper); color:var(--ink);
-  font-family:var(--serif); font-size:17px; line-height:1.62;
+  font-family:var(--serif); font-size:1.0625rem; line-height:1.62;
   -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
   padding-bottom:var(--s16);
 }
@@ -111,7 +114,7 @@ blockquote > :first-child{margin-top:0} blockquote > :last-child{margin-bottom:0
 code{font-family:var(--mono); font-size:.85em; color:var(--code-ink);
   background:var(--surface); border:1px solid var(--rule); border-radius:4px; padding:1px 5px}
 pre{
-  font-family:var(--mono); font-size:13.5px; line-height:1.6; color:var(--code-ink);
+  font-family:var(--mono); font-size:0.84rem; line-height:1.6; color:var(--code-ink);
   background:var(--surface); border:1px solid var(--rule); border-radius:9px;
   padding:16px 18px; overflow-x:auto; margin:1.2rem auto; tab-size:2;
 }
@@ -168,7 +171,7 @@ pre code .er, pre code .al, pre code .wa{color:var(--accent); font-weight:600}
 /* ---- Tables ------------------------------------------------ */
 table{
   border-collapse:collapse; width:100%; display:block; overflow-x:auto;
-  font-family:var(--sans); font-size:14px; color:var(--ink); margin:1.3rem auto;
+  font-family:var(--sans); font-size:0.82rem; color:var(--ink); margin:1.3rem auto;
 }
 thead th{
   font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.06em;

@@ -37,9 +37,9 @@ once for your platform, then let `press doctor` tell you what is ready.
 On macOS:
 
 ```sh
-pip install "press @ git+https://github.com/clintecker/press@v1"
-brew install pandoc poppler
-brew install --cask mactex-no-gui
+pip install "press @ git+https://github.com/clintecker/press@v1" && \
+  brew install pandoc poppler && \
+  brew install --cask mactex-no-gui
 ```
 
 On Debian or Ubuntu, and for the container path (no local toolchain at
@@ -78,8 +78,24 @@ working value you may keep or replace.
 
 ## 3. Enter the minimum identity facts (decisions)
 
-Set the four facts only you can supply. You can edit
-`config/metadata.yaml` directly:
+Set the four facts only you can supply. The simplest way is `press
+config`, which validates each value before it writes:
+
+```sh
+press config set title "My First Book" && \
+  press config set subtitle "And how it came to be" && \
+  press config set author '["Your Name"]' --json && \
+  press config set description "One honest paragraph on what this book is."
+```
+
+`press config list` shows every field you can set, `press config get
+<field>` reads one, and `press config validate` checks the whole
+configuration. Prefer a screen? If you installed the desk (`pip install
+'press[tui]'`), run `press desk` and press `w` for a guided setup wizard
+that previews the exact diff and validates before it writes.
+
+If you would rather edit YAML by hand, the same four facts live in
+`config/metadata.yaml`:
 
 ```yaml
 title: "My First Book"
@@ -89,19 +105,6 @@ author:
 description: >-
   One honest paragraph on what this book is.
 ```
-
-or set them without touching YAML, which validates each value before it
-writes:
-
-```sh
-press config set subtitle "And how it came to be"
-press config get subtitle
-```
-
-`press config list` shows every field you can set; `press config validate`
-checks the whole configuration. Or, if you installed the desk
-(`pip install 'press[tui]'`), run `press desk` and press `w` for a guided
-setup wizard that previews the exact diff and validates before it writes.
 
 Everything else in the metadata file is a mechanical default with a comment
 explaining it. Two you will meet later, not now:
@@ -192,11 +195,11 @@ press pages
 Put the book on GitHub so its CI builds and publishes it:
 
 ```sh
-git init
-git add -A
-git commit -m "First book"
-git remote add origin https://github.com/OWNER/my-first-book
-git push -u origin main
+git init && \
+  git add -A && \
+  git commit -m "First book" && \
+  git remote add origin https://github.com/OWNER/my-first-book && \
+  git push -u origin main
 ```
 
 The book's CI builds inside a public, versioned toolchain image, so a book
