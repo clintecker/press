@@ -376,12 +376,18 @@ th {
 tbody td:first-child { white-space: nowrap; }
 
 blockquote {
-  margin: 1.5rem auto;
-  padding: 0.05rem 1.2rem;
+  margin: 0.8rem auto 1.7rem;
+  padding: 0.5rem 1.1rem;
   border-left: 3px solid var(--rule-strong);
   color: var(--muted);
-  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.6;
 }
+
+blockquote p { margin: 0; }
+
+/* Code inside a note stays upright even when the note is set in italic. */
+blockquote code { font-style: normal; font-size: 0.85em; }
 
 hr {
   border: none;

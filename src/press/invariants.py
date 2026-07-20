@@ -145,27 +145,29 @@ def render() -> str:
     lines = [
         "# Invariants",
         "",
-        "Generated from quality/invariants.yaml; do not edit by hand.",
-        "Run `python3 -m press selftest --write-docs` after changing the",
-        "ledger. Each row traces an invariant to where it is enforced, the",
-        "proof it can fail, and the honest limit of that proof.",
+        "Generated from quality/invariants.yaml; do not edit by hand. Run",
+        "`python3 -m press selftest --write-docs` after changing the ledger.",
+        "Each entry traces an invariant to where it is enforced, the proof it",
+        "can fail, and the honest limit of that proof.",
         "",
         "See also the narrative matrix in "
         "[docs/ARCHITECTURE.md](https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md) "
         "and the artifact table in "
         "[docs/REFERENCE.md](https://github.com/clintecker/press/blob/main/docs/REFERENCE.md).",
         "",
-        "| id | invariant | enforced at | proof it can fail | limitation |",
-        "|---|---|---|---|---|",
     ]
     for inv in sorted(invariants, key=lambda i: i["id"]):
-        proofs = ", ".join(inv["negative"])
-        crit = " (critical)" if inv["criticality"] == "critical" else ""
-        lines.append(
-            f"| {inv['id']}{crit} | {inv['statement']} | "
-            f"`{inv['enforcer']}` | {proofs} | {inv['limitations']} |"
-        )
-    lines.append("")
+        proofs = ", ".join(f"`{p}`" for p in inv["negative"])
+        crit = "**critical**" if inv["criticality"] == "critical" else "standard"
+        lines += [
+            f"## {inv['id']}",
+            "",
+            inv["statement"],
+            "",
+            f"> Enforced by `{inv['enforcer']}` · fails via {proofs} · {crit}. "
+            f"**Limit:** {inv['limitations']}",
+            "",
+        ]
     return "\n".join(lines)
 
 
