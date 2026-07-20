@@ -48,6 +48,30 @@ def test_a_module_with_no_baseline_is_flagged_new():
     assert new == ["brandnew"]
 
 
+def test_main_fails_when_measurement_contains_an_unbaselined_source_module(
+        tmp_path, monkeypatch, capsys):
+    """The executable gate, not only compare(), refuses a new module.
+
+    This is the migration invariant that #178 exposed: adding source and
+    tests without making an explicit baseline decision must keep CI red.
+    """
+
+    ratchet = _load_ratchet()
+    baseline = tmp_path / "coverage-baseline.json"
+    baseline.write_text(json.dumps({
+        "tolerance": 0.5,
+        "modules": {"receipts": 68.9},
+    }), encoding="utf-8")
+    monkeypatch.setattr(ratchet, "BASELINE", baseline)
+    monkeypatch.setattr(
+        ratchet, "measure", lambda: {"receipts": 68.9, "brandnew": 100.0})
+
+    assert ratchet.main([]) == 1
+    output = capsys.readouterr().out
+    assert "modules with no coverage baseline" in output
+    assert "brandnew" in output
+
+
 def test_a_baselined_module_vanishing_is_a_regression():
     # A module dropping out of the measurement entirely must not pass
     # silently -- it means the report stopped covering it.

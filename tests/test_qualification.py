@@ -121,6 +121,13 @@ def test_render_lists_the_checklist_and_providers():
     assert "Primary provider" in text
 
 
+def test_qualification_cli_reports_the_validated_record(capsys):
+    assert q.main([]) == 0
+    output = capsys.readouterr().out
+    assert "provider qualification record holds" in output
+    assert "11-point physical checklist" in output
+
+
 # ---- helpers tying qualification to the edition manifest ----
 
 def _manifest_with(qual):

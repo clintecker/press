@@ -296,3 +296,29 @@ def test_verify_release_refuses_a_dirty_tree():
         local_dev=True)
     problems = receipts.verify_release([release], "PKG")
     assert any("dirty tree" in p for p in problems)
+
+
+# ---- receipt command surface ----
+
+def test_receipt_cli_refuses_an_unknown_or_incomplete_command(capsys):
+    assert receipts.main([]) == 2
+    assert receipts.main(["unknown"]) == 2
+    output = capsys.readouterr().out
+    assert "python3 -m press.receipts emit" in output
+    assert "verify-release" in output
+
+
+def test_receipt_cli_verifies_a_chain_and_names_a_broken_one(tmp_path, capsys):
+    collection = _receipt("collection")
+    good_path = tmp_path / "good.json"
+    good_path.write_text(receipts.to_json([collection]), encoding="utf-8")
+    assert receipts.main(["verify", str(good_path)]) == 0
+    assert "receipt chain holds" in capsys.readouterr().out
+
+    unit = _receipt("unit", prereqs=[collection])
+    broken_path = tmp_path / "broken.json"
+    broken_path.write_text(receipts.to_json([unit]), encoding="utf-8")
+    assert receipts.main(["verify", str(broken_path)]) == 1
+    output = capsys.readouterr().out
+    assert "does not hold" in output
+    assert "missing or tampered" in output

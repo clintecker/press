@@ -131,6 +131,56 @@ def test_fake_scripts_rejection_and_timeout():
     assert isinstance(provider.submit(fake_mod.sample_submission()), contract.UnknownOutcome)
 
 
+def test_fake_validates_files_and_declares_unsupported_validation():
+    item = contract.LineItem(
+        "SKU", 120, 1, "http://unsafe/interior.pdf", "relative-cover.pdf",
+        external_id="line-1")
+    provider = fake_mod.FakeProvider()
+    assert provider.validate_files((item,)) == {
+        "line-1": ["interior url is not https", "cover url is not https"]}
+
+    without_validation = fake_mod.FakeProvider(
+        capabilities=frozenset({C.SUBMIT}))
+    result = without_validation.validate_files((item,))
+    assert isinstance(result, contract.TypedError)
+    assert result.code == "unsupported"
+
+
+def test_fake_lookup_progression_and_cancellation_are_stateful():
+    provider = fake_mod.FakeProvider()
+    accepted = provider.submit(fake_mod.sample_submission("external-7"))
+    assert isinstance(accepted, contract.Accepted)
+    ref = accepted.order.provider_ref
+
+    assert provider.find_by_external("external-7") == accepted.order
+    assert provider.find_by_external("absent") is None
+    assert isinstance(provider.get_order("absent"), contract.TypedError)
+
+    provider.advance(ref, "accepted")
+    canceled = provider.cancel(ref)
+    assert isinstance(canceled, contract.ProviderOrder)
+    assert canceled.status is contract.ProviderStatus.CANCELED
+
+
+def test_fake_refuses_late_cancellation_and_unsupported_boundaries():
+    provider = fake_mod.FakeProvider()
+    accepted = provider.submit(fake_mod.sample_submission())
+    assert isinstance(accepted, contract.Accepted)
+    provider.advance(accepted.order.provider_ref, "in_production")
+    late = provider.cancel(accepted.order.provider_ref)
+    assert isinstance(late, contract.TypedError)
+    assert late.code == "not_cancelable"
+    assert isinstance(provider.cancel("absent"), contract.TypedError)
+
+    lookup_only = fake_mod.FakeProvider(
+        capabilities=frozenset({C.LOOKUP}))
+    assert isinstance(
+        lookup_only.submit(fake_mod.sample_submission()), contract.UnknownOutcome)
+    event = lookup_only.parse_event(b"{}", {})
+    assert event.authentic is False
+    assert "does not support webhooks" in event.reason
+
+
 @pytest.mark.invariant("INV-provider-contract")
 @pytest.mark.layer("unit")
 @pytest.mark.proof("negative")
