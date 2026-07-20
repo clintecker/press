@@ -43,6 +43,22 @@ ROOT = Path(__file__).resolve().parent
 LEDGER = ROOT.parent.parent / "quality" / "invariants.yaml"
 KNOWN_BAD = ROOT / "data" / "known-bad"
 
+
+def _ledger_path() -> Path:
+    """The invariant ledger, a repository file (not packaged). It sits two
+    levels above the source tree in a checkout; when the code runs from an
+    installed wheel (the desk end-to-end proof installs the wheel and runs
+    the suite from the repo), that path lands inside site-packages and does
+    not exist, so fall back to the ledger relative to the working directory,
+    which is the checkout root."""
+
+    if LEDGER.is_file():
+        return LEDGER
+    cwd_ledger = Path.cwd() / "quality" / "invariants.yaml"
+    if cwd_ledger.is_file():
+        return cwd_ledger
+    return LEDGER  # absent either way; let the caller's open() report it
+
 # A short human name for each invariant, shown alongside its id so the
 # generated reference reads as a scannable list of guarantees rather than
 # a wall of INV- slugs. Every invariant must have one (validate enforces
@@ -86,7 +102,8 @@ TITLES = {
 }
 
 
-def load(path: Path = LEDGER) -> list[dict[str, Any]]:
+def load(path: Path | None = None) -> list[dict[str, Any]]:
+    path = path if path is not None else _ledger_path()
     with path.open(encoding="utf-8") as handle:
         data = yamlio.loads(handle.read())
     if not isinstance(data, dict) or not isinstance(data.get("invariants"), list):

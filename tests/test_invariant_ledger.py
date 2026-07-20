@@ -17,6 +17,22 @@ def test_shipped_ledger_holds():
     invariants.validate(invariants.load())
 
 
+def test_ledger_resolves_from_cwd_when_the_packaged_path_is_absent(monkeypatch):
+    # The ledger is a repo file, not package data. When the code runs from an
+    # installed wheel (the desk end-to-end proof) the __file__-relative path
+    # lands in site-packages and does not exist; load() must then find the
+    # ledger relative to the working directory (the checkout root), or the
+    # collection plugin breaks the whole suite under an installed wheel.
+    from pathlib import Path
+
+    monkeypatch.setattr(invariants, "LEDGER", Path("/nonexistent/quality/invariants.yaml"))
+    resolved = invariants._ledger_path()
+    assert resolved.is_file()
+    assert resolved == Path.cwd() / "quality" / "invariants.yaml"
+    # And load() succeeds through the fallback.
+    assert isinstance(invariants.load(), list)
+
+
 def test_generated_doc_matches_ledger():
     from pathlib import Path
 
