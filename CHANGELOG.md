@@ -9,7 +9,18 @@ audit).
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- Git subprocesses observe only their own repository. A `git commit` runs
+  its hooks with `GIT_INDEX_FILE` (and `GIT_DIR`) pointing at the outer
+  commit's transient index, so the test suite -- and press itself -- would
+  build or inspect a nested repository against the wrong index (a source
+  archive came out empty, damage tests failed for the wrong reason). The
+  production process runner now strips the ambient repo-binding `GIT_*` from
+  every git command it runs, closing the leak at the one boundary all git
+  calls pass through; an explicitly injected git env is still respected for
+  tests where git is the subject. The full suite now passes inside a real
+  `git commit` hook without a workaround (#176).
 
 ## [1.17.0] - 2026-07-20
 

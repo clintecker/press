@@ -36,6 +36,21 @@ class HttpError(ToolError):
         self.host = host
 
 
+# Environment variables that bind a git subprocess to a specific
+# repository, index, or worktree. When press runs `git -C <root> ...` it
+# means "operate on <root>", but an ambient one of these -- inherited from,
+# say, a running commit hook -- would silently redirect git to the outer
+# repo's transient index instead. They are stripped from the inherited
+# environment for every git command, so a nested or independent repository
+# observes only itself. A caller that is deliberately testing git behavior
+# injects an explicit env, which is respected verbatim.
+_GIT_REPO_BINDING = (
+    "GIT_INDEX_FILE", "GIT_DIR", "GIT_WORK_TREE", "GIT_PREFIX",
+    "GIT_OBJECT_DIRECTORY", "GIT_COMMON_DIR", "GIT_INDEX_VERSION",
+    "GIT_NAMESPACE", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+)
+
+
 class SubprocessRunner:
     """Runs commands through ``subprocess.run``. The production
     ``ProcessRunner``."""
@@ -50,10 +65,17 @@ class SubprocessRunner:
         check: bool = False,
         timeout: float | None = None,
     ) -> ProcessResult:
+        run_env = dict(env) if env is not None else None
+        is_git = bool(argv) and os.path.basename(str(argv[0])) == "git"
+        if env is None and is_git \
+                and any(v in os.environ for v in _GIT_REPO_BINDING):
+            run_env = os.environ.copy()
+            for var in _GIT_REPO_BINDING:
+                run_env.pop(var, None)
         completed = subprocess.run(
             list(argv),
             cwd=cwd,
-            env=dict(env) if env is not None else None,
+            env=run_env,
             capture_output=capture,
             check=check,
             timeout=timeout,
