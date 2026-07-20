@@ -447,7 +447,7 @@ img { max-width: 100%; }
 .doc-entries ul li {
   margin: 0;
   padding: 0.5rem 0;
-  padding-left: 10.5rem;
+  padding-left: 8.5rem;
   border-bottom: 1px solid var(--rule);
   line-height: 1.55;
 }
@@ -456,10 +456,13 @@ img { max-width: 100%; }
 
 .doc-entries ul li::marker { content: none; }
 
+/* The label's width equals the row's left padding, so the value's first
+   line begins exactly where its wrapped lines do. */
 .doc-entries ul li strong:first-child {
   display: inline-block;
-  width: 9.5rem;
-  margin-left: -10.5rem;
+  box-sizing: border-box;
+  width: 8.5rem;
+  margin-left: -8.5rem;
   padding-right: 1rem;
   color: var(--muted);
   font-family: var(--grotesk);
