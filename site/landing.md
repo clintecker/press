@@ -22,6 +22,18 @@ software to learn. Then one command, `press all`, produces:
 Every edition is checked and verified against your source before it ships,
 so what a reader gets is exactly the book you wrote.
 
+## Made with press
+
+Real books, built with this pipeline — each is its own reading website press
+produced:
+
+- [**Mostly Done.**](https://2389-research.github.io/mostly-done/) — *A Brief
+  Treatise on the Several Conditions under which Software may be Declared
+  Finished.* press was extracted from its production, so the tool inherits
+  the scars of making it.
+- [**Make Ready**](https://clintecker.github.io/make-ready/) — *A Printer's
+  Manual for the Age of Mechanical Compositors,* by Clint Ecker.
+
 ## Start a book
 
 ```sh
