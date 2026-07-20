@@ -207,6 +207,36 @@ def test_release_gate_surfaces_a_config_error_even_when_qualified():
     assert any("https" in p for p in commerce.release_problems(bad, edition_qualified=True))
 
 
+@pytest.mark.parametrize(("problems", "release", "expected"), [
+    ([], False, 0),
+    (["edition has no passed physical qualification"], False, 0),
+    (["edition has no passed physical qualification"], True, 1),
+])
+def test_cli_commerce_gate_is_advisory_locally_and_fail_closed_in_release(
+        problems, release, expected, monkeypatch, capsys, tmp_path):
+    """The CLI reports the same decision in both modes, but only a release
+    may be blocked. This restores proof of the branch added with commerce."""
+
+    from press import __main__ as cli, booklib
+
+    monkeypatch.setattr(booklib, "root", lambda: tmp_path)
+    monkeypatch.setattr(booklib, "book", lambda: object())
+    monkeypatch.setattr(
+        commerce, "release_gate", lambda root, book: (problems, "paperback"))
+    if release:
+        monkeypatch.setenv("PRESS_RELEASE", "1")
+    else:
+        monkeypatch.delenv("PRESS_RELEASE", raising=False)
+
+    assert cli._commerce_gate() == expected
+    output = capsys.readouterr().out
+    assert "commerce release gate: paperback" in output
+    if problems:
+        assert problems[0] in output
+    if problems and not release:
+        assert "advisory" in output
+
+
 # ---- the release gate (orchestrator, end to end) ----
 
 def _write_pdf(path, pages):

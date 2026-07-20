@@ -35,6 +35,22 @@ def test_lulu_is_the_primary_provider():
     assert provs["lulu"].disposition == "primary"
 
 
+def test_installed_package_falls_back_to_its_provider_record(monkeypatch, tmp_path):
+    monkeypatch.setattr(q, "SOURCE_RECORD", tmp_path / "no-repository-here.yaml")
+    record = q.load()
+    assert record["schema_version"] == q.SCHEMA_VERSION
+    assert "lulu" in record["providers"]
+
+
+def test_packaged_provider_record_cannot_drift_from_repository_copy(
+        monkeypatch, tmp_path):
+    stale = tmp_path / "providers.yaml"
+    stale.write_text("schema_version: 1\nproviders: {}\n", encoding="utf-8")
+    monkeypatch.setattr(q, "PACKAGED_RECORD", stale)
+    assert any("packaged provider record has drifted" in problem
+               for problem in q.validate())
+
+
 @pytest.mark.invariant("INV-provider-qualification")
 @pytest.mark.layer("unit")
 @pytest.mark.proof("negative")
@@ -119,6 +135,13 @@ def test_render_lists_the_checklist_and_providers():
     # Providers render as cards with their id and disposition.
     assert "## Lulu" in text and "`lulu`" in text
     assert "Primary provider" in text
+
+
+def test_qualification_cli_reports_the_validated_record(capsys):
+    assert q.main([]) == 0
+    output = capsys.readouterr().out
+    assert "provider qualification record holds" in output
+    assert "11-point physical checklist" in output
 
 
 # ---- helpers tying qualification to the edition manifest ----

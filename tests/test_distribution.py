@@ -75,6 +75,11 @@ def test_build_is_warning_free(tmp_path):
     assert not warnings, f"build emitted warnings (treated as failures): {warnings}"
 
 
+def test_wheel_carries_the_provider_qualification_record(tmp_path):
+    _output, members = _build(tmp_path)
+    assert "press/data/providers.yaml" in members
+
+
 def test_membership_is_stable_across_runs(tmp_path):
     """Two builds, one after running the scripts, produce the same
     logical member set (ignoring the dist filenames themselves)."""
