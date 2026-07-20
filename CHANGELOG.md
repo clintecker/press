@@ -9,7 +9,17 @@ audit).
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- Deprecation cleanup. `verify_coverwrap` reads pixels with `Image.tobytes()`
+  instead of the deprecated `Image.getdata()` (removed in Pillow 14), with a
+  press-scoped warning-to-error filter so it cannot creep back (#167); the
+  async fixture loop scope is pinned to `function` explicitly, matching the
+  suite's isolation law and ending the pytest-asyncio default-drift warning,
+  proven by a loop-identity and task-leak test (#169). The site's Pandoc
+  `--no-highlight` deprecation is already gone: the redesign turned
+  highlighting on and colors the tokens in CSS, so no deprecated flag is
+  passed (#170).
 
 ## [1.16.4] - 2026-07-20
 

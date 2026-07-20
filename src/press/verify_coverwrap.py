@@ -17,7 +17,6 @@ from __future__ import annotations
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import cast
 
 from PIL import Image, ImageStat
 
@@ -66,8 +65,9 @@ def scanline(image: Image.Image, trim_w: float, wrap_w: float,
     y0 = image.height - int((anchor_y + 1.4) * dpi)
     y1 = image.height - int((anchor_y - 0.1) * dpi)
     region = image.crop((x0, y0, x1, y1)).convert("L")
-    # L mode yields plain ints; Pillow types getdata across all modes.
-    pixels = cast("list[int]", list(region.getdata()))
+    # tobytes() on an L-mode image is one byte per pixel in row order, the
+    # same sequence getdata() returned (getdata is deprecated in Pillow 14).
+    pixels = list(region.tobytes())
     if not any(value > 245 for value in pixels):
         raise SystemExit("coverwrap barcode panel has no white card")
     if not any(value < 70 for value in pixels):
@@ -78,7 +78,7 @@ def scanline(image: Image.Image, trim_w: float, wrap_w: float,
     # 0.32in below the anchor; sample mid-bar height.
     row_y = image.height - int((anchor_y + 0.32 + 0.45) * dpi) - y0
     band = region.crop((0, row_y, region.width, row_y + 1))
-    row = [value < 128 for value in cast("list[int]", list(band.getdata()))]
+    row = [value < 128 for value in band.tobytes()]
     # The quiet zones are judged against where the symbol is SUPPOSED
     # to be (95 modules ending 0.15in inside the card's east edge, the
     # same numbers the generator laid down), never against observed

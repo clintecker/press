@@ -58,9 +58,20 @@ dev = [
 testpaths = ["tests"]
 addopts = "-q"
 asyncio_mode = "auto"
+# Function scope matches the suite's test-isolation law: each async test
+# gets its own event loop, so no task, timer, or loop-bound fixture outlives
+# the test that created it. Set explicitly so the behavior does not drift
+# with pytest-asyncio's changing default (#169).
+asyncio_default_fixture_loop_scope = "function"
 # The suite proves the press against real scaffolded books; a run that
 # collected nothing is a mistake, not a pass.
 python_files = ["test_*.py"]
+filterwarnings = [
+    # A press-owned call site that reintroduces Pillow's deprecated pixel
+    # access fails the suite rather than warning until Pillow 14 removes it
+    # (#167). Third-party deprecations stay visible but non-fatal.
+    "error:.*getdata.* is deprecated:DeprecationWarning:press.*",
+]
 markers = [
     "invariant: the ledger id this test proves (INV-...)",
     "layer: the test layer (unit, property, selftest, integration)",
