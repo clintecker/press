@@ -9,6 +9,15 @@ audit).
 
 ## [Unreleased]
 
+### Changed
+
+- Every pinned GitHub Action moved off the deprecated Node 20 runtime to its
+  current Node 24 release (checkout, setup-python, upload/download-artifact,
+  deploy-pages, upload-pages-artifact), each pinned by full commit SHA with
+  the reviewed version in a comment; the artifact inputs we use are
+  unchanged across the bump. A posture test fails if any action is ever
+  left unpinned by SHA (#179).
+
 ### Fixed
 
 - Deprecation cleanup. `verify_coverwrap` reads pixels with `Image.tobytes()`

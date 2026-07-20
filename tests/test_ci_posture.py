@@ -67,6 +67,28 @@ def _all_job_names() -> set[str]:
     return names
 
 
+@pytest.mark.parametrize("workflow", _workflow_files(), ids=lambda p: p.name)
+def test_every_action_is_pinned_by_full_commit_sha(workflow):
+    """Every third-party action is pinned to a 40-hex commit SHA with its
+    reviewed version in a trailing comment (#179): a floating tag (@v4,
+    @main) is a supply-chain and reproducibility hole, and the SHA is how a
+    runtime-deprecation bump is a reviewed, immutable change."""
+
+    unpinned = []
+    for line in workflow.read_text(encoding="utf-8").splitlines():
+        m = re.search(r"uses:\s*([\w.-]+/[\w.-]+(?:/[\w.-]+)?)@(\S+)", line)
+        if not m:
+            continue
+        owner_repo, ref = m.group(1), m.group(2)
+        # A local reusable workflow (./.github/...) or this repo's own action
+        # ref (clintecker/press@vN, the pinned release contract) is exempt.
+        if owner_repo.startswith("./") or owner_repo == "clintecker/press":
+            continue
+        if not re.fullmatch(r"[0-9a-f]{40}", ref):
+            unpinned.append(f"{workflow.name}: {owner_repo}@{ref}")
+    assert not unpinned, "actions must be pinned by full commit SHA:\n  " + "\n  ".join(unpinned)
+
+
 def test_no_pull_request_target_anywhere():
     """pull_request_target runs a fork's code with base-repo secrets; the
     press must never use it."""
