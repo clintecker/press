@@ -239,7 +239,33 @@ def _run_all(args: list[str]) -> int:
         return code
     from . import verify_archives
 
-    return verify_archives.main()
+    code = verify_archives.main()
+    if code:
+        return code
+    return _commerce_gate()
+
+
+def _commerce_gate() -> int:
+    """The print-ordering release gate: a book advertising ordering may not
+    ship unless its exact edition passed a physical qualification. Advisory
+    in a development build; fail-closed under PRESS_RELEASE, like the
+    witness gate."""
+
+    import os
+
+    from . import booklib, commerce
+
+    problems, summary = commerce.release_gate(booklib.root(), booklib.book())
+    print(f"commerce release gate: {summary}")
+    if not problems:
+        return 0
+    for problem in problems:
+        print(f"  - {problem}")
+    if os.environ.get("PRESS_RELEASE"):
+        return 1
+    print("(commerce gate is advisory here; a release build (PRESS_RELEASE=1) "
+          "enforces it)")
+    return 0
 
 
 def _run_render(args: list[str]) -> int:

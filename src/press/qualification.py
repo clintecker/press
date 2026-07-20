@@ -187,6 +187,28 @@ def qualify(inspection: PhysicalInspection, edition_id: str,
     return qualification, []
 
 
+def book_inspections(root: Path) -> list[PhysicalInspection]:
+    """The passed physical inspections a book declares in its optional
+    ``config/qualification.yaml`` -- the record that an ordered copy of a
+    named edition passed every checklist point. Empty when the file is
+    absent."""
+
+    path = root / "config" / "qualification.yaml"
+    if not path.is_file():
+        return []
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    out: list[PhysicalInspection] = []
+    for raw in data.get("inspections", ()):
+        out.append(PhysicalInspection(
+            edition_id=str(raw.get("edition_id", "")),
+            provider=str(raw.get("provider", "")),
+            product_id=str(raw.get("product_id", "")),
+            region=str(raw.get("region", "")),
+            inspector=str(raw.get("inspector", "")),
+            results=dict(raw.get("results", {}))))
+    return out
+
+
 def render(record: dict | None = None) -> str:
     """The human-readable projection of the record, generated so it cannot
     drift from the evidence it summarizes."""

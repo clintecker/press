@@ -618,6 +618,28 @@ def check_commerce_config() -> None:
             raise SystemExit(f"selftest: commerce verifier missed {needle!r}")
 
 
+def check_commerce_release_gate() -> None:
+    """The print-ordering release gate fails closed: a book advertising
+    ordering cannot ship unless its edition passed a physical
+    qualification; a book that sells nothing ships freely."""
+
+    from . import commerce
+
+    enabled = commerce.load({"commerce": {"print-ordering": {
+        "enabled": True, "edition": "paperback",
+        "storefront-url": "https://store.example.test/x", "seller-of-record": "Lulu",
+        "support-url": "https://ex.test/s", "privacy-url": "https://ex.test/p",
+        "refund-url": "https://ex.test/r"}}})
+    if not any("no passed physical qualification" in p
+               for p in commerce.release_problems(enabled, edition_qualified=False)):
+        raise SystemExit("selftest: release gate shipped an unqualified commerce edition")
+    if commerce.release_problems(enabled, edition_qualified=True):
+        raise SystemExit("selftest: release gate blocked a qualified, valid edition")
+    disabled = commerce.load({"commerce": {"print-ordering": {"enabled": False}}})
+    if commerce.release_problems(disabled, edition_qualified=False):
+        raise SystemExit("selftest: release gate blocked a book that sells nothing")
+
+
 def check_release_grammar() -> None:
     """The release script's tag validation, exercised without any
     network: exactly vN.x.y, and the composite action's command
@@ -1014,6 +1036,7 @@ CHECKS = [
     check_edition_manifest,
     check_provider_qualification,
     check_commerce_config,
+    check_commerce_release_gate,
     check_coverwrap_detectors,
     check_aesthetic_schema,
     check_contract_mirror,

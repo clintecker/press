@@ -162,3 +162,98 @@ def test_verifier_refuses_a_leaked_secret_in_a_page(tmp_path):
             "<!-- oops api_key=sk_live_leak --></body></html>")
     pages = _pages_with(page, tmp_path)
     assert any("leak a secret" in p for p in verify_pages.check_commerce(pages, cfg))
+
+
+# ---- the release gate (pure decision) ----
+
+def test_release_gate_ships_a_book_that_sells_nothing():
+    assert commerce.release_problems(None, edition_qualified=False) == []
+    assert commerce.release_problems(_cfg(enabled=False), edition_qualified=False) == []
+
+
+def test_release_gate_passes_a_qualified_valid_edition():
+    assert commerce.release_problems(_cfg(), edition_qualified=True) == []
+
+
+@pytest.mark.invariant("INV-commerce-release-gate")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
+def test_release_gate_refuses_an_unqualified_edition():
+    problems = commerce.release_problems(_cfg(), edition_qualified=False)
+    assert any("no passed physical qualification" in p for p in problems)
+
+
+@pytest.mark.invariant("INV-commerce-release-gate")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
+def test_release_gate_surfaces_a_config_error_even_when_qualified():
+    bad = _cfg(**{"storefront-url": "http://insecure"})
+    assert any("https" in p for p in commerce.release_problems(bad, edition_qualified=True))
+
+
+# ---- the release gate (orchestrator, end to end) ----
+
+def _write_pdf(path, pages):
+    from pypdf import PdfWriter
+
+    writer = PdfWriter()
+    for _ in range(pages):
+        writer.add_blank_page(width=432, height=648)
+    with open(path, "wb") as handle:
+        writer.write(handle)
+
+
+@pytest.mark.layer("integration")
+def test_release_gate_end_to_end(scaffolded_book, monkeypatch):
+    import yaml
+
+    from press import booklib, edition, qualification, registry
+
+    root = booklib.root()
+    slug = booklib.slug()
+    book = booklib.book()
+    (root / "dist").mkdir(exist_ok=True)
+    _write_pdf(edition.interior_path(root, slug), 88)
+    _write_pdf(edition.cover_path(root, slug), 1)
+
+    # Enable ordering in the book's metadata (clear the cached read).
+    meta_path = root / "config" / "metadata.yaml"
+    meta_path.write_text(meta_path.read_text() + (
+        "\ncommerce:\n  print-ordering:\n    enabled: true\n"
+        "    edition: paperback\n"
+        "    storefront-url: \"https://store.example.test/x\"\n"
+        "    seller-of-record: \"Lulu\"\n"
+        "    support-url: \"https://ex.test/s\"\n"
+        "    privacy-url: \"https://ex.test/p\"\n"
+        "    refund-url: \"https://ex.test/r\"\n"), encoding="utf-8")
+    booklib.metadata.cache_clear()
+    # The print pack is already on disk; do not rebuild it in the test.
+    monkeypatch.setattr(registry, "build", lambda name: None)
+
+    # The edition identity the gate will compute, to scope the inspection.
+    manifest = edition.build([], root=root, book=book, fmt="paperback")
+    qual_path = root / "config" / "qualification.yaml"
+
+    def write_inspection(edition_id):
+        qual_path.write_text(yaml.safe_dump({"schema_version": 1, "inspections": [{
+            "provider": "lulu", "product_id": "PB-BW-6x9", "region": "US",
+            "edition_id": edition_id, "inspector": "tester",
+            "results": {p: "pass" for p in qualification.REQUIRED_CHECKLIST}}]}),
+            encoding="utf-8")
+
+    # With a passed inspection scoped to this edition, the gate is green.
+    write_inspection(manifest.edition_id)
+    problems, summary = commerce.release_gate(root, book)
+    assert problems == [], problems
+    assert "1 passed qualification" in summary
+
+    # An inspection of a different edition is stale: the gate fails closed.
+    write_inspection("a-different-edition-id")
+    problems, _ = commerce.release_gate(root, book)
+    assert any("no passed physical qualification" in p or "different edition" in p
+               for p in problems)
+
+    # No qualification file at all: fail closed.
+    qual_path.unlink()
+    problems, _ = commerce.release_gate(root, book)
+    assert any("no passed physical qualification" in p for p in problems)

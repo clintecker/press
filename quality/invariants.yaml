@@ -453,3 +453,25 @@ invariants:
       shape; it cannot confirm the storefront URL is reachable or that the
       linked product is the qualified edition (the release gate and
       physical qualification do that).
+
+  - id: INV-commerce-release-gate
+    statement: >-
+      A book that advertises print ordering may not ship a release unless
+      its config is valid and its exact edition passed a physical
+      qualification; a missing, invalid, or unqualified edition fails the
+      release gate closed, while a book that sells nothing ships freely.
+    risk: >-
+      A book publishes an "order a print copy" link for an edition no one
+      has verified a provider can actually print.
+    criticality: standard
+    owner: commerce
+    enforcer: commerce.release_problems
+    layers: [selftest, pytest]
+    negative: [check_commerce_release_gate]
+    ci_tier: quality
+    limitations: >-
+      The pure gate decides on the config and whether the edition is
+      qualified; the orchestrator that builds the edition identity from the
+      print pack and matches inspections against it is proven by the pytest
+      component test, and enforcement is release-gated (PRESS_RELEASE),
+      advisory otherwise.
