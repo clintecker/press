@@ -226,13 +226,27 @@ def render() -> str:
             "",
             inv["statement"],
             "",
-            f"- **If it breaks** {inv['risk']}",
-            f"- **Enforced by** `{inv['enforcer']}`",
-            f"- **Tested by** {proofs}",
-            f"- **Known limit** {inv['limitations']}",
-            "",
         ]
+        lines += _field_table([
+            ("If it breaks", inv["risk"]),
+            ("Enforced by", f"`{inv['enforcer']}`"),
+            ("Tested by", proofs),
+            ("Known limit", inv["limitations"]),
+        ])
+        lines.append("")
     return "\n".join(lines)
+
+
+def _field_table(rows: list[tuple[str, str]]) -> list[str]:
+    """A small two-column label/value table, headerless (its empty header
+    row is hidden on the site). A real table aligns and wraps its own
+    values -- one small table per record, not one table for everything."""
+
+    lines = ["| | |", "|---|---|"]
+    for label, value in rows:
+        cell = " ".join(str(value).split()).replace("|", "\\|")
+        lines.append(f"| **{label}** | {cell} |")
+    return lines
 
 
 def main() -> int:

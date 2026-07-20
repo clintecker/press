@@ -6,17 +6,19 @@ A provider here is *researched*, not *qualified*: an edition becomes qualified f
 
 **Physical inspection** — order a copy through the real route; every point must pass, none may be skipped:
 
-- **content** the interior text matches the release-approved manuscript
-- **pagination** page count and page order match the manifest
-- **trim** the cut size matches the declared trim within tolerance
-- **bleed** full-bleed art reaches the trimmed edge without white slivers
-- **spine** spine text is centred and square for the page count
-- **barcode** the EAN-13 scans and matches the declared ISBN
-- **color** single-ink interior and cover reproduce as specified
-- **paper** stock weight and shade match the declared paper
-- **binding** the binding is square, tight, and opens flat enough to read
-- **packaging** the copy arrives undamaged and appropriately protected
-- **tracking** the tracking link resolves and matches the destination
+| | |
+|---|---|
+| **content** | the interior text matches the release-approved manuscript |
+| **pagination** | page count and page order match the manifest |
+| **trim** | the cut size matches the declared trim within tolerance |
+| **bleed** | full-bleed art reaches the trimmed edge without white slivers |
+| **spine** | spine text is centred and square for the page count |
+| **barcode** | the EAN-13 scans and matches the declared ISBN |
+| **color** | single-ink interior and cover reproduce as specified |
+| **paper** | stock weight and shade match the declared paper |
+| **binding** | the binding is square, tight, and opens flat enough to read |
+| **packaging** | the copy arrives undamaged and appropriately protected |
+| **tracking** | the tracking link resolves and matches the destination |
 
 ## Lulu
 
@@ -24,12 +26,14 @@ A provider here is *researched*, not *qualified*: an edition becomes qualified f
 
 Primary provider for the seller-of-record storefront route and, if the publisher ever becomes merchant of record, the first custom-API adapter.
 
-- **Routes** custom-api, lulu-direct-shopify, lulu-direct-wix, lulu-direct-woocommerce
-- **Supported** api, file validation, one copy pod, order creation, pricing api, sandbox, shipping, worldwide
-- **Unsupported** seller of record
-- **Unknown** cancellation, webhooks
-- **Open questions** exact trim/paper/binding qualification for the press 6x9 single-ink object; cancellation and webhook semantics; commercial terms and per-region production sites
-- **Evidence** [developers.lulu.com](https://developers.lulu.com/home) · [www.lulu.com](https://www.lulu.com/sell) · [developers.lulu.com](https://developers.lulu.com/privacy-policy)
+| | |
+|---|---|
+| **Routes** | custom-api, lulu-direct-shopify, lulu-direct-wix, lulu-direct-woocommerce |
+| **Supported** | api, file validation, one copy pod, order creation, pricing api, sandbox, shipping, worldwide |
+| **Unsupported** | seller of record |
+| **Unknown** | cancellation, webhooks |
+| **Open questions** | exact trim/paper/binding qualification for the press 6x9 single-ink object; cancellation and webhook semantics; commercial terms and per-region production sites |
+| **Evidence** | [developers.lulu.com](https://developers.lulu.com/home) · [www.lulu.com](https://www.lulu.com/sell) · [developers.lulu.com](https://developers.lulu.com/privacy-policy) |
 
 ## Bookvault
 
@@ -37,12 +41,14 @@ Primary provider for the seller-of-record storefront route and, if the publisher
 
 Preferred second adapter and a strong hosted-commerce route, especially for special editions.
 
-- **Routes** custom-api, shopify, woocommerce, wix, payhip
-- **Supported** api, one copy pod, order creation, shipping
-- **Unsupported** seller of record
-- **Unknown** cancellation, file validation, pricing api, sandbox, webhooks, worldwide
-- **Open questions** API contract, sandbox, webhook, region coverage, account-funding behavior
-- **Evidence** [help.bookvault.app](https://help.bookvault.app/how-much-does-it-cost-to-print-and-ship-my-book) · [help.bookvault.app](https://help.bookvault.app/i-have-connected-my-store-to-bookvault-how-do-i-pay-for-the-orders)
+| | |
+|---|---|
+| **Routes** | custom-api, shopify, woocommerce, wix, payhip |
+| **Supported** | api, one copy pod, order creation, shipping |
+| **Unsupported** | seller of record |
+| **Unknown** | cancellation, file validation, pricing api, sandbox, webhooks, worldwide |
+| **Open questions** | API contract, sandbox, webhook, region coverage, account-funding behavior |
+| **Evidence** | [help.bookvault.app](https://help.bookvault.app/how-much-does-it-cost-to-print-and-ship-my-book) · [help.bookvault.app](https://help.bookvault.app/i-have-connected-my-store-to-bookvault-how-do-i-pay-for-the-orders) |
 
 ## Peecho
 
@@ -50,11 +56,13 @@ Preferred second adapter and a strong hosted-commerce route, especially for spec
 
 Best route when avoiding merchant-of-record work matters, because Peecho can be the seller of record.
 
-- **Routes** hosted-checkout, seller-of-record, custom-api
-- **Supported** api, one copy pod, order creation, pricing api, seller of record, shipping, worldwide
-- **Unknown** cancellation, file validation, sandbox, webhooks
-- **Open questions** trade-book geometry and monochrome economics; data terms, checkout branding, support ownership, API access
-- **Evidence** [www.peecho.com](https://www.peecho.com/solutions/print-api) · [www.peecho.com](https://www.peecho.com/self-publishing)
+| | |
+|---|---|
+| **Routes** | hosted-checkout, seller-of-record, custom-api |
+| **Supported** | api, one copy pod, order creation, pricing api, seller of record, shipping, worldwide |
+| **Unknown** | cancellation, file validation, sandbox, webhooks |
+| **Open questions** | trade-book geometry and monochrome economics; data terms, checkout branding, support ownership, API access |
+| **Evidence** | [www.peecho.com](https://www.peecho.com/solutions/print-api) · [www.peecho.com](https://www.peecho.com/self-publishing) |
 
 ## Mixam
 
@@ -62,13 +70,15 @@ Best route when avoiding merchant-of-record work matters, because Peecho can be 
 
 Good hosted-checkout candidate; do not make it a first custom adapter without sandbox and contract review.
 
-- **Routes** printlink, shopify, api-by-approval
-- **Supported** one copy pod, order creation, shipping
-- **By approval** api
-- **Unsupported** seller of record
-- **Unknown** cancellation, file validation, pricing api, sandbox, webhooks, worldwide
-- **Open questions** API access is approval-gated; public technical material is thin
-- **Evidence** [d1e8vjamx1ssze.cloudfront.net](https://d1e8vjamx1ssze.cloudfront.net/support/how-to-print-a-book.pdf) · [apps.shopify.com](https://apps.shopify.com/mixam)
+| | |
+|---|---|
+| **Routes** | printlink, shopify, api-by-approval |
+| **Supported** | one copy pod, order creation, shipping |
+| **By approval** | api |
+| **Unsupported** | seller of record |
+| **Unknown** | cancellation, file validation, pricing api, sandbox, webhooks, worldwide |
+| **Open questions** | API access is approval-gated; public technical material is thin |
+| **Evidence** | [d1e8vjamx1ssze.cloudfront.net](https://d1e8vjamx1ssze.cloudfront.net/support/how-to-print-a-book.pdf) · [apps.shopify.com](https://apps.shopify.com/mixam) |
 
 ## Cloudprinter
 
@@ -76,12 +86,14 @@ Good hosted-checkout candidate; do not make it a first custom adapter without sa
 
 Strong multi-provider/network candidate for geographic routing and resilience; requalify per production site.
 
-- **Routes** custom-api, commerce-integrations
-- **Supported** api, one copy pod, order creation, pricing api, sandbox, shipping, webhooks, worldwide
-- **Unsupported** seller of record
-- **Unknown** cancellation, file validation
-- **Open questions** variable production sites complicate physical consistency and qualification
-- **Evidence** [www.cloudprinter.com](https://www.cloudprinter.com/)
+| | |
+|---|---|
+| **Routes** | custom-api, commerce-integrations |
+| **Supported** | api, one copy pod, order creation, pricing api, sandbox, shipping, webhooks, worldwide |
+| **Unsupported** | seller of record |
+| **Unknown** | cancellation, file validation |
+| **Open questions** | variable production sites complicate physical consistency and qualification |
+| **Evidence** | [www.cloudprinter.com](https://www.cloudprinter.com/) |
 
 ## Prodigi
 
@@ -89,12 +101,14 @@ Strong multi-provider/network candidate for geographic routing and resilience; r
 
 Technically credible, product-fit uncertain for trade books.
 
-- **Routes** custom-api, commerce
-- **Supported** api, one copy pod, order creation, pricing api, sandbox, shipping, worldwide
-- **Unsupported** seller of record
-- **Unknown** cancellation, file validation, webhooks
-- **Open questions** range leans to photo books/magazines; trade-book typography and black-only interiors need qualification
-- **Evidence** [www.prodigi.com](https://www.prodigi.com/print-api/docs/)
+| | |
+|---|---|
+| **Routes** | custom-api, commerce |
+| **Supported** | api, one copy pod, order creation, pricing api, sandbox, shipping, worldwide |
+| **Unsupported** | seller of record |
+| **Unknown** | cancellation, file validation, webhooks |
+| **Open questions** | range leans to photo books/magazines; trade-book typography and black-only interiors need qualification |
+| **Evidence** | [www.prodigi.com](https://www.prodigi.com/print-api/docs/) |
 
 ## Onpress
 
@@ -102,10 +116,12 @@ Technically credible, product-fit uncertain for trade books.
 
 Obtain auth, quote, idempotency, status, cancellation, sandbox, SLA, and privacy terms before reconsidering.
 
-- **Routes** custom-api
-- **Unknown** api, cancellation, file validation, one copy pod, order creation, pricing api, sandbox, seller of record, shipping, webhooks, worldwide
-- **Open questions** public operational/API detail is insufficient for a release commitment
-- **Evidence** [www.onpressbookprinting.com](https://www.onpressbookprinting.com/resources/book-printing-api)
+| | |
+|---|---|
+| **Routes** | custom-api |
+| **Unknown** | api, cancellation, file validation, one copy pod, order creation, pricing api, sandbox, seller of record, shipping, webhooks, worldwide |
+| **Open questions** | public operational/API detail is insufficient for a release commitment |
+| **Evidence** | [www.onpressbookprinting.com](https://www.onpressbookprinting.com/resources/book-printing-api) |
 
 ## Print Bind Ship
 
@@ -113,13 +129,15 @@ Obtain auth, quote, idempotency, status, cancellation, sandbox, SLA, and privacy
 
 Later 3PL/volume route if inventory, kitting, or mixed POD/stock fulfillment becomes important.
 
-- **Routes** shopify, woocommerce, custom-api, portal
-- **Supported** one copy pod, order creation, shipping
-- **By approval** api
-- **Unsupported** seller of record
-- **Unknown** cancellation, file validation, pricing api, sandbox, webhooks, worldwide
-- **Open questions** more sales- and contract-led than a self-service API
-- **Evidence** [printbindship.com](https://printbindship.com/book-fulfillment-services/)
+| | |
+|---|---|
+| **Routes** | shopify, woocommerce, custom-api, portal |
+| **Supported** | one copy pod, order creation, shipping |
+| **By approval** | api |
+| **Unsupported** | seller of record |
+| **Unknown** | cancellation, file validation, pricing api, sandbox, webhooks, worldwide |
+| **Open questions** | more sales- and contract-led than a self-service API |
+| **Evidence** | [printbindship.com](https://printbindship.com/book-fulfillment-services/) |
 
 ## 48 Hour Books
 
@@ -127,9 +145,11 @@ Later 3PL/volume route if inventory, kitting, or mixed POD/stock fulfillment bec
 
 Not a one-reader/one-copy adapter; keep as a bulk proof or launch-stock option only.
 
-- **Routes** manual-short-run
-- **Supported** shipping
-- **Unsupported** api, one copy pod, order creation, pricing api, sandbox, seller of record, webhooks, worldwide
-- **Unknown** cancellation, file validation
-- **Open questions** none material -- the 10-copy minimum rules out one-reader/one-copy
-- **Evidence** [www.48hrbooks.com](https://www.48hrbooks.com/faq)
+| | |
+|---|---|
+| **Routes** | manual-short-run |
+| **Supported** | shipping |
+| **Unsupported** | api, one copy pod, order creation, pricing api, sandbox, seller of record, webhooks, worldwide |
+| **Unknown** | cancellation, file validation |
+| **Open questions** | none material -- the 10-copy minimum rules out one-reader/one-copy |
+| **Evidence** | [www.48hrbooks.com](https://www.48hrbooks.com/faq) |

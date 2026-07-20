@@ -271,15 +271,23 @@ def render(record: dict | None = None) -> str:
         "point must pass, none may be skipped:",
         "",
     ]
-    for point in record.get("physical_checklist", ()):
-        help_text = CHECKLIST_HELP.get(point, "")
-        lines.append(f"- **{point}** {help_text}" if help_text else f"- {point}")
+    lines += _field_table([
+        (point, CHECKLIST_HELP.get(point, ""))
+        for point in record.get("physical_checklist", ())])
     lines.append("")
 
     for name, prov in providers(record).items():
         by_value: dict[str, list[str]] = {}
         for cap, value in prov.capabilities.items():
             by_value.setdefault(value, []).append(cap.replace("_", " "))
+        rows = [("Routes", ", ".join(prov.routes))]
+        for value in ("supported", "by_approval", "unsupported", "unknown"):
+            if by_value.get(value):
+                rows.append((_CAP_LABELS[value], ", ".join(sorted(by_value[value]))))
+        if prov.unknowns:
+            rows.append(("Open questions", "; ".join(prov.unknowns)))
+        if prov.evidence:
+            rows.append(("Evidence", _evidence_links(prov)))
         lines += [
             f"## {name.replace('-', ' ').title()}",
             "",
@@ -287,17 +295,21 @@ def render(record: dict | None = None) -> str:
             "",
             prov.notes,
             "",
-            f"- **Routes** {', '.join(prov.routes)}",
         ]
-        for value in ("supported", "by_approval", "unsupported", "unknown"):
-            if by_value.get(value):
-                lines.append(f"- **{_CAP_LABELS[value]}** {', '.join(sorted(by_value[value]))}")
-        if prov.unknowns:
-            lines.append(f"- **Open questions** {'; '.join(prov.unknowns)}")
-        if prov.evidence:
-            lines.append(f"- **Evidence** {_evidence_links(prov)}")
+        lines += _field_table(rows)
         lines.append("")
     return "\n".join(lines)
+
+
+def _field_table(rows: list[tuple[str, str]]) -> list[str]:
+    """A small two-column label/value table (headerless; its empty header
+    is hidden on the site) -- one small table per record."""
+
+    lines = ["| | |", "|---|---|"]
+    for label, value in rows:
+        cell = " ".join(str(value).split()).replace("|", "\\|")
+        lines.append(f"| **{label}** | {cell} |")
+    return lines
 
 
 def main(argv: list[str] | None = None) -> int:
