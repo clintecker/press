@@ -9,6 +9,15 @@ audit).
 
 ## [Unreleased]
 
+### Added
+
+- Every documentation-site page declares its language (`<html lang="en">`),
+  exposes one `main` landmark, and leads with a skip-to-content link as the
+  first focusable element; the build fails if a page lacks any of them
+  (#157). The CSS-only mobile menu shows a focus ring on its toggle so it is
+  operable and visible by keyboard (#156). (Internal doc links already stay
+  on the site rather than bouncing to GitHub, #159.)
+
 ### Changed
 
 - Every pinned GitHub Action moved off the deprecated Node 20 runtime to its

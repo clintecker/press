@@ -303,3 +303,18 @@ nav[aria-label="Site"] a[aria-current="page"]::before{
 /* ---- Accessibility ----------------------------------------- */
 :focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:2px}
 @media (prefers-reduced-motion:reduce){*{transition:none !important; scroll-behavior:auto !important}}
+
+/* Skip link: off-screen until focused, then a visible chip at top-left so a
+   keyboard/AT user jumps past the nav to the content. */
+.skip-link{
+  position:absolute; left:8px; top:-52px; z-index:50;
+  background:var(--accent); color:var(--paper); font-family:var(--sans);
+  font-weight:600; font-size:var(--ui); text-decoration:none;
+  padding:8px 14px; border-radius:8px; transition:top .12s ease;
+}
+.skip-link:focus{top:8px}
+
+/* The CSS-only mobile menu is keyboard-operable: the toggle checkbox is
+   focusable (Tab) and switched with Space; show a focus ring on the burger
+   while the hidden checkbox has focus so the control is visible (#156). */
+.nav-toggle:focus-visible + .nav-burger{outline:2px solid var(--accent); outline-offset:2px}

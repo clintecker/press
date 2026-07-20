@@ -197,6 +197,9 @@ def build_page(source: str, name: str, label: str) -> None:
             "--from=markdown",
             "--to=html5",
             f"--metadata=pagetitle:{title}",
+            # Emit <html lang="en"> for assistive tech and correct
+            # hyphenation/voice (#157).
+            "--metadata=lang=en",
             "--css=press.css",
             f"--include-before-body={nav_file}",
             f"--include-after-body={footer_file}",
@@ -221,9 +224,16 @@ def build_page(source: str, name: str, label: str) -> None:
     # toolbar and the colophon, so the whole column is a single centered
     # container and no element can detach from it. The toolbar and footer
     # stay full-width outside it.
-    html = html.replace("</header>", '</header>\n<main class="prose">', 1)
+    html = html.replace("</header>",
+                        '</header>\n<main class="prose" id="main-content">', 1)
     html = html.replace('<footer class="colophon">',
                         '</main>\n<footer class="colophon">', 1)
+    # A skip link is the first focusable element, so a keyboard or screen
+    # reader user can jump past the nav straight to the content (#157).
+    html = re.sub(
+        r"(<body[^>]*>)",
+        r'\1\n<a class="skip-link" href="#main-content">Skip to content</a>',
+        html, count=1)
     html = rewrite_internal_links(html)
     # The one script: a progressive-enhancement copy button on code blocks.
     # Deferred and optional; the page is complete without it.
@@ -280,6 +290,31 @@ def check_internal_links() -> None:
         )
 
 
+def check_accessibility() -> None:
+    """Every page carries the landmark semantics assistive tech relies on: a
+    declared language, one `main` landmark, and a skip-to-content link as the
+    first focusable element (#157). A page missing any is a build failure,
+    not a silent regression."""
+
+    required = {
+        'lang="en"': "a declared document language",
+        '<main ': "a main landmark",
+        'class="skip-link"': "a skip-to-content link",
+        'id="main-content"': "a skip-link target",
+    }
+    problems = []
+    for page in OUT.glob("*.html"):
+        html = page.read_text(encoding="utf-8")
+        for needle, what in required.items():
+            if needle not in html:
+                problems.append(f"{page.name}: missing {what}")
+    if problems:
+        raise SystemExit(
+            "site pages lack accessibility landmarks:\n"
+            + "\n".join(f"  - {p}" for p in problems)
+        )
+
+
 def main() -> int:
     check_completeness()
     if OUT.exists():
@@ -292,6 +327,7 @@ def main() -> int:
         build_page(source, name, label)
     check_links()
     check_internal_links()
+    check_accessibility()
     pages = len(PAGES) + len(FOOTER_PAGES)
     print(f"+ built press site -> {OUT.relative_to(ROOT)} ({pages} pages)")
     return 0
