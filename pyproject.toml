@@ -107,8 +107,8 @@ select = ["E", "F", "W", "C90"]
 ignore = ["E501"]
 
 [tool.ruff.lint.mccabe]
-# The complexity gate is law for new code; the survivors above it are
-# inventoried with noqa: C901 and tracked for burn-down.
+# The complexity gate is law; the burn-down is complete, so there are no
+# noqa: C901 survivors. Decompose rather than adding one.
 max-complexity = 15
 
 [tool.mypy]

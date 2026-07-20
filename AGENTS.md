@@ -21,11 +21,15 @@ book repository that consumes this package.
   private book working with no cross-repo token and pins the installed
   press to the exact action ref; do not replace it with pip-from-git.
 - `scripts/build_site.py` + `site/press.css` build the press's own
-  documentation site (README, docs/, CHANGELOG, CONTRIBUTING through
-  pandoc, link-checked); `.github/workflows/docs-site.yml` deploys it
-  to <https://clintecker.github.io/press/> on every push to main. The
-  site carries no hand-written content, so it cannot drift from the
-  repo.
+  documentation site (its home is `site/landing.md`, written for a
+  first-time author; then the `docs/` suite, CHANGELOG, ROADMAP, and
+  CONTRIBUTING/SUPPORT/SECURITY through pandoc) with a grouped left-sidebar
+  nav, theme-aware syntax highlighting, canonical/social metadata, and
+  build-time link, on-site-link, and accessibility checks; `README.md` is
+  the repository front page and stays off the site (NOT_PUBLISHED).
+  `.github/workflows/docs-site.yml` deploys it to
+  <https://clintecker.github.io/press/> on every push to main. The site's
+  content is generated from the repo, so it cannot drift.
 - `.github/workflows/build.yml` is the reusable workflow books call. It
   hardcodes the press action ref and the toolchain image tag; they are part
   of the pinned contract.
@@ -49,7 +53,9 @@ book repository that consumes this package.
   of agent prose (epigram compulsion with a two-maxim quota, uniform
   rhetorical rhythm, self-annotation) because "apply the skills" alone
   produces locally-obedient, globally-patterned prose. Its siblings:
-  `authorities-research` (the sources ledger) and `art-direction` (reads
+  `authorities-research` (the sources ledger), `aesthetic-brief` (drafts
+  `config/aesthetic.yaml` from an author's one-line brief, behind
+  `press aesthetic "<brief>"`), and `art-direction` (reads
   the manuscript, applies the design skills, writes `art/commissions.md`
   with paste-ready image-model prompts; results come back in through
   `press art accept <file> --as cover|plate:<name>|logomark|portrait`,
@@ -100,6 +106,12 @@ failure is the recovery procedure. For a new major, also move the
 requirements pin in the template.
 
 ## Config a book supplies
+
+Every field below can be read, written, and validated with
+`press config get|set|unset|list|validate` (each write is checked by the
+same typed model that validates a build, before a byte is touched), or from
+the operator desk's setup wizard (`press desk`, then `w`); hand-editing the
+YAML remains available for experts.
 
 - `config/metadata.yaml`: identity plus press facts (`slug`, `repository`,
   `site-url`) and verification knobs (`verify-sentinels`,

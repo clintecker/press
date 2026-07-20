@@ -12,9 +12,13 @@
   [quickstart](https://github.com/clintecker/press/blob/main/docs/QUICKSTART.md):
   the copyable first-run path from a blank machine to a verified book,
   with a table of common refusals and their fixes.
-- The documentation lives in the
-  [installation guide](https://github.com/clintecker/press/blob/main/docs/INSTALL.md)
-  and the
-  [architecture guide](https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md);
+- The documentation lives at the docs site,
+  <https://clintecker.github.io/press/>: the
+  [quickstart](https://github.com/clintecker/press/blob/main/docs/QUICKSTART.md),
+  [installation](https://github.com/clintecker/press/blob/main/docs/INSTALL.md),
+  [configuration](https://github.com/clintecker/press/blob/main/docs/CONFIGURATION.md),
+  [command reference](https://github.com/clintecker/press/blob/main/docs/REFERENCE.md),
+  [architecture](https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md),
+  and [desk](https://github.com/clintecker/press/blob/main/docs/DESK.md) guides;
   each book also carries its own scaffolded `CLAUDE.md` describing the
   commands and laws from inside a book.

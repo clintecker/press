@@ -45,6 +45,15 @@ wrong even when it works:
 - `instruments`, `operator`, `art`, `art_commission` — the packaged
   skills and agent workflows, their headless drivers, and the art
   department's commission/accept cycle.
+- `config_cli` / `config_store` / `config_schema` — `press config`, the
+  validated read/write surface over every book-configuration field: a
+  comment-preserving round-trip write, checked by the real typed model
+  before a byte is touched.
+- `desk/` — the optional operator desk (the `tui` extra), a terminal
+  interface and setup wizard over the same targets and config boundary;
+  the CLI and desk are built from the one `catalog`, so they cannot drift.
+- `yamlio` — the single YAML door (ruamel at YAML 1.2); no module reads or
+  writes YAML any other way.
 - `selftest`, `doctor` — the press checking itself and the machine
   it runs on.
 

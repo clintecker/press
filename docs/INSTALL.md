@@ -20,7 +20,7 @@ Pip-from-git at a tag is the supported installation channel; the
 press is not published to PyPI, and nothing in its metadata should
 imply otherwise (releases live on GitHub, and books consume the
 composite action). `@v1` floats with the latest compatible release;
-pin a three-part tag (`@v1.6.0`) for an immutable pipeline. For
+pin a three-part tag (`@v1.17.0`) for an immutable pipeline. For
 development, clone and `pip install -e .`.
 
 ## The toolchain by platform

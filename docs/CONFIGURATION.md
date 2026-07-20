@@ -61,8 +61,9 @@ verify-sentinels:
 verify-min-pages: 40
 ```
 
-- `title` and `author` are required; `author` may be a single string
-  or a list. `check` additionally requires `description` and `slug`.
+- `title`, `author`, and `slug` are required by the typed model on every
+  load; `author` may be a single string or a list. `check` additionally
+  requires `description`.
 - `slug` must match `[a-z0-9][a-z0-9-]*` exactly: it becomes every
   artifact's basename, so dots, spaces, and shell- or HTML-active
   characters are refused.

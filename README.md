@@ -100,7 +100,9 @@ on.
   optional operator desk: a terminal interface over these same targets
   that reads facts from the registries and runs every action as a
   `press` child (`pip install 'press[tui]'`).
-- Utilities: `render wordcount clean new selftest doctor` --
+- Utilities: `render wordcount clean new config selftest doctor` --
+  `press config get|set|unset|list|validate` reads and writes every book
+  configuration field, validating each value before it writes;
   `press doctor` examines every external dependency and says what
   works, what is missing, and what each absence costs; `press selftest`
   is the press checking itself: module imports, check-digit arithmetic,

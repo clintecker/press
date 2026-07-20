@@ -13,8 +13,8 @@ as objects, scars become law).
   code), mypy, shellcheck, yamllint, pymarkdown, TOML/JSON validity,
   and the selftest. CI runs the identical battery via
   `pre-commit run --all-files`, so the hook only saves you the round
-  trip. Functions above the complexity ceiling carry `# noqa: C901`
-  as a tracked inventory, not a license; do not add new ones.
+  trip. The complexity ceiling is enforced with no current exceptions;
+  do not introduce a `# noqa: C901`, decompose instead.
 - Prove changes against a real book: scaffold one (`press new`) or use
   your own, and run `press all`. A green `pip install` is not a
   working pipeline.

@@ -26,7 +26,8 @@ deliberate, unmistakably *designed* without decoration.
 docs, Stripe/Tailwind-caliber." Cool graphite is more screen-native and disappears behind the text.
 The one warm ink keeps the press's soul and does all the identity work, so nothing else has to.
 
-**Density.** Reference docs, not an essay. Reading measure ~**66ch**; body **17px / 1.62**; headings
+**Density.** Reference docs, not an essay. Reading measure **42rem**; body scales from
+~17px on a phone to ~34px on a wide desktop (a fluid root, line-height 1.62); headings
 tight; generous-but-compact vertical rhythm on a 4px grid. Tables and code get a wider measure and
 sit at comfortable-but-dense padding.
 
@@ -70,10 +71,12 @@ Everything is a CSS custom property so the whole system re-themes from one `:roo
 }
 ```
 
-**Two-ink rule.** `--accent` is one restrained hue. Use it for: the wordmark `.mark` dot, the
-current-page underline, `blockquote`/record left-rules, list `::marker`s, and focus rings. Use
-`--accent-ink` (a deeper cut) for **link and emphasis text** so it clears AA at body size. Never
-introduce a second accent hue (no separate "link blue"); calm comes from restraint.
+**Two-ink rule.** In the chrome and prose, `--accent` is one restrained hue. Use it for: the
+wordmark `.mark` dot, the current-page tick, `blockquote`/record left-rules, list `::marker`s,
+and focus rings. Use `--accent-ink` (a deeper cut) for **link and emphasis text** so it clears
+AA at body size. Do not introduce a second accent hue in the chrome or prose (no separate "link
+blue"); calm comes from restraint. The one deliberate exception is code: syntax highlighting
+carries its own small, quiet palette (see Code below).
 
 **Contrast — WCAG AA verified** (WCAG 2 relative-luminance; AAA is ≥7:1, AA ≥4.5:1):
 
@@ -109,7 +112,10 @@ voice. All three are open (OFL) and **self-hostable as `woff2`**.
 600 / 700 / 800 · JetBrains Mono 400 / 500 / 600. Subset to Latin. *No Google Fonts, no CDN* — the
 canvas preview uses a web-font CDN for iteration only.
 
-**Type scale** (base 17px; a compact modular-ish ramp tuned for scanning, not an essay):
+**Type scale** — rem-based over a fluid root (`html` font-size
+`clamp(17px, 1.3vw + 9px, 34px)`), so the whole document grows on wide
+viewports; the chrome uses a gentler `--ui` scale so the sidebar stays
+sane. The px figures below are the mobile/base rendering:
 
 | Element | Family / weight | Size / line-height | Notes |
 |---|---|---|---|
@@ -117,7 +123,7 @@ canvas preview uses a web-font CDN for iteration only.
 | `h2` | Hanken 700 | 23px / 1.20, `-0.012em` | **top hairline** — signals a new section at a glance |
 | `h3` | Hanken 700 | 18px / 1.3 | subsection |
 | `h4` | Hanken 700 | 12.5px / 1.3, **uppercase**, `0.08em` | label-grade heading |
-| body `p` | Literata 400 | 17px / 1.62 | reading measure ~66ch |
+| body `p` | Literata 400 | 17px / 1.62 (base) | reading measure 42rem |
 | small / UI | Hanken 500 | 13.5–14px | nav, footer, captions |
 | block code | JetBrains 400 | 13.5px / 1.6 | |
 | inline code | JetBrains 400 | 0.85em | chip, see §4 |
@@ -151,7 +157,13 @@ lighter; `h4` drops to uppercase label grade. You can read the outline depth fro
 ### Code  `pre > code`, inline `code`
 
 - **Block**: `--surface` panel, `1px --rule` border, `9px` radius, `16–18px` padding, `overflow-x:auto`.
-  Monochrome (highlighting is off — no spans to color). JetBrains 13.5/1.6.
+  JetBrains, ~0.84rem/1.6. Pandoc emits skylighting token classes, which
+  press.css colors with a quiet, theme-aware palette (comments recede in
+  italic via `--hl-comment`, strings `--hl-string`, keywords `--hl-keyword`,
+  numbers `--hl-number`, command and function names take the accent,
+  attributes `--hl-attr`); un-tokenized text stays `--code-ink`, so plain
+  and console blocks read cleanly. A copy button (the one script) sits at
+  the block corner. Colors stay theme-owned in the stylesheet.
 - **Inline**: a *chip* — `--surface` fill, `1px --rule` border, `4px` radius, `1px 5px` padding,
   `0.85em`. Panel-vs-chip is the clear block/inline distinction the brief asked for.
 
@@ -188,7 +200,8 @@ lighter; `h4` drops to uppercase label grade. You can read the outline depth fro
 - **Reading column.** Per the fixed model, the column is created on direct body children:
   `body > *:not(.toolbar):not(.colophon):not(table):not(pre)` gets `max-width` + `margin-inline:auto`.
   `table` and `pre` get a **wider** max so dense data breathes.
-- **Measures:** prose `--measure: 66ch`; wide (table/pre) `--measure-wide: 82ch`; page gutters
+- **Measures:** prose `--measure: 42rem`; wide (table/pre) `--measure-wide: 54rem` (rem, not
+  ch, so every element shares one column regardless of its font size); page gutters
   `clamp(20px, 5vw, 40px)`.
 - **Vertical rhythm:** `p` margin `0 0 0.9em`; `h2` `2rem` top / `0.55rem` bottom; `h3` `1.6rem` /
   `0.45rem`; lists `0 0 1rem` with `1.35rem` indent.
@@ -210,7 +223,8 @@ Deliberately near-zero — this is flat, print-literate docs.
 - Verify AA on **both** themes for any new text color.
 
 **Don't**
-- No second accent hue, no gradients, no decorative flourish.
+- No second accent hue in the chrome or prose (the code-highlighting palette
+  is the one deliberate exception), no gradients, no decorative flourish.
 - No color-only links (always underline); no accent *text* below large sizes (use `--accent-ink`).
 - No shadows on content cards; no rounded-container-with-left-accent tropes.
 - No external requests and no web fonts — self-host only. The only script is
