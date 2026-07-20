@@ -174,7 +174,7 @@ def unsupported(capability: Capability) -> TypedError:
 
 
 @runtime_checkable
-class PrintProvider(Protocol):
+class PrintProvider(Protocol):  # pragma: no cover - a typed contract, no runnable body
     """The typed operations every print provider adapter implements. An
     operation for an unsupported capability returns ``unsupported(...)``
     rather than pretending."""

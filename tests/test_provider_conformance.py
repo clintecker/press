@@ -263,6 +263,20 @@ def test_lulu_rejected_submission_is_a_typed_rejection():
 @pytest.mark.invariant("INV-provider-contract")
 @pytest.mark.layer("unit")
 @pytest.mark.proof("positive")
+def test_money_refuses_mixed_currencies():
+    with pytest.raises(ValueError, match="cannot add"):
+        contract.Money("USD", 100) + contract.Money("EUR", 100)
+
+
+def test_supports_reports_capability_membership():
+    provider = fake_mod.FakeProvider(capabilities=frozenset({C.QUOTE}))
+    assert contract.supports(provider, C.QUOTE)
+    assert not contract.supports(provider, C.SUBMIT)
+
+
+@pytest.mark.invariant("INV-provider-contract")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("positive")
 def test_money_parses_decimals_without_float_error():
     assert contract.Money.parse("USD", "19.99").minor_units == 1999
     assert contract.Money.parse("USD", "0.10").minor_units == 10
