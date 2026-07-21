@@ -236,6 +236,14 @@ body.home > p:first-of-type{font-size:1.24rem; line-height:1.5; color:var(--ink)
 .wordmark{display:inline-flex; align-items:baseline; font-weight:800; font-size:1.3rem;
   letter-spacing:-.03em; color:var(--ink); text-decoration:none; white-space:nowrap}
 .wordmark .mark{color:var(--accent); margin-left:1px}
+/* The pilcrow mark before the wordmark: the bare glyph masked in the accent,
+   so it scales with the type, reads on either theme, and carries no box. */
+.wordmark::before{
+  content:""; align-self:center; margin-right:.34em;
+  width:.56em; height:.95em; background:var(--accent);
+  -webkit-mask:url("brand/press-pilcrow.svg") center/contain no-repeat;
+          mask:url("brand/press-pilcrow.svg") center/contain no-repeat;
+}
 .nav-toggle{position:absolute; width:1px; height:1px; opacity:0; pointer-events:none}
 .nav-burger{display:flex; flex-direction:column; justify-content:center; gap:4px;
   margin-left:auto; width:42px; height:38px; padding:9px; cursor:pointer;
