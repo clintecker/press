@@ -20,6 +20,14 @@ audit).
   discovery configuration cannot silently drift: the homepage points at the
   docs site, the default branch is `main`, wiki and projects stay disabled,
   and the topics remain set. It runs weekly and on demand, read-only (#165).
+- Print-safe interior images (`press.print_safe`): the `print` target now
+  flattens transparency onto white and caps image resolution, so a
+  print-on-demand vendor sees no transparency and no image over 600 PPI. A
+  pandoc Lua filter redirects manuscript figures to the sanitized copies under
+  `build/print-assets/`, and the generated front matter's logo follows; the
+  reading PDF is unchanged. On the reference book this cleared both Lulu file
+  warnings and roughly halved the interior PDF. A book with a hand-authored
+  title page points its own logo at `build/print-assets/` to match.
 - A top-to-bottom [Lulu printing guide](https://github.com/clintecker/press/blob/main/docs/LULU.md):
   which two files to upload, why the cover wrap fits Paperback Perfect Bound
   (and not the hardcover/dust-jacket templates), the Lulu settings that must

@@ -64,6 +64,7 @@ modules:
   jargon_lint: verifier
   operator: orchestrator
   package_source: {default: producer, overrides: {publication_members: pure, tracked_paths: adapter}}
+  print_safe: producer
   process_control: {default: orchestrator, overrides: {default_spawn: adapter}}
   publish: {default: orchestrator, overrides: {}}
   qualification: {default: verifier, overrides: {load: parser, providers: parser, render: producer}}

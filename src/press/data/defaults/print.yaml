@@ -11,6 +11,11 @@ toc: true
 toc-depth: 1
 number-sections: true
 top-level-division: chapter
+# Interior figures are redirected to their print-safe copies (flattened,
+# resolution-capped) under build/print-assets/, written by press.print_safe
+# before this run. The reading PDF has no such filter and embeds the originals.
+filters:
+  - "@press/lua/print-safe-images.lua"
 pdf-engine: latexmk
 pdf-engine-opts:
   - -lualatex

@@ -175,7 +175,14 @@ def generate(include_cover: bool = True) -> Path | None:
         "{{EPIGRAPH}}": escape(epigraph.get("quote", "")),
         "{{EPIGRAPH_ATTRIBUTION}}": escape(epigraph.get("attribution", "")),
         "{{COVER_PATH}}": "assets/cover.jpg",
-        "{{LOGO_PATH}}": "assets/press-logo.png",
+        # The print interior (include_cover False) embeds the flattened,
+        # resolution-capped logo press.print_safe wrote under build/print-assets;
+        # the reading front matter keeps the original. A book with a
+        # hand-authored title page points its own logo at build/print-assets.
+        "{{LOGO_PATH}}": (
+            "assets/press-logo.png" if include_cover
+            else "build/print-assets/assets/press-logo.png"
+        ),
     }
     for key, value in values.items():
         text = text.replace(key, value)

@@ -137,6 +137,14 @@ def render_defaults(name: str) -> Path:
         from . import aesthetic
 
         aesthetic.write_tex_overrides()
+        if name == "print":
+            # Flatten transparency and cap image resolution for the print
+            # interior only; print-header.tex prepends build/print-assets to
+            # graphicspath so lualatex embeds these copies, and the reading
+            # PDF (which never prepends it) is unaffected.
+            from . import print_safe
+
+            print_safe.prepare(root)
     if name == "print" and (root / "tex" / "title-page-print.tex").is_file():
         # The print variant replaces the reading title page; never stack.
         defaults["include-in-header"] = [
