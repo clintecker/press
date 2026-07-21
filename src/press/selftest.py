@@ -463,23 +463,23 @@ def check_coverwrap_detectors() -> None:
             draw.rectangle((zone, bar_top, zone + 1, bar_bottom), fill=0)
         return image
 
-    verify_coverwrap.scanline(barcode_image(22, False), trim_w, wrap_w,
+    verify_coverwrap.scanline(barcode_image(22, False), bleed + trim_w, bleed, wrap_w,
                               "9780306406157")
     try:
-        verify_coverwrap.scanline(Image.new("L", size, 180), trim_w, wrap_w, None)
+        verify_coverwrap.scanline(Image.new("L", size, 180), bleed + trim_w, bleed, wrap_w, None)
     except SystemExit as exc:
         assert "white card" in str(exc), exc
     else:
         raise AssertionError("missing barcode card passed the wrap verifier")
     try:
-        verify_coverwrap.scanline(barcode_image(3, False), trim_w, wrap_w,
+        verify_coverwrap.scanline(barcode_image(3, False), bleed + trim_w, bleed, wrap_w,
                                   "9780306406157")
     except SystemExit as exc:
         assert "transitions" in str(exc), exc
     else:
         raise AssertionError("threadbare barcode passed the wrap verifier")
     try:
-        verify_coverwrap.scanline(barcode_image(22, True), trim_w, wrap_w,
+        verify_coverwrap.scanline(barcode_image(22, True), bleed + trim_w, bleed, wrap_w,
                                   "9780306406157")
     except SystemExit as exc:
         assert "quiet zone" in str(exc), exc

@@ -38,34 +38,42 @@ class ProviderSpec:
     def bleed(self) -> float:
         return float(self.data["cover"]["bleed"])
 
+    _HARDCOVER = frozenset({"casewrap", "dust-jacket"})
+
     def spine(
-        self, pages: int, paper: str | None = None, *, override: float | None = None
+        self, pages: int, paper: str | None = None, binding: str = "perfect-bound",
+        *, override: float | None = None,
     ) -> float:
-        """Spine width in inches for ``pages`` on ``paper``. An explicit
-        per-page ``override`` (from ``print.page-thickness``) wins over the
-        spec's stock table; otherwise the spec's shape decides."""
+        """Spine width in inches for ``pages`` on ``paper`` in ``binding``. A
+        hardcover binding uses the spec's ``spine.hardcover`` sub-model when it
+        has one (e.g. Lulu's stepped lookup table); a soft cover uses the main
+        shape plus the paperback allowance. An explicit per-page ``override``
+        (``print.page-thickness``) wins over the stock table."""
 
         spec = self.data["spine"]
-        allowance = float(spec.get("paperback-allowance", 0.0))
+        hardcover = binding in self._HARDCOVER
+        if hardcover and "hardcover" in spec:
+            return self._shape_width(spec["hardcover"], pages, paper)
+        allowance = 0.0 if hardcover else float(spec.get("paperback-allowance", 0.0))
         if override is not None:
             return pages * float(override) + allowance
+        return self._shape_width(spec, pages, paper) + allowance
 
-        shape = spec["shape"]
-        paper = paper or spec.get("default-paper", "cream")
-        if shape == "constant":
-            return pages * self._stock(spec["calipers"], paper) + allowance
-        if shape == "divisor":
-            return pages / float(spec["divisor"]) + allowance
-        if shape == "ppi-table":
-            return pages / self._stock(spec["ppi"], paper)
-        if shape == "lookup":
-            for low, high, width in spec["table"]:
+    def _shape_width(self, shape: dict, pages: int, paper: str | None) -> float:
+        kind = shape["shape"]
+        paper = paper or shape.get("default-paper", "cream")
+        if kind == "constant":
+            return pages * self._stock(shape["calipers"], paper)
+        if kind == "divisor":
+            return pages / float(shape["divisor"])
+        if kind == "ppi-table":
+            return pages / self._stock(shape["ppi"], paper)
+        if kind == "lookup":
+            for low, high, width in shape["table"]:
                 if int(low) <= pages <= int(high):
                     return float(width)
-            raise SystemExit(
-                f"provider {self.id}: no spine band covers {pages} pages"
-            )
-        raise SystemExit(f"provider {self.id}: unknown spine shape {shape!r}")
+            raise SystemExit(f"provider {self.id}: no spine band covers {pages} pages")
+        raise SystemExit(f"provider {self.id}: unknown spine shape {kind!r}")
 
     def _stock(self, table: dict, paper: str) -> float:
         if paper not in table:

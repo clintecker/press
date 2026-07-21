@@ -50,16 +50,17 @@ def check_front_panel(image: Image.Image, front_x_in: float,
         )
 
 
-def scanline(image: Image.Image, trim_w: float, wrap_w: float,
-             isbn: str | None) -> None:
+def scanline(image: Image.Image, back_right: float, margin: float,
+             wrap_w: float, isbn: str | None) -> None:
     """The barcode panel, inspected structurally: a white card with
     dark marks, and readable bar transitions plus quiet zones when an
-    ISBN is declared."""
+    ISBN is declared. ``back_right`` is the back panel's right edge and
+    ``margin`` its outer allowance, so the panel is found for any binding
+    (the barcode moves with the back panel on a hardcover)."""
 
     dpi = image.width / wrap_w
-    bleed = gen_coverwrap.BLEED_IN
-    anchor_x = bleed + trim_w - 0.5
-    anchor_y = bleed + 0.5
+    anchor_x = back_right - 0.5
+    anchor_y = margin + 0.5
     x0 = max(0, int((anchor_x - 2.4) * dpi))
     x1 = int((anchor_x + 0.05) * dpi)
     y0 = image.height - int((anchor_y + 1.4) * dpi)
@@ -116,8 +117,6 @@ def main() -> int:
         raise SystemExit(f"coverwrap has {len(reader.pages)} pages; a wrap is one")
 
     meta = booklib.metadata()
-    trim = meta.get("trim") or {}
-    trim_w = float(trim.get("width", 6))
     pages = gen_coverwrap.interior_page_count(interior)
     # The generator's own geometry, so the verifier cannot disagree with it.
     lay = gen_coverwrap.layout(pages)
@@ -145,7 +144,8 @@ def main() -> int:
         if looks_blank(image):
             raise SystemExit("coverwrap rendered blank")
         check_front_panel(image, lay.front_x, wrap_w)
-        scanline(image, trim_w, wrap_w, gen_coverwrap.isbn_for_print())
+        scanline(image, lay.back_x + lay.panel_w, lay.margin, wrap_w,
+                 gen_coverwrap.isbn_for_print())
 
     isbn = gen_coverwrap.isbn_for_print()
     barcode_note = "EAN-13 readable with quiet zones" if isbn else "honest placeholder present"

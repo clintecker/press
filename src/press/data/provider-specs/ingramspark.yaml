@@ -1,0 +1,78 @@
+# IngramSpark (Lightning Source) print manufacturing spec. Sources inline as
+# [CODE], resolved in the `sources` ledger. Confidence: [OFFICIAL] an Ingram
+# doc states it; [DERIVED] computed (caliper = 1/PPI); [UNCONFIRMED] see the
+# `unconfirmed` list. Researched and last verified 2026-07-21. Numbers in inches.
+# Ingram is the one vendor whose casewrap and jacket TOTAL formulas are
+# officially published (the geometry engine matches them exactly).
+id: ingramspark
+
+spine:
+  # Spine = pages / PPI per stock. Ingram's own white 50# (512 PPI) is thinner
+  # than everyone else's; that is why a KDP-computed spine is wrong here.
+  # PPI from the Paper Specifications sheet; caliper = 1/PPI. [PAPER]
+  shape: ppi-table
+  ppi:
+    cream: 444          # Creme 50#  -> 0.002252 in/pg
+    white: 512          # White 50#  -> 0.001953 in/pg
+    white-70: 377       # White 70#  -> 0.002653 in/pg
+    groundwood: 400     # Groundwood 38# -> 0.00250 in/pg
+  default-paper: cream
+  paperback-allowance: 0.0   # Ingram spine has no cover allowance
+
+cover:
+  bleed: 0.125           # perfect-bound cover, all four edges [FCG]
+  safety: 0.25          # recommended from trim [FCG]
+  bindings:
+    perfect-bound: {spine: true, margin: 0.125}
+    casewrap:
+      # OFFICIAL formula (TRIMS): board = trim_w-0.185 x trim_h+0.25; wrap
+      # 0.625 beyond fold; hinge 0.5 each side of spine.
+      spine: true
+      margin: 0.625
+      hinge: 0.5
+      panel-width-delta: -0.185
+      panel-height-delta: 0.25
+    dust-jacket:
+      # OFFICIAL formula (TRIMS/FCG): flap 3.25, connecting strip 0.25, bleed
+      # 0.125; cover = trim_w+0.4375 x trim_h+0.25.
+      spine: true
+      margin: 0.125
+      flap: 3.25
+      strip: 0.25
+      panel-width-delta: 0.4375
+      panel-height-delta: 0.25
+
+# Trim x binding matrix (subset of Ingram's ~30 trims). PF=perfect-bound,
+# CL=casewrap (case laminate / digital cloth), JC=dust-jacket. [TRIMS]
+trims:
+  - {width: 5.0, height: 8.0, bindings: [perfect-bound, casewrap, dust-jacket]}
+  - {width: 5.25, height: 8.0, bindings: [perfect-bound]}
+  - {width: 5.5, height: 8.5, bindings: [perfect-bound, casewrap, dust-jacket]}
+  - {width: 5.83, height: 8.27, bindings: [perfect-bound, casewrap]}
+  - {width: 6.0, height: 9.0, bindings: [perfect-bound, casewrap, dust-jacket]}
+  - {width: 6.14, height: 9.21, bindings: [perfect-bound, casewrap, dust-jacket]}
+  - {width: 7.0, height: 10.0, bindings: [perfect-bound, casewrap]}
+  - {width: 8.0, height: 10.0, bindings: [perfect-bound, casewrap]}
+  - {width: 8.5, height: 11.0, bindings: [perfect-bound, casewrap]}
+
+pages:
+  # Minimum 18 all bindings; maxima vary by paper (white 50# tops at 1200).
+  # Dust jacket must not exceed 6.14 x 9.252 trim. [TRIMS][UG]
+  perfect-bound: {min: 18, max: 1200}
+  casewrap: {min: 18, max: 1050}
+  dust-jacket: {min: 18, max: 1050}
+  spine-text-min: 48
+
+sources:
+  PAPER: {url: "https://www.ingramspark.com/hubfs/downloads/Paper_Specs_Spark.pdf", covers: "PPI table per stock (Rev. 8/18/23)"}
+  TRIMS: {url: "https://www.ingramspark.com/hubfs/downloads/trim-sizes.pdf", covers: "trim x binding matrix, casewrap/jacket formulas, page maxima"}
+  FCG: {url: "https://www.ingramspark.com/hubfs/downloads/file-creation-guide.pdf", covers: "bleed, safety, casebound fold, jacket flap, barcode"}
+  UG: {url: "https://www.ingramspark.com/hubfs/downloads/user-guide.pdf", covers: "page counts, spine-text minimums, digital cloth, barcode boxes"}
+  CALC: {url: "https://myaccount.ingramspark.com/Portal/Tools/SpineCalculator", covers: "authoritative spine value (calculator)"}
+  verified: "2026-07-21"
+
+unconfirmed:
+  - "The pages/PPI spine formula is industry-standard and numerically consistent with the PPI table, but Ingram states no explicit formula; its Spine & Weight Calculator is authoritative."
+  - "Per-binding page maxima vary by paper stock (groundwood 900, creme 1050, white 50# 1200); the encoded max uses the higher white-50# figure."
+  - "Saddle-stitch was discontinued ~2021 but still appears in legacy File Creation Guides; not offered here."
+  - "Digital Cloth cover-width metric label in the trim doc is internally inconsistent (prints '5mm' for 0.4375in); the inch value is authoritative."

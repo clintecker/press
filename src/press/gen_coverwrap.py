@@ -30,10 +30,11 @@ def interior_page_count(interior: Path) -> int:
     return len(PdfReader(str(interior)).pages)
 
 
-def spine_width(pages: int) -> float:
-    """Spine width from the active provider spec's caliper model, honoring a
-    per-book ``print.page-thickness`` override. The house spec reproduces the
-    v1 value exactly; a real provider spec carries that vendor's calipers."""
+def spine_width(pages: int, binding: str = "perfect-bound") -> float:
+    """Spine width from the active provider spec's caliper model for the given
+    binding, honoring a per-book ``print.page-thickness`` override. The house
+    spec reproduces the v1 value exactly; a real provider spec carries that
+    vendor's calipers and, for hardcover, its own spine model."""
 
     from . import provider_specs
 
@@ -42,6 +43,7 @@ def spine_width(pages: int) -> float:
     return provider_specs.active().spine(
         pages,
         conf.get("paper"),
+        binding,
         override=float(override) if override is not None else None,
     )
 
@@ -57,17 +59,17 @@ class WrapLayout:
     wrap_h: float
     spine: float
     has_spine: bool
-    margin: float          # outer allowance: bleed (soft cover) or turn-in (board)
-    flap: float            # jacket flap width, else 0
+    margin: float          # outer allowance: bleed (soft cover) or wrap/turn-in (board)
     back_x: float          # left edge of the back panel
     front_x: float         # left edge of the front panel
+    panel_w: float         # a panel's width (trim, or board/jacket-adjusted)
     front_art_w: float     # width the front art fills
     cloth_field: bool      # paint the cloth-colored field (off for linen)
 
 
-# Bindings press knows how to lay out without a vendor spec: a soft-cover flat
-# wrap, with or without a spine. Hardcover bindings (a board turn-in or a
-# jacket) need the provider spec to supply the turn-in or flap width, so an
+# Bindings press lays out without a vendor spec: a soft-cover flat wrap, with
+# or without a spine. Hardcover bindings (a board turn-in, hinge, and overhang,
+# or a jacket's flaps) need the provider spec to supply their geometry, so an
 # unsupported binding is refused rather than guessed.
 _SOFT_BINDINGS = {
     "perfect-bound": True,    # has a spine
@@ -76,19 +78,26 @@ _SOFT_BINDINGS = {
 }
 
 
-def _binding_geometry(spec, binding: str, material: str) -> tuple[bool, float, float]:
-    """(has_spine, margin, flap) for a binding, from the provider spec's cover
-    section, falling back to the soft-cover defaults."""
+def _binding_geometry(spec, binding: str) -> tuple[bool, float, float, float, float]:
+    """(has_spine, margin, inner, width_delta, height_delta) for a binding.
+
+    ``margin`` is the outer allowance (bleed, or a hardcover wrap/turn-in);
+    ``inner`` is the horizontal offset between margin and panel (a casewrap
+    hinge, or a jacket's flap plus connecting strip); the deltas adjust a
+    panel from trim to the board or jacket-cover size. Soft-cover bindings use
+    built-in defaults (bleed, no inner, no delta)."""
 
     bindings = (spec.data.get("cover") or {}).get("bindings") or {}
     if binding in bindings:
-        entry = bindings[binding]
-        has_spine = bool(entry.get("spine", True))
-        margin = float(entry.get("turn-in", spec.bleed))
-        flap = float(entry.get("flap", 0.0))
-        return has_spine, margin, flap
+        e = bindings[binding]
+        has_spine = bool(e.get("spine", True))
+        margin = float(e.get("margin", e.get("turn-in", spec.bleed)))
+        inner = float(e.get("hinge", 0.0)) + float(e.get("flap", 0.0)) + float(e.get("strip", 0.0))
+        return (has_spine, margin, inner,
+                float(e.get("panel-width-delta", 0.0)),
+                float(e.get("panel-height-delta", 0.0)))
     if binding in _SOFT_BINDINGS:
-        return _SOFT_BINDINGS[binding], spec.bleed, 0.0
+        return _SOFT_BINDINGS[binding], spec.bleed, 0.0, 0.0, 0.0
     raise SystemExit(
         f"provider {spec.id!r} does not define the {binding!r} binding; "
         f"add a cover.bindings.{binding} entry to its spec"
@@ -97,22 +106,26 @@ def _binding_geometry(spec, binding: str, material: str) -> tuple[bool, float, f
 
 def wrap_geometry(
     trim_w: float, trim_h: float, spine: float, has_spine: bool,
-    margin: float, flap: float, material: str,
+    margin: float, inner: float, width_delta: float, height_delta: float,
+    material: str,
 ) -> WrapLayout:
-    """Compose the wrap from trim, spine, outer margin, and flap. Pure: the
-    left-to-right panels are [margin][flap][back][spine][front][flap][margin].
-    Perfect-bound (flap 0, margin = bleed) yields the exact v1 numbers."""
+    """Compose the wrap. Left to right the panels are
+    [margin][inner][back][spine][front][inner][margin]; a panel's size is trim
+    plus the deltas (a hardcover board or jacket cover). Perfect-bound
+    (inner 0, deltas 0, margin = bleed) yields the exact v1 numbers. This
+    matches IngramSpark's published casewrap and jacket formulas."""
 
-    wrap_w = 2 * margin + 2 * flap + 2 * trim_w + spine
-    wrap_h = 2 * margin + trim_h
-    back_x = margin + flap
-    front_x = back_x + trim_w + spine
-    # A flapless wrap bleeds the front art into the outer edge; a jacket keeps
-    # the art to the front panel and leaves the flap blank.
-    front_art_w = trim_w if flap else trim_w + margin
+    panel_w = trim_w + width_delta
+    wrap_w = 2 * margin + 2 * inner + 2 * panel_w + spine
+    wrap_h = 2 * margin + trim_h + height_delta
+    back_x = margin + inner
+    front_x = back_x + panel_w + spine
+    # A flat wrap (no inner offset) bleeds the front art to the outer edge; a
+    # hinged or flapped cover keeps the art to its panel.
+    front_art_w = panel_w if inner else panel_w + margin
     return WrapLayout(
-        wrap_w, wrap_h, spine, has_spine, margin, flap,
-        back_x, front_x, front_art_w, cloth_field=material != "linen",
+        wrap_w, wrap_h, spine, has_spine, margin,
+        back_x, front_x, panel_w, front_art_w, cloth_field=material != "linen",
     )
 
 
@@ -132,9 +145,11 @@ def layout(pages: int) -> WrapLayout:
     problems = spec.check_selection(trim_w, trim_h, binding, pages)
     if problems:
         raise SystemExit("; ".join(problems))
-    has_spine, margin, flap = _binding_geometry(spec, binding, material)
-    spine = spine_width(pages) if has_spine else 0.0
-    return wrap_geometry(trim_w, trim_h, spine, has_spine, margin, flap, material)
+    has_spine, margin, inner, width_delta, height_delta = _binding_geometry(spec, binding)
+    spine = spine_width(pages, binding) if has_spine else 0.0
+    return wrap_geometry(
+        trim_w, trim_h, spine, has_spine, margin, inner, width_delta, height_delta, material,
+    )
 
 
 def isbn_for_print() -> str | None:
@@ -242,10 +257,10 @@ def generate(interior: Path, output: Path) -> Path:
         if lay.cloth_field
         else "% linen case: the material is the finish; no printed field"
     )
-    spine_cx = lay.back_x + trim_w + spine / 2
+    spine_cx = lay.back_x + lay.panel_w + spine / 2
     back_text_x = lay.back_x + 0.75
     back_text_y = wrap_h - lay.margin - 0.85
-    barcode_x = lay.back_x + trim_w - 0.5
+    barcode_x = lay.back_x + lay.panel_w - 0.5
     barcode_y = lay.margin + 0.5
 
     tex = f"""% Generated cover wrap; the source of every number is config or the
