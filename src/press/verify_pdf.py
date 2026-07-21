@@ -340,9 +340,9 @@ def main(argv: list[str] | None = None) -> int:
     booklib.require_release_witnesses()
     root = booklib.root()
     meta = booklib.metadata()
-    trim = meta.get("trim") or {}
-    trim_width = float(trim.get("width", 6))
-    trim_height = float(trim.get("height", 9))
+    # Trim comes from the selected design profile, not metadata.
+    book = booklib.book()
+    trim_width, trim_height = book.trim_width, book.trim_height
 
     args = parse_args(argv, root, meta)
     pdf = args.pdf.resolve()

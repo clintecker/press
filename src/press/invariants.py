@@ -65,7 +65,7 @@ def _ledger_path() -> Path:
 # it), so a new invariant cannot ship nameless.
 TITLES = {
     "INV-config-slug": "Safe slugs",
-    "INV-config-trim": "Fixed v1 trim",
+    "INV-config-trim": "Trim from design profile",
     "INV-config-locatable": "Locatable config errors",
     "INV-config-release-witness": "No vacuous releases",
     "INV-config-registrations": "Computed check digits",

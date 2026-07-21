@@ -13,16 +13,15 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
 
 from . import barcode, booklib
 
+# Cover bleed is universal across print vendors (0.125in on the outer edges);
+# only the spine caliper and wrap geometry are provider-specific, and those
+# live in the provider spec (press.provider_specs).
 BLEED_IN = 0.125
-# Per-page thickness in inches for black-ink interiors, as published by
-# KDP; Ingram's stocks are close enough that the channel template's own
-# spine tolerance absorbs the difference. Override with
-# print: {page-thickness: <inches>} in metadata when a channel says so.
-PAPER_THICKNESS = {"white": 0.002252, "cream": 0.0025}
 
 
 def interior_page_count(interior: Path) -> int:
@@ -31,18 +30,126 @@ def interior_page_count(interior: Path) -> int:
     return len(PdfReader(str(interior)).pages)
 
 
-def spine_width(pages: int) -> float:
+def spine_width(pages: int, binding: str = "perfect-bound") -> float:
+    """Spine width from the active provider spec's caliper model for the given
+    binding, honoring a per-book ``print.page-thickness`` override. The house
+    spec reproduces the v1 value exactly; a real provider spec carries that
+    vendor's calipers and, for hardcover, its own spine model."""
+
+    from . import provider_specs
+
     conf = booklib.metadata().get("print") or {}
-    thickness = conf.get("page-thickness")
-    if thickness is None:
-        paper = conf.get("paper", "cream")
-        if paper not in PAPER_THICKNESS:
-            raise SystemExit(
-                f"unknown paper stock {paper!r}; state print: "
-                f"{{paper: white|cream}} or {{page-thickness: <inches>}}"
-            )
-        thickness = PAPER_THICKNESS[paper]
-    return pages * float(thickness)
+    override = conf.get("page-thickness")
+    return provider_specs.active().spine(
+        pages,
+        conf.get("paper"),
+        binding,
+        override=float(override) if override is not None else None,
+    )
+
+
+@dataclass(frozen=True)
+class WrapLayout:
+    """The cover wrap's geometry for one binding: total size and the panel
+    edges the content is placed against. Perfect-bound reproduces the v1
+    numbers exactly; other bindings change the topology (no spine, a board
+    turn-in, or jacket flaps)."""
+
+    wrap_w: float
+    wrap_h: float
+    spine: float
+    has_spine: bool
+    margin: float          # outer allowance: bleed (soft cover) or wrap/turn-in (board)
+    back_x: float          # left edge of the back panel
+    front_x: float         # left edge of the front panel
+    panel_w: float         # a panel's width (trim, or board/jacket-adjusted)
+    front_art_w: float     # width the front art fills
+    cloth_field: bool      # paint the cloth-colored field (off for linen)
+
+
+# Bindings press lays out without a vendor spec: a soft-cover flat wrap, with
+# or without a spine. Hardcover bindings (a board turn-in, hinge, and overhang,
+# or a jacket's flaps) need the provider spec to supply their geometry, so an
+# unsupported binding is refused rather than guessed.
+_SOFT_BINDINGS = {
+    "perfect-bound": True,    # has a spine
+    "saddle-stitch": False,
+    "coil": False,
+}
+
+
+def _binding_geometry(spec, binding: str) -> tuple[bool, float, float, float, float]:
+    """(has_spine, margin, inner, width_delta, height_delta) for a binding.
+
+    ``margin`` is the outer allowance (bleed, or a hardcover wrap/turn-in);
+    ``inner`` is the horizontal offset between margin and panel (a casewrap
+    hinge, or a jacket's flap plus connecting strip); the deltas adjust a
+    panel from trim to the board or jacket-cover size. Soft-cover bindings use
+    built-in defaults (bleed, no inner, no delta)."""
+
+    bindings = (spec.data.get("cover") or {}).get("bindings") or {}
+    if binding in bindings:
+        e = bindings[binding]
+        has_spine = bool(e.get("spine", True))
+        margin = float(e.get("margin", e.get("turn-in", spec.bleed)))
+        inner = float(e.get("hinge", 0.0)) + float(e.get("flap", 0.0)) + float(e.get("strip", 0.0))
+        return (has_spine, margin, inner,
+                float(e.get("panel-width-delta", 0.0)),
+                float(e.get("panel-height-delta", 0.0)))
+    if binding in _SOFT_BINDINGS:
+        return _SOFT_BINDINGS[binding], spec.bleed, 0.0, 0.0, 0.0
+    raise SystemExit(
+        f"provider {spec.id!r} does not define the {binding!r} binding; "
+        f"add a cover.bindings.{binding} entry to its spec"
+    )
+
+
+def wrap_geometry(
+    trim_w: float, trim_h: float, spine: float, has_spine: bool,
+    margin: float, inner: float, width_delta: float, height_delta: float,
+    material: str,
+) -> WrapLayout:
+    """Compose the wrap. Left to right the panels are
+    [margin][inner][back][spine][front][inner][margin]; a panel's size is trim
+    plus the deltas (a hardcover board or jacket cover). Perfect-bound
+    (inner 0, deltas 0, margin = bleed) yields the exact v1 numbers. This
+    matches IngramSpark's published casewrap and jacket formulas."""
+
+    panel_w = trim_w + width_delta
+    wrap_w = 2 * margin + 2 * inner + 2 * panel_w + spine
+    wrap_h = 2 * margin + trim_h + height_delta
+    back_x = margin + inner
+    front_x = back_x + panel_w + spine
+    # A flat wrap (no inner offset) bleeds the front art to the outer edge; a
+    # hinged or flapped cover keeps the art to its panel.
+    front_art_w = panel_w if inner else panel_w + margin
+    return WrapLayout(
+        wrap_w, wrap_h, spine, has_spine, margin,
+        back_x, front_x, panel_w, front_art_w, cloth_field=material != "linen",
+    )
+
+
+def layout(pages: int) -> WrapLayout:
+    """Resolve the wrap geometry for the book's selected binding and material.
+    Read by both the generator and the verifier so they cannot disagree."""
+
+    from . import provider_specs
+
+    book = booklib.book()
+    trim_w, trim_h = book.trim_width, book.trim_height
+    print_cfg = booklib.metadata().get("print") or {}
+    binding = print_cfg.get("binding", "perfect-bound")
+    material = print_cfg.get("material", "paperback")
+
+    spec = provider_specs.active()
+    problems = spec.check_selection(trim_w, trim_h, binding, pages)
+    if problems:
+        raise SystemExit("; ".join(problems))
+    has_spine, margin, inner, width_delta, height_delta = _binding_geometry(spec, binding)
+    spine = spine_width(pages, binding) if has_spine else 0.0
+    return wrap_geometry(
+        trim_w, trim_h, spine, has_spine, margin, inner, width_delta, height_delta, material,
+    )
 
 
 def isbn_for_print() -> str | None:
@@ -116,11 +223,10 @@ def generate(interior: Path, output: Path) -> Path:
         )
     trim = meta.get("trim") or {}
     trim_w = float(trim.get("width", 6))
-    trim_h = float(trim.get("height", 9))
     pages = interior_page_count(interior)
-    spine = spine_width(pages)
-    wrap_w = 2 * BLEED_IN + 2 * trim_w + spine
-    wrap_h = 2 * BLEED_IN + trim_h
+    lay = layout(pages)
+    spine = lay.spine
+    wrap_w, wrap_h = lay.wrap_w, lay.wrap_h
 
     cover = tex_safe_path(root / "assets" / "cover.jpg")
     if not cover.is_file():
@@ -143,8 +249,19 @@ def generate(interior: Path, output: Path) -> Path:
     # text below 0.0625in x ~100 pages. Drop it rather than shrink it.
     spine_node = (
         "\\node[rotate=-90] at (spinecenter) "
-        f"{{\\scshape\\small {spine_text}}};" if spine >= 0.25 else "% spine too thin for text"
+        f"{{\\scshape\\small {spine_text}}};"
+        if lay.has_spine and spine >= 0.25 else "% spine too thin (or absent) for text"
     )
+    cloth_line = (
+        f"\\fill[black!85!red!25!white] (0,0) rectangle ({wrap_w:.4f}in,{wrap_h:.4f}in);"
+        if lay.cloth_field
+        else "% linen case: the material is the finish; no printed field"
+    )
+    spine_cx = lay.back_x + lay.panel_w + spine / 2
+    back_text_x = lay.back_x + 0.75
+    back_text_y = wrap_h - lay.margin - 0.85
+    barcode_x = lay.back_x + lay.panel_w - 0.5
+    barcode_y = lay.margin + 0.5
 
     tex = f"""% Generated cover wrap; the source of every number is config or the
 % built interior. Regenerated every run.
@@ -158,23 +275,23 @@ def generate(interior: Path, output: Path) -> Path:
 \\noindent
 \\begin{{tikzpicture}}[remember picture,overlay,shift={{(current page.south west)}}]
 % cloth-colored field over the full bleed
-\\fill[black!85!red!25!white] (0,0) rectangle ({wrap_w:.4f}in,{wrap_h:.4f}in);
+{cloth_line}
 % front cover art, full front panel plus bleed
-\\node[anchor=south west,inner sep=0] at ({BLEED_IN + trim_w + spine:.4f}in,0in)
-  {{\\includegraphics[width={trim_w + BLEED_IN:.4f}in,height={wrap_h:.4f}in]{{"{cover}"}}}};
+\\node[anchor=south west,inner sep=0] at ({lay.front_x:.4f}in,0in)
+  {{\\includegraphics[width={lay.front_art_w:.4f}in,height={wrap_h:.4f}in]{{"{cover}"}}}};
 % spine
-\\coordinate (spinecenter) at ({BLEED_IN + trim_w + spine / 2:.4f}in,{wrap_h / 2:.4f}in);
+\\coordinate (spinecenter) at ({spine_cx:.4f}in,{wrap_h / 2:.4f}in);
 {spine_node}
 % back cover text block
 \\node[anchor=north west,text width={trim_w - 1.5:.4f}in,align=center]
-  at ({BLEED_IN + 0.75:.4f}in,{wrap_h - BLEED_IN - 0.85:.4f}in) {{
+  at ({back_text_x:.4f}in,{back_text_y:.4f}in) {{
   {{\\large\\scshape {esc(meta['title'])}\\par}}\\vspace{{0.3in}}
   {{\\small {esc(meta.get('description', ''))}\\par}}\\vspace{{0.4in}}
   {logo_block}
   {{\\footnotesize\\scshape {esc(meta['publisher'])}, {esc(meta['publisher-place'])}\\par}}
 }};
 % barcode, back cover lower right with quiet margin
-\\node[anchor=south east] at ({BLEED_IN + trim_w - 0.5:.4f}in,{BLEED_IN + 0.5:.4f}in) {{
+\\node[anchor=south east] at ({barcode_x:.4f}in,{barcode_y:.4f}in) {{
 {barcode_tex(isbn_for_print())}
 }};
 \\end{{tikzpicture}}%

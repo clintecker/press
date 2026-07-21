@@ -97,22 +97,36 @@ def _slug(raw: dict, problems: list[str]) -> str:
 
 
 def _trim(raw: dict, problems: list[str]) -> tuple[float, float]:
-    trim = raw.get("trim") or {}
-    if not isinstance(trim, dict):
-        problems.append("trim: expected a mapping {width, height}")
-        trim = {}
+    """Trim comes from the selected design profile (``print.profile``), not a
+    hand-entered number: a profile is a sealed, verified geometry, so the trim
+    can never disagree with the interior it was laid out for. The house
+    profile is 6 x 9, so a book that selects none keeps the v1 trim. A legacy
+    ``metadata.trim`` is honored only as a cross-check against the profile."""
+
+    from . import profiles
+
+    profile_id = (raw.get("print") or {}).get("profile")
     try:
-        trim_width = float(trim.get("width", 6))
-        trim_height = float(trim.get("height", 9))
-    except (TypeError, ValueError):
-        problems.append("trim: width and height must be numbers")
-        trim_width, trim_height = 6.0, 9.0
-    if (trim_width, trim_height) != (6.0, 9.0):
-        problems.append(
-            f"trim: {trim_width:g} x {trim_height:g} is not supported in v1; "
-            "the design is 6 x 9 (omit trim, or state 6 x 9). Configurable "
-            "geometry is a v2, breaking-change concern."
-        )
+        profile = profiles.load(profile_id)
+    except SystemExit as exc:
+        problems.append(str(exc))
+        return 6.0, 9.0
+
+    trim_width, trim_height = profile.trim
+    legacy = raw.get("trim")
+    if isinstance(legacy, dict) and legacy:
+        try:
+            legacy_w = float(legacy.get("width", trim_width))
+            legacy_h = float(legacy.get("height", trim_height))
+        except (TypeError, ValueError):
+            problems.append("trim: width and height must be numbers")
+        else:
+            if (legacy_w, legacy_h) != (trim_width, trim_height):
+                problems.append(
+                    f"trim: metadata declares {legacy_w:g} x {legacy_h:g}, but the "
+                    f"design profile {profile.id!r} is {trim_width:g} x {trim_height:g}; "
+                    "trim comes from print.profile, so drop the metadata trim"
+                )
     return trim_width, trim_height
 
 

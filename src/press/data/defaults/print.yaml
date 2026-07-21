@@ -26,6 +26,7 @@ metadata-file: "@book/config/metadata.yaml"
 # build so the two can never stack.
 include-in-header:
   - "@press/tex/book-header.tex"
+  - "@book/build/profile-geometry.tex?optional"
   - "@press/tex/print-header.tex"
   - "@book/build/aesthetic.tex?optional"
   - "@book/build/front-matter.tex?optional"

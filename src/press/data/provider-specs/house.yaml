@@ -1,0 +1,16 @@
+# The v1 house provider spec: it reproduces today's coverwrap spine exactly,
+# so a book that names no provider keeps its current cover byte-for-byte (the
+# compatibility gate). Its calipers are the KDP black-ink constants that
+# gen_coverwrap hardcoded, and its paperback allowance is 0 -- v1 omits the
+# +0.06 cover allowance that real Lulu and KDP specs apply, and the house spec
+# keeps that omission so a v1 cover does not shift. Real provider specs (lulu,
+# kdp, ingramspark) are added with the corrected numbers and their own spine
+# shapes; see docs/PRINT-PROFILES-PLAN.md.
+id: house
+spine:
+  shape: constant                       # constant | divisor | ppi-table | lookup
+  calipers: {white: 0.002252, cream: 0.0025}
+  paperback-allowance: 0.0              # v1 value; real specs use 0.06
+  default-paper: cream
+cover:
+  bleed: 0.125

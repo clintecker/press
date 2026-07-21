@@ -45,6 +45,7 @@ NAV_GROUPS = [
         ("docs/CONFIGURATION.md", "configuration.html", "configuration"),
         ("docs/BOOK-PARTS.md", "book-parts.html", "book parts"),
         ("docs/PRINT-ORDERING.md", "print-ordering.html", "print ordering"),
+        ("docs/PRINT-FORMATS.md", "print-formats.html", "trim & binding"),
         ("docs/LULU.md", "lulu.html", "printing at lulu"),
         ("docs/DESK.md", "desk.html", "desk"),
     ]),
@@ -81,6 +82,7 @@ NOT_PUBLISHED = {
     "AGENTS.md": "the same working instructions in the agents.md convention",
     "docs/TUI-PLAN.md": "internal design plan; lives in the repo and issues, not the docs site",
     "docs/DIRECT-ORDERING-PLAN.md": "internal PRD/TRD; lives in the repo and issues, not the docs site",
+    "docs/PRINT-PROFILES-PLAN.md": "internal v2 design record; lives in the repo and issues, not the docs site",
 }
 
 

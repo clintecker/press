@@ -1,0 +1,21 @@
+# The v1 house design as a versioned design profile: 6x9 interior geometry.
+# A design profile carries the interior LOOK only -- trim, margins, figure
+# cap, typography -- sealed and versioned by design-major (#172). It does NOT
+# carry manufacturing numbers (spine caliper, bleed, cover-wrap geometry):
+# those are provider-specific and live in a provider spec, so the same design
+# can be printed at Lulu, KDP, or IngramSpark. See docs/PRINT-PROFILES-PLAN.md.
+#
+# These values are the exact numbers the v1 TeX header carried inline, so this
+# profile reproduces the sealed v1 interior byte-for-byte. Do not change one
+# without a design-major bump; that is the whole point of the profile.
+id: house-6x9
+design-major: 1
+trim: {width: 6.0, height: 9.0}
+
+interior:
+  # Reading-profile margins. The print profile mirrors inner/outer toward the
+  # binding via print-header.tex; the total horizontal margin (1.46in) is
+  # shared so the measure never changes between profiles.
+  margins: {inner: 0.78, outer: 0.68, top: 0.72, bottom: 0.78, headsep: 0.20, footskip: 0.38}
+  # Figure-height cap (the LuaLaTeX empty-page scar); never near \textheight.
+  figure-cap: 6.3

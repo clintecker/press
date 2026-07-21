@@ -1,0 +1,107 @@
+# Lulu print manufacturing spec. Every number carries its source inline as
+# [CODE]; the codes resolve in the `sources` ledger at the foot. Confidence:
+# [OFFICIAL] a Lulu doc/spec sheet/API states it; [DERIVED] computed from an
+# official number; [UNCONFIRMED] template-only or inferred (see `unconfirmed`).
+# Researched and last verified 2026-07-21. Numbers in inches.
+id: lulu
+
+spine:
+  # Paperback: pages / 444 + 0.06, stock-independent. [SPINE][GUIDE]
+  shape: divisor
+  divisor: 444
+  paperback-allowance: 0.06
+  # Hardcover (casewrap AND linen use the same stepped lookup). [SPINE]
+  hardcover:
+    shape: lookup
+    table:
+      - [24, 84, 0.25]
+      - [85, 140, 0.5]
+      - [141, 168, 0.625]
+      - [169, 194, 0.6875]
+      - [195, 222, 0.75]
+      - [223, 250, 0.8125]
+      - [251, 278, 0.875]
+      - [279, 306, 0.9375]
+      - [307, 334, 1.0]
+      - [335, 360, 1.0625]
+      - [361, 388, 1.125]
+      - [389, 416, 1.1875]
+      - [417, 444, 1.25]
+      - [445, 472, 1.3125]
+      - [473, 500, 1.375]
+      - [501, 528, 1.4375]
+      - [529, 556, 1.5]
+      - [557, 582, 1.5625]
+      - [583, 610, 1.625]
+      - [611, 638, 1.6875]
+      - [639, 666, 1.75]
+      - [667, 694, 1.8125]
+      - [695, 722, 1.875]
+      - [723, 750, 1.9375]
+      - [751, 778, 2.0]
+      - [779, 800, 2.0625]
+
+cover:
+  bleed: 0.125            # all outer edges [BLEED][COVER][GUIDE]
+  safety: 0.5            # content keep-clear from trim [COVER]
+  bindings:
+    perfect-bound: {spine: true, margin: 0.125}
+    saddle-stitch: {spine: false, margin: 0.125}
+    coil: {spine: false, margin: 0.125}
+    casewrap:
+      # wrap/turn-in 0.75; hinge 0.25 from spine; board overhang +0.125
+      # horizontal, +0.25 vertical beyond trim. [CASE]
+      spine: true
+      margin: 0.75
+      hinge: 0.25
+      panel-width-delta: 0.125
+      panel-height-delta: 0.25
+    dust-jacket:
+      # Linen + printed dust jacket. Lulu does NOT publish flap/strip widths
+      # (template-generated); flap here is the common 3.25in, flagged
+      # UNCONFIRMED -- verify against a generated Lulu jacket template.
+      spine: true
+      margin: 0.125
+      flap: 3.25           # [UNCONFIRMED]
+      strip: 0.25          # [UNCONFIRMED]
+
+# Trim -> bindings offered (SKU keys in comments). [SPEC][GUIDE]
+trims:
+  - {width: 4.25, height: 6.875, bindings: [perfect-bound, coil, saddle-stitch, casewrap]}   # Pocketbook
+  - {width: 5.0, height: 8.0, bindings: [perfect-bound, coil, saddle-stitch, casewrap]}       # Novella
+  - {width: 5.5, height: 8.5, bindings: [perfect-bound, coil, saddle-stitch, casewrap, dust-jacket]}  # Digest
+  - {width: 5.83, height: 8.27, bindings: [perfect-bound, coil, saddle-stitch, casewrap, dust-jacket]}  # A5
+  - {width: 6.0, height: 9.0, bindings: [perfect-bound, coil, saddle-stitch, casewrap, dust-jacket]}   # US Trade
+  - {width: 6.14, height: 9.21, bindings: [perfect-bound, coil, saddle-stitch, casewrap, dust-jacket]} # Royal
+  - {width: 6.63, height: 10.25, bindings: [perfect-bound, saddle-stitch]}                    # Comic
+  - {width: 7.0, height: 10.0, bindings: [perfect-bound, coil, saddle-stitch, casewrap]}       # Executive
+  - {width: 7.44, height: 9.68, bindings: [perfect-bound, coil, saddle-stitch, casewrap]}      # Crown Quarto
+  - {width: 7.5, height: 7.5, bindings: [perfect-bound, coil, saddle-stitch, casewrap]}        # Small Square
+  - {width: 8.27, height: 11.69, bindings: [perfect-bound, coil, saddle-stitch, casewrap, dust-jacket]}  # A4
+  - {width: 8.5, height: 8.5, bindings: [perfect-bound, coil, saddle-stitch, casewrap]}        # Square
+  - {width: 8.5, height: 11.0, bindings: [perfect-bound, coil, saddle-stitch, casewrap, dust-jacket]}    # US Letter
+
+# Page-count bounds per binding. [SPEC][FORMAT][GUIDE]
+pages:
+  perfect-bound: {min: 32, max: 800}
+  saddle-stitch: {min: 4, max: 88}
+  coil: {min: 2, max: 470}
+  casewrap: {min: 24, max: 800}
+  dust-jacket: {min: 24, max: 800}
+  spine-text-min: 81
+
+sources:
+  SPEC: {url: "https://assets.lulu.com/media/specs/lulu-print-api-spec-sheet.xlsx", covers: "trims, bindings, page bounds (Product Spec Sheet, 3/2026)"}
+  GUIDE: {url: "https://assets.lulu.com/media/guides/en/lulu-book-creation-guide.pdf", covers: "spine formula, hardcover table, bleed, margins, gutter"}
+  SPINE: {url: "https://help.api.lulu.com/en/support/solutions/articles/64000254616", covers: "spine formulas and hardcover lookup table"}
+  COVER: {url: "https://help.lulu.com/en/support/solutions/articles/64000282777", covers: "bleed, safety, spine text, barcode zone"}
+  CASE: {url: "https://help.lulu.com/en/support/solutions/articles/64000308572", covers: "casewrap wrap, overhang, hinge"}
+  BLEED: {url: "https://help.lulu.com/en/support/solutions/articles/64000255584", covers: "full-bleed definition"}
+  FORMAT: {url: "https://help.lulu.com/en/support/solutions/articles/64000255583", covers: "page ranges, saddle divisible-by-4"}
+  verified: "2026-07-21"
+
+unconfirmed:
+  - "Dust-jacket flap and connecting-strip widths are template-generated, not published; the 3.25in/0.25in values are estimates -- verify against a generated Lulu jacket template."
+  - "No closed-form total cover/jacket size formula is published; casewrap total is composed from published components."
+  - "Hardcover lookup band endpoints overlap in Lulu's own table (e.g. 84, 800); normalized here to non-overlapping bands."
+  - "No per-named-stock caliper: Lulu uses the 444 divisor for all standard stock (460 for magazine/comic, not encoded)."

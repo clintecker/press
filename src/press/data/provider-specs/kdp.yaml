@@ -1,0 +1,69 @@
+# Amazon KDP print manufacturing spec. Sources inline as [CODE], resolved in
+# the `sources` ledger. Confidence: [OFFICIAL] a KDP help page states it;
+# [DERIVED] computed; [UNCONFIRMED] calculator-only or inferred. Researched and
+# last verified 2026-07-21. Numbers in inches.
+id: kdp
+
+spine:
+  # Paperback: pages x caliper + 0.06. Standard color = 0.002252, premium
+  # color = 0.002347 (RESOLVED from PBCOVER; the 0.002347-for-standard claim is
+  # a third-party error). [PBCOVER]
+  shape: constant
+  calipers:
+    white: 0.002252
+    cream: 0.0025
+    standard-color: 0.002252
+    premium-color: 0.002347
+  paperback-allowance: 0.06
+  default-paper: cream
+  # Hardcover (case laminate): KDP publishes no caliper or +0.06 on the help
+  # page; the spine model falls back to the same calipers with no allowance,
+  # flagged UNCONFIRMED. Verify against the KDP cover calculator.
+
+cover:
+  bleed: 0.125           # top/bottom/outside [PBCOVER]
+  safety: 0.25          # no-bleed content keep-clear; 0.375 with bleed [MARGIN]
+  bindings:
+    perfect-bound: {spine: true, margin: 0.125}
+    casewrap:
+      # Case laminate: 15mm wrap, 10mm hinge (KDP's inch prints 0.51/0.4 are
+      # rounding-inconsistent with its own mm; the mm-derived inch values are
+      # safer). Board overhang / total formula are calculator-only. [HCCOVER]
+      spine: true
+      margin: 0.5906       # 15mm wrap
+      hinge: 0.3937        # 10mm hinge
+      panel-height-delta: 0.0   # [UNCONFIRMED] board overhang not published
+  # KDP offers NO dust jacket, cloth/linen, saddle-stitch, or coil. [HCCOVER]
+
+trims:
+  # Paperback (OFFICIAL-confirmed subset; KDP's full fixed list is longer).
+  - {width: 5.0, height: 8.0, bindings: [perfect-bound]}
+  - {width: 5.5, height: 8.5, bindings: [perfect-bound, casewrap]}
+  - {width: 6.0, height: 9.0, bindings: [perfect-bound, casewrap]}
+  - {width: 6.14, height: 9.21, bindings: [perfect-bound, casewrap]}
+  - {width: 7.0, height: 10.0, bindings: [perfect-bound, casewrap]}
+  - {width: 8.25, height: 11.0, bindings: [perfect-bound, casewrap]}
+
+pages:
+  # Paperback black-ink white paper 24-828; hardcover 75-550 (6x9 reference;
+  # maxima vary by trim and ink). [PBSUB][TRIM]
+  perfect-bound: {min: 24, max: 828}
+  casewrap: {min: 75, max: 550}
+  spine-text-min: 79
+
+sources:
+  TRIM: {url: "https://kdp.amazon.com/en_US/help/topic/G201834180", covers: "trim sizes, print options"}
+  MARGIN: {url: "https://kdp.amazon.com/en_US/help/topic/GVBQ3CMEQW3W2VL6", covers: "interior and cover margins"}
+  PBCOVER: {url: "https://kdp.amazon.com/en_US/help/topic/G201953020", covers: "paperback spine formula, calipers, bleed, spine text"}
+  HCCOVER: {url: "https://kdp.amazon.com/en_US/help/topic/GDTKFJPNQCBTMRV6", covers: "hardcover wrap 15mm, hinge 10mm, barcode"}
+  BARCODE: {url: "https://kdp.amazon.com/en_US/help/topic/G5HDYGP4BXLX4RUW", covers: "barcode zone 2x1.2in"}
+  PBSUB: {url: "https://kdp.amazon.com/en_US/help/topic/G201857950", covers: "page-count bounds by ink/paper, even-page rule"}
+  CALC: {url: "https://kdp.amazon.com/cover-calculator", covers: "hardcover total-size (calculator-only)"}
+  verified: "2026-07-21"
+
+unconfirmed:
+  - "Hardcover spine caliper and whether +0.06 applies: not on the KDP help page; calculator-only. The model falls back to the paperback calipers with no allowance."
+  - "Hardcover total cover-size formula and board height-overhang: calculator-only, not published."
+  - "Full fixed paperback trim list: only six sizes re-confirmed live; KDP's list is longer."
+  - "Per-trim page-count maxima vary; only the 6x9 reference values are encoded."
+  - "A 'Hardcover Dust Jacket' label appeared in the calculator UI but conflicts with case-laminate-only help copy; not encoded."
