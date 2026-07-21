@@ -129,6 +129,9 @@ def layout(pages: int) -> WrapLayout:
     material = print_cfg.get("material", "paperback")
 
     spec = provider_specs.active()
+    problems = spec.check_selection(trim_w, trim_h, binding, pages)
+    if problems:
+        raise SystemExit("; ".join(problems))
     has_spine, margin, flap = _binding_geometry(spec, binding, material)
     spine = spine_width(pages) if has_spine else 0.0
     return wrap_geometry(trim_w, trim_h, spine, has_spine, margin, flap, material)

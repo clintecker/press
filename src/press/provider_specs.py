@@ -75,6 +75,50 @@ class ProviderSpec:
             )
         return float(table[paper])
 
+    def check_selection(
+        self, trim_w: float, trim_h: float, binding: str, pages: int | None = None
+    ) -> list[str]:
+        """Every reason this provider cannot make this book, or an empty list.
+        A spec with no ``trims`` or ``pages`` tables (the house spec) imposes no
+        limits; a real vendor spec refuses a trim it does not cut, a binding it
+        does not offer for that trim, and a page count outside the binding's
+        range -- all before any expensive rendering (#172)."""
+
+        problems: list[str] = []
+        trims = self.data.get("trims")
+        if trims is not None:
+            match = next(
+                (t for t in trims
+                 if abs(float(t["width"]) - trim_w) < 0.01
+                 and abs(float(t["height"]) - trim_h) < 0.01),
+                None,
+            )
+            if match is None:
+                problems.append(
+                    f"provider {self.id!r} does not offer a {trim_w:g} x {trim_h:g} trim"
+                )
+            elif binding not in (match.get("bindings") or []):
+                offered = ", ".join(match.get("bindings") or [])
+                problems.append(
+                    f"provider {self.id!r} does not offer {trim_w:g} x {trim_h:g} "
+                    f"in {binding!r} (offers: {offered})"
+                )
+        if pages is not None:
+            bounds = (self.data.get("pages") or {}).get(binding)
+            if bounds:
+                low, high = bounds.get("min"), bounds.get("max")
+                if low is not None and pages < int(low):
+                    problems.append(
+                        f"provider {self.id!r}: {binding} needs at least {low} pages "
+                        f"({pages} is too few)"
+                    )
+                if high is not None and pages > int(high):
+                    problems.append(
+                        f"provider {self.id!r}: {binding} allows at most {high} pages "
+                        f"({pages} is too many)"
+                    )
+        return problems
+
 
 def specs_dir() -> Path:
     return booklib.DATA / "provider-specs"

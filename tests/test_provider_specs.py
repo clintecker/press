@@ -78,3 +78,48 @@ def test_unknown_provider_is_refused_and_names_available():
         provider_specs.load("no-such-provider")
     assert "unknown provider spec" in str(exc.value)
     assert provider_specs.HOUSE in str(exc.value)
+
+
+def _catalog() -> provider_specs.ProviderSpec:
+    return provider_specs.ProviderSpec("vendor", {
+        "spine": {"shape": "constant", "calipers": {"white": 0.002252}},
+        "cover": {"bleed": 0.125},
+        "trims": [
+            {"width": 6, "height": 9, "bindings": ["perfect-bound", "casewrap"]},
+            {"width": 5.5, "height": 8.5, "bindings": ["perfect-bound"]},
+        ],
+        "pages": {
+            "perfect-bound": {"min": 32, "max": 828},
+            "casewrap": {"min": 24, "max": 550},
+        },
+    })
+
+
+@pytest.mark.layer("unit")
+def test_legality_accepts_an_offered_combination():
+    assert _catalog().check_selection(6, 9, "perfect-bound", 200) == []
+
+
+@pytest.mark.layer("unit")
+def test_legality_refuses_an_uncut_trim():
+    problems = _catalog().check_selection(7, 10, "perfect-bound", 200)
+    assert any("does not offer a 7 x 10 trim" in p for p in problems)
+
+
+@pytest.mark.layer("unit")
+def test_legality_refuses_a_binding_not_offered_for_that_trim():
+    problems = _catalog().check_selection(5.5, 8.5, "casewrap", 200)
+    assert any("does not offer 5.5 x 8.5 in 'casewrap'" in p for p in problems)
+
+
+@pytest.mark.layer("unit")
+def test_legality_refuses_page_counts_out_of_range():
+    assert any("at least 32" in p for p in _catalog().check_selection(6, 9, "perfect-bound", 20))
+    assert any("at most 550" in p for p in _catalog().check_selection(6, 9, "casewrap", 600))
+
+
+@pytest.mark.layer("unit")
+def test_house_spec_imposes_no_limits():
+    # No trims/pages tables -> the house spec never refuses (v1 compatibility).
+    assert provider_specs.load().check_selection(6, 9, "perfect-bound", 46) == []
+    assert provider_specs.load().check_selection(11, 17, "coil", 5000) == []
