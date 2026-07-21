@@ -9,6 +9,15 @@ audit).
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.18.0] - 2026-07-20
+
+Book web surfaces and developer-experience: structured metadata on the book
+landing page, a real start-reading reader index, git-index isolation so the
+commit hook runs without a workaround, and documentation corrected against
+the current code.
+
 ### Added
 
 - The book's landing page declares structured metadata generated from the
