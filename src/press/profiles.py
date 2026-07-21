@@ -22,12 +22,16 @@ from typing import Any
 
 from . import booklib, yamlio
 
-HOUSE = "house-6x9-paperback"
+HOUSE = "house-6x9"
 
 
 @dataclass(frozen=True)
 class Profile:
-    """One resolved print profile: its id and the validated document."""
+    """One resolved design profile: its id and the validated document. A
+    design profile is the interior look only (trim, geometry, typography);
+    binding, material, and provider are separate selections that compose with
+    it, so a design is not tied to one manufacturer (see
+    docs/PRINT-PROFILES-PLAN.md)."""
 
     id: str
     data: dict[str, Any]
@@ -36,10 +40,6 @@ class Profile:
     def trim(self) -> tuple[float, float]:
         trim = self.data["trim"]
         return float(trim["width"]), float(trim["height"])
-
-    @property
-    def binding(self) -> str:
-        return str(self.data["binding"])
 
     @property
     def figure_cap(self) -> float:

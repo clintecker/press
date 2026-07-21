@@ -16,7 +16,6 @@ def test_house_profile_loads_with_v1_geometry():
     house = profiles.load()
     assert house.id == profiles.HOUSE
     assert house.trim == (6.0, 9.0)
-    assert house.binding == "perfect-bound"
     assert house.figure_cap == 6.3
 
 
@@ -40,7 +39,6 @@ def test_geometry_projection_generalizes_to_another_trim():
         "digest-5x8",
         {
             "trim": {"width": 5.0, "height": 8.0},
-            "binding": "perfect-bound",
             "interior": {
                 "margins": {
                     "inner": 0.7, "outer": 0.6, "top": 0.7,

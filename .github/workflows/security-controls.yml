@@ -1,0 +1,66 @@
+# The security-control baseline cannot silently regress (#154). The
+# source-versioned half (Dependabot, CodeQL, dependency review) is asserted
+# with the default token; the platform toggles live behind the admin-only
+# security_and_analysis object, so this reads them through SECURITY_AUDIT_TOKEN
+# (a fine-grained PAT scoped to this repo, Administration: read) and fails on
+# drift. Scheduled and dispatch runs only ever execute on the main repository,
+# where that secret is present. Read-only.
+name: Security controls
+
+on:
+  schedule:
+    - cron: "53 7 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  controls:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Source-versioned controls are present
+        run: |
+          set -euo pipefail
+          fail=0
+          for f in .github/dependabot.yml \
+                   .github/workflows/codeql.yml \
+                   .github/workflows/dependency-review.yml; do
+            [ -f "$f" ] || { echo "drift: missing ${f}"; fail=1; }
+          done
+          [ "$fail" = 0 ] && echo "source-versioned controls present"
+          exit "$fail"
+
+      - name: Platform toggles are enabled
+        env:
+          GH_TOKEN: ${{ secrets.SECURITY_AUDIT_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "SECURITY_AUDIT_TOKEN is unset; cannot read admin-only settings." \
+                 "Provision a fine-grained PAT (Administration: read) as that secret."
+            exit 1
+          fi
+          repo="${{ github.repository }}"
+          data=$(gh api "repos/${repo}" --jq '.security_and_analysis')
+          fail=0
+          for key in secret_scanning \
+                     secret_scanning_push_protection \
+                     secret_scanning_non_provider_patterns \
+                     secret_scanning_validity_checks \
+                     dependabot_security_updates; do
+            status=$(echo "$data" | jq -r ".${key}.status // \"absent\"")
+            if [ "$status" != "enabled" ]; then
+              echo "drift: ${key} is '${status}', expected 'enabled'"; fail=1
+            fi
+          done
+          if gh api "repos/${repo}/vulnerability-alerts" >/dev/null 2>&1; then
+            echo "vulnerability-alerts: enabled"
+          else
+            echo "drift: vulnerability alerts are disabled"; fail=1
+          fi
+          [ "$fail" = 0 ] && echo "all platform security controls enabled"
+          exit "$fail"

@@ -81,6 +81,7 @@ NOT_PUBLISHED = {
     "AGENTS.md": "the same working instructions in the agents.md convention",
     "docs/TUI-PLAN.md": "internal design plan; lives in the repo and issues, not the docs site",
     "docs/DIRECT-ORDERING-PLAN.md": "internal PRD/TRD; lives in the repo and issues, not the docs site",
+    "docs/PRINT-PROFILES-PLAN.md": "internal v2 design record; lives in the repo and issues, not the docs site",
 }
 
 
