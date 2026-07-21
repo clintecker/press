@@ -3,8 +3,8 @@
 A top-to-bottom walk from the two files press builds to a copy in your hands.
 Lulu is press's primary print route: you upload an interior PDF and a cover
 PDF, order one copy, and inspect it. This page is the exact click path, the
-Lulu settings that must match your config, and the warnings you will see with
-their causes.
+Lulu settings that must match your config, and the file notes Lulu shows (all
+handled or harmless).
 
 ::: {.lede}
 You upload two files: the interior (`dist/<slug>-interior.pdf`) and the cover
@@ -89,28 +89,26 @@ sit off-center. Keep them the same.
    ISBN, press draws an honest placeholder — let Lulu add its barcode, or add
    your own later.
 
-## The warnings you will see (and can ignore for a proof)
+## File warnings — press handles these for you
 
-Lulu shows two warnings on a press interior. Both are advisory — the proof
-still prints — and both come from the press logo.
+Lulu used to flag two things on a press interior: *transparency* (the press
+logomark is stored as ink on a transparent background) and *images over 600
+PPI* (that 1024px logo at 1.7in was ~602 PPI). The `print` build now runs a
+**print-safe pass** (`press.print_safe`) that flattens every image onto white
+and caps resolution, so a current `press verify-print` interior triggers
+**neither** warning — nothing to do.
 
-::: {.callout}
-**"Transparency detected."** The press logomark is stored as an ink-on-
-transparent PNG (`assets/press-logo.png`) and placed on the colophon page.
-Lulu prefers flattened art. It prints correctly as-is; to silence it, flatten
-the logo onto white or remove it from the print interior. Press can be made
-to flatten it automatically — see below.
+::: {.callout .tip}
+**If you do see them,** you are looking at an older upload or a book whose
+hand-authored title page still points at the un-flattened logo. Rebuild with
+`press verify-print` and re-upload the interior; the warnings clear. (A book
+with a custom `tex/title-page-print.tex` should point its logo at
+`build/print-assets/`.)
 :::
 
-::: {.callout}
-**"Images greater than 600 PPI."** Lulu likes 200–600 PPI. The logomark is
-1024px placed at 1.7in — about 602 PPI, just over the line — and a high-
-resolution plate can cross it too. Over-600 art prints fine; it only makes
-the file larger. Downsampling to ~300–600 PPI removes the warning.
-:::
-
-Neither blocks an order. For a first proof, upload and continue. For a
-production golden copy, fix them first (next section).
+You may also see an informational **"a white bleed margin was added"** note if
+your interior has no full-bleed images — that is expected and harmless; press
+interiors keep their art inside the margins.
 
 ## Order one copy — the golden copy
 
@@ -129,7 +127,7 @@ and record the result in `config/qualification.yaml`.
 | --- | --- | --- |
 | Cover is the wrong size | You chose hardcover or a jacket product | Switch to Paperback · Perfect Bound |
 | Spine text is off-center | Lulu paper ≠ your `print.paper` | Match the paper, rebuild |
-| Transparency detected | The ink-on-transparent logo | Advisory; flatten or drop the logo |
-| Images over 600 PPI | The logo (~602 PPI) or a large plate | Advisory; downsample to ~300–600 PPI |
+| Transparency detected | An old upload (print-safe now flattens) | Rebuild with `press verify-print`, re-upload |
+| Images over 600 PPI | An old upload (print-safe now caps PPI) | Rebuild with `press verify-print`, re-upload |
 | No cover was built | No `assets/cover.jpg` | Add cover art, then `press coverwrap` |
 | Fonts not embedded | Not from a press build | Rebuild with `press verify-print` |
