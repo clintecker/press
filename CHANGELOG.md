@@ -20,6 +20,12 @@ audit).
   discovery configuration cannot silently drift: the homepage points at the
   docs site, the default branch is `main`, wiki and projects stay disabled,
   and the topics remain set. It runs weekly and on demand, read-only (#165).
+- A top-to-bottom [Lulu printing guide](https://github.com/clintecker/press/blob/main/docs/LULU.md):
+  which two files to upload, why the cover wrap fits Paperback Perfect Bound
+  (and not the hardcover/dust-jacket templates), the Lulu settings that must
+  match a book's config, the two advisory file warnings press produces (the
+  transparent logomark and its ~602 PPI placement) with their fixes, and a
+  troubleshooting table.
 - A task-oriented guide, [the parts of a book](https://github.com/clintecker/press/blob/main/docs/BOOK-PARTS.md), covering
   how to add each common part: the byline, the generated front matter
   (dedication, epigraph, acknowledgements, colophon), the author portrait, an
