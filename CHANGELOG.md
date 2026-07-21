@@ -9,7 +9,7 @@ audit).
 
 ## [Unreleased]
 
-## [1.19.0] - 2026-07-21
+## [1.19.1] - 2026-07-21
 
 Print pack, registrations, and public-readiness: offline ISBN assignment from
 an owned prefix, print-safe interior images that clear the Lulu file warnings,

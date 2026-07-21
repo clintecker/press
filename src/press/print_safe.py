@@ -64,7 +64,11 @@ def sanitize(src: Path, dst: Path, max_edge: int) -> None:
     from PIL import Image
 
     with Image.open(src) as opened:
-        image = opened
+        # Widen to Image.Image: Image.open returns an ImageFile, but the
+        # branches below reassign a plain Image (convert/resize/composite), so
+        # the variable must accept either (matches art.py; some mypy/Pillow
+        # combinations are stricter here than others).
+        image: Image.Image = opened
         if _has_alpha(image):
             rgba = image.convert("RGBA")
             flat = Image.new("RGB", rgba.size, _WHITE)
