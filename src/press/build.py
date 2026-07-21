@@ -134,9 +134,16 @@ def render_defaults(name: str) -> Path:
         # books get the list.
         defaults.setdefault("variables", {})["lof"] = woodcut_count() > 0
         gen_front_matter.generate(include_cover=(name == "pdf"))
-        from . import aesthetic
+        from . import aesthetic, profiles
 
         aesthetic.write_tex_overrides()
+        # The active print profile projects trim and interior geometry into a
+        # fragment included right after the house header, overriding its
+        # defaults. The house profile carries the v1 numbers, so a v1 book is
+        # unchanged; another profile changes the page (#172).
+        profiles.write_geometry_tex(
+            profiles.active(), root / "build" / "profile-geometry.tex"
+        )
         if name == "print":
             # Flatten transparency and cap image resolution for the print
             # interior only; print-header.tex prepends build/print-assets to

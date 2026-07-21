@@ -10,6 +10,7 @@ pdf-engine-opts:
 metadata-file: "@book/config/metadata.yaml"
 include-in-header:
   - "@press/tex/book-header.tex"
+  - "@book/build/profile-geometry.tex?optional"
   - "@book/build/aesthetic.tex?optional"
   - "@book/build/front-matter.tex?optional"
   - "@book/tex/title-page.tex?optional"

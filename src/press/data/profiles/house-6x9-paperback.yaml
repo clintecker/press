@@ -1,0 +1,33 @@
+# The v1 house design, expressed as a versioned print profile: 6x9,
+# paperback, perfect-bound, on white or cream stock. This profile
+# reproduces the sealed v1 output exactly -- it is the compatibility
+# baseline every other profile is diffed against, and its geometry values
+# are the same numbers the v1 TeX header carried inline. Do not change a
+# value here without a design-major bump; that is the whole point of the
+# profile (#172).
+id: house-6x9-paperback
+design-major: 1
+trim: {width: 6.0, height: 9.0}
+binding: perfect-bound
+
+interior:
+  # Reading-profile margins. The print profile mirrors inner/outer toward
+  # the binding via print-header.tex; the total horizontal margin (1.46in)
+  # is shared so the measure never changes between profiles.
+  margins: {inner: 0.78, outer: 0.68, top: 0.72, bottom: 0.78, headsep: 0.20, footskip: 0.38}
+  # Figure-height cap (the LuaLaTeX empty-page scar); never near \textheight.
+  figure-cap: 6.3
+
+paper:
+  # Per-page thickness (inches) by interior stock; spine = pages x thickness.
+  thickness: {white: 0.002252, cream: 0.0025}
+
+spine:
+  law: perfect-bound      # spine = pages x per-page thickness
+  min-text: 0.25          # below this the spine carries no text (KDP rule)
+
+cover:
+  material: paperback
+  topology: flat          # one flat sheet: back + spine + front
+  bleed: 0.125
+  cloth-field: true       # the cloth-colored field is baked into the wrap
