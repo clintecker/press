@@ -227,6 +227,7 @@ def head_metadata(name: str, title: str, description: str) -> str:
     return "\n".join([
         f'  <meta name="description" content="{description}" />',
         f'  <link rel="canonical" href="{canonical}" />',
+        '  <link rel="icon" type="image/svg+xml" href="brand/press-icon-ink.svg" />',
         '  <link rel="icon" type="image/png" href="brand/press-icon-ink.png" />',
         '  <meta property="og:type" content="website" />',
         '  <meta property="og:site_name" content="press" />',
@@ -406,11 +407,12 @@ def main() -> int:
     shutil.copy(ROOT / "site" / "press.css", OUT / "press.css")
     shutil.copy(ROOT / "site" / "copy.js", OUT / "copy.js")
     shutil.copytree(ROOT / "site" / "fonts", OUT / "fonts")
-    # Brand assets: the favicon, the nav marks (theme-swapped), and the social
-    # card. The .md README beside them is not copied (it is documentation).
+    # Brand assets: the favicon (SVG, PNG fallback) and the social card. The
+    # .md README beside them is documentation and is not copied.
     (OUT / "brand").mkdir()
-    for png in sorted((ROOT / "site" / "brand").glob("*.png")):
-        shutil.copy(png, OUT / "brand" / png.name)
+    for asset in sorted((ROOT / "site" / "brand").glob("*.*")):
+        if asset.suffix.lower() in (".svg", ".png"):
+            shutil.copy(asset, OUT / "brand" / asset.name)
     for source, name, label in PAGES + FOOTER_PAGES:
         build_page(source, name, label)
     write_sitemap_and_robots()
