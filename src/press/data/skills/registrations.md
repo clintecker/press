@@ -31,6 +31,11 @@ anywhere else; the config is the single stated copy.
   penalty for not planning, and every format needs its own number.
 - One ISBN per format: the print edition and the EPUB edition are
   different products. The press keeps them under `isbn: {print, epub}`.
+- After the one-time purchase you assign numbers from your own prefix
+  offline — there is no issuance API. Record the prefix as
+  `registrations.isbn-block: {prefix, size}` and let `press isbn assign
+  print|epub` mint the next unused number (check digit computed); `press
+  isbn status` shows the block's usage.
 - Do not use a free channel-assigned ISBN (KDP will offer one); it
   names the channel as publisher and cannot follow the book to another
   printer.

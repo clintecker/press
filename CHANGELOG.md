@@ -11,6 +11,16 @@ audit).
 
 ### Added
 
+- Offline ISBN assignment (`press isbn`): record the registrant prefix your
+  agency sold you as `registrations.isbn-block: {prefix, size}`, and
+  `press isbn assign print|epub` mints the next unused ISBN-13 from it —
+  computing the check digit, hyphenating with the agency's own prefix
+  hyphenation, and writing it to `registrations.isbn`. `press isbn status`
+  shows what is used and free; a malformed block fails `press check`, and an
+  exhausted block or an already-assigned edition is refused. There is no API
+  that issues an ISBN — you buy a prefix once, then assign from it offline.
+  Also adds `registrations.lccn_normalize` (the Library of Congress canonical
+  LCCN form).
 - Python 3.14 is a supported and tested version. The suite and the desk pass
   on 3.14; CI's package matrix runs it on Ubuntu alongside 3.10-3.13, the
   wheel declares the per-minor classifiers, `press doctor` treats 3.14 as

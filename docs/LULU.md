@@ -87,7 +87,8 @@ sit off-center. Keep them the same.
 3. **Barcode.** If you have a print ISBN in `registrations.isbn.print`, press
    draws a real EAN-13 on the back; leave Lulu's own barcode off. With no
    ISBN, press draws an honest placeholder — let Lulu add its barcode, or add
-   your own later.
+   your own later. If you own an ISBN prefix (bought once from your agency),
+   `press isbn assign print` mints and records the next one for you.
 
 ## File warnings — press handles these for you
 
