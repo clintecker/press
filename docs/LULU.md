@@ -45,14 +45,20 @@ flaps. That is exactly what Lulu's paperback perfect-bound cover expects.
 Pick that product and `dist/<slug>-coverwrap.pdf` drops in without resizing.
 :::
 
-::: {.callout .gap}
-**Hardcover is a different cover, and press does not build it yet.** A
-hardcover **case wrap** needs extra size all around to fold over the board;
-a hardcover with a **dust jacket** adds two flaps. Both are larger than the
-paperback wrap, so press's `-coverwrap.pdf` will not fit them. If Lulu handed
-you a template that says *Front/Back Flap* or *Total Document 20 × 9.75in*,
-that is the dust-jacket product — switch to **Paperback, Perfect Bound**, or
-print the hardcover with a cover you lay out by hand.
+::: {.callout .tip}
+**Hardcover is supported — select it.** For a case wrap or a linen dust
+jacket, set the binding and provider and press builds the right geometry (the
+board turn-in for a case wrap, the flaps for a jacket), sized to Lulu's own
+formulas:
+
+```sh
+press config set print.provider lulu && \
+press config set print.binding casewrap    # or dust-jacket
+```
+
+Then pick the matching hardcover product on Lulu. See
+[trim & binding](https://github.com/clintecker/press/blob/main/docs/PRINT-FORMATS.md)
+for the full set of choices.
 :::
 
 On the first screen, choose **Print Your Book** (upload and buy copies).
@@ -66,8 +72,8 @@ what press built, or the files will not fit:
 
 | Lulu setting | Set it to | Why |
 | --- | --- | --- |
-| Page size / trim | 6 × 9 in | press's locked v1 trim |
-| Binding | Paperback · Perfect Bound | what the wrap is sized for |
+| Page size / trim | your `print.profile` trim (6 × 9 default) | the profile sets the interior geometry |
+| Binding | match your `print.binding` (paperback default) | the wrap is sized for it |
 | Interior color | Black & white | press interiors are single-ink |
 | Paper | match your `print.paper` | the spine width depends on it |
 | Cover finish | Glossy or Matte | your choice; no file impact |
@@ -126,7 +132,7 @@ and record the result in `config/qualification.yaml`.
 
 | Lulu says | Cause | Fix |
 | --- | --- | --- |
-| Cover is the wrong size | You chose hardcover or a jacket product | Switch to Paperback · Perfect Bound |
+| Cover is the wrong size | Lulu product ≠ your `print.binding` | Match the binding (or set `print.binding`), rebuild |
 | Spine text is off-center | Lulu paper ≠ your `print.paper` | Match the paper, rebuild |
 | Transparency detected | An old upload (print-safe now flattens) | Rebuild with `press verify-print`, re-upload |
 | Images over 600 PPI | An old upload (print-safe now caps PPI) | Rebuild with `press verify-print`, re-upload |

@@ -155,7 +155,11 @@ implementation detail behind it. The policy, restated plainly:
 - Design and template changes, however small they look, require a
   new major version. A different margin, face, or front-matter
   arrangement is a new contract, and books opt into it by moving
-  their pin.
+  their pin. v2 makes this concrete: trim and interior geometry are
+  chosen from versioned **print profiles**, so a book selecting a
+  non-house profile is asking for a different design under a v2 pin,
+  while a `@v1` book stays the sealed 6×9 (see
+  [trim & binding](https://github.com/clintecker/press/blob/main/docs/PRINT-FORMATS.md)).
 - Three-part tags (`vN.x.y`) are immutable, and the immutability is
   enforced rather than promised: the release-contract workflow
   proves that each three-part tag's build.yml pins the press action

@@ -9,6 +9,29 @@ audit).
 
 ## [Unreleased]
 
+### Changed (v2 — breaking, configurable print formats)
+
+- Trim, binding, cover material, and print vendor are now configurable, a v2
+  (design-major) change: a book pins `@v2` to opt in, and a `@v1` book stays
+  a 6×9 paperback, byte-for-byte. Design is modelled as versioned **print
+  profiles** (`print.profile`) carrying trim and interior geometry; the house
+  6×9 profile reproduces the v1 output exactly. `print.binding`
+  (perfect-bound, saddle-stitch, coil, casewrap, dust-jacket), `print.material`
+  (paperback, casewrap, linen), and `print.provider` select the rest. Trim is
+  derived from the profile, not hand-entered; the `INV-config-trim` invariant
+  is rewritten around it.
+- Provider manufacturing specs for **Lulu, KDP, and IngramSpark** (from
+  sourced, attributed research): the spine caliper, cover bleed, safety, and
+  hardcover wrap geometry are vendor-specific and no longer hardcoded. The
+  spine model branches on binding (a paperback formula vs a hardcover lookup
+  or caliper), and the cover generator composes per-binding geometry that
+  matches IngramSpark's published casewrap and jacket formulas. Unsupported
+  combinations (a dust jacket at KDP, an uncut trim, a page count out of
+  range) are refused before rendering.
+- A user guide,
+  [trim & binding](https://github.com/clintecker/press/blob/main/docs/PRINT-FORMATS.md),
+  and the internal design record `docs/PRINT-PROFILES-PLAN.md`.
+
 ### Added
 
 - Offline ISBN assignment (`press isbn`): record the registrant prefix your
