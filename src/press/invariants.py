@@ -103,6 +103,7 @@ TITLES = {
     "INV-extension-seal": "Extensions cannot weaken the core",
     "INV-migration-safe": "Migration moves only the pin",
     "INV-migration-preview": "Migration previews before it mutates",
+    "INV-profile-geometry": "Profiles render at their trim",
 }
 
 

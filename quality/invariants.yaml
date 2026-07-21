@@ -591,3 +591,26 @@ invariants:
       The preview enumerates the pin changes and the house-profile design
       verdict; a book that has already selected a non-house profile carries
       that design choice independently of the migration.
+
+  - id: INV-profile-geometry
+    statement: >-
+      Selecting a design profile renders the interior at that profile's
+      declared trim, and an unknown profile is refused before any rendering.
+      A profile's design-affecting data has a stable digest, so a sealed
+      value cannot change without the key that scopes its visual baseline
+      moving too.
+    risk: >-
+      A profile silently renders at the wrong trim, or a sealed design value
+      drifts while its visual baseline still reads as valid.
+    criticality: standard
+    owner: profiles
+    enforcer: profiles.geometry_tex
+    layers: [pytest]
+    negative: [integration]
+    ci_tier: quality
+    limitations: >-
+      The rendered-trim proof runs where the toolchain is present (the
+      integration tier); locally, the projection-string and digest proofs
+      stand in. Typography and web tokens are projected and proven at the
+      fragment level; their rendered baselines are generated in the pinned
+      toolchain.

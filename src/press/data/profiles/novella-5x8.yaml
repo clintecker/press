@@ -11,3 +11,11 @@ trim: {width: 5.0, height: 8.0}
 interior:
   margins: {inner: 0.70, outer: 0.55, top: 0.62, bottom: 0.68, headsep: 0.18, footskip: 0.34}
   figure-cap: 5.6
+  # A meaningfully different type treatment for the digest trim: a smaller
+  # indent and slightly more open leading suit the narrower measure. This is
+  # what makes novella-5x8 a genuinely different qualified design, not just a
+  # resized house.
+  typography: {indent: 1.0em, leading: 1.08}
+
+# A tighter web measure to match the digest's narrower page.
+web: {measure: 40rem, base-size: 1.2rem, line-height: 1.66}

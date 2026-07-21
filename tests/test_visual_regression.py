@@ -103,6 +103,44 @@ def test_house_pdf_layout_matches_baseline(tmp_path):
         )
 
 
+@pytest.mark.invariant("INV-profile-geometry")
+@pytest.mark.layer("integration")
+@pytest.mark.proof("negative")
+@pytest.mark.skipif(
+    any(shutil.which(t) is None for t in ("pandoc", "lualatex", "latexmk", "pdfinfo")),
+    reason="requires capability: pandoc, lualatex, latexmk, pdfinfo",
+)
+@pytest.mark.parametrize("profile_id", ["house-6x9", "novella-5x8"])
+def test_profile_renders_at_its_declared_trim(tmp_path, profile_id):
+    """Selecting a profile renders the interior at that profile's trim -- the
+    geometry proof #172 owes for every profile, self-contained (the profile's
+    own numbers are the oracle, so it needs no committed image baseline) and
+    running in the toolchain wherever the tools are present."""
+
+    from pypdf import PdfReader
+
+    from press import build, profiles
+
+    handle = (
+        factories.BookFactory(slug="trim-fixture", title="Trim Fixture")
+        .with_sentinels("the house design lays this paragraph")
+        .with_metadata(print={"profile": profile_id})
+        .with_chapter("01-one.md",
+                      "# Chapter one\n\n" + ("The house design lays this "
+                      "paragraph across the page. " * 6) + "\n")
+        .build(tmp_path)
+    )
+    with handle.use():
+        build.build_target("pdf")
+        pdf = handle.root / "dist" / f"{handle.slug}.pdf"
+        box = PdfReader(str(pdf)).pages[0].mediabox
+        width_in, height_in = float(box.width) / 72.0, float(box.height) / 72.0
+
+    trim_w, trim_h = profiles.load(profile_id).trim
+    assert abs(width_in - trim_w) < 0.02, f"{profile_id} width {width_in} != {trim_w}"
+    assert abs(height_in - trim_h) < 0.02, f"{profile_id} height {height_in} != {trim_h}"
+
+
 def test_baseline_update_requires_a_reason():
     """The baseline-update guard's contract: a flag with no 'reason:' is
     refused, so a baseline never changes by accident."""

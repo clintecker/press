@@ -19,3 +19,12 @@ interior:
   margins: {inner: 0.78, outer: 0.68, top: 0.72, bottom: 0.78, headsep: 0.20, footskip: 0.38}
   # Figure-height cap (the LuaLaTeX empty-page scar); never near \textheight.
   figure-cap: 6.3
+  # Structural type treatment: paragraph indent and leading, exactly the v1
+  # header's \setlength{\parindent}{1.1em} and \linespread{1.045}. Font family
+  # and colour are the book's identity (the aesthetic), not the design.
+  typography: {indent: 1.1em, leading: 1.045}
+
+# Web reading measure: the v1 reader stylesheet's body max-width, base font
+# size, and line height. A profile that shares these appends nothing to the
+# CSS; only a different measure overrides them.
+web: {measure: 48rem, base-size: 1.25rem, line-height: 1.62}

@@ -47,6 +47,17 @@ press config set print.profile novella-5x8   # a 5x8 Digest/Novella
 Selecting a profile changes the page for both the reading PDF and the print
 interior. Adding a new trim is adding a profile, not editing the pipeline.
 
+A profile carries more than trim. It also seals the interior's **structural
+typography** — the paragraph indent and leading — and the **web reading
+measure** — the maximum line length, base font size, and line height of the
+reader site. These are the design: `house-6x9` uses the values the press has
+always used, and `novella-5x8` sets a tighter measure and more open leading to
+suit the narrower digest page. What a profile does *not* touch is your book's
+identity — the font family and the colour palette — which stay with the
+[aesthetic](https://github.com/clintecker/press/blob/main/docs/CONFIGURATION.md)
+and override the profile. So choosing a profile changes the design's
+proportions; choosing an aesthetic changes its voice.
+
 ## Binding sets the cover's shape
 
 The binding decides the cover topology, independent of the vendor:

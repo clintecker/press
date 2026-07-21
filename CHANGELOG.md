@@ -11,6 +11,19 @@ audit).
 
 ### Added (v2)
 
+- **Typography and web design are now profile-driven** (#172): a design
+  profile carries not just trim and margins but the structural type treatment
+  (paragraph indent, leading) and the web reading measure (max width, base
+  size, line height). The house profile projects exactly the v1 values, so a
+  house book renders byte-for-byte unchanged — proven against the committed
+  visual baseline with zero drift — while `novella-5x8` becomes a genuinely
+  different *qualified* design (its own type treatment and measure, not just a
+  resized house). The split is deliberate: the profile seals the *structural*
+  typography that defines a design, and the aesthetic keeps owning *identity*
+  (font family, palette), overriding the profile. Each profile has a stable
+  `digest` over its design-affecting data, so a sealed value cannot change
+  without the key that scopes its visual baseline moving; a new
+  `INV-profile-geometry` proves every profile renders at its declared trim.
 - The **v1→v2 migration and rollback contract** (#174): `press migrate`
   moves a book to the next press major by repinning it — the press major in
   `requirements.txt` and the CI workflow — and *nothing else*. The

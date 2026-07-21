@@ -49,6 +49,23 @@ class Profile:
     def margins(self) -> dict[str, float]:
         return {k: float(v) for k, v in self.data["interior"]["margins"].items()}
 
+    @property
+    def typography(self) -> dict[str, Any]:
+        """The interior's structural type treatment -- paragraph indent and
+        leading. This is design, sealed by the profile's major; the font
+        *family* and colours are the book's own identity, carried by the
+        aesthetic, which overrides this fragment (it is included after)."""
+
+        return self.data["interior"]["typography"]
+
+    @property
+    def web(self) -> dict[str, Any]:
+        """The web reading measure and scale: the max line length, base font
+        size, and line height. Palette and font family stay with the
+        aesthetic; this is the structural web design the profile seals."""
+
+        return self.data["web"]
+
 
 def profiles_dir() -> Path:
     return booklib.DATA / "profiles"
@@ -83,13 +100,58 @@ def geometry_tex(profile: Profile) -> str:
 
     width, height = profile.trim
     m = profile.margins
+    t = profile.typography
     return (
         f"\\geometry{{paperwidth={width:g}in,paperheight={height:g}in,"
         f"inner={m['inner']:g}in,outer={m['outer']:g}in,"
         f"top={m['top']:g}in,bottom={m['bottom']:g}in,"
         f"headsep={m['headsep']:g}in,footskip={m['footskip']:g}in}}\n"
         f"\\renewcommand{{\\PressFigureCap}}{{{profile.figure_cap:g}in}}\n"
+        f"\\setlength{{\\parindent}}{{{t['indent']}}}\n"
+        f"\\linespread{{{float(t['leading']):g}}}\n"
     )
+
+
+def web_css(profile: Profile) -> str:
+    """The web reading measure for a profile, as a ``body`` override appended
+    after the house reader stylesheet. The house profile's values match the
+    stylesheet, so it -- and any profile that shares them -- appends nothing
+    and the CSS is byte-for-byte unchanged; a profile with a different measure
+    overrides the three properties and nothing else, so the palette and font
+    the aesthetic controls are untouched."""
+
+    house = load(HOUSE).web
+    web = profile.web
+    if all(web.get(k) == house.get(k) for k in ("measure", "base-size", "line-height")):
+        return ""
+    return (
+        "\n/* print profile: reading measure */\n"
+        "body {\n"
+        f"  max-width: {web['measure']};\n"
+        f"  font-size: {web['base-size']}; line-height: {float(web['line-height']):g};\n"
+        "}\n"
+    )
+
+
+def digest(profile: Profile) -> str:
+    """A stable short hash over a profile's design-affecting data. Two loads
+    of the same profile produce the same digest; changing any sealed value --
+    a margin, the leading, the web measure -- changes it. A visual baseline is
+    keyed by this digest and the design major, so a design cannot change under
+    a book's feet without the key moving and the baseline being renewed."""
+
+    import hashlib
+    import json
+
+    payload = {
+        "id": profile.id,
+        "design-major": profile.data.get("design-major"),
+        "trim": profile.data.get("trim"),
+        "interior": profile.data.get("interior"),
+        "web": profile.data.get("web"),
+    }
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
 
 
 def write_geometry_tex(profile: Profile, out: Path) -> Path:

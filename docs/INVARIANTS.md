@@ -437,6 +437,19 @@ Every rendered page carries ink and keeps it off the edge.
 | **Tested by** | `integration` |
 | **Known limit** | Tolerates one structural blank verso in the print profile. |
 
+## Profiles render at their trim
+
+`INV-profile-geometry` · standard
+
+Selecting a design profile renders the interior at that profile's declared trim, and an unknown profile is refused before any rendering. A profile's design-affecting data has a stable digest, so a sealed value cannot change without the key that scopes its visual baseline moving too.
+
+| | |
+|---|---|
+| **If it breaks** | A profile silently renders at the wrong trim, or a sealed design value drifts while its visual baseline still reads as valid. |
+| **Enforced by** | `profiles.geometry_tex` |
+| **Tested by** | `integration` |
+| **Known limit** | The rendered-trim proof runs where the toolchain is present (the integration tier); locally, the projection-string and digest proofs stand in. Typography and web tokens are projected and proven at the fragment level; their rendered baselines are generated in the pinned toolchain. |
+
 ## Provider-neutral contract
 
 `INV-provider-contract` · critical

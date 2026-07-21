@@ -253,6 +253,13 @@ def site_stylesheet() -> str:
     own = root / "assets" / "web" / "reader.css"
     base = own if own.is_file() else booklib.DATA / "web" / "reader.css"
     css = aesthetic.substitute_web(base.read_text(encoding="utf-8"))
+    # The design profile's web reading measure overrides the house sheet's
+    # body; a book that supplies its own reader.css owns the whole design, so
+    # the profile does not reach into it. The house profile appends nothing,
+    # so a house book's stylesheet is byte-for-byte unchanged.
+    if not own.is_file():
+        from . import profiles
+        css += profiles.web_css(profiles.active())
     extra = root / "assets" / "web" / "extra.css"
     if extra.is_file():
         css += "\n/* assets/web/extra.css */\n" + extra.read_text(encoding="utf-8")
