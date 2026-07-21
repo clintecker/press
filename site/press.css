@@ -289,6 +289,70 @@ nav[aria-label="Site"] a[aria-current="page"]::before{
 .stamp{margin:0; font-family:var(--mono); font-size:0.78rem; color:var(--muted)}
 .stamp code, .stamp .sha{color:var(--accent-ink); background:none; border:0; padding:0}
 
+/* ---- Feature components: the parts-of-a-book guide ---------
+   Reusable, theme-aware blocks a Markdown page composes through pandoc
+   fenced divs (::: {.callout}) and bracketed spans ([x]{.tag}). Two
+   families read at a glance: generated matter takes the cinnabar rail
+   (press builds it from config); authored matter takes a graphite rail
+   (you write the Markdown). */
+
+/* Classification pill: [generated]{.tag .gen} · [authored]{.tag .made} */
+.tag{
+  display:inline-block; font-family:var(--sans); font-weight:700;
+  font-size:.62em; letter-spacing:.05em; text-transform:uppercase;
+  line-height:1.5; padding:.05em .5em; border-radius:5px;
+  vertical-align:.14em; white-space:nowrap; border:1px solid transparent;
+}
+.tag.gen{color:var(--accent-ink);
+  background:color-mix(in srgb,var(--accent) 13%,transparent);
+  border-color:color-mix(in srgb,var(--accent) 32%,transparent);}
+.tag.made{color:var(--muted); background:var(--surface); border-color:var(--rule-strong);}
+h1 .tag, h2 .tag, h3 .tag{vertical-align:.28em; margin-left:.35rem}
+
+/* Anatomy: a book's parts in reading order, grouped front / body / back.
+   Each row's left rail is colored by its family. */
+.prose > .anatomy{max-width:var(--measure-wide); margin:1.8rem auto 2.4rem;}
+.anatomy .an-band{margin:0 0 var(--s5)}
+.anatomy .an-band-label{font-family:var(--sans); font-weight:800; font-size:.7rem;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin:0 0 var(--s3);}
+.anatomy ol, .anatomy ul{list-style:none; margin:0; padding:0}
+.anatomy li{margin:0 0 var(--s2); padding:var(--s3) var(--s4);
+  background:var(--surface); border:1px solid var(--rule);
+  border-left:4px solid var(--rule-strong); border-radius:0 8px 8px 0;
+  display:flex; flex-wrap:wrap; align-items:baseline; gap:.3rem .8rem;}
+.anatomy li.gen{border-left-color:var(--accent)}
+.anatomy .an-name{font-family:var(--sans); font-weight:700; color:var(--ink); font-size:.98rem}
+.anatomy .an-where{font-family:var(--mono); font-size:.72rem; color:var(--muted); margin-left:auto}
+
+/* Part cards: an at-a-glance grid, one card per part. */
+.prose > .partgrid{max-width:var(--measure-wide); margin:1.8rem auto 2.4rem; padding:0;
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(15.5rem,1fr)); gap:var(--s4);}
+.partgrid .part{margin:0; background:var(--surface); border:1px solid var(--rule);
+  border-top:3px solid var(--rule-strong); border-radius:9px;
+  padding:var(--s5); display:flex; flex-direction:column; gap:.45rem;}
+.partgrid .part.gen{border-top-color:var(--accent)}
+.partgrid .part-name{font-family:var(--sans); font-weight:700; font-size:1rem; color:var(--ink)}
+.partgrid .part-what{color:var(--muted); font-size:.9rem; line-height:1.5; margin:0}
+.partgrid .part-where{font-family:var(--mono); font-size:.72rem; color:var(--accent-ink);
+  margin-top:auto; word-break:break-word}
+.partgrid .part.made .part-where{color:var(--muted)}
+
+/* Callout: a set-off panel. Default = a rule press enforces (cinnabar);
+   .tip = a helpful aside (green); .gap = a stated limitation (dashed). */
+.prose > .callout{max-width:var(--measure); margin:1.4rem auto; padding:var(--s4) var(--s5);
+  background:var(--surface); border:1px solid var(--rule); border-left:4px solid var(--accent);
+  border-radius:0 8px 8px 0;}
+.callout > :first-child{margin-top:0} .callout > :last-child{margin-bottom:0}
+.callout p{max-width:none}
+.callout > p:first-child > strong:first-child{color:var(--accent-ink)}
+.callout.tip{border-left-color:var(--hl-string)}
+.callout.tip > p:first-child > strong:first-child{color:var(--hl-string)}
+.callout.gap{border-left-style:dashed; border-left-color:var(--rule-strong)}
+.callout.gap > p:first-child > strong:first-child{color:var(--muted)}
+
+/* Page lead: the one large intro paragraph on a guide page. */
+.prose > .lede{max-width:var(--measure); font-size:1.2rem; line-height:1.5; color:var(--ink);}
+
 /* ---- Narrow-screen tables ---------------------------------- */
 /* Two-column tables (a term and a description) crowd on a phone; tighten
    the cells and ease the code size so text wraps less brutally, and keep
