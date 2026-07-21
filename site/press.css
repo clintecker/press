@@ -237,7 +237,7 @@ body.home > p:first-of-type{font-size:1.24rem; line-height:1.5; color:var(--ink)
    theme: the ink badge / dark serif reads on light, the transparent
    vermilion-badge / paper serif reads on dark. */
 .wordmark{display:inline-flex; align-items:center; text-decoration:none}
-.wm-lockup{height:30px; width:auto; display:block}
+.wm-lockup{height:62px; width:auto; display:block}
 .wm-dark{display:none}
 @media (prefers-color-scheme:dark){.wm-light{display:none} .wm-dark{display:block}}
 :root[data-theme="light"] .wm-light{display:block} :root[data-theme="light"] .wm-dark{display:none}

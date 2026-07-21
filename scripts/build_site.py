@@ -230,7 +230,7 @@ def head_metadata(name: str, title: str, description: str) -> str:
     return "\n".join([
         f'  <meta name="description" content="{description}" />',
         f'  <link rel="canonical" href="{canonical}" />',
-        '  <link rel="icon" type="image/svg+xml" href="brand/press-icon-ink.svg" />',
+        '  <link rel="icon" type="image/svg+xml" href="brand/press-favicon.svg" />',
         '  <link rel="icon" type="image/png" href="brand/press-icon-ink.png" />',
         '  <meta property="og:type" content="website" />',
         '  <meta property="og:site_name" content="press" />',
