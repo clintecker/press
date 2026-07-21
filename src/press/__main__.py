@@ -278,9 +278,12 @@ def _run_verify_formats(args: list[str]) -> int:
 
 
 def _run_all(args: list[str]) -> int:
+    from . import brand
+
     code = check()
     if code:
         return code
+    print(brand.phase("check", "style, source, jargon"))
     from . import build
 
     for name in FORMATS:
@@ -289,6 +292,7 @@ def _run_all(args: list[str]) -> int:
 
     package_source.main()
     build.build_target("pages")
+    print(brand.phase("typeset", "PDF · EPUB · web · text · DOCX"))
     from . import verify_pages
 
     code = verify_pages.main()
@@ -305,10 +309,9 @@ def _run_all(args: list[str]) -> int:
     code = verify_archives.main()
     if code:
         return code
+    print(brand.phase("verify", f"{len(FORMATS)} editions match source"))
     code = _commerce_gate()
     if code == 0:
-        from . import brand
-
         print(brand.ready("dist/"))
     return code
 
