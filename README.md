@@ -1,6 +1,6 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="site/brand/press-lockup-reversed.png">
-  <img src="site/brand/press-lockup.png" alt="press" width="360">
+  <source media="(prefers-color-scheme: dark)" srcset="site/brand/press-lockup-dark.svg">
+  <img src="site/brand/press-lockup.svg" alt="press" width="300">
 </picture>
 
 # press
