@@ -55,6 +55,8 @@ COMMANDS: tuple[Command, ...] = (
     Command("coverwrap", "print pack", "Build and verify the cover wrap"),
     Command("publish", "print pack", "Emit a retail channel checklist",
             args="kdp|ingram [--report-only]"),
+    Command("isbn", "print pack", "Assign ISBNs from an owned block",
+            args="status | assign print|epub"),
     # utilities
     Command("render", "utilities", "Render the PDF to page PNGs"),
     Command("wordcount", "utilities", "Count the manuscript words"),

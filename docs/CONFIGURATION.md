@@ -93,6 +93,9 @@ print:
   paper: cream          # or white; sets per-page thickness
   # page-thickness: 0.0025   # inches; overrides paper if set
 registrations:
+  isbn-block:                 # optional: your owned prefix, for `press isbn`
+    prefix: "978-1-960780"    # the registrant prefix your agency sold you
+    size: 100                 # 10, 100, or 1000 -> 1/2/3 publication digits
   isbn:
     print: "9780306406157"   # or pending
     epub: "9780306406164"
@@ -110,6 +113,13 @@ registrations:
   epub ISBN becomes the EPUB identifier, verified in the OPF.
 - `registrations.retail: true` turns missing or pending numbers
   into check failures; false leaves them advisory.
+- `registrations.isbn-block` records a registrant prefix you bought once
+  (there is no API that issues ISBNs; you buy a prefix, then assign from it
+  offline). `press isbn assign print|epub` mints the next unused ISBN-13 from
+  the block — computing the check digit and writing it to `registrations.isbn`
+  — and `press isbn status` shows what is used and free. The `size` sets the
+  publication-element width, so the prefix must carry `12 - log10(size)`
+  digits; a malformed block fails `press check`.
 
 Direct print ordering (optional) adds a reader-facing "Order a print
 copy" link to a provider-hosted checkout. The provider is the seller of

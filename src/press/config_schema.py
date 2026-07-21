@@ -94,6 +94,10 @@ REGISTRY: tuple[Field, ...] = (
     _w("registrations.issn", METADATA, help="ISSN or 'pending'"),
     _w("registrations.retail", METADATA, "bool",
        help="true makes missing/pending registrations fail check"),
+    _w("registrations.isbn-block.prefix", METADATA,
+       help="owned ISBN registrant prefix (e.g. 978-1-960780); 'press isbn assign' mints from it"),
+    _w("registrations.isbn-block.size", METADATA, "int",
+       help="block size Bowker sold: 10, 100, or 1000"),
     # config/metadata.yaml — commerce (secret-guarded surface)
     _w("commerce.print-ordering.enabled", METADATA, "bool", help="turn the order CTA on"),
     _w("commerce.print-ordering.edition", METADATA, help="the edition sold (e.g. paperback)"),

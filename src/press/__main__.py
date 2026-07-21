@@ -90,6 +90,61 @@ def _run_config(args: list[str]) -> int:
     return config_cli.main(args)
 
 
+def _run_isbn(args: list[str]) -> int:
+    """Manage an owned ISBN block: show its usage, or mint the next unused
+    ISBN-13 to an edition. Assignment is offline arithmetic over a prefix you
+    bought once; press writes the number into config/metadata.yaml."""
+
+    from . import booklib, config_cli, registrations
+
+    sub = args[1:]   # drop the "isbn" command name
+    usage = "usage: press isbn status | press isbn assign print|epub"
+    if not sub or sub[0] not in ("status", "assign"):
+        print(usage)
+        return 2
+
+    if sub[0] == "status":
+        try:
+            status = registrations.block_status()
+        except SystemExit as exc:
+            print(str(exc))
+            return 1
+        print(
+            f"ISBN block {status.prefix} (size {status.size}): "
+            f"{len(status.assigned)} assigned, {status.free} free"
+        )
+        for isbn, edition in status.assignments():
+            print(f"  {isbn}  {edition}")
+        return 0
+
+    if len(sub) < 2:
+        print(usage)
+        return 2
+    edition = sub[1]
+    existing = registrations.raw_isbn(edition)
+    if existing and existing.lower() != registrations.PENDING:
+        print(f"the {edition} edition already has an ISBN ({existing}); "
+              "unset it first to reassign")
+        return 1
+    try:
+        isbn = registrations.next_isbn()
+    except SystemExit as exc:
+        print(str(exc))
+        return 1
+    preview = config_cli.preview_edits(
+        booklib.root(), "config/metadata.yaml",
+        [(f"registrations.isbn.{edition}", isbn)],
+    )
+    if preview.problems:
+        print("refusing to write an invalid edit:")
+        for problem in preview.problems:
+            print(f"  {problem}")
+        return 1
+    config_cli.commit(preview)
+    print(f"assigned {isbn} to the {edition} edition")
+    return 0
+
+
 def _run_selftest(args: list[str]) -> int:
     from . import selftest
 
@@ -307,6 +362,7 @@ def _run_clean(args: list[str]) -> int:
 ROUTES: dict[str, Callable[[list[str]], int]] = {
     "new": _run_new,
     "config": _run_config,
+    "isbn": _run_isbn,
     "selftest": _run_selftest,
     "doctor": _run_doctor,
     "art": _run_art,
