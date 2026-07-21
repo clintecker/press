@@ -129,10 +129,7 @@ def nav_html(current: str) -> str:
     joined_groups = "\n".join(groups)
     return (
         '<header class="toolbar">\n'
-        '  <a class="wordmark" href="index.html">'
-        '<img class="wm-mark wm-light" src="brand/press-icon-ink.png" alt="" width="24" height="24">'
-        '<img class="wm-mark wm-dark" src="brand/press-icon-vermilion.png" alt="" width="24" height="24">'
-        'press<span class="mark">.</span></a>\n'
+        '  <a class="wordmark" href="index.html">press<span class="mark">.</span></a>\n'
         '  <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Toggle menu">\n'
         '  <label for="nav-toggle" class="nav-burger" title="Menu" aria-hidden="true">'
         "<span></span><span></span><span></span></label>\n"
