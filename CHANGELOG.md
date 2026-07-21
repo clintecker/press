@@ -9,6 +9,12 @@ audit).
 
 ## [Unreleased]
 
+## [1.20.0] - 2026-07-21
+
+Brand identity: the press pilcrow mark and lockup across the CLI (a banner,
+status glyphs, and the house palette), the docs site (favicon, nav lockup,
+social card), and the README.
+
 ### Added
 
 - Brand identity: the pilcrow mark and the `press.` lockup. The docs site gains
