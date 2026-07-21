@@ -22,7 +22,8 @@ press verify-print
 
 It writes:
 
-- `dist/<slug>-interior.pdf` — the typeset 6×9 interior.
+- `dist/<slug>-interior.pdf` — the typeset interior (at your `print.profile`
+  trim; 6×9 by default).
 - `dist/<slug>-coverwrap.pdf` — the full cover: back, spine, and front in one
   page, with 0.125in bleed. Built only when `assets/cover.jpg` exists.
 
