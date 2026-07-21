@@ -305,7 +305,12 @@ def _run_all(args: list[str]) -> int:
     code = verify_archives.main()
     if code:
         return code
-    return _commerce_gate()
+    code = _commerce_gate()
+    if code == 0:
+        from . import brand
+
+        print(brand.ready("dist/"))
+    return code
 
 
 def _commerce_gate() -> int:
@@ -396,6 +401,12 @@ _VERSION_FLAGS = {"--version", "-V"}
 def main(argv: list[str] | None = None) -> int:
     args = list(argv if argv is not None else sys.argv[1:])
     if not args:
+        # A human running bare `press` gets the branded splash; a pipe gets
+        # plain usage, so scripts see no ANSI or art.
+        if sys.stdout.isatty():
+            from . import brand
+
+            print(brand.banner(str(version())))
         print(USAGE)
         return 2
     target = args[0]

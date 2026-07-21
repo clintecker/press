@@ -9,6 +9,14 @@ audit).
 
 ## [Unreleased]
 
+### Added
+
+- CLI branding (`press.brand`): a running `press` with no command shows the
+  block banner and tagline, and `press all` ends with a "your book is ready"
+  line, in the house vermilion. Color is emitted only to a real terminal
+  (honoring `NO_COLOR`/`FORCE_COLOR`), so piped output stays plain and
+  scriptable.
+
 ## [1.19.1] - 2026-07-21
 
 Print pack, registrations, and public-readiness: offline ISBN assignment from

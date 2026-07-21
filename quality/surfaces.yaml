@@ -29,6 +29,7 @@ modules:
   art_commission: adapter
   artifact_status: pure
   barcode: pure
+  brand: presenter
   events: {default: pure, overrides: {parse_line: parser}}
   booklib:
     default: parser
