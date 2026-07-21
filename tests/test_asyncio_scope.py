@@ -13,20 +13,26 @@ import asyncio
 
 import pytest
 
-_loops: set[int] = set()
+# Hold the loop *objects*, not their id()s: a function-scoped loop is closed
+# when its test ends, and CPython can recycle a freed object's address, so an
+# id() from a destroyed loop can collide with a genuinely new one and flake
+# the comparison. Keeping the objects alive makes identity (`is`) exact.
+_loops: list[asyncio.AbstractEventLoop] = []
 
 
 @pytest.mark.asyncio
 async def test_each_async_test_gets_its_own_loop_first():
-    _loops.add(id(asyncio.get_running_loop()))
+    _loops.append(asyncio.get_running_loop())
 
 
 @pytest.mark.asyncio
 async def test_each_async_test_gets_its_own_loop_second():
     # A distinct loop object from the first test proves function scope; a
-    # shared (wider-scoped) loop would collide.
-    loop_id = id(asyncio.get_running_loop())
-    assert loop_id not in _loops, "async tests shared an event loop (scope widened)"
+    # shared (wider-scoped) loop would be the same object.
+    loop = asyncio.get_running_loop()
+    assert all(loop is not seen for seen in _loops), \
+        "async tests shared an event loop (scope widened)"
+    _loops.append(loop)
 
 
 @pytest.mark.asyncio
