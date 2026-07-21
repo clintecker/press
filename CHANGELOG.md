@@ -9,6 +9,14 @@ audit).
 
 ## [Unreleased]
 
+## [1.19.0] - 2026-07-21
+
+Print pack, registrations, and public-readiness: offline ISBN assignment from
+an owned prefix, print-safe interior images that clear the Lulu file warnings,
+a top-to-bottom Lulu printing guide and a parts-of-a-book guide, versioned
+dependency/code/secret security controls, Python 3.14 support, and a
+repository-metadata drift check.
+
 ### Added
 
 - Offline ISBN assignment (`press isbn`): record the registrant prefix your
