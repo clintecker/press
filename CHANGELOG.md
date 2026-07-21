@@ -16,6 +16,10 @@ audit).
   wheel declares the per-minor classifiers, `press doctor` treats 3.14 as
   in-range, and the installation and compatibility docs name the 3.10-3.14
   range (#168).
+- A scheduled `Repository metadata` workflow asserts the repository's
+  discovery configuration cannot silently drift: the homepage points at the
+  docs site, the default branch is `main`, wiki and projects stay disabled,
+  and the topics remain set. It runs weekly and on demand, read-only (#165).
 
 ## [1.18.0] - 2026-07-20
 

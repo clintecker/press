@@ -1,0 +1,42 @@
+# The repository's discovery metadata is set and cannot silently drift
+# (#165): a homepage pointing at the docs site, descriptive topics, the
+# default branch on main, and the auxiliary GitHub surfaces (wiki, projects)
+# deliberately disabled. Read-only; runs weekly and on demand.
+name: Repository metadata
+
+on:
+  schedule:
+    - cron: "17 8 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  metadata:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Discovery metadata matches the intended configuration
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          repo="${{ github.repository }}"
+          data=$(gh api "repos/${repo}")
+          fail=0
+          check() { # <jq-filter> <expected> <label>
+            got=$(echo "$data" | jq -r "$1")
+            if [ "$got" != "$2" ]; then
+              echo "drift: $3 is '${got}', expected '${2}'"; fail=1
+            fi
+          }
+          check '.homepage' 'https://clintecker.github.io/press/' 'homepage'
+          check '.default_branch' 'main' 'default branch'
+          check '.has_wiki' 'false' 'wiki enabled'
+          check '.has_projects' 'false' 'projects enabled'
+          topics=$(gh api "repos/${repo}/topics" --jq '.names | length')
+          if [ "$topics" -lt 5 ]; then
+            echo "drift: only ${topics} topics set (expected the product's topics)"; fail=1
+          fi
+          [ "$fail" = 0 ] && echo "repository metadata is set and current"
+          exit "$fail"
