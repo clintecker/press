@@ -17,12 +17,10 @@ from pathlib import Path
 
 from . import barcode, booklib
 
+# Cover bleed is universal across print vendors (0.125in on the outer edges);
+# only the spine caliper and wrap geometry are provider-specific, and those
+# live in the provider spec (press.provider_specs).
 BLEED_IN = 0.125
-# Per-page thickness in inches for black-ink interiors, as published by
-# KDP; Ingram's stocks are close enough that the channel template's own
-# spine tolerance absorbs the difference. Override with
-# print: {page-thickness: <inches>} in metadata when a channel says so.
-PAPER_THICKNESS = {"white": 0.002252, "cream": 0.0025}
 
 
 def interior_page_count(interior: Path) -> int:
@@ -32,17 +30,19 @@ def interior_page_count(interior: Path) -> int:
 
 
 def spine_width(pages: int) -> float:
+    """Spine width from the active provider spec's caliper model, honoring a
+    per-book ``print.page-thickness`` override. The house spec reproduces the
+    v1 value exactly; a real provider spec carries that vendor's calipers."""
+
+    from . import provider_specs
+
     conf = booklib.metadata().get("print") or {}
-    thickness = conf.get("page-thickness")
-    if thickness is None:
-        paper = conf.get("paper", "cream")
-        if paper not in PAPER_THICKNESS:
-            raise SystemExit(
-                f"unknown paper stock {paper!r}; state print: "
-                f"{{paper: white|cream}} or {{page-thickness: <inches>}}"
-            )
-        thickness = PAPER_THICKNESS[paper]
-    return pages * float(thickness)
+    override = conf.get("page-thickness")
+    return provider_specs.active().spine(
+        pages,
+        conf.get("paper"),
+        override=float(override) if override is not None else None,
+    )
 
 
 def isbn_for_print() -> str | None:
