@@ -122,10 +122,9 @@ def layout(pages: int) -> WrapLayout:
 
     from . import provider_specs
 
-    meta = booklib.metadata()
-    trim = meta.get("trim") or {}
-    trim_w, trim_h = float(trim.get("width", 6)), float(trim.get("height", 9))
-    print_cfg = meta.get("print") or {}
+    book = booklib.book()
+    trim_w, trim_h = book.trim_width, book.trim_height
+    print_cfg = booklib.metadata().get("print") or {}
     binding = print_cfg.get("binding", "perfect-bound")
     material = print_cfg.get("material", "paperback")
 

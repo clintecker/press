@@ -1,0 +1,13 @@
+# A second design profile: 5x8 (Digest / Novella), to prove the geometry is
+# data-driven and a book can select a different trim. Its margins are scaled
+# for the narrower 5in measure; the figure cap follows the shorter text block.
+# This profile is functional (it renders a valid 5x8 interior) but not yet
+# visually qualified -- Stage 5 adds the baselines every non-house profile
+# owes (#172). See docs/PRINT-PROFILES-PLAN.md.
+id: novella-5x8
+design-major: 1
+trim: {width: 5.0, height: 8.0}
+
+interior:
+  margins: {inner: 0.70, outer: 0.55, top: 0.62, bottom: 0.68, headsep: 0.18, footskip: 0.34}
+  figure-cap: 5.6

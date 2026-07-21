@@ -82,14 +82,19 @@ verify-min-pages: 40
   is the PDF's floor. Drafts may leave both loose; a tag build runs
   with `PRESS_RELEASE=1`, which refuses fewer than two sentinels or
   a floor under 24 pages.
-- `trim` (optional mapping `{width, height}`, default 6 x 9) is
-  validated: anything other than exactly 6 x 9 is refused in v1,
-  because the design contract is built around that trim.
+- `trim` is not set directly: it is derived from the design profile named by
+  `print.profile` (default `house-6x9`), so the trim can never disagree with
+  the interior geometry it was laid out for. A legacy `trim` mapping is honored
+  only as a cross-check and is refused if it disagrees with the profile.
 
 Print pack keys, all optional:
 
 ```yaml
 print:
+  profile: house-6x9    # design profile: trim + interior geometry
+  provider: house       # provider spec: spine + cover geometry
+  binding: perfect-bound  # or saddle-stitch, coil, casewrap, dust-jacket
+  material: paperback   # or casewrap, linen
   paper: cream          # or white; sets per-page thickness
   # page-thickness: 0.0025   # inches; overrides paper if set
 registrations:
@@ -104,6 +109,15 @@ registrations:
   retail: false
 ```
 
+- `print.profile` selects the design profile (trim and interior geometry);
+  `print.provider` selects the provider spec that supplies the spine caliper
+  and cover-wrap geometry (the numbers differ by vendor). Both default to the
+  house 6 x 9 paperback and refuse an unknown id, naming what is available.
+- `print.binding` is `perfect-bound` (default), `saddle-stitch`, `coil`,
+  `casewrap`, or `dust-jacket`; `print.material` is `paperback` (default),
+  `casewrap`, or `linen`. A hardcover binding needs the provider spec to
+  supply its wrap geometry, so an unsupported combination is refused before
+  rendering.
 - `print.paper` must be `white` or `cream` (default cream); an
   unknown stock is refused. `print.page-thickness` wins when set.
   Both feed the cover wrap's spine arithmetic.

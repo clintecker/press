@@ -151,18 +151,18 @@ A slug is strict lowercase kebab, safe as an artifact basename.
 | **Tested by** | `check_slug_invariant` |
 | **Known limit** | Fullmatch of a fixed pattern; no other basename hazard is modeled. |
 
-## Fixed v1 trim
+## Trim from design profile
 
 `INV-config-trim` · standard
 
-Trim is exactly 6 by 9 inches in v1; any other geometry is refused.
+Trim comes from the selected design profile, never a hand-entered number; a metadata trim that disagrees with the profile is refused.
 
 | | |
 |---|---|
-| **If it breaks** | A book ships at a size the design was never proven against. |
+| **If it breaks** | A book ships at a size the interior geometry was never laid out for. |
 | **Enforced by** | `bookmodel.load` |
 | **Tested by** | `check_book_model` |
-| **Known limit** | Hard-coded to the v1 design; v2 geometry is unsupported by design. |
+| **Known limit** | The house profile is 6 by 9, so a book selecting no profile keeps the v1 trim; non-house profiles owe visual qualification. |
 
 ## AGENTS mirrors CLAUDE
 

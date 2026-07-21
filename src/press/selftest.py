@@ -752,12 +752,19 @@ def check_book_model() -> None:
     listed = bookmodel.load(root, {**minimal, "author": ["A", "B"]})
     assert listed.authors == ("A", "B")
 
+    # Trim now comes from the design profile: a metadata trim that disagrees
+    # with the selected profile (here the default house 6 x 9) is refused.
     try:
         bookmodel.load(root, {**minimal, "trim": {"width": 5, "height": 8}})
     except SystemExit as exc:
-        assert "v2" in str(exc) and "5 x 8" in str(exc), exc
+        assert "print.profile" in str(exc) and "5 x 8" in str(exc), exc
     else:
-        raise AssertionError("5 x 8 trim accepted; the v1 design is 6 x 9")
+        raise AssertionError("metadata trim disagreeing with the profile accepted")
+
+    # Selecting a different design profile changes the trim -- the whole point
+    # of the v2 unlock. The house profile stays 6 x 9.
+    novella = bookmodel.load(root, {**minimal, "print": {"profile": "novella-5x8"}})
+    assert (novella.trim_width, novella.trim_height) == (5.0, 8.0), "profile trim ignored"
 
     try:
         bookmodel.load(root, {"title": "", "author": [], "slug": "Bad Slug"})

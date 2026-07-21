@@ -81,10 +81,18 @@ REGISTRY: tuple[Field, ...] = (
     _w("verify-sentinels", METADATA, "list[str]",
        help="phrases proven present in every artifact (release needs >=2)"),
     _w("verify-min-pages", METADATA, "int", help="PDF page floor (release needs >=24)"),
-    # config/metadata.yaml — trim (locked in v1)
-    Field("trim", METADATA, IMMUTABLE, help="page trim, locked to 6x9 in v1",
-          manager="the v1 design is built around 6x9; configurable trim is a v2 change"),
+    # config/metadata.yaml — trim (derived from the design profile)
+    Field("trim", METADATA, IMMUTABLE, help="page trim; derived from print.profile",
+          manager="trim is not set directly; choose it with print.profile"),
     # config/metadata.yaml — print pack
+    _w("print.profile", METADATA,
+       help="design profile id: trim and interior geometry (default house-6x9)"),
+    _w("print.provider", METADATA,
+       help="provider spec for spine and cover geometry (default house)"),
+    _w("print.binding", METADATA, help="binding style",
+       choices=("perfect-bound", "saddle-stitch", "coil", "casewrap", "dust-jacket")),
+    _w("print.material", METADATA, help="cover material",
+       choices=("paperback", "casewrap", "linen")),
     _w("print.paper", METADATA, help="interior stock", choices=("white", "cream")),
     _w("print.page-thickness", METADATA, "float", help="inches per page; overrides paper"),
     # config/metadata.yaml — registrations
