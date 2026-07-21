@@ -1,0 +1,34 @@
+# Dependency provenance and vulnerability review for every surface the
+# press ships (#154): the Python package, the GitHub Actions it pins, and
+# the toolchain container's base image. Updates are weekly and grouped so
+# a routine bump is one review, not a flood; security updates arrive
+# out-of-band regardless of this cadence.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      python:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      toolchain-base:
+        patterns: ["*"]
+    open-pull-requests-limit: 5

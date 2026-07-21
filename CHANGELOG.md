@@ -20,6 +20,13 @@ audit).
   discovery configuration cannot silently drift: the homepage points at the
   docs site, the default branch is `main`, wiki and projects stay disabled,
   and the topics remain set. It runs weekly and on demand, read-only (#165).
+- Versioned security controls (#154): a Dependabot config covering the
+  Python package, the pinned GitHub Actions, and the toolchain base image
+  (weekly, grouped); a CodeQL workflow analyzing the Python package on every
+  pull request, push to main, and weekly; and a dependency-review workflow
+  that fails a pull request adding a high-severity vulnerable dependency.
+  Each new workflow runs at least privilege and uploads nothing to a third
+  party.
 
 ## [1.18.0] - 2026-07-20
 
