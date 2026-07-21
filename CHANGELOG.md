@@ -9,7 +9,13 @@ audit).
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- Python 3.14 is a supported and tested version. The suite and the desk pass
+  on 3.14; CI's package matrix runs it on Ubuntu alongside 3.10-3.13, the
+  wheel declares the per-minor classifiers, `press doctor` treats 3.14 as
+  in-range, and the installation and compatibility docs name the 3.10-3.14
+  range (#168).
 
 ## [1.18.0] - 2026-07-20
 

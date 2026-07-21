@@ -26,8 +26,8 @@ development, clone and `pip install -e .`.
 ## The toolchain by platform
 
 Supported platforms are Linux (the container's Ubuntu 24.04 is the
-reference) and macOS. Python 3.10 through 3.13 are tested on
-every push (Linux across all four, macOS on 3.12); the container's
+reference) and macOS. Python 3.10 through 3.14 are tested on
+every push (Linux across all five, macOS on 3.12); the container's
 pandoc and TeX Live versions are the reference toolchain, proven by
 its own smoke tests. CI runs everything inside
 `ghcr.io/clintecker/press-toolchain`, which is the ground truth for

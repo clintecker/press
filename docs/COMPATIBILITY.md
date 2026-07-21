@@ -7,10 +7,10 @@ page states what each supports and how a support change is governed.
 
 ## Python
 
-The package targets Python 3.10 through 3.13. CI runs the fast package
-tests on all four on Ubuntu, plus 3.12 on macOS, on every push. The
+The package targets Python 3.10 through 3.14. CI runs the fast package
+tests on all five on Ubuntu, plus 3.12 on macOS, on every push. The
 wheel declares `requires-python = ">=3.10"`; there is no upper cap
-because a future minor usually works, but only 3.10 through 3.13 are
+because a future minor usually works, but only 3.10 through 3.14 are
 tested. `press doctor` warns when it runs on a version outside that
 range. Running outside it is unproven, not forbidden.
 

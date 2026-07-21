@@ -150,7 +150,7 @@ def test_environment_keys_report_but_never_deny():
 
 
 @pytest.mark.layer("unit")
-@pytest.mark.parametrize("version", [(3, 9), (3, 14)])
+@pytest.mark.parametrize("version", [(3, 9), (3, 15)])
 def test_python_outside_range_warns_without_denying(version):
     env = fakes.FakeEnvironment(present_tools=ALL_TOOLS)
     report = _run(environment=env, runs=lambda tool: True, python_version=version)
@@ -159,6 +159,16 @@ def test_python_outside_range_warns_without_denying(version):
     assert "outside the tested range" in python.detail
     assert "python" not in report.failing
     assert report.exit_code == 0
+
+
+@pytest.mark.layer("unit")
+@pytest.mark.parametrize("version", [(3, 10), (3, 14)])
+def test_python_at_the_range_bounds_is_ok(version):
+    env = fakes.FakeEnvironment(present_tools=ALL_TOOLS)
+    report = _run(environment=env, runs=lambda tool: True, python_version=version)
+    python = _by_name(report)["python"]
+    assert python.state == "ok"
+    assert "within the tested range 3.10 to 3.14" in python.detail
 
 
 @pytest.mark.layer("unit")

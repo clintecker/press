@@ -189,13 +189,13 @@ def examine(
     # The tested Python range; outside it the press may still run but is
     # unproven, so doctor says so rather than staying silent.
     version_str = f"{version[0]}.{version[1]}"
-    if (3, 10) <= version <= (3, 13):
+    if (3, 10) <= version <= (3, 14):
         findings.append(
             Finding(
                 "python",
                 "python",
                 "ok",
-                f"{version_str} is within the tested range 3.10 to 3.13",
+                f"{version_str} is within the tested range 3.10 to 3.14",
                 False,
             )
         )
@@ -205,7 +205,7 @@ def examine(
                 "python",
                 "python",
                 "warn",
-                f"{version_str} is outside the tested range 3.10 to 3.13 "
+                f"{version_str} is outside the tested range 3.10 to 3.14 "
                 "(see docs/COMPATIBILITY.md)",
                 False,
             )
