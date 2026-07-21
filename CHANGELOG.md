@@ -11,6 +11,21 @@ audit).
 
 ### Added (v2)
 
+- The **v1→v2 migration and rollback contract** (#174): `press migrate`
+  moves a book to the next press major by repinning it — the press major in
+  `requirements.txt` and the CI workflow — and *nothing else*. The
+  manuscript, config, and accepted art come out byte-for-byte identical; a
+  dry run (`press migrate plan`) reports every change and design consequence
+  before any mutation; `apply` writes an exact backup first; `rollback`
+  restores the pre-migration bytes exactly. Because the house profile
+  reproduces the sealed v1 geometry, a v1 book that repins to v2 and keeps
+  the house profile renders unchanged — the design moves only when the
+  author selects a non-house profile. Custom overrides the profile does not
+  govern (`tex/title-page.tex`, `assets/web/*.css`, `config/aesthetic.yaml`)
+  are named by the plan, never silently carried. Guaranteed by
+  `INV-migration-safe` and `INV-migration-preview`, proven by
+  `check_migration`'s scaffolded-book round-trip, and documented in
+  `docs/MIGRATION.md`.
 - The **extension contract** (#171): the decision record and executable gate
   for what a book or third party may add to the press. Everything extensible —
   a design profile, provider spec, artifact, skill, or workflow — is a named

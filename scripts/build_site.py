@@ -56,6 +56,7 @@ NAV_GROUPS = [
         ("docs/INVARIANTS.md", "invariants.html", "invariants"),
         ("docs/PROVIDER-QUALIFICATION.md", "provider-qualification.html", "providers"),
         ("docs/COMPATIBILITY.md", "compatibility.html", "compatibility"),
+        ("docs/MIGRATION.md", "migration.html", "migration"),
     ]),
     ("Project", [
         ("ROADMAP.md", "roadmap.html", "roadmap"),

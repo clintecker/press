@@ -1060,6 +1060,66 @@ def check_fixture_provenance() -> None:
     fixture_provenance.check()
 
 
+def check_migration() -> None:
+    """The v1->v2 migration keeps its two promises on a real scaffolded book:
+    a dry-run plan reports the repin and changes nothing on disk
+    (INV-migration-preview), and apply moves only the pin -- the manuscript,
+    config, and art come out byte-for-byte identical -- while rollback
+    restores the exact prior pin (INV-migration-safe). A custom override is
+    surfaced by diagnosis, not silently carried."""
+
+    import tempfile
+
+    from . import migrate, scaffold
+
+    with tempfile.TemporaryDirectory() as tmp:
+        book = Path(tmp) / "migration-proof"
+        scaffold.main([str(book), "--author", "Migration Tester"])
+
+        # The owned content whose bytes migration must never change.
+        owned = {
+            path: path.read_bytes()
+            for pattern in ("book/**/*", "config/**/*", "tex/**/*", "assets/**/*")
+            for path in book.glob(pattern) if path.is_file()
+        }
+
+        diagnosis = migrate.diagnose(book)
+        assert not diagnosis.problems, diagnosis.problems
+        assert diagnosis.from_major == 1, diagnosis.from_major
+        site_paths = {site.path for site in diagnosis.sites}
+        assert "requirements.txt" in site_paths, site_paths
+        assert any(p.startswith(".github/workflows/") for p in site_paths), site_paths
+
+        # A dry-run plan mutates nothing.
+        plan = migrate.plan(book, 2)
+        assert plan.from_major == 1 and plan.to_major == 2
+        assert plan.changes, "plan produced no changes"
+        assert any("design is unchanged" in note for note in plan.notes)
+        for path, original in owned.items():
+            assert path.read_bytes() == original, f"plan touched {path}"
+        assert not (book / migrate.STATE_DIR / migrate.BACKUP).is_file()
+
+        # Apply moves only the pin; owned content is untouched.
+        migrate.apply(book, 2)
+        for site in migrate.pin_sites(book):
+            assert site.major == 2, f"{site.path} still pinned to v{site.major}"
+        for path, original in owned.items():
+            assert path.read_bytes() == original, f"apply changed owned file {path}"
+        assert (book / migrate.STATE_DIR / migrate.RECEIPT).is_file()
+
+        # Rollback restores the exact prior pin.
+        migrate.rollback(book)
+        for site in migrate.pin_sites(book):
+            assert site.major == 1, f"rollback left {site.path} at v{site.major}"
+        assert not (book / migrate.STATE_DIR / migrate.BACKUP).is_file()
+
+        # A custom override is named by diagnosis so the author re-checks it.
+        (book / "tex").mkdir(exist_ok=True)
+        (book / "tex" / "title-page.tex").write_text("% custom\n", encoding="utf-8")
+        overrides = dict(migrate.diagnose(book).overrides)
+        assert "tex/title-page.tex" in overrides, overrides
+
+
 def check_extension_conformance() -> None:
     """The extension contract has teeth: the reference third-party manifest
     conforms, and every hostile manifest is refused before execution -- a
@@ -1132,6 +1192,7 @@ CHECKS = [
     check_contract_mirror,
     check_invariant_ledger,
     check_fixture_provenance,
+    check_migration,
     check_extension_conformance,
     check_command_catalog,
     check_docs,

@@ -101,6 +101,8 @@ TITLES = {
     "INV-provider-contract": "Provider-neutral contract",
     "INV-extension-conformance": "Extensions refused before execution",
     "INV-extension-seal": "Extensions cannot weaken the core",
+    "INV-migration-safe": "Migration moves only the pin",
+    "INV-migration-preview": "Migration previews before it mutates",
 }
 
 

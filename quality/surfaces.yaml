@@ -64,6 +64,7 @@ modules:
   instruments: presenter
   invariants: {default: verifier, overrides: {load: parser, render: producer}}
   jargon_lint: verifier
+  migrate: {default: pure, overrides: {pin_sites: parser, diagnose: parser, apply: producer, rollback: producer, status: presenter}}
   operator: orchestrator
   package_source: {default: producer, overrides: {publication_members: pure, tracked_paths: adapter}}
   print_safe: producer

@@ -145,6 +145,49 @@ def _run_isbn(args: list[str]) -> int:
     return 0
 
 
+def _run_migrate(args: list[str]) -> int:
+    """Move the book to the next press major, or reverse it. With no
+    subcommand (or `plan`) it prints the dry-run report and writes nothing;
+    `apply` repins after backing up; `rollback` restores the exact prior
+    pin; `status` shows the current pin and any recorded migration."""
+
+    from . import migrate
+
+    root = booklib.root()
+    sub = args[1:]
+    action = sub[0] if sub else "plan"
+
+    if action == "status":
+        print(migrate.status(root))
+        return 0
+    if action == "rollback":
+        restored = migrate.rollback(root)
+        print("rolled back; restored " + ", ".join(restored))
+        return 0
+
+    # plan and apply both target the next major above the book's current pin.
+    diagnosis = migrate.diagnose(root)
+    if diagnosis.problems:
+        for problem in diagnosis.problems:
+            print(problem)
+        return 1
+    assert diagnosis.from_major is not None
+    to_major = diagnosis.from_major + 1
+    migration = migrate.plan(root, to_major)
+
+    if action == "apply":
+        receipt = migrate.apply(root, to_major)
+        print(migrate.render_plan(migration))
+        print(f"\napplied. receipt at {receipt.relative_to(root)}; "
+              "`press migrate rollback` reverses it")
+        return 0
+    if action == "plan":
+        print(migrate.render_plan(migration))
+        return 0
+    print("usage: press migrate [plan] | apply | rollback | status")
+    return 2
+
+
 def _run_selftest(args: list[str]) -> int:
     from . import selftest
 
@@ -370,6 +413,7 @@ def _run_clean(args: list[str]) -> int:
 ROUTES: dict[str, Callable[[list[str]], int]] = {
     "new": _run_new,
     "config": _run_config,
+    "migrate": _run_migrate,
     "isbn": _run_isbn,
     "selftest": _run_selftest,
     "doctor": _run_doctor,

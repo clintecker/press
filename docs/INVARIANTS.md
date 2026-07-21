@@ -372,6 +372,32 @@ Verify targets rebuild before verifying; a stale artifact cannot be blessed.
 | **Tested by** | `integration` |
 | **Known limit** | CLI-path only; importing a verifier module directly skips the rebuild. |
 
+## Migration previews before it mutates
+
+`INV-migration-preview` · standard
+
+A migration dry run reports every change it would make and every design consequence to weigh, and writes nothing; a book learns exactly what moving majors does before a byte changes.
+
+| | |
+|---|---|
+| **If it breaks** | An author applies a major upgrade blind and discovers the design or pin changes only after the fact. |
+| **Enforced by** | `migrate.plan` |
+| **Tested by** | `check_migration` |
+| **Known limit** | The preview enumerates the pin changes and the house-profile design verdict; a book that has already selected a non-house profile carries that design choice independently of the migration. |
+
+## Migration moves only the pin
+
+`INV-migration-safe` · critical
+
+Migrating a book between press majors moves only the pin, in requirements.txt and the CI workflow; the manuscript, config, and accepted art come out byte-for-byte identical, and rollback restores the exact pre-migration pin from a backup written before any file is changed.
+
+| | |
+|---|---|
+| **If it breaks** | An upgrade silently rewrites prose or art, or leaves a book stranded on a half-changed pin with no way back. |
+| **Enforced by** | `migrate.apply` |
+| **Tested by** | `check_migration` |
+| **Known limit** | Proven on a scaffolded book (the two pin sites the template writes); a book that pins the press somewhere exotic is diagnosed and refused rather than rewritten, not migrated. |
+
 ## Every reference resolves
 
 `INV-pages-refs` · standard

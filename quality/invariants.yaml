@@ -551,3 +551,43 @@ invariants:
       declared invariant names a proof; it governs what a manifest may claim,
       not the runtime behavior of a code extension, which the contract does
       not admit.
+
+  - id: INV-migration-safe
+    statement: >-
+      Migrating a book between press majors moves only the pin, in
+      requirements.txt and the CI workflow; the manuscript, config, and
+      accepted art come out byte-for-byte identical, and rollback restores
+      the exact pre-migration pin from a backup written before any file is
+      changed.
+    risk: >-
+      An upgrade silently rewrites prose or art, or leaves a book stranded
+      on a half-changed pin with no way back.
+    criticality: critical
+    owner: migrate
+    enforcer: migrate.apply
+    layers: [selftest, pytest]
+    negative: [check_migration]
+    ci_tier: quality
+    limitations: >-
+      Proven on a scaffolded book (the two pin sites the template writes);
+      a book that pins the press somewhere exotic is diagnosed and refused
+      rather than rewritten, not migrated.
+
+  - id: INV-migration-preview
+    statement: >-
+      A migration dry run reports every change it would make and every
+      design consequence to weigh, and writes nothing; a book learns exactly
+      what moving majors does before a byte changes.
+    risk: >-
+      An author applies a major upgrade blind and discovers the design or
+      pin changes only after the fact.
+    criticality: standard
+    owner: migrate
+    enforcer: migrate.plan
+    layers: [selftest, pytest]
+    negative: [check_migration]
+    ci_tier: quality
+    limitations: >-
+      The preview enumerates the pin changes and the house-profile design
+      verdict; a book that has already selected a non-house profile carries
+      that design choice independently of the migration.

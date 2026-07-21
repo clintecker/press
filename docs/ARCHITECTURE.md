@@ -171,6 +171,19 @@ implementation detail behind it. The policy, restated plainly:
   fixes within the design contract; a book that pins `@v1.x.y`
   accepts nothing at all.
 
+Moving between majors is opt-in, per-book, and reversible. `press migrate`
+rewrites the press major in the two places a book pins it — its
+`requirements.txt` and its CI workflow — and nothing else: the manuscript,
+config, and art come out byte-for-byte identical, a dry run reports every
+change before any mutation, and rollback restores the exact prior pin from a
+backup written first. Because the house profile reproduces the sealed v1
+geometry, a v1 book that repins to v2 and keeps the house profile renders
+unchanged; the design moves only when the author selects a non-house
+profile. A v2 release consumes the migration proof (`check_migration`'s
+round-trip) with the consumer backtest, so a major cannot ship claiming a
+path it has not demonstrated. The full contract is the
+[migration guide](https://github.com/clintecker/press/blob/main/docs/MIGRATION.md).
+
 ## Extending the press
 
 Everything extensible — a design profile, a provider spec, an artifact, a

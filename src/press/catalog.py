@@ -66,6 +66,8 @@ COMMANDS: tuple[Command, ...] = (
             args="get|set|unset|list|validate"),
     Command("selftest", "utilities", "The press checking itself"),
     Command("doctor", "utilities", "Diagnose the toolchain"),
+    Command("migrate", "utilities", "Move the book to the next press major",
+            args="[plan] | apply | rollback | status"),
     # instruments
     Command("skills", "instruments", "List the packaged authoring skills"),
     Command("workflows", "instruments", "List the packaged agent workflows"),
