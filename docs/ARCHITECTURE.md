@@ -171,6 +171,22 @@ implementation detail behind it. The policy, restated plainly:
   fixes within the design contract; a book that pins `@v1.x.y`
   accepts nothing at all.
 
+## Extending the press
+
+Everything extensible — a design profile, a provider spec, an artifact, a
+skill, a workflow — is a named data file selected by id, never an imported
+plugin, and that absence is the contract. Behavior cannot come from the
+accident of which package imported first. A `@v2` addition carries an
+**extension manifest** that declares the names it claims, the contract major
+it targets, the invariants it takes on and how they are proven, and the
+capabilities it asserts; a conformance gate refuses a manifest that collides
+with a core name, targets an unsupported contract, or claims a sealed
+capability — before anything is built. The mandatory verification, path
+containment, artifact graph, config validation, and release gate stay
+sealed: an extension may depend on them but never replace one. The full
+decision record is the
+[extension contract](https://github.com/clintecker/press/blob/main/docs/EXTENSION-CONTRACT.md).
+
 ## Where a book ends and the press begins
 
 A book holds its manuscript, config, and accepted art — nothing else.

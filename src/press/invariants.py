@@ -99,6 +99,8 @@ TITLES = {
     "INV-commerce-config": "Safe ordering config",
     "INV-commerce-release-gate": "Qualified before sale",
     "INV-provider-contract": "Provider-neutral contract",
+    "INV-extension-conformance": "Extensions refused before execution",
+    "INV-extension-seal": "Extensions cannot weaken the core",
 }
 
 

@@ -1060,6 +1060,50 @@ def check_fixture_provenance() -> None:
     fixture_provenance.check()
 
 
+def check_extension_conformance() -> None:
+    """The extension contract has teeth: the reference third-party manifest
+    conforms, and every hostile manifest is refused before execution -- a
+    core-name collision, an unsupported contract major, a sealed-capability
+    claim, and an unproven invariant each turn conformance red, while a
+    structurally malformed manifest is refused at the parser boundary. The
+    fixtures ship as package data, so an installed wheel proves this too."""
+
+    from . import extensions
+
+    fixtures = extensions.fixtures_dir()
+    reference = extensions.load_manifest_file(fixtures / "reference.yaml")
+    problems = extensions.conformance(reference)
+    if problems:
+        raise SystemExit(
+            "the reference extension manifest must conform, but was refused:\n"
+            + "\n".join(f"  - {p}" for p in problems)
+        )
+
+    # The malformed manifest is refused by the parser, before policy runs.
+    try:
+        extensions.load_manifest_file(fixtures / "hostile" / "malformed.yaml")
+    except SystemExit:
+        pass
+    else:
+        raise SystemExit(
+            "hostile/malformed.yaml is structurally invalid but load_manifest "
+            "accepted it"
+        )
+
+    # Every other hostile manifest parses but fails conformance.
+    hostile = sorted(
+        p for p in (fixtures / "hostile").glob("*.yaml") if p.name != "malformed.yaml"
+    )
+    if not hostile:
+        raise SystemExit("no hostile extension fixtures found to prove refusal")
+    for path in hostile:
+        manifest = extensions.load_manifest_file(path)
+        if extensions.conforms(manifest):
+            raise SystemExit(
+                f"hostile extension {path.name} must be refused, but it conformed"
+            )
+
+
 # The one ordered list of invariant checks. main() runs it and the
 # pytest suite parametrizes over it, so the CLI and the test runner
 # cannot disagree about which invariants the press proves.
@@ -1088,6 +1132,7 @@ CHECKS = [
     check_contract_mirror,
     check_invariant_ledger,
     check_fixture_provenance,
+    check_extension_conformance,
     check_command_catalog,
     check_docs,
 ]

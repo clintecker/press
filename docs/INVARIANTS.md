@@ -281,6 +281,32 @@ Watchlist terms at rewrite severity fail the run.
 | **Tested by** | `fixture:jargon.md` |
 | **Known limit** | Exact matches only; a per-book allow list can silence any term. |
 
+## Extensions refused before execution
+
+`INV-extension-conformance` · critical
+
+An extension declaration is refused before execution when it collides with a core name, targets an extension-contract major this press does not implement, is structurally malformed, or names an unknown dependency. Discovery is declarative and deterministic; nothing runs on the strength of import order or an ambient entry point.
+
+| | |
+|---|---|
+| **If it breaks** | A third-party extension shadows a core artifact or command, or a manifest written for a future contract loads and behaves unpredictably, because collisions and version mismatches were discovered at build time instead of refused up front. |
+| **Enforced by** | `extensions.conformance` |
+| **Tested by** | `check_extension_conformance` |
+| **Known limit** | Conformance decides on the declared manifest -- the names, contract major, dependencies, invariants, and capabilities an extension states; it does not sandbox arbitrary code, because the contract admits no code extension, only declarative registry entries. |
+
+## Extensions cannot weaken the core
+
+`INV-extension-seal` · critical
+
+An extension may depend on the mandatory verification, path containment, artifact graph, config validation, and release gate, but it may never declare that it provides or replaces one, and it may not carry an invariant it does not prove. A manifest that claims a sealed capability or an unproven obligation is refused.
+
+| | |
+|---|---|
+| **If it breaks** | A plugin silently weakens or stands in for core verification, or ships a guarantee nothing enforces, so a book carries an invariant that is never checked. |
+| **Enforced by** | `extensions.conformance` |
+| **Tested by** | `check_extension_conformance` |
+| **Known limit** | The seal is a fixed set of capability tokens and the rule that every declared invariant names a proof; it governs what a manifest may claim, not the runtime behavior of a code extension, which the contract does not admit. |
+
 ## One witness per chapter
 
 `INV-format-site-identity` · standard

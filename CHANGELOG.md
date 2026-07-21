@@ -9,6 +9,24 @@ audit).
 
 ## [Unreleased]
 
+### Added (v2)
+
+- The **extension contract** (#171): the decision record and executable gate
+  for what a book or third party may add to the press. Everything extensible —
+  a design profile, provider spec, artifact, skill, or workflow — is a named
+  data file selected by id, never an imported plugin, so behavior cannot come
+  from import or entry-point order. An extension carries a manifest declaring
+  the names it claims, the contract major it targets, the invariants it takes
+  on and their proofs, and its capabilities; `press`'s `conformance` gate
+  refuses a manifest that collides with a core name, targets an unsupported
+  contract major, is malformed, names an unknown dependency, claims a sealed
+  capability, or leaves an invariant unproven — before anything is built. The
+  mandatory verification, path containment, artifact graph, config validation,
+  and release gate stay sealed. Modelled by `INV-extension-conformance` and
+  `INV-extension-seal`, proven by `check_extension_conformance` over a
+  reference and five hostile fixtures, and documented in
+  `docs/EXTENSION-CONTRACT.md`.
+
 ### Changed (v2 — breaking, configurable print formats)
 
 - Trim, binding, cover material, and print vendor are now configurable, a v2

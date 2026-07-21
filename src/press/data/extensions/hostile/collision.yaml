@@ -1,0 +1,9 @@
+# Hostile: claims a name the core already owns. `pdf` is a core artifact, so
+# this extension would shadow the reading PDF. conformance() must refuse it
+# with a collision naming `pdf`.
+name: shadow-pdf
+kind: artifact
+contract-major: 2
+provides:
+  - pdf
+publication: internal

@@ -52,6 +52,7 @@ NAV_GROUPS = [
     ("Reference", [
         ("docs/REFERENCE.md", "reference.html", "reference"),
         ("docs/ARCHITECTURE.md", "architecture.html", "architecture"),
+        ("docs/EXTENSION-CONTRACT.md", "extension-contract.html", "extension contract"),
         ("docs/INVARIANTS.md", "invariants.html", "invariants"),
         ("docs/PROVIDER-QUALIFICATION.md", "provider-qualification.html", "providers"),
         ("docs/COMPATIBILITY.md", "compatibility.html", "compatibility"),

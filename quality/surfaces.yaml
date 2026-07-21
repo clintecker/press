@@ -54,6 +54,7 @@ modules:
   desk_model: producer
   doctor: {default: presenter, overrides: {tool_runs: adapter, examine: adapter, render_finding: pure}}
   edition: {default: verifier, overrides: {build: producer, observe: adapter, interior_path: pure, cover_path: pure, to_json: pure, from_json: pure, is_sellable: pure}}
+  extensions: {default: pure, overrides: {load_manifest: parser, load_manifest_file: parser, conformance: verifier}}
   fixture_provenance: verifier
   gen_authorities: {default: producer, overrides: {print_safe: normalizer, normalize: normalizer, chapter_label: pure, next_letter: pure, taken_letters: pure}}
   gen_coverwrap: {default: producer, overrides: {spine_width: pure, wrap_geometry: pure, layout: pure, interior_page_count: pure, isbn_for_print: parser, tex_safe_path: pure}}

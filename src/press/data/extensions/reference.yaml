@@ -1,0 +1,19 @@
+# The reference third-party extension: a well-formed manifest that conforms.
+# It registers one new design profile, depends on a core artifact it renders
+# into, takes on one invariant and names its proof, asserts only unsealed
+# capabilities, and states its publication policy. selftest proves this
+# manifest passes conformance() with no problems.
+name: acme-quarto
+kind: design-profile
+contract-major: 2
+provides:
+  - acme-quarto
+requires:
+  - pdf
+invariants:
+  - INV-acme-quarto-geometry
+proofs:
+  - fixture:acme-quarto.md
+capabilities:
+  - interior-geometry
+publication: internal

@@ -1,0 +1,12 @@
+# Hostile: declares it provides `core-verification`, a sealed capability. An
+# extension that could stand in for the mandatory verification could weaken
+# it invisibly; conformance() refuses any manifest that claims a sealed
+# capability.
+name: trust-me
+kind: artifact
+contract-major: 2
+provides:
+  - trust-me
+capabilities:
+  - core-verification
+publication: published

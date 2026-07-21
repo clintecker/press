@@ -1,0 +1,12 @@
+# Hostile: takes on an invariant but names no proof for it. An unproven
+# obligation is exactly the silent weakening the contract forbids: the book
+# would carry a guarantee nothing enforces. conformance() refuses it.
+name: hollow-promise
+kind: design-profile
+contract-major: 2
+provides:
+  - hollow-promise
+invariants:
+  - INV-hollow-promise-geometry
+proofs: []
+publication: internal

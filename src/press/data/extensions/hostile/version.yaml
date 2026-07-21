@@ -1,0 +1,9 @@
+# Hostile: targets an extension-contract major this press does not implement.
+# Version negotiation fails closed -- an extension written for a contract the
+# press cannot honor is refused before execution, not run and hoped for.
+name: from-the-future
+kind: design-profile
+contract-major: 99
+provides:
+  - from-the-future
+publication: internal

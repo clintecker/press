@@ -1,0 +1,7 @@
+# Hostile: structurally malformed -- no `kind`, and `contract-major` is a
+# string, not an int. load_manifest() must refuse this at the parser
+# boundary, before conformance() is ever consulted.
+name: broken
+contract-major: "two"
+provides:
+  - broken
