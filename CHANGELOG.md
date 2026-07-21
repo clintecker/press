@@ -11,6 +11,10 @@ audit).
 
 ### Added
 
+- Brand identity: the pilcrow mark and the `press.` lockup. The docs site gains
+  a favicon, a theme-swapped nav mark (ink badge on light, vermilion on dark),
+  and a large social card (`og:image`/`twitter:image`); the README shows the
+  theme-aware lockup. Assets live in `site/brand/`.
 - CLI branding (`press.brand`): a running `press` with no command shows the
   block banner and tagline, and `press all` ends with a "your book is ready"
   line, in the house vermilion. Color is emitted only to a real terminal

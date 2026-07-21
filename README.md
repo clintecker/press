@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="site/brand/press-lockup-reversed.png">
+  <img src="site/brand/press-lockup.png" alt="press" width="360">
+</picture>
+
 # press
 
 A complete small press: everything required to turn a directory of

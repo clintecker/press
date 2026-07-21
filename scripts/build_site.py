@@ -129,7 +129,10 @@ def nav_html(current: str) -> str:
     joined_groups = "\n".join(groups)
     return (
         '<header class="toolbar">\n'
-        '  <a class="wordmark" href="index.html">press<span class="mark">.</span></a>\n'
+        '  <a class="wordmark" href="index.html">'
+        '<img class="wm-mark wm-light" src="brand/press-icon-ink.png" alt="" width="24" height="24">'
+        '<img class="wm-mark wm-dark" src="brand/press-icon-vermilion.png" alt="" width="24" height="24">'
+        'press<span class="mark">.</span></a>\n'
         '  <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Toggle menu">\n'
         '  <label for="nav-toggle" class="nav-burger" title="Menu" aria-hidden="true">'
         "<span></span><span></span><span></span></label>\n"
@@ -222,18 +225,22 @@ def head_metadata(name: str, title: str, description: str) -> str:
     import html as html_mod
 
     canonical = SITE_URL if name == "index.html" else SITE_URL + name
+    social = SITE_URL + "brand/press-lockup-reversed.png"
     t = html_mod.escape(title)
     return "\n".join([
         f'  <meta name="description" content="{description}" />',
         f'  <link rel="canonical" href="{canonical}" />',
+        '  <link rel="icon" type="image/png" href="brand/press-icon-ink.png" />',
         '  <meta property="og:type" content="website" />',
         '  <meta property="og:site_name" content="press" />',
         f'  <meta property="og:title" content="{t}" />',
         f'  <meta property="og:description" content="{description}" />',
         f'  <meta property="og:url" content="{canonical}" />',
-        '  <meta name="twitter:card" content="summary" />',
+        f'  <meta property="og:image" content="{social}" />',
+        '  <meta name="twitter:card" content="summary_large_image" />',
         f'  <meta name="twitter:title" content="{t}" />',
         f'  <meta name="twitter:description" content="{description}" />',
+        f'  <meta name="twitter:image" content="{social}" />',
     ]) + "\n"
 
 
@@ -402,6 +409,11 @@ def main() -> int:
     shutil.copy(ROOT / "site" / "press.css", OUT / "press.css")
     shutil.copy(ROOT / "site" / "copy.js", OUT / "copy.js")
     shutil.copytree(ROOT / "site" / "fonts", OUT / "fonts")
+    # Brand assets: the favicon, the nav marks (theme-swapped), and the social
+    # card. The .md README beside them is not copied (it is documentation).
+    (OUT / "brand").mkdir()
+    for png in sorted((ROOT / "site" / "brand").glob("*.png")):
+        shutil.copy(png, OUT / "brand" / png.name)
     for source, name, label in PAGES + FOOTER_PAGES:
         build_page(source, name, label)
     write_sitemap_and_robots()
