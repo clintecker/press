@@ -55,7 +55,7 @@ modules:
   edition: {default: verifier, overrides: {build: producer, observe: adapter, interior_path: pure, cover_path: pure, to_json: pure, from_json: pure, is_sellable: pure}}
   fixture_provenance: verifier
   gen_authorities: {default: producer, overrides: {print_safe: normalizer, normalize: normalizer, chapter_label: pure, next_letter: pure, taken_letters: pure}}
-  gen_coverwrap: {default: producer, overrides: {spine_width: pure, interior_page_count: pure, isbn_for_print: parser, tex_safe_path: pure}}
+  gen_coverwrap: {default: producer, overrides: {spine_width: pure, wrap_geometry: pure, layout: pure, interior_page_count: pure, isbn_for_print: parser, tex_safe_path: pure}}
   gen_front_matter: {default: producer, overrides: {escape: normalizer}}
   gen_index: producer
   impact: {default: pure, overrides: {changed_modules: adapter, render: producer, main: presenter}}

@@ -35,10 +35,10 @@ def render(wrap: Path, out_dir: Path) -> Image.Image:
     return Image.open(rendered[0])
 
 
-def check_front_panel(image: Image.Image, spine: float, trim_w: float,
+def check_front_panel(image: Image.Image, front_x_in: float,
                       wrap_w: float) -> None:
     dpi = image.width / wrap_w
-    front_x = int((gen_coverwrap.BLEED_IN + trim_w + spine) * dpi)
+    front_x = int(front_x_in * dpi)
     front = image.crop((front_x, 0, image.width, image.height))
     if looks_blank(front):
         raise SystemExit("coverwrap front panel rendered blank; cover art missing")
@@ -118,11 +118,10 @@ def main() -> int:
     meta = booklib.metadata()
     trim = meta.get("trim") or {}
     trim_w = float(trim.get("width", 6))
-    trim_h = float(trim.get("height", 9))
     pages = gen_coverwrap.interior_page_count(interior)
-    spine = gen_coverwrap.spine_width(pages)
-    wrap_w = 2 * gen_coverwrap.BLEED_IN + 2 * trim_w + spine
-    wrap_h = 2 * gen_coverwrap.BLEED_IN + trim_h
+    # The generator's own geometry, so the verifier cannot disagree with it.
+    lay = gen_coverwrap.layout(pages)
+    wrap_w, wrap_h = lay.wrap_w, lay.wrap_h
     page = reader.pages[0]
     got_w = float(page.mediabox.width) / 72
     got_h = float(page.mediabox.height) / 72
@@ -145,7 +144,7 @@ def main() -> int:
         image = render(wrap, Path(tmp))
         if looks_blank(image):
             raise SystemExit("coverwrap rendered blank")
-        check_front_panel(image, spine, trim_w, wrap_w)
+        check_front_panel(image, lay.front_x, wrap_w)
         scanline(image, trim_w, wrap_w, gen_coverwrap.isbn_for_print())
 
     isbn = gen_coverwrap.isbn_for_print()

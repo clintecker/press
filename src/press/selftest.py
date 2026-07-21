@@ -425,8 +425,9 @@ def check_coverwrap_detectors() -> None:
     size = (int(wrap_w * dpi), int(wrap_h * dpi))
 
     flat = Image.new("RGB", size, (200, 190, 180))
+    front_x = bleed + trim_w + spine   # perfect-bound front-panel edge
     try:
-        verify_coverwrap.check_front_panel(flat, spine, trim_w, wrap_w)
+        verify_coverwrap.check_front_panel(flat, front_x, wrap_w)
     except SystemExit as exc:
         assert "flat" in str(exc) or "blank" in str(exc), exc
     else:
