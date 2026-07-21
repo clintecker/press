@@ -43,6 +43,7 @@ NAV_GROUPS = [
         ("docs/QUICKSTART.md", "quickstart.html", "quickstart"),
         ("docs/INSTALL.md", "install.html", "install"),
         ("docs/CONFIGURATION.md", "configuration.html", "configuration"),
+        ("docs/BOOK-PARTS.md", "book-parts.html", "book parts"),
         ("docs/PRINT-ORDERING.md", "print-ordering.html", "print ordering"),
         ("docs/DESK.md", "desk.html", "desk"),
     ]),

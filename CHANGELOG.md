@@ -20,6 +20,13 @@ audit).
   discovery configuration cannot silently drift: the homepage points at the
   docs site, the default branch is `main`, wiki and projects stay disabled,
   and the topics remain set. It runs weekly and on demand, read-only (#165).
+- A task-oriented guide, [the parts of a book](https://github.com/clintecker/press/blob/main/docs/BOOK-PARTS.md), covering
+  how to add each common part: the byline, the generated front matter
+  (dedication, epigraph, acknowledgements, colophon), the author portrait, an
+  about-the-author page, further-reading and glossary pages, footnotes, the
+  index, and the sources-and-authorities bibliography. It leads with the
+  `press config` commands and is honest about which parts are authored
+  Markdown rather than configuration.
 - Versioned security controls (#154): a Dependabot config covering the
   Python package, the pinned GitHub Actions, and the toolchain base image
   (weekly, grouped); a CodeQL workflow analyzing the Python package on every

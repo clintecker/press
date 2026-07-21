@@ -15,7 +15,10 @@ level; a parse error refuses with the file and line.
 For a first book, the
 [quickstart](https://github.com/clintecker/press/blob/main/docs/QUICKSTART.md)
 names the handful of facts you must supply and leaves the rest at their
-defaults; this page is the exhaustive reference behind it.
+defaults; this page is the exhaustive reference behind it. To add a specific
+part of a book — a dedication, an author photo, an index, a bibliography —
+[the parts of a book](https://github.com/clintecker/press/blob/main/docs/BOOK-PARTS.md)
+walks each one as a task, with the commands to run.
 
 You do not have to edit YAML by hand. `press config` reads and writes every
 field below through the same typed model that validates a build, so an edit
