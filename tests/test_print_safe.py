@@ -31,6 +31,42 @@ def test_sanitize_flattens_transparency_onto_white(tmp_path):
 
 
 @pytest.mark.layer("unit")
+def test_sanitize_composites_onto_a_given_background(tmp_path):
+    src, dst = tmp_path / "logo.png", tmp_path / "out.png"
+    Image.new("RGBA", (10, 10), (0, 0, 0, 0)).save(src)
+    print_safe.sanitize(src, dst, 1000, background=(201, 191, 191))
+    out = Image.open(dst)
+    # The transparent logo takes the field colour, so it is invisible against
+    # the printed field and carries no soft mask.
+    assert out.mode == "RGB" and out.getpixel((0, 0)) == (201, 191, 191)
+
+
+@pytest.mark.layer("unit")
+def test_prepare_cover_makes_opaque_capped_assets(tmp_path):
+    (tmp_path / "assets").mkdir()
+    Image.new("RGBA", (2000, 2000), (0, 0, 0, 0)).save(
+        tmp_path / "assets" / "press-logo.png")
+    Image.new("RGB", (5000, 7000), (10, 20, 30)).save(tmp_path / "assets" / "cover.jpg")
+
+    made = print_safe.prepare_cover(
+        tmp_path, logo_background=(201, 191, 191), cover_max_edge=3000, logo_max_edge=640)
+    logo, cover = Image.open(made["logo"]), Image.open(made["cover"])
+    # Logo: opaque, on the field colour, capped to its small cover placement.
+    # (Saved as JPEG, so the flat field decodes within a unit or two.)
+    assert logo.mode == "RGB" and max(logo.size) <= 640
+    assert all(abs(got - want) <= 3
+               for got, want in zip(logo.getpixel((0, 0)), (201, 191, 191)))
+    # Cover: opaque, downsampled under the wrap cap.
+    assert cover.mode == "RGB" and max(cover.size) <= 3000
+
+
+@pytest.mark.layer("unit")
+def test_prepare_cover_is_empty_without_assets(tmp_path):
+    (tmp_path / "assets").mkdir()
+    assert print_safe.prepare_cover(tmp_path, (255, 255, 255), 3000, 640) == {}
+
+
+@pytest.mark.layer("unit")
 def test_sanitize_downsamples_over_the_cap(tmp_path):
     src, dst = tmp_path / "big.jpg", tmp_path / "out.jpg"
     _save(src, (4000, 2000), "RGB", (10, 20, 30))

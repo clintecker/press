@@ -102,6 +102,58 @@ def scanline(image: Image.Image, back_right: float, margin: float,
             raise SystemExit(f"coverwrap barcode {side} quiet zone carries ink")
 
 
+def check_print_safe(wrap: Path) -> None:
+    """The wrap carries no transparency and no image over 600 PPI, so a
+    print-on-demand preflight (Lulu, KDP) does not flag the cover the way it
+    flags a raw logo on transparency or a source scan at full resolution.
+    Transparency is read from the PDF itself; resolution needs pdfimages, and
+    its absence softens the PPI half to a note rather than a false pass."""
+
+    import shutil
+
+    from pypdf import PdfReader
+
+    reader = PdfReader(str(wrap))
+    with_mask = 0
+    for page in reader.pages:
+        xobjects = (page.get("/Resources") or {}).get("/XObject")
+        if xobjects is None:
+            continue
+        for ref in xobjects.get_object().values():
+            obj = ref.get_object()
+            if obj.get("/Subtype") == "/Image" and "/SMask" in obj:
+                with_mask += 1
+    if with_mask:
+        raise SystemExit(
+            f"coverwrap embeds {with_mask} image(s) with transparency (a soft "
+            "mask); a print preflight flags it. Cover assets must be flattened "
+            "onto their background (print_safe.prepare_cover)."
+        )
+
+    if shutil.which("pdfimages") is None:
+        print("  (pdfimages absent; cover image resolution not checked)")
+        return
+    listing = subprocess.run(
+        ["pdfimages", "-list", str(wrap)], capture_output=True, text=True
+    )
+    over = []
+    for line in listing.stdout.splitlines()[2:]:
+        cols = line.split()
+        if len(cols) < 14:
+            continue
+        try:
+            x_ppi, y_ppi = int(cols[12]), int(cols[13])
+        except ValueError:
+            continue
+        if x_ppi > 600 or y_ppi > 600:
+            over.append(f"{cols[2]} {x_ppi}x{y_ppi}ppi")
+    if over:
+        raise SystemExit(
+            "coverwrap embeds image(s) over 600 PPI (a print preflight flags "
+            "it): " + ", ".join(over) + ". Lower the print-safe cover cap."
+        )
+
+
 def main() -> int:
     root = booklib.root()
     slug = booklib.slug()
@@ -131,6 +183,7 @@ def main() -> int:
         )
 
     verify_fonts(wrap)
+    check_print_safe(wrap)
 
     from .verify_formats import normalized
 
@@ -151,7 +204,7 @@ def main() -> int:
     barcode_note = "EAN-13 readable with quiet zones" if isbn else "honest placeholder present"
     print(
         f"Verified {wrap.name}: one page, {wrap_w:.3f} x {wrap_h:.3f} in "
-        f"({pages}-page spine), embedded fonts, front art present, title "
-        f"survives, barcode: {barcode_note}"
+        f"({pages}-page spine), embedded fonts, no transparency, images under "
+        f"600 PPI, front art present, title survives, barcode: {barcode_note}"
     )
     return 0

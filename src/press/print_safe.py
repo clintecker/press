@@ -56,10 +56,15 @@ def _has_alpha(image) -> bool:
     )
 
 
-def sanitize(src: Path, dst: Path, max_edge: int) -> None:
+def sanitize(
+    src: Path, dst: Path, max_edge: int, background: tuple[int, int, int] = _WHITE
+) -> None:
     """Write ``src`` to ``dst`` with no transparency and its long edge at
     most ``max_edge`` pixels, preserving grayscale so a single-ink plate
-    does not balloon into RGB."""
+    does not balloon into RGB. Transparency is composited onto ``background``:
+    white for an interior image on paper, but the printed field colour for a
+    logo that sits on a coloured cover, so the flattened result is invisible
+    against what it lies on."""
 
     from PIL import Image
 
@@ -71,7 +76,7 @@ def sanitize(src: Path, dst: Path, max_edge: int) -> None:
         image: Image.Image = opened
         if _has_alpha(image):
             rgba = image.convert("RGBA")
-            flat = Image.new("RGB", rgba.size, _WHITE)
+            flat = Image.new("RGB", rgba.size, background)
             flat.paste(rgba, mask=rgba.split()[-1])
             image = flat
         elif image.mode not in ("L", "RGB"):
@@ -105,3 +110,40 @@ def prepare(root: Path) -> Path | None:
     for src, cap in jobs:
         sanitize(src, out / src.relative_to(root), cap)
     return out
+
+
+def prepare_cover(
+    root: Path,
+    logo_background: tuple[int, int, int],
+    cover_max_edge: int,
+    logo_max_edge: int,
+) -> dict[str, Path]:
+    """Print-safe cover-wrap assets: an opaque, resolution-capped copy of the
+    front art and of the imprint logo, written into ``build/coverwrap-assets``.
+    The cover art carries no transparency and no over-resolution, and the logo
+    is flattened onto ``logo_background`` (the printed field colour, or white
+    on a linen case with no field), so the assembled wrap trips neither the
+    provider's transparency nor its PPI preflight. Returns the paths that
+    exist, keyed ``cover`` and ``logo``; a book with neither is an empty map.
+
+    The cover art is capped from the wrap geometry, not the interior figure
+    cap, because it prints at the full panel size; a much higher cap would let
+    a large source exceed 600 PPI on the cover the way it cannot on a figure."""
+
+    out = root / "build" / "coverwrap-assets"
+    if out.exists():
+        shutil.rmtree(out)
+    made: dict[str, Path] = {}
+    cover = root / "assets" / "cover.jpg"
+    if cover.is_file():
+        sanitize(cover, out / "cover.jpg", cover_max_edge)
+        made["cover"] = out / "cover.jpg"
+    logo = root / "assets" / "press-logo.png"
+    if logo.is_file():
+        # Flatten onto the field colour and emit an opaque JPEG, so no soft
+        # mask survives into the wrap PDF. The logo prints small on the cover
+        # (a 1000px logo at 1.1in is 909 PPI, over the limit), so its cap comes
+        # from the wrap placement, not the interior's roomier 1.7in.
+        sanitize(logo, out / "press-logo.jpg", logo_max_edge, background=logo_background)
+        made["logo"] = out / "press-logo.jpg"
+    return made

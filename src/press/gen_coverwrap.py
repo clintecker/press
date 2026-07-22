@@ -67,6 +67,18 @@ class WrapLayout:
     cloth_field: bool      # paint the cloth-colored field (off for linen)
 
 
+# The back-panel cloth field colour, as RGB. It is the single source of truth:
+# the TeX \fill paints it and the imprint logo is flattened onto the same
+# value, so the opaque logo is invisible against the field. (RGB(201,191,191)
+# is xcolor black!85!red!25!white, the field this wrap has always used.)
+_CLOTH_FIELD_RGB = (201, 191, 191)
+
+# The imprint logo's printed width on the back panel. It is the single source
+# of truth for both the \includegraphics width and the print-safe resolution
+# cap, so the two can never disagree and let the logo exceed 600 PPI.
+_LOGO_WIDTH_IN = 1.1
+
+
 # Bindings press lays out without a vendor spec: a soft-cover flat wrap, with
 # or without a spine. Hardcover bindings (a board turn-in, hinge, and overhang,
 # or a jacket's flaps) need the provider spec to supply their geometry, so an
@@ -228,10 +240,23 @@ def generate(interior: Path, output: Path) -> Path:
     spine = lay.spine
     wrap_w, wrap_h = lay.wrap_w, lay.wrap_h
 
-    cover = tex_safe_path(root / "assets" / "cover.jpg")
-    if not cover.is_file():
+    # Print-safe cover assets: opaque, resolution-capped copies so the wrap
+    # trips neither the provider's transparency nor its PPI preflight. The
+    # front art prints at the full panel height, so its cap comes from the
+    # wrap geometry (keeping it under 600 PPI there); the logo is flattened
+    # onto the field colour it lies on, or white on a linen case with no field.
+    from . import print_safe
+
+    field_bg = _CLOTH_FIELD_RGB if lay.cloth_field else (255, 255, 255)
+    cover_cap = int(590 * wrap_h)
+    logo_cap = int(590 * _LOGO_WIDTH_IN)   # keep the small cover logo under 600 PPI
+    safe = print_safe.prepare_cover(root, field_bg, cover_cap, logo_cap)
+
+    raw_cover = root / "assets" / "cover.jpg"
+    if "cover" not in safe or not raw_cover.is_file():
         raise SystemExit("coverwrap needs assets/cover.jpg (the front board art)")
-    logo = tex_safe_path(root / "assets" / "press-logo.png")
+    cover = tex_safe_path(safe["cover"])
+    logo = tex_safe_path(safe.get("logo", root / "assets" / "press-logo.png"))
     authors = list(booklib.book().authors)
 
     def esc(value: str) -> str:
@@ -240,7 +265,8 @@ def generate(interior: Path, output: Path) -> Path:
         return escape(value)
 
     logo_block = (
-        f"\\includegraphics[width=1.1in]{{\"{logo}\"}}\\\\[0.18in]" if logo.is_file() else ""
+        f"\\includegraphics[width={_LOGO_WIDTH_IN}in]{{\"{logo}\"}}\\\\[0.18in]"
+        if logo.is_file() else ""
     )
     spine_text = (
         f"{esc(meta['title'])} \\hspace{{0.35in}} {esc(', '.join(authors))}"

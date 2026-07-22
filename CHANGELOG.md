@@ -9,6 +9,23 @@ audit).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The cover wrap is now print-safe** (#189). The wrap embedded the raw
+  `assets/cover.jpg` and imprint logo, so a transparent logo (a soft mask) or
+  an over-resolution source reached the cover and tripped a print-on-demand
+  preflight (Lulu, KDP), even though the interior had been cleared. The
+  generator now embeds flattened, resolution-capped copies via
+  `print_safe.prepare_cover`: the logo is composited onto the exact field
+  colour it lies on (so it stays invisible against the field, with no soft
+  mask), and both cover art and logo are capped from the wrap geometry, since
+  the logo prints small on the cover (a 1000px logo at 1.1in is 909 PPI, over
+  the limit) where the same file clears the interior's roomier placement.
+  `verify_coverwrap` now refuses a wrap that carries transparency or an image
+  over 600 PPI, so a regression cannot ship a cover a printer would reject.
+  Verified end to end on a real 46-page 6×9 wrap: the logo drops from 1024²
+  RGBA at 909 PPI to an opaque 649² at 590 PPI, with zero soft masks.
+
 ### Added (v2)
 
 - **Semantic chapter-opening drop caps** (#192). A design may open each
