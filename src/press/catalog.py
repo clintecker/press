@@ -57,6 +57,9 @@ COMMANDS: tuple[Command, ...] = (
             args="kdp|ingram [--report-only]"),
     Command("isbn", "print pack", "Assign ISBNs from an owned block",
             args="status | assign print|epub"),
+    Command("onix", "print pack", "Generate an ONIX 3.0 metadata record",
+            args="[--forthcoming]"),
+    Command("pcn", "print pack", "Assemble Library of Congress PCN fields"),
     # utilities
     Command("render", "utilities", "Render the PDF to page PNGs"),
     Command("wordcount", "utilities", "Count the manuscript words"),

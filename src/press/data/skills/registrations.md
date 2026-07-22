@@ -53,8 +53,30 @@ anywhere else; the config is the single stated copy.
   title.
 - Apply before the book is printed; the LCCN belongs on the copyright
   page, and the press renders it in the colophon from config.
+- `press pcn` assembles the PrePub Book Link field values from config
+  (title, author, publisher, projected year, ISBN, language) into
+  `dist/<slug>-pcn.txt`, with any gap the form needs flagged rather than
+  blank. The submission itself is the LC web form; there is no
+  apply-by-API. When the LCCN comes back, store it with
+  `press config set registrations.lccn <number>`.
 - After publication, send the Library its complimentary copy; the PCN
   obligation is real.
+
+## ONIX (the metadata distributors ingest)
+
+- ONIX 3.0 is the XML record Bowker, Ingram, and Amazon read. `press
+  onix` generates a valid single-message record into
+  `dist/<slug>.onix.xml` from config: a product per sellable edition
+  (the print ISBN as a physical product whose form follows the binding,
+  the EPUB ISBN as an `EA` product), the ISBN as `ProductIDType` 15,
+  title and subtitle, author contributors (`A01`), publisher, and a
+  year-only publishing date.
+- It emits no `<Price>`: a book repository holds no price, by design.
+  Add `--forthcoming` before publication to mark the publishing status.
+- There is no self-serve API that accepts an ONIX feed; distributors
+  onboard a publisher (Bowker takes ONIX by web upload or FTP). `press
+  onix` produces the file; you deliver it through the channel the
+  distributor gives you.
 
 ## ISSN (serials only)
 
@@ -83,3 +105,6 @@ anywhere else; the config is the single stated copy.
    then refuses to pass while anything is still pending.
 5. The colophon, EPUB, barcode, and channel checklists update
    themselves from config on the next build.
+6. Generate `press onix` for the distributor's metadata feed and
+   `press pcn` for the LCCN application; both read the same config, so
+   they never disagree with the printed book.

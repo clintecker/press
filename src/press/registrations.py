@@ -247,6 +247,57 @@ def lccn_plausible(value: str) -> bool:
     return bool(re.fullmatch(r"[a-z]{0,3}\d{8,12}", value.replace("-", "").replace(" ", "").lower()))
 
 
+def issn_check_digit(first_seven: str) -> str:
+    """The ISSN check character for seven digits: mod-11, 'X' for a remainder
+    of 10. The same arithmetic ``issn_valid`` verifies, exposed so a caller can
+    compose an ISSN, not only check one."""
+
+    digits = [ch for ch in first_seven if ch.isdigit()]
+    if len(digits) != 7:
+        raise SystemExit(f"an ISSN check digit needs seven digits; got {first_seven!r}")
+    total = sum(int(d) * w for d, w in zip(digits, range(8, 1, -1)))
+    check = (11 - total % 11) % 11
+    return "X" if check == 10 else str(check)
+
+
+def isbn10_check_digit(first_nine: str) -> str:
+    """The ISBN-10 check character: mod-11 with weights 10..2, 'X' for 10."""
+
+    digits = [ch for ch in first_nine if ch.isdigit()]
+    if len(digits) != 9:
+        raise SystemExit(f"an ISBN-10 check digit needs nine digits; got {first_nine!r}")
+    total = sum(int(d) * w for d, w in zip(digits, range(10, 1, -1)))
+    check = (11 - total % 11) % 11
+    return "X" if check == 10 else str(check)
+
+
+def isbn13_to_isbn10(isbn13: str) -> str | None:
+    """The ISBN-10 for a 978-prefixed ISBN-13, or ``None`` for a 979 prefix
+    (which has no ISBN-10). The middle nine digits are recheck-summed under
+    mod-11, so this is a real conversion, not a reformat."""
+
+    from . import barcode
+
+    digits = barcode.validate(isbn13)  # 13 clean digits or a refusal
+    if not digits.startswith("978"):
+        return None
+    core = digits[3:12]
+    return core + isbn10_check_digit(core)
+
+
+def isbn10_to_isbn13(isbn10: str) -> str:
+    """The 978-prefixed ISBN-13 for an ISBN-10, with a fresh EAN-13 check
+    digit. Accepts hyphens and a trailing 'X'."""
+
+    from . import barcode
+
+    core = [ch for ch in isbn10.upper() if ch.isdigit() or ch == "X"]
+    if len(core) != 10:
+        raise SystemExit(f"an ISBN-10 has ten characters; got {isbn10!r}")
+    twelve = [int(ch) for ch in ("978" + "".join(core[:9]))]
+    return "978" + "".join(core[:9]) + str(barcode.check_digit(twelve))
+
+
 def failures(reg: dict | None = None) -> list[str]:
     """Every invalid registration, as check-style failure lines. Reads the
     book's registrations from disk unless a proposed block is passed (the

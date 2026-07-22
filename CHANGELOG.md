@@ -11,6 +11,20 @@ audit).
 
 ### Added (v2)
 
+- **Registrations automation: ONIX 3.0, PCN prep, and ISBN conversions**
+  (#191). `press onix` generates the ONIX 3.0 metadata record distributors
+  ingest (`dist/<slug>.onix.xml`) from config: a product per sellable edition
+  (the print ISBN as a physical product whose form follows the binding, the
+  EPUB ISBN as an `EA` product), the ISBN as `ProductIDType` 15, title,
+  contributors, publisher, and a year-only publishing date — degrading
+  honestly where the press holds nothing (no `<Price>`, because a book
+  repository holds no price by design). `press pcn` assembles the Library of
+  Congress PrePub Book Link field values (`dist/<slug>-pcn.txt`) for the LCCN
+  application, flagging any gap the form needs. New `registrations` helpers
+  round out the arithmetic: ISBN-10↔13 conversion and the ISBN-10 / ISSN
+  mod-11 check digits. There is no API that issues an identifier or accepts a
+  feed without human onboarding; the automation is the generate/validate/
+  format side, and the manual gates are documented honestly.
 - **Typography and web design are now profile-driven** (#172): a design
   profile carries not just trim and margins but the structural type treatment
   (paragraph indent, leading) and the web reading measure (max width, base

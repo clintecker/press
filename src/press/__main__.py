@@ -188,6 +188,54 @@ def _run_migrate(args: list[str]) -> int:
     return 2
 
 
+def _run_onix(args: list[str]) -> int:
+    """Generate an ONIX 3.0 record from config into dist/<slug>.onix.xml -- the
+    metadata a distributor ingests. A book with no ISBN still gets an honest
+    record to inspect; a `--forthcoming` flag marks the publishing status."""
+
+    import datetime
+
+    from . import onix, registrations
+
+    book = booklib.book()
+    print_isbn = registrations.isbn("print")
+    epub_isbn = registrations.isbn("epub")
+    editions = onix.editions_for(book, print_isbn, epub_isbn)
+    lang = booklib.metadata().get("lang")
+    sender = book.publisher or "press"
+    sent = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M")
+    status = "02" if "--forthcoming" in args else "04"
+    xml = onix.build(book, editions, lang=lang, sent=sent, sender=sender, status=status)
+
+    dist = booklib.root() / "dist"
+    dist.mkdir(exist_ok=True)
+    out = dist / f"{booklib.slug()}.onix.xml"
+    out.write_text(xml, encoding="utf-8")
+    isbns = ", ".join(f"{e.label} {e.isbn}" for e in editions if e.isbn) or "none yet"
+    print(f"wrote {out.relative_to(booklib.root())} ({len(editions)} product(s); ISBNs: {isbns})")
+    return 0
+
+
+def _run_pcn(args: list[str]) -> int:
+    """Assemble the Library of Congress PrePub Book Link field values from
+    config into dist/<slug>-pcn.txt (and stdout) for the manual submission."""
+
+    from . import pcn, registrations
+
+    book = booklib.book()
+    lang = booklib.metadata().get("lang")
+    rows = pcn.fields(book, lang=lang, print_isbn=registrations.isbn("print"))
+    report = pcn.render(book, rows, registrations.lccn_display())
+
+    dist = booklib.root() / "dist"
+    dist.mkdir(exist_ok=True)
+    out = dist / f"{booklib.slug()}-pcn.txt"
+    out.write_text(report, encoding="utf-8")
+    print(report, end="")
+    print(f"(also written to {out.relative_to(booklib.root())})")
+    return 0
+
+
 def _run_selftest(args: list[str]) -> int:
     from . import selftest
 
@@ -415,6 +463,8 @@ ROUTES: dict[str, Callable[[list[str]], int]] = {
     "config": _run_config,
     "migrate": _run_migrate,
     "isbn": _run_isbn,
+    "onix": _run_onix,
+    "pcn": _run_pcn,
     "selftest": _run_selftest,
     "doctor": _run_doctor,
     "art": _run_art,
