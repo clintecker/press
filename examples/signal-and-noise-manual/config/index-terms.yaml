@@ -1,10 +1,20 @@
-# Terms a reader would look up mid-repair. Every one is verified to appear
-# in the text on every build; a term that leaves the book fails the run.
-terms:
-  - antenna
-  - attenuation
-  - capacitor
-  - ferrite
-  - impedance
-  - oscillator
-  - solder
+# Curated subject index. Every term must appear at least once in the
+# manuscript, or the build fails. The match list is lowercased and is how
+# each term is found in the text.
+
+- term: antenna
+  match: [antenna, antennas]
+- term: attenuation
+  match: [attenuation, attenuate, pad]
+- term: capacitor
+  match: [capacitor, capacitors]
+- term: ferrite
+  match: [ferrite]
+- term: impedance
+  match: [impedance]
+- term: oscillator
+  match: [oscillator, oscillators]
+- term: quality factor
+  match: [quality factor, quality]
+- term: solder
+  match: [solder, soldering]
