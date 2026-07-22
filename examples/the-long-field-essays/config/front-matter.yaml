@@ -1,0 +1,16 @@
+# Front matter for The Long Field. Its presence asks the press to generate
+# the PDF title page and the pages around it from config.
+
+dedication: "For my mother, who planted things she did not expect to see grown."
+
+epigraph:
+  quote: "The land is not a background. It is the other party to the argument."
+  attribution: "Attributed to a Fenland drainage commissioner, 1878"
+
+acknowledgements: >-
+  These essays were argued over, at length, by people who had every right
+  to be doing something else: the Thursday reading group at the Norwich
+  library, who heard the first three and said so; Adaeze, who read the
+  fourth and asked the question that made it the sixth; and the tenant
+  farmers of the Long Field, who corrected my drainage history and
+  declined to be named for it.

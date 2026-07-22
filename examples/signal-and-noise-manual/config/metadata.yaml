@@ -1,0 +1,22 @@
+title: "Signal and Noise"
+subtitle: "A field manual for small radio"
+author:
+  - "Idris Hallam"
+date: "First edition, 2026"
+lang: en-US
+copyright: "Copyright 2026 Idris Hallam."
+publisher: "Meridian Works"
+publisher-place: "Bristol, England"
+description: >-
+  A working manual for building, tuning, and repairing low-power radio in
+  the field, written for the operator who has a soldering iron, a meter,
+  and no laboratory.
+keywords:
+  - radio
+  - electronics
+  - repair
+slug: "signal-and-noise-manual"
+verify-sentinels:
+  - "A receiver hears everything and must be taught to ignore almost all of it"
+  - "Measure twice, because the meter is cheaper than the part"
+verify-min-pages: 1

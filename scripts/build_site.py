@@ -362,6 +362,14 @@ def _example_facts(book: Path) -> Example:
         exercises.append("footnotes")
     if profile:
         exercises.append("non-house print profile")
+    opening = re.search(
+        r'^chapter-opening:[ \t]*\n(?:[ \t]+.*\n)*?[ \t]+style:[ \t]*["\']?([a-z-]+)',
+        meta, re.M)
+    if opening and opening.group(1) in ("drop-cap", "raised-cap"):
+        exercises.append(f"{opening.group(1)} openings")
+    binding = _yaml_scalar(meta, "binding", indent="  ")
+    if binding and binding != "perfect-bound":
+        exercises.append(f"{binding} binding")
 
     return Example(
         dir=book.name,
@@ -391,27 +399,24 @@ def gallery_cards_html() -> str:
         chips = "".join(f"<li>{escape(e)}</li>" for e in ex.exercises)
         register = (f'<p class="ex-register">{escape(ex.register)}</p>'
                     if ex.register else "")
+        swatches = "".join(
+            f'<li style="background:{colour}"></li>'
+            for colour in (ex.paper, ex.ink, ex.accent)
+        )
         cards.append(f"""
-<article class="ex" style="--ex-paper:{ex.paper};--ex-ink:{ex.ink};--ex-accent:{ex.accent}">
-  <div class="ex-plate" aria-hidden="true">
-    <span class="ex-spine"></span>
-    <span class="ex-title">{escape(ex.title)}</span>
-    <span class="ex-rule"></span>
-    <span class="ex-imprint">{escape(ex.publisher)}</span>
-  </div>
-  <div class="ex-body">
-    <p class="ex-kind"><span class="ex-genre">{escape(ex.genre)}</span>
-      <span class="ex-trim">{escape(ex.trim)}</span></p>
-    <h3 class="ex-name">{escape(ex.title)}</h3>
-    <p class="ex-sub">{escape(ex.subtitle)}</p>
-    <p class="ex-summary">{escape(ex.summary)}</p>
-    {register}
-    <ul class="ex-chips">{chips}</ul>
-    <p class="ex-foot">
-      <span>{escape(ex.author)} · {ex.chapters} chapters</span>
-      <a href="https://github.com/clintecker/press/tree/main/examples/{ex.dir}">config &amp; manuscript →</a>
-    </p>
-  </div>
+<article class="ex" style="--ex-accent:{ex.accent}">
+  <ul class="ex-swatches" aria-label="palette">{swatches}</ul>
+  <p class="ex-kind"><span>{escape(ex.genre)}</span>
+    <span class="ex-trim">{escape(ex.trim)}</span></p>
+  <h3 class="ex-name">{escape(ex.title)}</h3>
+  <p class="ex-sub">{escape(ex.subtitle)}</p>
+  <p class="ex-summary">{escape(ex.summary)}</p>
+  {register}
+  <ul class="ex-chips">{chips}</ul>
+  <p class="ex-foot">
+    <span>{escape(ex.publisher)} · {ex.chapters} chapters</span>
+    <a href="https://github.com/clintecker/press/tree/main/examples/{ex.dir}">source →</a>
+  </p>
 </article>""")
     return f'<section class="gallery">{"".join(cards)}\n</section>'
 

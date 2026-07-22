@@ -1,0 +1,22 @@
+title: "The Long Field"
+subtitle: "Essays on staying put"
+author:
+  - "Perpetua Adeyemi"
+date: "First edition, 2026"
+lang: en-US
+copyright: "Copyright 2026 Perpetua Adeyemi."
+publisher: "Harrow & Vine"
+publisher-place: "Norwich, England"
+description: >-
+  Six essays on remaining in one place long enough to be changed by it,
+  written against the assumption that movement is the only form of
+  ambition.
+keywords:
+  - essays
+  - place
+  - memoir
+slug: "the-long-field-essays"
+verify-sentinels:
+  - "A place you cannot leave is a prison; a place you will not leave is a practice"
+  - "The field did not need me to understand it in order to keep me"
+verify-min-pages: 1

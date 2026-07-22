@@ -1,0 +1,9 @@
+# The jargon watchlist is tuned for prose where "gate" and "clean" are vague
+# process metaphors. In radio they are measurements: a noise gate is a circuit
+# with a threshold in millivolts, and a clean signal is one whose distortion
+# is below a stated figure. A book owns its own vocabulary.
+jargon-allow:
+  - gate
+  - gating
+  - clean
+  - drift

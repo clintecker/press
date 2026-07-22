@@ -1,0 +1,26 @@
+title: "Field Days"
+subtitle: "A young naturalist's almanac"
+author:
+  - "Wren Calloway"
+date: "First edition, 2026"
+lang: en-US
+copyright: "Copyright 2026 Wren Calloway."
+publisher: "Bright Meadow Books"
+publisher-place: "Ithaca, New York"
+description: >-
+  A slim seasonal almanac for children who like to be outside, with a
+  page for each month of things to look for, listen for, and write down.
+keywords:
+  - nature
+  - children
+  - seasons
+slug: "field-days-almanac"
+print:
+  binding: saddle-stitch
+chapter-opening:
+  style: drop-cap
+  lines: 3
+verify-sentinels:
+  - "A naturalist is just someone who looks twice"
+  - "Winter is not empty; it is busy being quiet"
+verify-min-pages: 1

@@ -30,7 +30,9 @@ pipeline was touched, and no example is a special case.
 | To change… | Set this | Seen in |
 |---|---|---|
 | Trim and binding | `print: profile:` in `config/metadata.yaml` | the 5×8 chapbook and novella |
-| Palette and register | `config/aesthetic.yaml` | all five, most visibly the field guide vs the cookbook |
+| Palette and register | `config/aesthetic.yaml` | every book, most visibly the field guide vs the almanac |
+| The initial that opens each chapter | `chapter-opening:` in `config/metadata.yaml` | the novella and the almanac (a three-line drop cap) |
+| Binding | `print: binding:` in `config/metadata.yaml` | the saddle-stitched almanac |
 | Dedication, epigraph, acknowledgements | `config/front-matter.yaml` | the chapbook, monograph, novella, cookbook |
 | A subject index | `config/index-terms.yaml` | the cookbook |
 | The reading measure and web styling | `assets/web/extra.css` | the chapbook, which opens the line spacing for verse |

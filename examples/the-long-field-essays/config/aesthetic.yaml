@@ -1,0 +1,29 @@
+# A warm, worn identity: iron-gall ink on aged paper with a single ochre
+# accent, like a commonplace book kept for decades.
+register: "Reflective and unhurried; a writer who circles a question, admits what she does not know, and stays with it anyway."
+
+web-palette:
+  paper: "#f5efe3"
+  ink: "#26211b"
+  muted: "#6b6152"
+  accent: "#96601f"
+  link: "#7a5a2c"
+  rule: "#ddd2be"
+
+web-palette-dark:
+  paper: "#191612"
+  ink: "#e6ded1"
+  muted: "#9d9384"
+  accent: "#d29a4c"
+  link: "#c9a463"
+  rule: "#332c24"
+
+book-colors:
+  ink: "#26211b"
+  muted: "#6b6152"
+  accent: "#96601f"
+  link: "#7a5a2c"
+
+typography:
+  web-family: "'Crimson Pro', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif"
+  pdf-family: "TeX Gyre Bonum"

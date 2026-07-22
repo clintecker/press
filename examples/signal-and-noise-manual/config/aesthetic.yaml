@@ -1,0 +1,30 @@
+# An instrument-panel identity: slate ink on a cool grey-white, with one
+# amber accent borrowed from a dial lamp. Exact, unromantic, legible under
+# a work light.
+register: "Exact and unadorned; an engineer who states the measurement, the tolerance, and what to do when it is out."
+
+web-palette:
+  paper: "#f2f4f5"
+  ink: "#1d2529"
+  muted: "#5d6a70"
+  accent: "#b4761a"
+  link: "#2f6b7d"
+  rule: "#d3dadd"
+
+web-palette-dark:
+  paper: "#12181b"
+  ink: "#dde5e8"
+  muted: "#8a999f"
+  accent: "#e0a145"
+  link: "#6bb6c9"
+  rule: "#263136"
+
+book-colors:
+  ink: "#1d2529"
+  muted: "#5d6a70"
+  accent: "#b4761a"
+  link: "#2f6b7d"
+
+typography:
+  web-family: "'IBM Plex Serif', 'Charter', 'Source Serif Pro', Georgia, serif"
+  pdf-family: "TeX Gyre Pagella"

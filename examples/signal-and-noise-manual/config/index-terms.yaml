@@ -1,0 +1,10 @@
+# Terms a reader would look up mid-repair. Every one is verified to appear
+# in the text on every build; a term that leaves the book fails the run.
+terms:
+  - antenna
+  - attenuation
+  - capacitor
+  - ferrite
+  - impedance
+  - oscillator
+  - solder

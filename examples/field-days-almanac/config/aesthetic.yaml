@@ -1,0 +1,29 @@
+# A bright, friendly identity for young readers: fresh grass-green ink on
+# warm cream, with a poppy-red accent. Open and cheerful, never babyish.
+register: "Warm, direct, and curious; a grown-up who takes a child's attention seriously and never talks down."
+
+web-palette:
+  paper: "#fbf6e9"
+  ink: "#22371f"
+  muted: "#5f7355"
+  accent: "#d94b2b"
+  link: "#2f7d4f"
+  rule: "#dfe3c8"
+
+web-palette-dark:
+  paper: "#12180f"
+  ink: "#e4ead6"
+  muted: "#93a385"
+  accent: "#f2704f"
+  link: "#69c088"
+  rule: "#2a331f"
+
+book-colors:
+  ink: "#22371f"
+  muted: "#5f7355"
+  accent: "#d94b2b"
+  link: "#2f7d4f"
+
+typography:
+  web-family: "'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif"
+  pdf-family: "TeX Gyre Schola"
