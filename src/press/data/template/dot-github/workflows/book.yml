@@ -15,4 +15,4 @@ permissions:
 
 jobs:
   book:
-    uses: clintecker/press/.github/workflows/build.yml@v1
+    uses: clintecker/press/.github/workflows/build.yml@v2

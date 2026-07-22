@@ -9,6 +9,15 @@ audit).
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-07-21
+
+The composable press. A new design major: trim, binding, cover material, and
+print vendor are configurable; typography and web design are profile-driven;
+chapters may open with a drop cap; and books extend the press by declaration.
+A `@v1` book is unaffected and keeps rendering byte-for-byte; a book opts into
+v2 by repinning (`press migrate`), and until it selects a non-house profile,
+even a `@v2` build is unchanged.
+
 ### Fixed
 
 - **The cover wrap is now print-safe** (#189). The wrap embedded the raw

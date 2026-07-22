@@ -1085,14 +1085,18 @@ def check_migration() -> None:
 
         diagnosis = migrate.diagnose(book)
         assert not diagnosis.problems, diagnosis.problems
-        assert diagnosis.from_major == 1, diagnosis.from_major
+        # The scaffold pins whatever major the template ships (v1, then v2, ...);
+        # the migration is proven relative to that, not against a fixed 1.
+        start = diagnosis.from_major
+        assert start is not None, "scaffold produced a split or absent pin"
+        target = start + 1
         site_paths = {site.path for site in diagnosis.sites}
         assert "requirements.txt" in site_paths, site_paths
         assert any(p.startswith(".github/workflows/") for p in site_paths), site_paths
 
         # A dry-run plan mutates nothing.
-        plan = migrate.plan(book, 2)
-        assert plan.from_major == 1 and plan.to_major == 2
+        plan = migrate.plan(book, target)
+        assert plan.from_major == start and plan.to_major == target
         assert plan.changes, "plan produced no changes"
         assert any("design is unchanged" in note for note in plan.notes)
         for path, original in owned.items():
@@ -1100,9 +1104,9 @@ def check_migration() -> None:
         assert not (book / migrate.STATE_DIR / migrate.BACKUP).is_file()
 
         # Apply moves only the pin; owned content is untouched.
-        migrate.apply(book, 2)
+        migrate.apply(book, target)
         for site in migrate.pin_sites(book):
-            assert site.major == 2, f"{site.path} still pinned to v{site.major}"
+            assert site.major == target, f"{site.path} still pinned to v{site.major}"
         for path, original in owned.items():
             assert path.read_bytes() == original, f"apply changed owned file {path}"
         assert (book / migrate.STATE_DIR / migrate.RECEIPT).is_file()
@@ -1110,7 +1114,7 @@ def check_migration() -> None:
         # Rollback restores the exact prior pin.
         migrate.rollback(book)
         for site in migrate.pin_sites(book):
-            assert site.major == 1, f"rollback left {site.path} at v{site.major}"
+            assert site.major == start, f"rollback left {site.path} at v{site.major}"
         assert not (book / migrate.STATE_DIR / migrate.BACKUP).is_file()
 
         # A custom override is named by diagnosis so the author re-checks it.

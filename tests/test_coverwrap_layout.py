@@ -88,3 +88,20 @@ def test_unsupported_binding_is_refused():
     # KDP has no dust jacket: a spec that does not define it must refuse.
     with pytest.raises(SystemExit, match="does not define the 'dust-jacket'"):
         cw._binding_geometry(_spec({}), "dust-jacket")
+
+
+@pytest.mark.layer("unit")
+def test_check_print_safe_accepts_a_clean_wrap(tmp_path):
+    # A wrap with no raster images carries no transparency and nothing over
+    # 600 PPI, so the print-safety check passes. (The rejection paths are
+    # proven end to end by the integration coverwrap build.)
+    from pypdf import PdfWriter
+
+    from press import verify_coverwrap
+
+    writer = PdfWriter()
+    writer.add_blank_page(width=72, height=72)
+    wrap = tmp_path / "wrap.pdf"
+    with open(wrap, "wb") as handle:
+        writer.write(handle)
+    assert verify_coverwrap.check_print_safe(wrap) is None   # clean: no raise
