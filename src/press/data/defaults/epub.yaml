@@ -5,6 +5,8 @@ toc-depth: 1
 number-sections: true
 top-level-division: chapter
 metadata-file: "@book/config/metadata.yaml"
+filters:
+  - "@press/lua/chapter-dropcap.lua"
 css:
   - "@press/tex/epub.css"
 epub-cover-image: "@book/assets/cover.jpg?optional"

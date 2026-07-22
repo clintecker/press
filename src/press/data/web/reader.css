@@ -77,6 +77,17 @@ h3 { font-size: 1.05rem; font-style: italic; font-weight: 600; margin-top: 2em; 
 p { margin: 0 0 1em; }
 h1 + p::first-line,
 h1 + figure + p::first-line { font-variant: small-caps; letter-spacing: .05em; }
+
+/* Chapter-opening drop cap (only present when the design profile enables it;
+   absent, these rules match nothing and the reader is unchanged). The initial
+   floats beside the opening lines; the clearfix reserves its full height so a
+   short opening paragraph never lets the next block overlap it. */
+.chapter-opening::after { content: ""; display: block; clear: both; }
+.chapter-opening .drop-cap {
+  float: left; font-size: 3.1em; line-height: .82;
+  padding: .05em .1em 0 0; color: var(--ink); font-weight: 600;
+}
+.chapter-opening .opening-word-rest { font-variant: small-caps; letter-spacing: .04em; }
 ol, ul { padding-left: 1.6rem; }
 li { margin: .3em 0; }
 li::marker { color: var(--ornament); font-weight: 600; }

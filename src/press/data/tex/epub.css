@@ -2,3 +2,8 @@ body { font-family: serif; line-height: 1.45; }
 h1, h2, h3 { page-break-after: avoid; }
 blockquote { border-left: 0.18em solid #888; padding-left: 0.8em; }
 code, pre { font-family: monospace; }
+.chapter-opening .drop-cap {
+  float: left; font-size: 3em; line-height: 0.8; padding: 0.05em 0.1em 0 0;
+}
+.chapter-opening .opening-word-rest { font-variant: small-caps; }
+.chapter-opening { display: block; }

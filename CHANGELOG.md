@@ -11,6 +11,26 @@ audit).
 
 ### Added (v2)
 
+- **Semantic chapter-opening drop caps** (#192). A design may open each
+  chapter with a dropped or raised initial, and the manuscript stays ordinary
+  prose: no `\lettrine`, no CSS floats, no font commands. The decision is made
+  at the document-tree layer by a pandoc Lua filter that finds the first
+  eligible paragraph after each chapter heading (skipping an epigraph or other
+  non-prose opener) and splits its opening word into a Unicode *grapheme*
+  initial (a base letter with its combining marks, never a stranded accent),
+  the leading punctuation kept with it, and the remainder of the first word.
+  For the PDF it emits a single centralized `\PressDropCap` macro (built on
+  `lettrine`, with a `needspace` guard so a chapter opening is never stranded
+  at the foot of a page); for HTML and EPUB it emits semantic
+  `chapter-opening`/`drop-cap` spans a floated stylesheet renders, with a
+  clearfix so a short opening paragraph never overlaps the initial. Enabled
+  through the profile (design default) or a book's own `chapter-opening`
+  override (`style`, `lines`, `small-caps-remainder`); off by default, so a
+  book that does not opt in renders byte-for-byte unchanged (proven by the
+  house visual baseline showing zero drift with the filter installed). The
+  literary-novella gallery example opts in to show it. Guaranteed by
+  `INV-dropcap-opening`, proven at the grapheme level in `test_dropcaps` and
+  at the emission level by running the filter through pandoc.
 - **A gallery of very different example books** (#190), proving nothing is
   hardcoded. Five complete books under `examples/` — a naturalist field guide,
   a poetry chapbook, an academic monograph, a literary novella, and a seasonal

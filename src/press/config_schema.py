@@ -95,6 +95,13 @@ REGISTRY: tuple[Field, ...] = (
        choices=("paperback", "casewrap", "linen")),
     _w("print.paper", METADATA, help="interior stock", choices=("white", "cream")),
     _w("print.page-thickness", METADATA, "float", help="inches per page; overrides paper"),
+    # config/metadata.yaml — chapter-opening override (the design profile sets
+    # the default; a book may override it for its own chapters)
+    _w("chapter-opening.style", METADATA, help="chapter-opening initial",
+       choices=("none", "drop-cap", "raised-cap")),
+    _w("chapter-opening.lines", METADATA, "int", help="text lines the initial spans"),
+    _w("chapter-opening.small-caps-remainder", METADATA, "bool",
+       help="set the rest of the first word in small caps"),
     # config/metadata.yaml — registrations
     _w("registrations.isbn.print", METADATA, help="print ISBN (13 digits) or 'pending'"),
     _w("registrations.isbn.epub", METADATA, help="EPUB ISBN or 'pending'"),

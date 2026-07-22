@@ -5,6 +5,8 @@ toc: true
 toc-depth: 2
 number-sections: true
 metadata-file: "@book/config/metadata.yaml"
+filters:
+  - "@press/lua/chapter-dropcap.lua"
 split-level: 1
 css:
   - reader.css

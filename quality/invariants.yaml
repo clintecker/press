@@ -614,3 +614,27 @@ invariants:
       stand in. Typography and web tokens are projected and proven at the
       fragment level; their rendered baselines are generated in the pinned
       toolchain.
+
+  - id: INV-dropcap-opening
+    statement: >-
+      When a design enables a chapter-opening drop cap, the initial is placed
+      on the first eligible prose paragraph after each chapter heading and
+      nowhere else: an epigraph or other non-prose opener is skipped to the
+      real opening paragraph, only the first paragraph is capped, and the
+      manuscript carries no renderer markup. When the style is off, the filter
+      changes nothing, so a book that does not opt in renders unchanged.
+    risk: >-
+      A drop cap lands on the wrong block (an epigraph, a second paragraph),
+      leaks LaTeX or CSS into the manuscript, or a book that never asked for
+      the feature has its output altered.
+    criticality: standard
+    owner: dropcaps
+    enforcer: dropcaps.split_initial
+    layers: [unit, integration]
+    negative: [integration]
+    ci_tier: quality
+    limitations: >-
+      The eligibility and emission are proven by running the Lua filter
+      through pandoc; the rendered PDF (which needs the lettrine package from
+      the toolchain image) is proven where that toolchain is present. The
+      grapheme and punctuation split is proven exhaustively in test_dropcaps.

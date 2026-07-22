@@ -107,12 +107,41 @@ def cover_fragment_html(title: str) -> str:
     )
 
 
+def _chapter_opening_settings():
+    """The effective chapter-opening treatment: the active profile's default,
+    overridden by the book's own ``chapter-opening`` if it sets one."""
+
+    from . import dropcaps, profiles
+
+    override = booklib.metadata().get("chapter-opening")
+    return dropcaps.settings(profiles.active().chapter_opening, override)
+
+
 def render_defaults(name: str) -> Path:
     """Materialize a press defaults template for this book into build/."""
 
     defaults = yamlio.load(booklib.DATA / "defaults" / f"{name}.yaml")
 
     root = booklib.root()
+
+    # Chapter-opening drop caps: the effective settings (profile default, book
+    # override) reach the Lua filter as pandoc metadata, and for the PDF the
+    # centralized \PressDropCap style is projected into a fragment. Off by
+    # default, so a book that does not opt in is untouched.
+    opening = _chapter_opening_settings()
+    meta = defaults.setdefault("metadata", {})
+    meta["chapter-opening-style"] = opening.style
+    meta["chapter-opening-lines"] = opening.lines
+    meta["chapter-opening-smallcaps"] = "true" if opening.small_caps_remainder else "false"
+    if name in ("pdf", "print"):
+        from . import dropcaps as _dropcaps
+
+        fragment = root / "build" / "profile-dropcap.tex"
+        if opening.enabled:
+            fragment.parent.mkdir(parents=True, exist_ok=True)
+            fragment.write_text(_dropcaps.tex_setup(opening), encoding="utf-8")
+        elif fragment.exists():
+            fragment.unlink()   # a disabled build never carries a stale fragment
     if name == "html":
         cover = root / "assets" / "cover.jpg"
         if cover.is_file():

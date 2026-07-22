@@ -216,6 +216,19 @@ Usage and README name every target, REFERENCE.md and INVARIANTS.md equal their g
 | **Tested by** | `check_docs`, `check_aesthetic_schema` |
 | **Known limit** | Presence tests, not semantic ones. |
 
+## Drop caps only on the opening
+
+`INV-dropcap-opening` · standard
+
+When a design enables a chapter-opening drop cap, the initial is placed on the first eligible prose paragraph after each chapter heading and nowhere else: an epigraph or other non-prose opener is skipped to the real opening paragraph, only the first paragraph is capped, and the manuscript carries no renderer markup. When the style is off, the filter changes nothing, so a book that does not opt in renders unchanged.
+
+| | |
+|---|---|
+| **If it breaks** | A drop cap lands on the wrong block (an epigraph, a second paragraph), leaks LaTeX or CSS into the manuscript, or a book that never asked for the feature has its output altered. |
+| **Enforced by** | `dropcaps.split_initial` |
+| **Tested by** | `integration` |
+| **Known limit** | The eligibility and emission are proven by running the Lua filter through pandoc; the rendered PDF (which needs the lettrine package from the toolchain image) is proven where that toolchain is present. The grapheme and punctuation split is proven exhaustively in test_dropcaps. |
+
 ## Immutable edition identity
 
 `INV-edition-manifest` · critical

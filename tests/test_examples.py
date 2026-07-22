@@ -70,7 +70,7 @@ def test_example_slugs_are_unique():
     assert len(slugs) == len(set(slugs)), "example slugs collide"
 
 
-@pytest.mark.integration
+@pytest.mark.layer("integration")
 @pytest.mark.skipif(shutil.which("pandoc") is None,
                     reason="requires capability: pandoc")
 @pytest.mark.parametrize("example", _example_dirs(), ids=lambda d: d.name)

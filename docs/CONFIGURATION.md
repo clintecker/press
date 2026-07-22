@@ -124,6 +124,15 @@ registrations:
 - `print.paper` must be `white` or `cream` (default cream); an
   unknown stock is refused. `print.page-thickness` wins when set.
   Both feed the cover wrap's spine arithmetic.
+- `chapter-opening` sets the initial that opens each chapter. The design
+  profile carries the default (the house profile is `none`); a book overrides
+  it with `chapter-opening.style` (`none`, `drop-cap`, or `raised-cap`),
+  `chapter-opening.lines` (the text lines the initial spans, default 3), and
+  `chapter-opening.small-caps-remainder` (set the rest of the first word in
+  small caps, default true). The manuscript stays ordinary prose; the press
+  finds the first eligible paragraph after each chapter heading and drops its
+  initial, in the PDF, HTML, and EPUB alike. A book that leaves it `none`
+  renders exactly as before.
 - `registrations.isbn` must be a mapping of editions. The print
   ISBN drives the wrap's EAN-13 (check digit validated) and the
   colophon; `pending` or absent renders an honest placeholder. The

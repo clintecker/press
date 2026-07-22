@@ -17,6 +17,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 # failing every book, and a regression in this image cannot silently
 # drop a gate.
 ENV PRESS_TOOLCHAIN=1
+# texlive-latex-extra below carries lettrine.sty, which chapter-opening drop
+# caps require; texlive-luatex covers needspace. Do not drop either collection.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     make \
     git \

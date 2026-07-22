@@ -66,6 +66,15 @@ class Profile:
 
         return self.data["web"]
 
+    @property
+    def chapter_opening(self) -> dict[str, Any]:
+        """The chapter-opening treatment (a drop or raised initial), or the
+        ``none`` default. Design, sealed by the profile major; a book may
+        override it for its own chapters. Absent, the feature is off and the
+        book renders unchanged."""
+
+        return self.data.get("chapter-opening") or {"style": "none"}
+
 
 def profiles_dir() -> Path:
     return booklib.DATA / "profiles"

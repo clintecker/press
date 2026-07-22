@@ -16,6 +16,7 @@ top-level-division: chapter
 # before this run. The reading PDF has no such filter and embeds the originals.
 filters:
   - "@press/lua/print-safe-images.lua"
+  - "@press/lua/chapter-dropcap.lua"
 pdf-engine: latexmk
 pdf-engine-opts:
   - -lualatex
@@ -27,6 +28,7 @@ metadata-file: "@book/config/metadata.yaml"
 include-in-header:
   - "@press/tex/book-header.tex"
   - "@book/build/profile-geometry.tex?optional"
+  - "@book/build/profile-dropcap.tex?optional"
   - "@press/tex/print-header.tex"
   - "@book/build/aesthetic.tex?optional"
   - "@book/build/front-matter.tex?optional"

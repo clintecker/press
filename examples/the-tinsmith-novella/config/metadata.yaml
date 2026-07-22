@@ -20,3 +20,11 @@ verify-min-pages: 1
 
 print:
   profile: novella-5x8
+
+# This literary novella opens each chapter with a three-line drop cap, an
+# override of the design profile's default. It shows the chapter-opening
+# feature end to end.
+chapter-opening:
+  style: drop-cap
+  lines: 3
+  small-caps-remainder: true

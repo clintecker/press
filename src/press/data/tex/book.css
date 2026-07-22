@@ -31,3 +31,11 @@ blockquote {
 code, pre { font-family: "SFMono-Regular", Consolas, monospace; }
 pre { overflow-x: auto; background: #efefeb; padding: 1rem; }
 #TOC { border-bottom: 1px solid var(--rule); padding-bottom: 1.5rem; }
+
+/* Chapter-opening drop cap (present only when the design profile enables it). */
+.chapter-opening::after { content: ""; display: block; clear: both; }
+.chapter-opening .drop-cap {
+  float: left; font-size: 3.1em; line-height: .82;
+  padding: .05em .1em 0 0; color: var(--ink); font-weight: 600;
+}
+.chapter-opening .opening-word-rest { font-variant: small-caps; letter-spacing: .04em; }

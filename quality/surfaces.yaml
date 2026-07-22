@@ -53,6 +53,7 @@ modules:
   config_store: {default: pure, overrides: {load: parser, split_path: parser, coerce: parser, write_atomic: adapter}}
   desk_model: producer
   doctor: {default: presenter, overrides: {tool_runs: adapter, examine: adapter, render_finding: pure}}
+  dropcaps: {default: pure, overrides: {settings: parser}}
   edition: {default: verifier, overrides: {build: producer, observe: adapter, interior_path: pure, cover_path: pure, to_json: pure, from_json: pure, is_sellable: pure}}
   extensions: {default: pure, overrides: {load_manifest: parser, load_manifest_file: parser, conformance: verifier}}
   fixture_provenance: verifier
