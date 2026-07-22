@@ -27,4 +27,4 @@ book-colors:
 
 typography:
   web-family: "'IBM Plex Serif', 'Charter', 'Source Serif Pro', Georgia, serif"
-  pdf-family: "TeX Gyre Pagella"
+  pdf-family: "Latin Modern Roman"

@@ -270,6 +270,16 @@ def head_metadata(name: str, title: str, description: str) -> str:
 
 EXAMPLES = ROOT / "examples"
 
+# Built example artifacts (PDF + page previews), produced by
+# scripts/build_examples.py inside the toolchain container before this script
+# runs. Absent on a plain local `build_site.py` (which has only pandoc), and
+# the gallery degrades to text-only cards when they are missing -- so the
+# local build and its link checks still pass.
+EXAMPLE_ARTIFACTS = ROOT / "build" / "examples"
+
+# Where the artifacts are served from on the site.
+GALLERY_DIR = "gallery"
+
 # Where docs/GALLERY.md asks for the generated cards.
 GALLERY_MARKER = "<!--GALLERY-CARDS-->"
 
@@ -320,6 +330,25 @@ class Example(NamedTuple):
     accent: str
     chapters: int
     exercises: list[str]
+    pages: int          # PDF page count, 0 when no PDF was built
+    pdf: str            # served PDF filename, "" when absent
+    previews: list[str]  # served preview-image filenames, in order
+
+
+def _example_artifacts(slug: str) -> tuple[int, str, list[str]]:
+    """The built PDF and page previews for one example, if this build has
+    them staged (they are absent on a pandoc-only local run). Returns the
+    PDF's page count, the PDF filename, and the preview filenames."""
+    staged = EXAMPLE_ARTIFACTS / slug
+    if not staged.is_dir():
+        return 0, "", []
+    pdf = staged / f"{slug}.pdf"
+    previews = sorted(p.name for p in staged.glob("preview-*.jpg"))
+    pages = 0
+    count_file = staged / "pages.txt"
+    if count_file.is_file():
+        pages = int(count_file.read_text(encoding="utf-8").strip() or 0)
+    return pages, (pdf.name if pdf.is_file() else ""), previews
 
 
 def _example_facts(book: Path) -> Example:
@@ -371,6 +400,8 @@ def _example_facts(book: Path) -> Example:
     if binding and binding != "perfect-bound":
         exercises.append(f"{binding} binding")
 
+    pages, pdf, previews = _example_artifacts(book.name)
+
     return Example(
         dir=book.name,
         title=title,
@@ -385,6 +416,7 @@ def _example_facts(book: Path) -> Example:
         paper=palette[0] or "", ink=palette[1] or "", accent=palette[2] or "",
         chapters=len(chapters),
         exercises=exercises,
+        pages=pages, pdf=pdf, previews=previews,
     )
 
 
@@ -403,8 +435,27 @@ def gallery_cards_html() -> str:
             f'<li style="background:{colour}"></li>'
             for colour in (ex.paper, ex.ink, ex.accent)
         )
+        # The built pages, when this build has them: real page images from the
+        # book's own PDF, and a link to the whole file. Emitted only when the
+        # files exist on disk, so a pandoc-only local build (no previews) still
+        # passes the link check.
+        preview = ""
+        if ex.previews:
+            imgs = "".join(
+                f'<img src="{GALLERY_DIR}/{ex.dir}/{escape(name)}" loading="lazy"'
+                f' alt="A page from {escape(ex.title)}">'
+                for name in ex.previews
+            )
+            preview = (f'<a class="ex-pages" href="{GALLERY_DIR}/{ex.dir}/{escape(ex.pdf)}"'
+                       f' aria-label="Open {escape(ex.title)} (PDF)">{imgs}</a>')
+        pdf_link = ""
+        if ex.pdf:
+            span = f" · {ex.pages} pp" if ex.pages else ""
+            pdf_link = (f'<a class="ex-pdf" href="{GALLERY_DIR}/{ex.dir}/{escape(ex.pdf)}">'
+                        f'PDF{span} ↓</a>')
         cards.append(f"""
 <article class="ex" style="--ex-accent:{ex.accent}">
+  {preview}
   <ul class="ex-swatches" aria-label="palette">{swatches}</ul>
   <p class="ex-kind"><span>{escape(ex.genre)}</span>
     <span class="ex-trim">{escape(ex.trim)}</span></p>
@@ -415,7 +466,8 @@ def gallery_cards_html() -> str:
   <ul class="ex-chips">{chips}</ul>
   <p class="ex-foot">
     <span>{escape(ex.publisher)} · {ex.chapters} chapters</span>
-    <a href="https://github.com/clintecker/press/tree/main/examples/{ex.dir}">source →</a>
+    <span class="ex-links">{pdf_link}
+    <a href="https://github.com/clintecker/press/tree/main/examples/{ex.dir}">source →</a></span>
   </p>
 </article>""")
     return f'<section class="gallery">{"".join(cards)}\n</section>'
@@ -599,6 +651,12 @@ def main() -> int:
     for asset in sorted((ROOT / "site" / "brand").glob("*.*")):
         if asset.suffix.lower() in (".svg", ".png"):
             shutil.copy(asset, OUT / "brand" / asset.name)
+    # Staged example artifacts (PDF + page previews), when a toolchain build
+    # produced them. Copied in before the pages are built and the link check
+    # runs, so the gallery's PDF and image references resolve. Absent on a
+    # pandoc-only build, and the gallery simply omits them.
+    if EXAMPLE_ARTIFACTS.is_dir():
+        shutil.copytree(EXAMPLE_ARTIFACTS, OUT / GALLERY_DIR)
     for source, name, label in PAGES + FOOTER_PAGES:
         build_page(source, name, label)
     write_sitemap_and_robots()

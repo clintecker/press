@@ -23,7 +23,7 @@ web-palette-dark:
 
 typography:
   web-family: '"Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif'
-  pdf-family: "TeX Gyre Pagella"
+  pdf-family: "EB Garamond"
 
 book-colors:
   ink: "211C17"

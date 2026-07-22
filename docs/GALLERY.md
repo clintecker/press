@@ -17,8 +17,14 @@ surfaces genuinely vary across the set, and every one passes the editorial law
 
 Each card below is printed in its own book's palette, and everything on it —
 the colours, the trim, the summary, the imprint, what the book exercises — is
-read from that example's own files when this page is built. Nothing here is
-described by hand, so nothing here can drift.
+read from that example's own files when this page is built. The page images
+are rendered from each book's **actual PDF**, built by the same pipeline in
+the same toolchain, and the whole PDF is one click away. Nothing here is
+described or drawn by hand, so nothing here can drift.
+
+(The example books carry no cover art — they are written to build without
+commissioned images — so the previews show generated title pages and interior
+typography: the real trim, front matter, and chapter openings.)
 
 <!--GALLERY-CARDS-->
 

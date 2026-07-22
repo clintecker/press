@@ -443,3 +443,19 @@ h1 .tag, h2 .tag, h3 .tag{vertical-align:.28em; margin-left:.35rem}
   font-family:var(--sans); font-size:.7rem; color:var(--muted);
 }
 .ex-foot a{white-space:nowrap; font-weight:600}
+
+/* The built-book previews: real page images rendered from each example's PDF,
+   shown as little sheets of paper at the top of the card, linking to the full
+   file. Fixed aspect via the image's own ratio; they scale with the card. */
+.ex-pages{
+  display:flex; gap:.5rem; margin:0 0 .2rem; padding:.6rem;
+  background:var(--zebra); border:1px solid var(--rule); border-radius:7px;
+  justify-content:center;
+}
+.ex-pages img{
+  width:auto; max-width:48%; height:auto; max-height:13rem;
+  border:1px solid var(--rule-strong); border-radius:2px;
+  background:#fff; box-shadow:0 1px 4px rgb(0 0 0 / .16);
+}
+.ex-links{display:inline-flex; gap:.7rem; align-items:baseline}
+.ex-pdf{font-weight:600; white-space:nowrap}

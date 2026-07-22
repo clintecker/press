@@ -27,4 +27,4 @@ book-colors:
 
 typography:
   web-family: "'Charter', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif"
-  pdf-family: "TeX Gyre Termes"
+  pdf-family: "Libertinus Serif"

@@ -23,12 +23,28 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install pandoc
         run: sudo apt-get update -q && sudo apt-get install -y --no-install-recommends pandoc
-      - name: Reconcile roadmap milestone metadata
+      # The gallery shows each example book's real output. Building a PDF needs
+      # the full toolchain, so it happens in the toolchain image, not on this
+      # pandoc-only runner. The result is cached on the content of the examples
+      # and the pipeline, so a docs-only push does not rebuild eight LaTeX
+      # books; only a change under examples/ or src/press/ does.
+      - name: Cache built example PDFs and previews
+        id: examples-cache
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: build/examples
+          key: examples-${{ hashFiles('examples/**', 'src/press/**', 'scripts/build_examples.py') }}
+      - name: Build example PDFs and previews (toolchain container)
+        if: steps.examples-cache.outputs.cache-hit != 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
+          # The toolchain image, pinned to the same immutable bytes build.yml
+          # uses, so the site's examples build against the proven toolchain.
+          IMAGE: ghcr.io/clintecker/press-toolchain:sha-202165d97623f02f1920e243952e886a423b7b95
         run: |
-          python3 scripts/sync_roadmap.py --check
-          python3 scripts/sync_roadmap.py --apply-github
+          echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker run --rm -v "$PWD":/src -w /src "$IMAGE" bash -lc '
+            python3 -m pip install --break-system-packages -q -e /src &&
+            python3 scripts/build_examples.py'
       - run: python3 scripts/build_site.py
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
