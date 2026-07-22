@@ -1,0 +1,34 @@
+# The Tinsmith's Daughter: a minimalist, cool-neutral identity. Spare
+# and contemporary, one muted steel-blue accent against bone-white paper.
+# Values are prose where the art workflow reads them and tokens where the
+# builders substitute them.
+
+name: "Cold steel minimal"
+
+register: >-
+  Spare, contemporary, understated. Nothing decorative earns its place;
+  the quiet is the design.
+
+web-palette:
+  ink: "#2b2f33"
+  ink-soft: "#5a6169"
+  paper: "#f7f5f0"
+  paper-warm: "#efece4"
+  accent: "#5b7a95"
+
+web-palette-dark:
+  ink: "#e6e8ea"
+  ink-soft: "#a3abb2"
+  paper: "#191b1d"
+  paper-warm: "#212427"
+  accent: "#7d9bb4"
+
+typography:
+  web-family: '"Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif'
+  pdf-family: "Libertinus Serif"
+
+book-colors:
+  ink: "2B2F33"
+  muted: "5A6169"
+  accent: "5B7A95"
+  link: "4A6379"

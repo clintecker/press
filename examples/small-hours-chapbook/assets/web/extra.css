@@ -1,0 +1,21 @@
+/* Small Hours: verse-friendly overrides, appended after the house sheet. */
+
+.reader main {
+  max-width: 30rem;
+}
+
+.reader p {
+  line-height: 1.85;
+}
+
+.reader h2 {
+  text-align: center;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  margin-top: 2.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.reader br {
+  line-height: 2;
+}

@@ -1,0 +1,21 @@
+title: "The Reasonable Commons"
+subtitle: "Cooperation without coercion in small communities"
+author:
+  - "Dr. Aurelio Santos"
+date: "First edition, 2026"
+lang: en-US
+copyright: "Copyright 2026 Aurelio Santos."
+publisher: "Ashfield Academic"
+publisher-place: "Edinburgh"
+description: >-
+  A short monograph arguing that durable commons arise from local
+  reputation and graduated sanction rather than central enforcement,
+  read through three well-documented cases.
+keywords:
+  - political economy
+  - institutions
+slug: "on-the-commons-monograph"
+verify-sentinels:
+  - "a commons is a promise renewed daily"
+  - "sanction that escalates slowly is sanction that lasts"
+verify-min-pages: 1

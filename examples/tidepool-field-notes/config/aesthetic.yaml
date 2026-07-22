@@ -1,0 +1,27 @@
+register: "Plain, exact, field-ready; a naturalist's voice that names things and moves on."
+
+web-palette:
+  paper: "#eef4f2"
+  ink: "#12333a"
+  muted: "#5c7a80"
+  accent: "#2f8f7f"
+  link: "#1f6f88"
+  rule: "#c3d6d4"
+
+web-palette-dark:
+  paper: "#0d1c20"
+  ink: "#d7e6e4"
+  muted: "#7fa0a4"
+  accent: "#57c7b0"
+  link: "#6fb9cf"
+  rule: "#204046"
+
+book-colors:
+  ink: "#12333a"
+  muted: "#5c7a80"
+  accent: "#2f8f7f"
+  link: "#1f6f88"
+
+typography:
+  web-family: "'Charter', 'Iowan Old Style', 'Palatino Linotype', 'Source Serif Pro', Georgia, serif"
+  pdf-family: "TeX Gyre Schola"

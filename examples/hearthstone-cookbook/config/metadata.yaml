@@ -1,0 +1,21 @@
+title: "The Hearthstone Table"
+subtitle: "Plain food for cold months"
+author:
+  - "Bram Halloran"
+date: "First edition, 2026"
+lang: en-US
+copyright: "Copyright 2026 Bram Halloran."
+publisher: "Hearthstone Kitchen"
+publisher-place: "Burlington, Vermont"
+description: >-
+  A short winter cookbook of unfussy, sustaining dishes, written for a
+  small kitchen and a cold house, with notes on what keeps and what
+  freezes.
+keywords:
+  - cooking
+  - seasonal food
+slug: "hearthstone-cookbook"
+verify-sentinels:
+  - "a good soup forgives a distracted cook"
+  - "bread wants a warm corner and your patience"
+verify-min-pages: 1

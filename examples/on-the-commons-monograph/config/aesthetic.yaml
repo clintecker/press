@@ -1,0 +1,30 @@
+# A sober scholarly identity: near-black ink on warm-white paper, with a
+# restrained oxblood accent. Measured, argued, evidential.
+
+register: "Measured, argued, evidential; a scholar who states the claim, weighs the case, and cites the record."
+
+web-palette:
+  paper: "#f6f2ea"
+  ink: "#1a1714"
+  muted: "#5f574d"
+  accent: "#7a2325"
+  link: "#7a2325"
+  rule: "#d8cfc0"
+
+web-palette-dark:
+  paper: "#16130f"
+  ink: "#e7e0d4"
+  muted: "#9a9082"
+  accent: "#c26b6c"
+  link: "#c26b6c"
+  rule: "#332d26"
+
+book-colors:
+  ink: "#1a1714"
+  muted: "#5f574d"
+  accent: "#7a2325"
+  link: "#7a2325"
+
+typography:
+  web-family: "'Charter', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif"
+  pdf-family: "TeX Gyre Termes"

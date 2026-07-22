@@ -1,0 +1,8 @@
+# Front matter for Small Hours. Its presence asks the press to generate
+# the PDF title page, dedication, and epigraph from config.
+
+dedication: "For everyone still awake, keeping the small lamp lit."
+
+epigraph:
+  quote: "The night is a long room we cross by feel; the lamp we carry is the poem we keep."
+  attribution: "Adela Voss, Field Notes for the Sleepless"

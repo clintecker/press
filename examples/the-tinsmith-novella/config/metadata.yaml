@@ -1,0 +1,22 @@
+title: "The Tinsmith's Daughter"
+subtitle: "A novella"
+author:
+  - "Perla Nguyen"
+date: "First edition, 2026"
+lang: en-US
+copyright: "Copyright 2026 Perla Nguyen."
+publisher: "Coldwater House"
+publisher-place: "Portland, Oregon"
+description: >-
+  A quiet novella about inheritance and repair: a woman returns to her
+  late father's tin shop and learns to mend what he left unfinished.
+keywords:
+  - literary fiction
+slug: "the-tinsmith-novella"
+verify-sentinels:
+  - "solder is just two metals agreeing to hold"
+  - "she kept the shop key on the same ring as her car"
+verify-min-pages: 1
+
+print:
+  profile: novella-5x8

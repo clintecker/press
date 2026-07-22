@@ -1,0 +1,20 @@
+title: "Between the Tides"
+subtitle: "A field guide to the rocky shore"
+author:
+  - "Marisol Vance"
+date: "First edition, 2026"
+lang: en-US
+copyright: "Copyright 2026 Marisol Vance."
+publisher: "Saltmeadow Press"
+publisher-place: "Monterey, California"
+description: >-
+  A compact field guide to the animals and algae of the temperate rocky
+  intertidal, organized by the zone where a walker actually finds them.
+keywords:
+  - natural history
+  - marine biology
+slug: "tidepool-field-notes"
+verify-sentinels:
+  - "the barnacle is a crustacean standing on its head"
+  - "every zone is a compromise with the tide"
+verify-min-pages: 1

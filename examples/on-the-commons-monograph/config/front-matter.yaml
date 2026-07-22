@@ -1,0 +1,13 @@
+# Front matter for The Reasonable Commons. Its presence asks the press to
+# generate the PDF title page and surrounding pages from config.
+
+dedication: "For the stewards who keep the ledgers no statute requires."
+
+acknowledgements: >-
+  This monograph grew from a seminar I convened at Ashfield, and I owe its
+  best objections to that room. I thank Professor Ines Havel for reading two
+  drafts against the grain, Dr. Tomas Reike for the field data on the
+  Vergano pasture, and my students Lena Ostrom and Marco Feld for checking
+  every citation twice. The Ashfield Institutional Archive opened its
+  cooperative records to me with a patience I could not have earned, and the
+  errors that survive their care are mine alone.

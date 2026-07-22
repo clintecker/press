@@ -11,6 +11,17 @@ audit).
 
 ### Added (v2)
 
+- **A gallery of very different example books** (#190), proving nothing is
+  hardcoded. Five complete books under `examples/` — a naturalist field guide,
+  a poetry chapbook, an academic monograph, a literary novella, and a seasonal
+  cookbook — each produced by the same pipeline with only its own config
+  differing: two trims (house 6×9 and novella 5×8), five aesthetics, footnotes,
+  a subject index, a custom web stylesheet, four kinds of front matter, three
+  kinds of appended matter, and a per-book jargon allowance. Every example is
+  proven a valid press book on each test run (the config passes the typed
+  model, the design surfaces genuinely vary, and each passes `press check`),
+  and the docs site gains a gallery page cross-linked from the parts-of-a-book
+  and configuration guides.
 - **Registrations automation: ONIX 3.0, PCN prep, and ISBN conversions**
   (#191). `press onix` generates the ONIX 3.0 metadata record distributors
   ingest (`dist/<slug>.onix.xml`) from config: a product per sellable edition

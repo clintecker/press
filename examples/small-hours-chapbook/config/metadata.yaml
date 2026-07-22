@@ -1,0 +1,22 @@
+title: "Small Hours"
+subtitle: "Poems for the middle of the night"
+author:
+  - "Junia Okafor"
+date: "First edition, 2026"
+lang: en-US
+copyright: "Copyright 2026 Junia Okafor."
+publisher: "Lamplight Editions"
+publisher-place: "Providence, Rhode Island"
+description: >-
+  A short chapbook of nocturnes: twenty poems written and set for the
+  quiet hours, small enough to carry in a coat pocket.
+keywords:
+  - poetry
+slug: "small-hours-chapbook"
+verify-sentinels:
+  - "the kettle keeps its own slow counsel"
+  - "morning is a rumor the streetlights refuse"
+verify-min-pages: 1
+
+print:
+  profile: novella-5x8

@@ -1,0 +1,7 @@
+# The jargon watchlist is tuned for technical prose, where "seam" and "clean"
+# are usually vague metaphors. In a novella about a tinsmith they are literal:
+# a seam is a solder join, and a clean joint is a real, specific thing. A book
+# owns its own vocabulary, so it allows these two terms for itself.
+jargon-allow:
+  - seam
+  - clean

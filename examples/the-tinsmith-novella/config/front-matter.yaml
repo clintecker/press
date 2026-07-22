@@ -1,0 +1,4 @@
+# Front matter for The Tinsmith's Daughter. Its presence asks the press
+# to generate the PDF title page and dedication from config.
+
+dedication: "For anyone who inherited a toolbox."

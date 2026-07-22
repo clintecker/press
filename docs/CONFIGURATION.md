@@ -7,6 +7,9 @@ absent. The general rule is graceful degradation: a required fact
 refuses loudly with a locatable message, an optional fact defaults
 or switches its feature off, and nothing fails silently.
 
+For worked examples of these keys producing very different books, see the
+[gallery](https://github.com/clintecker/press/blob/main/docs/GALLERY.md).
+
 The book root is the directory holding `config/metadata.yaml`; a
 directory without that file is refused as not a book. Every YAML
 file here must be a mapping (or, where stated, a list) at the top

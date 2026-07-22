@@ -1,0 +1,27 @@
+register: "Warm, plain, and encouraging; the voice of a friend who wants you fed."
+
+web-palette:
+  paper: "#f6ede1"
+  ink: "#2b201a"
+  muted: "#7a675a"
+  accent: "#c1552b"
+  link: "#a2531f"
+  rule: "#ddccb8"
+
+web-palette-dark:
+  paper: "#1a1310"
+  ink: "#ece0d2"
+  muted: "#a89584"
+  accent: "#e07a4a"
+  link: "#e0a15a"
+  rule: "#3a2c22"
+
+book-colors:
+  ink: "#2b201a"
+  muted: "#7a675a"
+  accent: "#c1552b"
+  link: "#a2531f"
+
+typography:
+  web-family: "'Iowan Old Style', 'Palatino Linotype', 'Source Serif Pro', Charter, Georgia, serif"
+  pdf-family: "TeX Gyre Bonum"

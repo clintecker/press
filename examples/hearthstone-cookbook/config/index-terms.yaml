@@ -1,0 +1,20 @@
+# Curated subject index. Every term must appear at least once in the
+# manuscript, or the build fails. The match list is lowercased and is
+# how each term is found in the text.
+
+- term: soup
+  match: [soup, soups]
+- term: bread
+  match: [bread]
+- term: beans
+  match: [beans, bean]
+- term: stock
+  match: [stock]
+- term: onion
+  match: [onion, onions]
+- term: thyme
+  match: [thyme]
+- term: butter
+  match: [butter]
+- term: oven
+  match: [oven]

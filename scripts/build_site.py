@@ -44,6 +44,7 @@ NAV_GROUPS = [
         ("docs/INSTALL.md", "install.html", "install"),
         ("docs/CONFIGURATION.md", "configuration.html", "configuration"),
         ("docs/BOOK-PARTS.md", "book-parts.html", "book parts"),
+        ("docs/GALLERY.md", "gallery.html", "gallery"),
         ("docs/PRINT-ORDERING.md", "print-ordering.html", "print ordering"),
         ("docs/PRINT-FORMATS.md", "print-formats.html", "trim & binding"),
         ("docs/LULU.md", "lulu.html", "printing at lulu"),

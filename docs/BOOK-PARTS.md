@@ -7,6 +7,11 @@ some of them from configuration and typesets the rest from Markdown you
 write.
 :::
 
+To see these parts assembled into very different finished books, browse the
+[gallery](https://github.com/clintecker/press/blob/main/docs/GALLERY.md): a
+field guide, a poetry chapbook, a monograph, a novella, and a cookbook, each
+the same pipeline with different config.
+
 Every part is one of two kinds, and the kind tells you where it lives.
 
 - [generated]{.tag .gen} &nbsp;**Generated matter** — press builds it from
