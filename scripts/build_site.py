@@ -25,7 +25,10 @@ import re
 import shutil
 import subprocess
 import sys
+# `escape` by name, not the module: build_page binds a local named `html`.
+from html import escape
 from pathlib import Path
+from typing import NamedTuple
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "build" / "site"
@@ -53,7 +56,6 @@ NAV_GROUPS = [
     ("Reference", [
         ("docs/REFERENCE.md", "reference.html", "reference"),
         ("docs/ARCHITECTURE.md", "architecture.html", "architecture"),
-        ("docs/EXTENSION-CONTRACT.md", "extension-contract.html", "extension contract"),
         ("docs/INVARIANTS.md", "invariants.html", "invariants"),
         ("docs/PROVIDER-QUALIFICATION.md", "provider-qualification.html", "providers"),
         ("docs/COMPATIBILITY.md", "compatibility.html", "compatibility"),
@@ -86,6 +88,9 @@ NOT_PUBLISHED = {
     "docs/TUI-PLAN.md": "internal design plan; lives in the repo and issues, not the docs site",
     "docs/DIRECT-ORDERING-PLAN.md": "internal PRD/TRD; lives in the repo and issues, not the docs site",
     "docs/PRINT-PROFILES-PLAN.md": "internal v2 design record; lives in the repo and issues, not the docs site",
+    "docs/EXTENSION-CONTRACT.md": "implementer-facing spec for extending the press "
+                                  "itself; lives in the repo for the few who write an "
+                                  "extension, not on a site written for authors",
 }
 
 
@@ -250,6 +255,167 @@ def head_metadata(name: str, title: str, description: str) -> str:
     ]) + "\n"
 
 
+# ---- The gallery, generated from the example books themselves -------------
+#
+# The gallery must not describe the examples by hand: a written-out card goes
+# stale the moment an example changes its palette, gains a feature, or a sixth
+# book lands. These readers take the facts from each example's own config and
+# files, so the page states what the examples actually are and a new example
+# appears in the gallery by existing.
+#
+# Stdlib only, deliberately: the docs-site workflow installs pandoc and
+# nothing else, so PyYAML is not available here. The readers below understand
+# the small, known shape the example configs use, and every one of them fails
+# the build rather than rendering a blank card.
+
+EXAMPLES = ROOT / "examples"
+
+# Where docs/GALLERY.md asks for the generated cards.
+GALLERY_MARKER = "<!--GALLERY-CARDS-->"
+
+# A trim that is not the house 6x9 is named by the print profile a book
+# selects; the house profile is the absence of that key.
+PROFILE_LABELS = {"novella-5x8": "5×8 novella", "house-6x9": "6×9 house"}
+
+
+def _yaml_scalar(text: str, key: str, indent: str = "") -> str | None:
+    """A single-line `key: value`, with optional quotes, at a given indent."""
+    match = re.search(rf'^{indent}{key}:[ \t]*(.+?)[ \t]*$', text, re.M)
+    if not match:
+        return None
+    value = match.group(1).strip()
+    if value in (">-", "|", ">", "|-"):     # a block scalar, not a value
+        return None
+    return value.strip('"').strip("'")
+
+
+def _yaml_block(text: str, key: str) -> str | None:
+    """A folded block scalar (`key: >-`) joined back into one line."""
+    match = re.search(rf'^{key}:[ \t]*[>|]-?[ \t]*\n((?:[ \t]+.*\n?)+)', text, re.M)
+    if not match:
+        return None
+    return " ".join(line.strip() for line in match.group(1).splitlines() if line.strip())
+
+
+def _yaml_first_item(text: str, key: str) -> str | None:
+    """The first entry of a simple `key:` / `  - value` list."""
+    match = re.search(rf'^{key}:[ \t]*\n[ \t]+-[ \t]*(.+?)[ \t]*$', text, re.M)
+    return match.group(1).strip('"').strip("'") if match else None
+
+
+class Example(NamedTuple):
+    """What the gallery says about one example book, read from the book."""
+
+    dir: str
+    title: str
+    subtitle: str
+    author: str
+    publisher: str
+    genre: str
+    summary: str
+    register: str
+    trim: str
+    paper: str
+    ink: str
+    accent: str
+    chapters: int
+    exercises: list[str]
+
+
+def _example_facts(book: Path) -> Example:
+    """Everything the gallery says about one example, read from the book."""
+    meta = (book / "config" / "metadata.yaml").read_text(encoding="utf-8")
+    aesthetic_file = book / "config" / "aesthetic.yaml"
+    aesthetic = aesthetic_file.read_text(encoding="utf-8") if aesthetic_file.exists() else ""
+
+    title = _yaml_scalar(meta, "title")
+    if not title:
+        raise SystemExit(f"gallery: {book.name} has no title in config/metadata.yaml")
+    summary = _yaml_block(meta, "description") or _yaml_scalar(meta, "description")
+    if not summary:
+        raise SystemExit(f"gallery: {book.name} has no description to show")
+
+    # The book's own colours, so the card is printed in the book's palette.
+    palette = [
+        _yaml_scalar(aesthetic, name, indent="  ")
+        for name in ("paper", "ink", "accent")
+    ]
+    if not all(palette):
+        raise SystemExit(f"gallery: {book.name} has no web-palette paper/ink/accent")
+
+    profile = _yaml_scalar(meta, "profile", indent="  ")
+    chapters = sorted((book / "book" / "chapters").glob("*.md"))
+    appendices = sorted((book / "book" / "appendices").glob("*.md"))
+
+    # What the example demonstrates, detected from what it actually contains.
+    exercises: list[str] = []
+    if (book / "config" / "front-matter.yaml").exists():
+        exercises.append("front matter")
+    if (book / "config" / "index-terms.yaml").exists():
+        exercises.append("subject index")
+    if (book / "assets" / "web" / "extra.css").exists():
+        exercises.append("custom web CSS")
+    if appendices:
+        exercises.append(f"{len(appendices)} appendix" if len(appendices) == 1
+                         else f"{len(appendices)} appendices")
+    if any("[^" in c.read_text(encoding="utf-8") for c in chapters):
+        exercises.append("footnotes")
+    if profile:
+        exercises.append("non-house print profile")
+
+    return Example(
+        dir=book.name,
+        title=title,
+        subtitle=_yaml_scalar(meta, "subtitle") or "",
+        author=_yaml_first_item(meta, "author") or "",
+        publisher=_yaml_scalar(meta, "publisher") or "",
+        genre=_yaml_first_item(meta, "keywords") or "",
+        summary=summary,
+        register=(_yaml_block(aesthetic, "register")
+                  or _yaml_scalar(aesthetic, "register") or ""),
+        trim=PROFILE_LABELS.get(profile or "house-6x9", profile or "6×9 house"),
+        paper=palette[0] or "", ink=palette[1] or "", accent=palette[2] or "",
+        chapters=len(chapters),
+        exercises=exercises,
+    )
+
+
+def gallery_cards_html() -> str:
+    """The gallery's cards, in the examples' own colours."""
+    books = sorted(d for d in EXAMPLES.iterdir() if (d / "config" / "metadata.yaml").exists())
+    if not books:
+        raise SystemExit("gallery: no example books found under examples/")
+    cards = []
+    for book in books:
+        ex = _example_facts(book)
+        chips = "".join(f"<li>{escape(e)}</li>" for e in ex.exercises)
+        register = (f'<p class="ex-register">{escape(ex.register)}</p>'
+                    if ex.register else "")
+        cards.append(f"""
+<article class="ex" style="--ex-paper:{ex.paper};--ex-ink:{ex.ink};--ex-accent:{ex.accent}">
+  <div class="ex-plate" aria-hidden="true">
+    <span class="ex-spine"></span>
+    <span class="ex-title">{escape(ex.title)}</span>
+    <span class="ex-rule"></span>
+    <span class="ex-imprint">{escape(ex.publisher)}</span>
+  </div>
+  <div class="ex-body">
+    <p class="ex-kind"><span class="ex-genre">{escape(ex.genre)}</span>
+      <span class="ex-trim">{escape(ex.trim)}</span></p>
+    <h3 class="ex-name">{escape(ex.title)}</h3>
+    <p class="ex-sub">{escape(ex.subtitle)}</p>
+    <p class="ex-summary">{escape(ex.summary)}</p>
+    {register}
+    <ul class="ex-chips">{chips}</ul>
+    <p class="ex-foot">
+      <span>{escape(ex.author)} · {ex.chapters} chapters</span>
+      <a href="https://github.com/clintecker/press/tree/main/examples/{ex.dir}">config &amp; manuscript →</a>
+    </p>
+  </div>
+</article>""")
+    return f'<section class="gallery">{"".join(cards)}\n</section>'
+
+
 def build_page(source: str, name: str, label: str) -> None:
     title = "press" if name == "index.html" else f"press: {label}"
     nav_file = OUT / f".nav-{name}"
@@ -291,6 +457,13 @@ def build_page(source: str, name: str, label: str) -> None:
     # declared rather than inferred (#158).
     description = page_description(source)
     html = html.replace("</head>", head_metadata(name, title, description) + "</head>", 1)
+    # The gallery's cards are generated from the example books; the page marks
+    # where they belong. A missing marker is a build failure, not a quietly
+    # card-less gallery.
+    if name == "gallery.html":
+        if GALLERY_MARKER not in html:
+            raise SystemExit(f"gallery: {source} lost its {GALLERY_MARKER} marker")
+        html = html.replace(GALLERY_MARKER, gallery_cards_html(), 1)
     # Wrap the pandoc content in one <main class="prose"> between the
     # toolbar and the colophon, so the whole column is a single centered
     # container and no element can detach from it. The toolbar and footer

@@ -37,7 +37,7 @@ once for your platform, then let `press doctor` tell you what is ready.
 On macOS:
 
 ```sh
-pip install "press @ git+https://github.com/clintecker/press@v1" && \
+pip install "press @ git+https://github.com/clintecker/press@v2" && \
   brew install pandoc poppler && \
   brew install --cask mactex-no-gui
 ```

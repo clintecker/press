@@ -388,3 +388,81 @@ h1 .tag, h2 .tag, h3 .tag{vertical-align:.28em; margin-left:.35rem}
    focusable (Tab) and switched with Space; show a focus ring on the burger
    while the hidden checkbox has focus so the control is visible (#156). */
 .nav-toggle:focus-visible + .nav-burger{outline:2px solid var(--accent); outline-offset:2px}
+
+/* ---- The example gallery ------------------------------------
+   The gallery page argues that the press makes visibly different objects, so
+   the page has to look like it means it. Each card carries a miniature book
+   plate painted in that book's OWN palette (the --ex-* properties are set per
+   card by the generator, from the example's config/aesthetic.yaml), which is
+   why the plate keeps its light paper in dark mode: a cover is a cover. The
+   surrounding card belongs to the site and follows the theme. */
+.gallery{
+  display:grid; gap:1.25rem; margin:2rem 0 2.5rem;
+  width:100%; max-width:var(--measure-wide);
+  grid-template-columns:1fr;
+}
+@media (min-width:900px){ .gallery{grid-template-columns:1fr 1fr} }
+
+.ex{
+  display:grid; grid-template-columns:1fr; overflow:hidden;
+  border:1px solid var(--rule); border-radius:14px; background:var(--surface);
+}
+@media (min-width:520px){ .ex{grid-template-columns:136px 1fr} }
+
+/* The plate: a small cover in the book's own ink on its own paper. */
+.ex-plate{
+  position:relative; display:flex; flex-direction:column; justify-content:center;
+  gap:.5rem; padding:1.1rem .9rem 1.1rem 1.3rem; min-height:172px;
+  background:var(--ex-paper); color:var(--ex-ink);
+  border-bottom:1px solid var(--rule);
+}
+@media (min-width:520px){ .ex-plate{border-bottom:0; border-right:1px solid var(--rule)} }
+.ex-spine{position:absolute; inset:0 auto 0 0; width:7px; background:var(--ex-accent)}
+.ex-title{
+  font-family:var(--serif); font-size:1.02rem; line-height:1.22;
+  font-weight:600; letter-spacing:.01em;
+}
+.ex-rule{display:block; width:34px; height:2px; background:var(--ex-accent); opacity:.85}
+.ex-imprint{
+  font-family:var(--sans); font-size:.66rem; letter-spacing:.09em;
+  text-transform:uppercase; opacity:.72;
+}
+
+.ex-body{padding:1.15rem 1.25rem 1.1rem; display:flex; flex-direction:column; gap:.5rem}
+.ex-kind{
+  display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; margin:0;
+  font-family:var(--sans); font-size:.68rem; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--muted);
+}
+.ex-trim{
+  border:1px solid var(--rule-strong); border-radius:999px;
+  padding:.12rem .5rem; letter-spacing:.05em;
+}
+.ex-name{font-family:var(--serif); font-size:1.22rem; line-height:1.25; margin:0}
+.ex-sub{margin:0; color:var(--muted); font-size:.92rem; font-style:italic}
+.ex-summary{margin:.15rem 0 0; font-size:.95rem; line-height:1.55}
+.ex-register{
+  margin:.2rem 0 0; padding-left:.75rem; border-left:2px solid var(--ex-accent);
+  color:var(--muted); font-size:.88rem; line-height:1.5;
+}
+.ex-chips{display:flex; flex-wrap:wrap; gap:.35rem; list-style:none; margin:.35rem 0 0; padding:0}
+.ex-chips li{
+  font-family:var(--sans); font-size:.7rem; letter-spacing:.02em;
+  background:var(--zebra); border:1px solid var(--rule);
+  border-radius:999px; padding:.16rem .55rem; color:var(--ink);
+}
+.ex-foot{
+  display:flex; flex-wrap:wrap; gap:.5rem; justify-content:space-between;
+  align-items:baseline; margin:.75rem 0 0; padding-top:.7rem;
+  border-top:1px solid var(--rule);
+  font-family:var(--sans); font-size:.76rem; color:var(--muted);
+}
+.ex-foot a{white-space:nowrap; font-weight:600}
+
+/* The plate is painted in the book's fixed colours, so in dark mode it needs
+   its own edge to sit on the dark card rather than glare against it. */
+@media (prefers-color-scheme:dark){
+  .ex-plate{box-shadow:inset 0 0 0 1px rgb(0 0 0 / .35)}
+}
+:root[data-theme="dark"] .ex-plate{box-shadow:inset 0 0 0 1px rgb(0 0 0 / .35)}
+:root[data-theme="light"] .ex-plate{box-shadow:none}

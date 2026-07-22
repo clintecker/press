@@ -13,14 +13,16 @@ per-platform toolchain detail it links into.
 ## The press itself
 
 ```sh
-pip install "press @ git+https://github.com/clintecker/press@v1"
+pip install "press @ git+https://github.com/clintecker/press@v2"
 ```
 
 Pip-from-git at a tag is the supported installation channel; the
 press is not published to PyPI, and nothing in its metadata should
 imply otherwise (releases live on GitHub, and books consume the
-composite action). `@v1` floats with the latest compatible release;
-pin a three-part tag (`@v1.17.0`) for an immutable pipeline. For
+composite action). `@v2` floats with the latest compatible release;
+pin a three-part tag (`@v2.0.0`) for an immutable pipeline. A book
+already on `@v1` keeps working and upgrades when it chooses, with
+`press migrate` (see [migration](migration.html)). For
 development, clone and `pip install -e .`.
 
 ## The toolchain by platform
@@ -67,7 +69,7 @@ Any book's CI uses the prebuilt image; locally you can too:
 
 ```sh
 docker run --rm -v "$PWD":/book ghcr.io/clintecker/press-toolchain:latest \
-  bash -c "pip install --break-system-packages 'press @ git+https://github.com/clintecker/press@v1' && cd /book && press all"
+  bash -c "pip install --break-system-packages 'press @ git+https://github.com/clintecker/press@v2' && cd /book && press all"
 ```
 
 The toolchain image is public: any repository, under any account, pulls

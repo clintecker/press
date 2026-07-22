@@ -7,78 +7,58 @@ structure are all configuration a book supplies. The strongest way to show
 that is to show it, so this gallery is a set of complete example books that
 each produce a visibly different object.
 
-Every one of these is built by the **same pipeline**. The only thing that
-differs between them is the config in their directory. They live under
-[`examples/`](https://github.com/clintecker/press/tree/main/examples) in the
-press repository, each buildable with `press all`, and each is proven a valid
-press book on every test run: the config passes the same typed model a real
-build demands, the design surfaces genuinely vary across the set, and every
-one passes the editorial law (`press check`).
+Every one is built by the **same pipeline**, with the same command. The only
+thing that differs between them is the config in their directory. They live
+under [`examples/`](https://github.com/clintecker/press/tree/main/examples) in
+the press repository, and each is proven a real press book on every test run:
+its config passes the same typed model a live build demands, the design
+surfaces genuinely vary across the set, and every one passes the editorial law
+(`press check`).
 
-## The books
+Each card below is printed in its own book's palette, and everything on it —
+the colours, the trim, the summary, the imprint, what the book exercises — is
+read from that example's own files when this page is built. Nothing here is
+described by hand, so nothing here can drift.
 
-### Between the Tides — a naturalist's field guide
+<!--GALLERY-CARDS-->
 
-A crisp, cool-toned reference to the rocky intertidal, on the house 6×9 trim.
-It shows the house pipeline making a modern, technical guide rather than a
-period volume: a **sea-glass aesthetic** (cool palette, a clean humanist
-face), **footnotes**, and an **epigraph**. Same machine, opposite mood.
+## What differs, and where it lives
 
-*Exercises:* `config/aesthetic.yaml` (palette, `book-colors`, typography),
-footnotes, front matter.
+Every difference above is a file in the book's own directory. Nothing in the
+pipeline was touched, and no example is a special case.
 
-### Small Hours — a poetry chapbook
+| To change… | Set this | Seen in |
+|---|---|---|
+| Trim and binding | `print: profile:` in `config/metadata.yaml` | the 5×8 chapbook and novella |
+| Palette and register | `config/aesthetic.yaml` | all five, most visibly the field guide vs the cookbook |
+| Dedication, epigraph, acknowledgements | `config/front-matter.yaml` | the chapbook, monograph, novella, cookbook |
+| A subject index | `config/index-terms.yaml` | the cookbook |
+| The reading measure and web styling | `assets/web/extra.css` | the chapbook, which opens the line spacing for verse |
+| Back matter (also-by, about the author) | files in `book/appendices/` | the monograph and novella |
+| Citations | Markdown footnotes in the chapter text | the monograph and field guide |
 
-Twenty nocturnes on the **novella 5×8 trim**, a smaller page that suits verse
-in the hand. Warm and lamplit, with a **dedication and epigraph**, a
-**custom `extra.css`** that narrows the measure and opens the line spacing for
-poetry, and a hushed palette. Proof the press sets verse, not only prose.
+## Build them yourself
 
-*Exercises:* a non-house **print profile** (`novella-5x8`),
-`config/front-matter.yaml`, `assets/web/extra.css`, aesthetic.
+Every example builds with the same command you would run on your own book:
 
-### The Reasonable Commons — an academic monograph
+```sh
+git clone https://github.com/clintecker/press && cd press
+pip install -e . && cd examples/tidepool-field-notes && press all
+```
 
-A sober, argued monograph on the house trim, with **citations in footnotes**,
-**acknowledgements**, and an **about-the-author** appendix. Its restrained
-scholarly aesthetic and evidential register are a world away from the
-chapbook, from the same tooling.
+Swap `tidepool-field-notes` for any other directory to build a different
+book. `press all` runs the whole pipeline — build, check, verify — and puts
+the results in that example's `dist/`.
 
-*Exercises:* footnotes, `config/front-matter.yaml` (acknowledgements),
-appendices (about-the-author), aesthetic.
+To start your own rather than read someone else's, the
+[quickstart](quickstart.html) goes from an empty directory to a verified book,
+and [parts of a book](book-parts.html) is the catalogue of every piece you can
+add. The trims come from versioned [print profiles](print-formats.html), and
+the full set of knobs is in [configuration](configuration.html).
 
-### The Tinsmith's Daughter — a literary novella
+## About the art
 
-Spare contemporary fiction on the **novella 5×8 trim**, with a minimalist
-cool-neutral aesthetic, a one-line **dedication**, and an **also-by**
-appendix. Understated where the field guide is exact and the cookbook is warm.
-
-*Exercises:* a non-house **print profile** (`novella-5x8`), front matter
-(dedication), appendices (also-by), aesthetic.
-
-### The Hearthstone Table — a seasonal cookbook
-
-An unfussy winter cookbook on the house trim: warm palette, a kitchen
-**dedication**, recipes as ingredient lists and method, and a **subject
-index** built from `config/index-terms.yaml` (every listed term is verified
-to appear in the text). Practical and generous, not literary or academic.
-
-*Exercises:* `config/index-terms.yaml` (subject index),
-`config/front-matter.yaml`, aesthetic.
-
-## What this proves
-
-Across the five: two different trims, five different aesthetics, footnotes,
-an index, custom web styling, four kinds of front matter, and three kinds of
-appended matter. No example edits the pipeline; each only edits its own
-config and manuscript. If you can describe the book you want, you can
-configure it. The surfaces each one uses are documented in
-[parts of a book](https://github.com/clintecker/press/blob/main/docs/BOOK-PARTS.md)
-and [configuration](https://github.com/clintecker/press/blob/main/docs/CONFIGURATION.md);
-the trims come from versioned
-[print profiles](https://github.com/clintecker/press/blob/main/docs/PRINT-FORMATS.md).
-
-Art (covers, plates, an author portrait) is commissioned per book through the
-art workflows and the aesthetic each example declares; the examples build and
-validate without generated images, and degrade gracefully where art is
-absent.
+Covers, plates, and author portraits are commissioned per book through the art
+workflows and the aesthetic each example declares. The examples build and
+validate without generated images, and degrade gracefully where art is absent
+— which is why the cards above are typographic rather than photographic.

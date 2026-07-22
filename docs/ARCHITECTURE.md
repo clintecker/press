@@ -121,7 +121,8 @@ a fact that is verified is trusted as far as this build's evidence.
 
 ## The release contract
 
-Books pin `@v1` (floating) or a three-part tag (immutable, enforced:
+Books pin `@vN` (floating: `@v1` or `@v2`) or a three-part tag
+(immutable, enforced:
 the release-contract workflow proves each tag pins its own action ref
 and an existing immutable toolchain sha). Design is part of the
 contract: within a major, fixes may correct broken output but must
@@ -167,8 +168,8 @@ implementation detail behind it. The policy, restated plainly:
   `sha-` tag, so a pinned book resolves the same pipeline, action,
   and toolchain bytes forever.
 - `vN` floats: it moves to the latest compatible `vN.x.y`, following
-  the GitHub Actions convention. A book that pins `@v1` accepts
-  fixes within the design contract; a book that pins `@v1.x.y`
+  the GitHub Actions convention. A book that pins `@vN` accepts
+  fixes within the design contract; a book that pins `@vN.x.y`
   accepts nothing at all.
 
 Moving between majors is opt-in, per-book, and reversible. `press migrate`

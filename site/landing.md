@@ -37,7 +37,7 @@ produced:
 ## Start a book
 
 ```sh
-pip install "press @ git+https://github.com/clintecker/press@v1" && \
+pip install "press @ git+https://github.com/clintecker/press@v2" && \
   press new my-book && \
   cd my-book && \
   press all
