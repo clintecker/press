@@ -42,9 +42,17 @@ jobs:
           IMAGE: ghcr.io/clintecker/press-toolchain:sha-202165d97623f02f1920e243952e886a423b7b95
         run: |
           echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker run --rm -v "$PWD":/src -w /src "$IMAGE" bash -lc '
-            python3 -m pip install --break-system-packages -q -e /src &&
-            python3 scripts/build_examples.py'
+          # The container is root, so anything it writes into build/ lands
+          # root-owned; the later pandoc-only steps run as the runner user and
+          # could not then write build/site. Hand ownership back before exit,
+          # preserving the build's own exit code.
+          docker run --rm -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)" \
+            -v "$PWD":/src -w /src "$IMAGE" bash -lc '
+              python3 -m pip install --break-system-packages -q -e /src &&
+              python3 scripts/build_examples.py
+              rc=$?
+              chown -R "$HOST_UID:$HOST_GID" build 2>/dev/null || true
+              exit $rc'
       - run: python3 scripts/build_site.py
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
