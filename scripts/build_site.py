@@ -85,6 +85,9 @@ NOT_PUBLISHED = {
     "GOVERNANCE.md": "GitHub community-profile file, surfaced by GitHub itself",
     "CLAUDE.md": "agent working instructions for this repo, not documentation",
     "AGENTS.md": "the same working instructions in the agents.md convention",
+    "docs/META-FRAMEWORK-EXTRACTION.md": (
+        "exploration notebook for a possible later extraction, not a press contract"
+    ),
     "docs/TUI-PLAN.md": "internal design plan; lives in the repo and issues, not the docs site",
     "docs/DIRECT-ORDERING-PLAN.md": "internal PRD/TRD; lives in the repo and issues, not the docs site",
     "docs/PRINT-PROFILES-PLAN.md": "internal v2 design record; lives in the repo and issues, not the docs site",
