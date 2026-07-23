@@ -15,7 +15,10 @@
   \begin{titlepage}
     \centering
     \vspace*{\fill}
-    \includegraphics[width=5.6in,height=7.1in,keepaspectratio]{"{{COVER_PATH}}"}%
+    % Fit the cover to the text block of whatever trim this is, never a fixed
+    % 6x9 size -- a 5.6x7.1in plate overflows a 5x8 page and clips on the right
+    % (and, being taller than the text block, trips the empty-page scar).
+    \includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{"{{COVER_PATH}}"}%
     \par\vspace*{\fill}
   \newpage
 %<<end cover>>

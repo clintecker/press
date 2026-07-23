@@ -96,11 +96,18 @@ def generate(include_cover: bool = True) -> Path | None:
         # leave a stale page for the next build to ship.
         out.unlink()
     config = root / "config" / "front-matter.yaml"
-    if (root / "tex" / "title-page.tex").is_file() or not config.is_file():
+    cover_exists = include_cover and (root / "assets" / "cover.jpg").is_file()
+    # A book opts into generated front matter with a config/front-matter.yaml,
+    # and also whenever it has a cover for the reading PDF to lead with -- even
+    # with no other front matter, so the cover is never dropped for want of a
+    # dedication. A hand-authored tex/title-page.tex overrides both.
+    if (root / "tex" / "title-page.tex").is_file():
+        return None
+    if not config.is_file() and not cover_exists:
         return None
 
-    with config.open(encoding="utf-8") as handle:
-        front = yamlio.loads(handle.read()) or {}
+    front = ((yamlio.loads(config.read_text(encoding="utf-8")) or {})
+             if config.is_file() else {})
     meta = booklib.metadata()
     missing = [
         key for key in ("title", "author", "copyright", "publisher", "publisher-place")
