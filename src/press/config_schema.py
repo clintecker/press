@@ -154,6 +154,10 @@ REGISTRY: tuple[Field, ...] = (
     # config/aesthetic.yaml — prose (prompt material) and programmatic keys
     _w("name", AESTHETIC, help="the aesthetic's name"),
     _w("register", AESTHETIC, help="the register/voice of the design"),
+    _w("cover.style", AESTHETIC,
+       help="cover style id from the style library (default penguin-tri-band)"),
+    _w("cover.subject", AESTHETIC,
+       help="the subject of the cover illustration, one phrase"),
     _w("cover.medium", AESTHETIC, help="cover medium (prompt material)"),
     _w("cover.field", AESTHETIC, help="cover field/composition"),
     _w("cover.ink", AESTHETIC, help="cover ink treatment"),

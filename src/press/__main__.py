@@ -254,6 +254,12 @@ def _run_art(args: list[str]) -> int:
     return art.main(args[1:])
 
 
+def _run_cover(args: list[str]) -> int:
+    from . import cover
+
+    return cover.main(args[1:])
+
+
 def _run_improve(args: list[str]) -> int:
     from . import operator
 
@@ -468,6 +474,7 @@ ROUTES: dict[str, Callable[[list[str]], int]] = {
     "selftest": _run_selftest,
     "doctor": _run_doctor,
     "art": _run_art,
+    "cover": _run_cover,
     "improve": _run_improve,
     "aesthetic": _run_aesthetic,
     "research": _run_research,

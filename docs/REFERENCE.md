@@ -48,6 +48,6 @@ checking     check  style  verify  verify-formats  verify-pages
 print pack   print  verify-print  coverwrap  publish kdp|ingram [--report-only]  isbn status | assign print|epub  onix [--forthcoming]  pcn
 utilities    render  wordcount  clean  new <directory>  config get|set|unset|list|validate  selftest  doctor  migrate [plan] | apply | rollback | status
 instruments  skills  workflows  desk
-art          art commission [targets] | accept <file> --as <target>
+art          art commission [targets] | accept <file> --as <target>  cover [--style <id>] [--subject <text>] | --list
 operator     improve [--apply]  research  aesthetic ["<brief>"]
 ```

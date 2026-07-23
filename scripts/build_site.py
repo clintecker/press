@@ -48,6 +48,7 @@ NAV_GROUPS = [
         ("docs/CONFIGURATION.md", "configuration.html", "configuration"),
         ("docs/BOOK-PARTS.md", "book-parts.html", "book parts"),
         ("docs/GALLERY.md", "gallery.html", "gallery"),
+        ("docs/COVER-STYLES.md", "cover-styles.html", "cover styles"),
         ("docs/PRINT-ORDERING.md", "print-ordering.html", "print ordering"),
         ("docs/PRINT-FORMATS.md", "print-formats.html", "trim & binding"),
         ("docs/LULU.md", "lulu.html", "printing at lulu"),
@@ -283,6 +284,11 @@ GALLERY_DIR = "gallery"
 # Where docs/GALLERY.md asks for the generated cards.
 GALLERY_MARKER = "<!--GALLERY-CARDS-->"
 
+# The cover-style library and where docs/COVER-STYLES.md asks for its catalogue.
+COVER_STYLES_DATA = ROOT / "src" / "press" / "data" / "cover-styles.yaml"
+COVER_STYLES_IMAGES = ROOT / "site" / "cover-styles"
+COVER_STYLES_MARKER = "<!--COVER-STYLES-->"
+
 # The card shows the physical trim size, not the internal profile name.
 PROFILE_LABELS = {"novella-5x8": "5×8", "house-6x9": "6×9"}
 
@@ -494,6 +500,41 @@ def gallery_cards_html() -> str:
     return f'<section class="gallery">{"".join(cards)}\n</section>'
 
 
+def cover_styles_html() -> str:
+    """The cover-style catalogue: one card per style in the library, its name,
+    era, and note read from data/cover-styles.yaml and paired with the
+    committed sample cover. Generated, so the page cannot drift from the
+    library; a style with no sample image is simply skipped."""
+    text = COVER_STYLES_DATA.read_text(encoding="utf-8")
+    # Split on the 2-space-indented style ids, keeping the id and its block.
+    parts = re.split(r'\n  ([a-z0-9-]+):\n', text)
+    cards = []
+    for i in range(1, len(parts), 2):
+        sid, body = parts[i], parts[i + 1]
+        image = COVER_STYLES_IMAGES / f"{sid}.jpg"
+        if not image.is_file():
+            continue
+
+        def field(key: str, block: str = body) -> str:
+            m = re.search(rf'^    {key}:[ \t]*"?(.+?)"?[ \t]*$', block, re.M)
+            return m.group(1).strip().strip('"') if m else ""
+
+        cards.append(f"""
+<figure class="cs">
+  <img src="cover-styles/{sid}.jpg" loading="lazy"
+       alt="{escape(field('name'))} cover of Between the Tides">
+  <figcaption>
+    <span class="cs-name">{escape(field('name'))}</span>
+    <span class="cs-era">{escape(field('era'))}</span>
+    <span class="cs-note">{escape(field('note'))}</span>
+    <code class="cs-id">{sid}</code>
+  </figcaption>
+</figure>""")
+    if not cards:
+        raise SystemExit("cover-styles: no sample images under site/cover-styles/")
+    return f'<section class="cover-styles">{"".join(cards)}\n</section>'
+
+
 def build_page(source: str, name: str, label: str) -> None:
     title = "press" if name == "index.html" else f"press: {label}"
     nav_file = OUT / f".nav-{name}"
@@ -542,6 +583,10 @@ def build_page(source: str, name: str, label: str) -> None:
         if GALLERY_MARKER not in html:
             raise SystemExit(f"gallery: {source} lost its {GALLERY_MARKER} marker")
         html = html.replace(GALLERY_MARKER, gallery_cards_html(), 1)
+    if name == "cover-styles.html":
+        if COVER_STYLES_MARKER not in html:
+            raise SystemExit(f"cover-styles: {source} lost its {COVER_STYLES_MARKER} marker")
+        html = html.replace(COVER_STYLES_MARKER, cover_styles_html(), 1)
     # Wrap the pandoc content in one <main class="prose"> between the
     # toolbar and the colophon, so the whole column is a single centered
     # container and no element can detach from it. The toolbar and footer
@@ -678,6 +723,9 @@ def main() -> int:
     # pandoc-only build, and the gallery simply omits them.
     if EXAMPLE_ARTIFACTS.is_dir():
         shutil.copytree(EXAMPLE_ARTIFACTS, OUT / GALLERY_DIR)
+    # The cover-style catalogue's sample images (committed, one per style).
+    if COVER_STYLES_IMAGES.is_dir():
+        shutil.copytree(COVER_STYLES_IMAGES, OUT / "cover-styles")
     for source, name, label in PAGES + FOOTER_PAGES:
         build_page(source, name, label)
     write_sitemap_and_robots()

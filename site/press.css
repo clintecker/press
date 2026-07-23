@@ -488,3 +488,29 @@ h1 .tag, h2 .tag, h3 .tag{vertical-align:.28em; margin-left:.35rem}
 :root[data-theme="light"] .ex-pages{box-shadow:none}
 .ex-links{display:inline-flex; gap:.7rem; align-items:baseline; flex-wrap:wrap}
 .ex-pdf{font-weight:600; white-space:nowrap; color:var(--accent-ink)}
+
+/* ---- The cover-style catalogue -----------------------------
+   One sample cover per style, the same book across the library. A responsive
+   grid of framed covers with a caption block; all rem so it scales with the
+   fluid root like the rest of the site. */
+.prose > .cover-styles{
+  max-width:var(--measure-wide); margin:1.8rem auto 2.4rem; padding:0;
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%, 15rem),1fr));
+  gap:var(--s5);
+}
+.cs{margin:0; display:flex; flex-direction:column; gap:.55rem}
+.cs img{
+  width:100%; height:auto; border-radius:4px;
+  border:1px solid var(--rule); background:#fff;
+  box-shadow:0 2px 10px rgb(0 0 0 / .18);
+}
+.cs figcaption{display:flex; flex-direction:column; gap:.15rem}
+.cs-name{font-family:var(--serif); font-weight:700; font-size:1.02rem; color:var(--ink)}
+.cs-era{font-family:var(--sans); font-size:.72rem; letter-spacing:.03em; color:var(--muted)}
+.cs-note{font-size:.86rem; line-height:1.45; color:var(--ink); margin-top:.1rem}
+.cs-id{
+  align-self:flex-start; margin-top:.15rem; font-family:var(--mono);
+  font-size:.72rem; color:var(--accent-ink);
+  background:var(--zebra); border:1px solid var(--rule);
+  border-radius:5px; padding:.05rem .4rem;
+}
