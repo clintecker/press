@@ -40,18 +40,28 @@ SITE_URL = "https://clintecker.github.io/press/"
 
 # The site navigation, grouped so it stays scannable as the docs grow.
 # Each group is (label, [(source, output name, nav label), ...]).
+# The sidebar, grouped into small scannable sections rather than one long
+# "Guide". Order within and across sections is the reading order.
 NAV_GROUPS = [
-    ("Guide", [
+    ("Start", [
         ("site/landing.md", "index.html", "press"),
         ("docs/QUICKSTART.md", "quickstart.html", "quickstart"),
         ("docs/INSTALL.md", "install.html", "install"),
+    ]),
+    ("Author", [
         ("docs/CONFIGURATION.md", "configuration.html", "configuration"),
         ("docs/BOOK-PARTS.md", "book-parts.html", "book parts"),
+    ]),
+    ("Design", [
         ("docs/GALLERY.md", "gallery.html", "gallery"),
         ("docs/COVER-STYLES.md", "cover-styles.html", "cover styles"),
-        ("docs/PRINT-ORDERING.md", "print-ordering.html", "print ordering"),
+    ]),
+    ("Print & sell", [
         ("docs/PRINT-FORMATS.md", "print-formats.html", "trim & binding"),
+        ("docs/PRINT-ORDERING.md", "print-ordering.html", "print ordering"),
         ("docs/LULU.md", "lulu.html", "printing at lulu"),
+    ]),
+    ("Operate", [
         ("docs/DESK.md", "desk.html", "desk"),
     ]),
     ("Reference", [

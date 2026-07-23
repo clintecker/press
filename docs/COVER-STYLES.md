@@ -34,6 +34,32 @@ geometry and writes `assets/cover.jpg`. With no image-model key set, `press
 cover` prints the ready-to-run prompt instead, so the same styles drive a
 manual or agent-run commission and the press stays offline by default.
 
+## Making a good one
+
+A few things carry most of the result:
+
+- **Write the subject like a woodcut caption, not a plot.** Name concrete
+  things and a scene: *"a rocky intertidal shore at low tide, tide pools,
+  barnacles and mussels, kelp, one shorebird"* works; *"a book about the
+  sea"* does not. Three to eight nouns and a place is the sweet spot.
+- **Let the palette do the colour.** Every style prints in your book's
+  `accent` on its `paper` (from `config/aesthetic.yaml`), so the cover and the
+  book share one identity. A deep, saturated accent reads best; a very pale one
+  gives the model little to work with.
+- **Match the style to the book, not the fashion.** A field guide wants the
+  Penguin grid or a woodcut; a book of essays wants minimalist or Swiss; a
+  thriller wants pulp or photographic; a gift edition wants the clothbound
+  pattern. The [catalogue above](#cover-styles) shows the same book in each, so
+  you can judge the fit before you spend a generation.
+- **The title is lettered by the model, and checked by you.** `baked` styles
+  put your exact title and author on the cover; `press cover` prints the copy
+  it asked for, so glance at the result and re-run if a letter drifts. Keep
+  titles short for the boldest styles.
+- **It is cheap to iterate.** Each `press cover` is one image; run it a few
+  times, or across two or three styles, and keep the one that sings. The art is
+  a one-time commission, committed as `assets/cover.jpg`, so the choice is
+  permanent only once you accept it.
+
 ## Building your own
 
 The house set is a starting point, not a fence. Add `config/cover-styles.yaml`
