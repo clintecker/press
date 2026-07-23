@@ -1,4 +1,4 @@
-# Glossary
+# Glossary {.unnumbered}
 
 **Attenuation**
 : A deliberate reduction in level, stated in decibels. Distinct from loss,

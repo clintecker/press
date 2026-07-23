@@ -455,10 +455,14 @@ h1 .tag, h2 .tag, h3 .tag{vertical-align:.28em; margin-left:.35rem}
 .ex-pages{
   display:flex; gap:.55rem; margin:0 0 .1rem; padding:.7rem;
   background:var(--ex-paper); border:1px solid var(--rule); border-radius:7px;
-  justify-content:center; overflow-x:auto;
+  justify-content:center; align-items:flex-start;
 }
+/* The three pages share the row and shrink together to fit -- flex-basis 0 so
+   none can push the strip past its box and force a scrollbar. Aspect is the
+   page's own; a cap keeps them from dominating a tall card. */
 .ex-pages img{
-  width:auto; flex:0 1 auto; max-width:32%; height:auto; max-height:15rem;
+  flex:1 1 0; min-width:0; width:100%; height:auto; max-height:15rem;
+  object-fit:contain; object-position:top;
   border:1px solid rgb(0 0 0 / .14); border-radius:2px;
   background:#fff; box-shadow:0 1px 5px rgb(0 0 0 / .2);
 }

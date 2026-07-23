@@ -1,4 +1,4 @@
-# Also by Perla Nguyen
+# Also by Perla Nguyen {.unnumbered}
 
 *The Weight of Salt* (2019). A widowed lighthouse keeper measures out
 her grief in the small rituals of a coast that is slowly being sold.

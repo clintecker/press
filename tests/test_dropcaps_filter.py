@@ -139,3 +139,17 @@ def test_drop_cap_book_renders_to_pdf(tmp_path):
         build.build_target("pdf")
         pdf = handle.root / "dist" / f"{handle.slug}.pdf"
         assert pdf.is_file() and pdf.stat().st_size > 0
+
+
+@pytest.mark.layer("integration")
+def test_unnumbered_heading_gets_no_lettrine():
+    # Front and back matter (an "also by", an about-the-author, a glossary) are
+    # level-1 headings but unnumbered; a bibliographic list is not a chapter to
+    # open with a drop cap. The numbered chapter above it still gets one.
+    out = _render(
+        "# Chapter One\n\nReal chapter prose opens here.\n\n"
+        "# Also by Someone {.unnumbered}\n\nA list of other titles follows.\n"
+    )
+    assert "\\PressDropCap{R}{eal}" in out          # the chapter is capped
+    assert "\\PressDropCap{A}" not in out           # the appendix is not
+    assert "\\section*{Also by Someone}" in out     # and stays unnumbered

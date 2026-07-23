@@ -1,4 +1,4 @@
-# Also by Perpetua Adeyemi
+# Also by Perpetua Adeyemi {.unnumbered}
 
 - *Standing Water* (2021), essays on the Fenland drainage schemes and the
   communities they displaced.

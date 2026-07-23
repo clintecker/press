@@ -1,4 +1,4 @@
-# About the author
+# About the author {.unnumbered}
 
 Dr. Aurelio Santos is a political economist at the Ashfield Institute for
 Institutional Studies, where he directs the seminar on cooperative

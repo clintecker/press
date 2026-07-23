@@ -169,7 +169,13 @@ function Pandoc(doc)
   local i = 1
   while i <= #blocks do
     local b = blocks[i]
-    if b.t == "Header" and b.level == 1 then
+    -- Only a numbered chapter opening takes a drop cap. Front and back matter
+    -- (a preface, an "also by", an about-the-author, a glossary) are level-1
+    -- headings too, but they are unnumbered, and a bibliographic list or a
+    -- one-line bio is not a chapter to open with a dropped initial.
+    local is_chapter = b.t == "Header" and b.level == 1
+      and not (b.classes:includes("unnumbered") or b.classes:includes("unlisted"))
+    if is_chapter then
       local j = i + 1
       while j <= #blocks and SKIP[blocks[j].t] do j = j + 1 end
       if j <= #blocks and blocks[j].t == "Para" then
