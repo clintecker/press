@@ -406,7 +406,9 @@ h1 .tag, h2 .tag, h3 .tag{vertical-align:.28em; margin-left:.35rem}
    around scaling text overflows. */
 .prose > .gallery{
   max-width:var(--measure-wide); margin:1.8rem auto 2.4rem; padding:0;
-  display:grid; grid-template-columns:repeat(auto-fill,minmax(17rem,1fr));
+  /* min(100%, 17rem) so the single track can shrink below 17rem on a phone
+     narrower than that, rather than overflowing its column. */
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%, 17rem),1fr));
   gap:var(--s4);
 }
 .gallery .ex{

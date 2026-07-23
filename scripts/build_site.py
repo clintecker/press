@@ -350,6 +350,13 @@ def _example_artifacts(slug: str) -> tuple[int, str, list[str]]:
     return pages, (pdf.name if pdf.is_file() else ""), previews
 
 
+def _is_unnumbered(md: Path) -> bool:
+    """A chapter file whose heading is marked {.unnumbered} or {-} is front
+    matter (a preface, a note), not a numbered chapter."""
+    head = md.read_text(encoding="utf-8").lstrip().split("\n", 1)[0].rstrip()
+    return "{.unnumbered}" in head or head.endswith("{-}")
+
+
 def _example_facts(book: Path) -> Example:
     """Everything the gallery says about one example, read from the book."""
     meta = (book / "config" / "metadata.yaml").read_text(encoding="utf-8")
@@ -373,6 +380,9 @@ def _example_facts(book: Path) -> Example:
 
     profile = _yaml_scalar(meta, "profile", indent="  ")
     chapters = sorted((book / "book" / "chapters").glob("*.md"))
+    # The chapter count is numbered chapters only; a preface or note marked
+    # {.unnumbered} (or {-}) is front matter, not a chapter.
+    numbered = [c for c in chapters if not _is_unnumbered(c)]
     appendices = sorted((book / "book" / "appendices").glob("*.md"))
 
     # What the example demonstrates, detected from what it actually contains.
@@ -389,7 +399,7 @@ def _example_facts(book: Path) -> Example:
     if any("[^" in c.read_text(encoding="utf-8") for c in chapters):
         exercises.append("footnotes")
     if profile:
-        exercises.append("non-house print profile")
+        exercises.append("non-default trim")
     opening = re.search(
         r'^chapter-opening:[ \t]*\n(?:[ \t]+.*\n)*?[ \t]+style:[ \t]*["\']?([a-z-]+)',
         meta, re.M)
@@ -413,7 +423,7 @@ def _example_facts(book: Path) -> Example:
                   or _yaml_scalar(aesthetic, "register") or ""),
         trim=PROFILE_LABELS.get(profile or "house-6x9", profile or "6×9"),
         paper=palette[0] or "", ink=palette[1] or "", accent=palette[2] or "",
-        chapters=len(chapters),
+        chapters=len(numbered),
         exercises=exercises,
         pages=pages, pdf=pdf, previews=previews,
     )
@@ -439,9 +449,12 @@ def gallery_cards_html() -> str:
         # passes the link check.
         preview = ""
         if ex.previews:
-            # preview-1 is the cover; the rest are interior pages.
+            # preview-1 is the cover; the rest are interior pages, each named
+            # distinctly so a screen reader does not hear the same alt twice.
+            interior = ["An early interior page of", "A later interior page of"]
             alts = [f"Cover of {ex.title}"] + [
-                f"An interior page of {ex.title}" for _ in ex.previews[1:]]
+                f"{interior[i] if i < len(interior) else 'An interior page of'} {ex.title}"
+                for i in range(len(ex.previews) - 1)]
             imgs = "".join(
                 f'<img src="{GALLERY_DIR}/{ex.dir}/{escape(name)}" loading="lazy"'
                 f' alt="{escape(alt)}">'
@@ -456,8 +469,10 @@ def gallery_cards_html() -> str:
         pdf_link = ""
         if ex.pdf:
             span = f" · {ex.pages} pp" if ex.pages else ""
-            pdf_link = (f'<a class="ex-pdf" href="{GALLERY_DIR}/{ex.dir}/{escape(ex.pdf)}">'
+            pdf_link = (f'<a class="ex-pdf" href="{GALLERY_DIR}/{ex.dir}/{escape(ex.pdf)}"'
+                        f' aria-label="Read {escape(ex.title)} as a PDF">'
                         f'Read the PDF{span} ↓</a>')
+        chapter_word = "chapter" if ex.chapters == 1 else "chapters"
         cards.append(f"""
 <article class="ex" style="--ex-accent:{ex.accent};--ex-paper:{ex.paper};--ex-ink:{ex.ink}">
   {preview}
@@ -470,9 +485,10 @@ def gallery_cards_html() -> str:
   {register}
   <ul class="ex-chips">{chips}</ul>
   <p class="ex-foot">
-    <span>{escape(ex.publisher)} · {ex.chapters} chapters</span>
+    <span>{escape(ex.publisher)} · {ex.chapters} {chapter_word}</span>
     <span class="ex-links">{pdf_link}
-    <a href="https://github.com/clintecker/press/tree/main/examples/{ex.dir}">source →</a></span>
+    <a href="https://github.com/clintecker/press/tree/main/examples/{ex.dir}"
+       aria-label="{escape(ex.title)} source on GitHub">source →</a></span>
   </p>
 </article>""")
     return f'<section class="gallery">{"".join(cards)}\n</section>'

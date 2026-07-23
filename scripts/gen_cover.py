@@ -18,10 +18,95 @@ cover regenerates from config on every build and cannot drift. It writes
 
 from __future__ import annotations
 
+import math
 import sys
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
+
+
+# ---- Emblems -------------------------------------------------------------
+#
+# The covers are typographic, but they need not be type alone. Each book
+# carries a small geometric device tied to its subject -- a line emblem drawn
+# in the palette, in the spirit of a woodcut printer's mark. Not illustration
+# (that needs an image model); a mark, the kind a press cuts once and reuses.
+
+def _stroke(s: float) -> int:
+    return max(4, round(s * 0.05))
+
+
+def _em_waves(d: ImageDraw.ImageDraw, cx: float, cy: float, s: float, col) -> None:
+    w = _stroke(s)
+    for r in (s * 0.55, s * 0.38, s * 0.21):
+        d.arc([cx - r, cy - r, cx + r, cy + r], 205, 335, fill=col, width=w)
+
+
+def _em_broadcast(d: ImageDraw.ImageDraw, cx: float, cy: float, s: float, col) -> None:
+    w = _stroke(s)
+    base = cy + s * 0.4
+    d.ellipse([cx - w, base - w, cx + w, base + w], fill=col)
+    for r in (s * 0.34, s * 0.58, s * 0.82):
+        d.arc([cx - r, base - r, cx + r, base + r], 216, 324, fill=col, width=w)
+
+
+def _em_sun(d: ImageDraw.ImageDraw, cx: float, cy: float, s: float, col) -> None:
+    w = _stroke(s)
+    r = s * 0.26
+    d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=col, width=w)
+    for k in range(12):
+        a = math.radians(k * 30)
+        d.line([cx + math.cos(a) * r * 1.5, cy + math.sin(a) * r * 1.5,
+                cx + math.cos(a) * r * 2.05, cy + math.sin(a) * r * 2.05],
+               fill=col, width=w)
+
+
+def _em_moon(d: ImageDraw.ImageDraw, cx: float, cy: float, s: float, col) -> None:
+    w = _stroke(s)
+    r = s * 0.42
+    d.arc([cx - r, cy - r, cx + r, cy + r], 55, 305, fill=col, width=w)
+    for dx, dy in ((s * 0.5, -s * 0.32), (s * 0.36, s * 0.36)):
+        e = s * 0.055
+        d.line([cx + dx - e, cy + dy, cx + dx + e, cy + dy], fill=col, width=max(2, w - 2))
+        d.line([cx + dx, cy + dy - e, cx + dx, cy + dy + e], fill=col, width=max(2, w - 2))
+
+
+def _em_rings(d: ImageDraw.ImageDraw, cx: float, cy: float, s: float, col) -> None:
+    w = _stroke(s)
+    r = s * 0.3
+    for x, y in ((cx, cy - r * 0.62), (cx - r * 0.82, cy + r * 0.5), (cx + r * 0.82, cy + r * 0.5)):
+        d.ellipse([x - r, y - r, x + r, y + r], outline=col, width=w)
+
+
+def _em_furrows(d: ImageDraw.ImageDraw, cx: float, cy: float, s: float, col) -> None:
+    w = _stroke(s)
+    hy = cy + s * 0.05
+    d.line([cx - s * 0.62, hy, cx + s * 0.62, hy], fill=col, width=w)
+    for f in (-0.55, -0.28, 0.0, 0.28, 0.55):
+        d.line([cx + f * s, cy + s * 0.55, cx + f * s * 0.12, hy], fill=col, width=max(3, w - 1))
+
+
+def _em_facets(d: ImageDraw.ImageDraw, cx: float, cy: float, s: float, col) -> None:
+    w = _stroke(s)
+    for r in (s * 0.5, s * 0.32, s * 0.15):
+        d.polygon([(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)],
+                  outline=col, width=w)
+
+
+def _em_hearth(d: ImageDraw.ImageDraw, cx: float, cy: float, s: float, col) -> None:
+    w = _stroke(s)
+    d.arc([cx - s * 0.5, cy - s * 0.45, cx + s * 0.5, cy + s * 0.55], 180, 360, fill=col, width=w)
+    d.line([cx - s * 0.5, cy + s * 0.05, cx - s * 0.5, cy + s * 0.5], fill=col, width=w)
+    d.line([cx + s * 0.5, cy + s * 0.05, cx + s * 0.5, cy + s * 0.5], fill=col, width=w)
+    d.line([cx - s * 0.56, cy + s * 0.5, cx + s * 0.56, cy + s * 0.5], fill=col, width=w)
+    d.line([cx, cy + s * 0.44, cx, cy + s * 0.12], fill=col, width=max(3, w - 1))
+
+
+_EMBLEMS = {
+    "waves": _em_waves, "broadcast": _em_broadcast, "sun": _em_sun,
+    "moon": _em_moon, "rings": _em_rings, "furrows": _em_furrows,
+    "facets": _em_facets, "hearth": _em_hearth,
+}
 
 # Where to look for a usable serif face, by the book's pdf-family first and
 # then a dependable fallback. Covers both the toolchain image (texlive/system
@@ -114,7 +199,7 @@ class _Cover:
 
     def __init__(self, dest_size: tuple[int, int], paper: str, ink: str,
                  accent: str, font_file: str | None, title: str, subtitle: str,
-                 author: str, imprint: str) -> None:
+                 author: str, imprint: str, emblem: str = "") -> None:
         self.W, self.H = dest_size
         self.pap, self.ic, self.ac = _hex(paper), _hex(ink), _hex(accent)
         # Text laid on the accent field is light or near-black by contrast.
@@ -122,10 +207,16 @@ class _Cover:
         self.font_file = font_file
         self.title, self.subtitle = title, subtitle
         self.author, self.imprint = author, imprint
+        self.emblem = emblem
         self.margin = 100
         self.inner = self.W - 2 * self.margin
         self.img = Image.new("RGB", (self.W, self.H), self.pap)
         self.d = ImageDraw.Draw(self.img)
+
+    def draw_emblem(self, cy: int, colour: tuple[int, int, int], size: int = 78) -> None:
+        fn = _EMBLEMS.get(self.emblem)
+        if fn:
+            fn(self.d, self.W // 2, cy, size, colour)
 
     def title_block(self, top: int, colour: tuple[int, int, int], size: int,
                     region_h: int | None = None) -> int:
@@ -186,11 +277,12 @@ class _Cover:
 
 
 def _g_band(cv: _Cover) -> None:
-    """An accent field across the top carries the title; paper below."""
+    """An accent field across the top carries the emblem and title."""
     band_h = int(cv.H * 0.46)
     cv.d.rectangle([0, 0, cv.W, band_h], fill=cv.ac)
     cv.d.rectangle([0, band_h, cv.W, band_h + 10], fill=cv.ic)
-    cv.title_block(0, cv.on_ac, 116, region_h=band_h)
+    cv.draw_emblem(int(band_h * 0.32), cv.on_ac)
+    cv.title_block(int(band_h * 0.30), cv.on_ac, 112, region_h=int(band_h * 0.64))
     cv.text_block(band_h + 90, cv.subtitle, 52, cv.ic)
     cv.rule(cv.H - 430, cv.ac)
     cv.colophon_stack(cv.ac, cv.ic)
@@ -198,9 +290,10 @@ def _g_band(cv: _Cover) -> None:
 
 
 def _g_full(cv: _Cover) -> None:
-    """The whole cover is the accent colour; all type reversed out of it."""
+    """The whole cover is the accent colour; emblem and type reversed."""
     cv.d.rectangle([0, 0, cv.W, cv.H], fill=cv.ac)
-    by = cv.title_block(int(cv.H * 0.22), cv.on_ac, 122)
+    cv.draw_emblem(int(cv.H * 0.2), cv.on_ac, size=92)
+    by = cv.title_block(int(cv.H * 0.27), cv.on_ac, 120)
     cv.rule(by + 44, cv.on_ac, width=120)
     cv.text_block(by + 90, cv.subtitle, 50, cv.on_ac)
     cv.colophon_stack(cv.on_ac, cv.on_ac)
@@ -208,17 +301,19 @@ def _g_full(cv: _Cover) -> None:
 
 
 def _g_framed(cv: _Cover) -> None:
-    """Paper field inside a broad accent border; title in ink."""
+    """Paper field inside a broad accent border; emblem and title in accent/ink."""
     cv.d.rectangle([0, 0, cv.W, cv.H], outline=cv.ac, width=48)
-    by = cv.title_block(int(cv.H * 0.27), cv.ic, 108)
+    cv.draw_emblem(int(cv.H * 0.24), cv.ac)
+    by = cv.title_block(int(cv.H * 0.31), cv.ic, 106)
     cv.rule(by + 46, cv.ac)
     cv.text_block(by + 92, cv.subtitle, 50, cv.ic)
     cv.colophon_stack(cv.ac, cv.ic)
 
 
 def _g_stack(cv: _Cover) -> None:
-    """Austere: the title set between two heavy accent rules, much air."""
-    top = int(cv.H * 0.29)
+    """Austere: an emblem, then the title between two heavy accent rules."""
+    cv.draw_emblem(int(cv.H * 0.2), cv.ac)
+    top = int(cv.H * 0.31)
     cv.rule(top, cv.ac, width=cv.inner, thick=12)
     by = cv.title_block(top + 70, cv.ic, 100)
     cv.rule(by + 54, cv.ac, width=cv.inner, thick=12)
@@ -227,10 +322,11 @@ def _g_stack(cv: _Cover) -> None:
 
 
 def _g_panel(cv: _Cover) -> None:
-    """An accent panel floats on the paper field and holds the title."""
+    """An accent panel floats on the paper field and holds emblem and title."""
     px0, py0, px1, py1 = cv.margin, int(cv.H * 0.15), cv.W - cv.margin, int(cv.H * 0.49)
     cv.d.rectangle([px0, py0, px1, py1], fill=cv.ac)
-    cv.title_block(py0, cv.on_ac, 98, region_h=py1 - py0)
+    cv.draw_emblem(py0 + int((py1 - py0) * 0.28), cv.on_ac)
+    cv.title_block(py0 + int((py1 - py0) * 0.24), cv.on_ac, 96, region_h=int((py1 - py0) * 0.64))
     cv.text_block(py1 + 80, cv.subtitle, 50, cv.ic)
     cv.colophon_stack(cv.ac, cv.ic)
     cv.frame(cv.ic)

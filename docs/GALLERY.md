@@ -15,20 +15,19 @@ its config passes the same typed model a live build demands, the design
 surfaces genuinely vary across the set, and every one passes the editorial law
 (`press check`).
 
-Each card below leads with a **cover** drawn from the book's palette, then two
-real pages rendered from the book's **actual PDF**, built by the same pipeline
-in the same toolchain. Everything on the card — the palette, the trim, the
-summary, the imprint, what the book exercises — is read from the example's own
-files when this page is built, and the whole PDF is one click away. Nothing
-here is described by hand, so nothing here can drift.
+Each card below leads with the book's **cover**, then two real pages rendered
+from its **actual PDF**, built by the same pipeline in the same toolchain.
+Everything else on the card — the palette, the trim, the summary, the imprint,
+what the book exercises — is read from the example's own files when this page
+is built, and the whole PDF is one click away.
 
 A book's interior prints in a **single ink**, so the two interior pages carry
-one colour on their paper. The brighter accent each book also defines is a
-cover and screen colour, not an interior ink — so it does its work on the
-cover, where the paper, ink, and accent chips beneath each card all show at
-once. The covers are typographic (type and colour, no imagery), generated from
-each book's palette rather than commissioned, so they too regenerate on every
-build and cannot drift.
+one colour on their paper. The cover is where colour and image belong: each is
+a Penguin-style woodcut in the book's own accent, on the classic tri-band grid,
+commissioned once and committed as the book's cover art. The paper, ink, and
+accent chips beneath each card name the palette both are drawn from. The
+interior previews regenerate from the manuscript on every build; the cover, a
+one-time commission, is a fixed asset, as a real book's would be.
 
 <!--GALLERY-CARDS-->
 
@@ -39,15 +38,15 @@ pipeline was touched, and no example is a special case.
 
 | To change… | Set this | Seen in |
 |---|---|---|
-| Trim and binding | `print: profile:` in `config/metadata.yaml` | the 5×8 chapbook and novella |
-| Palette and register | `config/aesthetic.yaml` | every book, most visibly the field guide vs the almanac |
+| Trim | `print: profile:` in `config/metadata.yaml` | the 5×8 chapbook and novella |
+| Palette and register | `config/aesthetic.yaml` | every book, most visibly the cookbook against the chapbook |
 | The initial that opens each chapter | `chapter-opening:` in `config/metadata.yaml` | the novella and the almanac (a three-line drop cap) |
 | Binding | `print: binding:` in `config/metadata.yaml` | the saddle-stitched almanac |
-| Dedication, epigraph, acknowledgements | `config/front-matter.yaml` | the chapbook, monograph, novella, cookbook |
-| A subject index | `config/index-terms.yaml` | the cookbook |
+| Dedication, epigraph, acknowledgements | `config/front-matter.yaml` | the cookbook, monograph, chapbook, essays, novella |
+| A subject index | `config/index-terms.yaml` | the cookbook and the manual |
 | The reading measure and web styling | `assets/web/extra.css` | the chapbook, which opens the line spacing for verse |
-| Back matter (also-by, about the author) | files in `book/appendices/` | the monograph and novella |
-| Citations | Markdown footnotes in the chapter text | the monograph and field guide |
+| An about-the-author, an also-by | files in `book/appendices/` | every book (an also-by in the essays and the novella) |
+| Citations | Markdown footnotes in the chapter text | the monograph, the manual, the essays, the field guide |
 
 ## Build them yourself
 

@@ -80,14 +80,18 @@ def build_example(book: Path) -> bool:
     pages = _page_count(pdf)
     (dest / "pages.txt").write_text(f"{pages}\n", encoding="utf-8")
 
-    # preview-1 is the cover -- a typographic cover drawn from the book's
-    # palette (gen_cover), where the accent colour actually lives. An interior
-    # prints in a single ink, so the cover is the one place the book's full
-    # palette shows, and it makes each example read as a book, not a text
-    # block. Then two interior pages: an early one (past any front matter, so a
-    # chapter opening and its drop cap show) and the last (index / also-by /
-    # about-the-author matter). Deduped and clamped for a short book.
-    gen_cover.cover_for(book, dest / "preview-1.jpg")
+    # preview-1 is the cover. A book that carries commissioned cover art
+    # (assets/cover.jpg -- a Penguin-style woodcut cover, committed once) shows
+    # it; otherwise a typographic cover is drawn from the book's palette
+    # (gen_cover) as a graceful fallback. Then two interior pages: an early one
+    # (past any front matter, so a chapter opening and its drop cap show) and
+    # the last (index / also-by / about-the-author matter). Deduped and clamped
+    # for a short book.
+    commissioned = book / "assets" / "cover.jpg"
+    if commissioned.is_file():
+        shutil.copy(commissioned, dest / "preview-1.jpg")
+    else:
+        gen_cover.cover_for(book, dest / "preview-1.jpg")
     ok = (dest / "preview-1.jpg").is_file()
     interior = sorted({min(3, pages), pages})
     for slot, page in enumerate(interior, start=2):

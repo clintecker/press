@@ -1,4 +1,4 @@
-# A note on the kitchen
+# A note on the kitchen {.unnumbered}
 
 This is a book for a small kitchen in a cold house, the kind of kitchen
 where the window fogs by four in the afternoon and the good light is gone
