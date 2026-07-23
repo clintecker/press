@@ -440,13 +440,20 @@ def gallery_cards_html() -> str:
         # passes the link check.
         preview = ""
         if ex.previews:
+            # preview-1 is the cover; the rest are interior pages.
+            alts = [f"Cover of {ex.title}"] + [
+                f"An interior page of {ex.title}" for _ in ex.previews[1:]]
             imgs = "".join(
                 f'<img src="{GALLERY_DIR}/{ex.dir}/{escape(name)}" loading="lazy"'
-                f' alt="Page {i} of {escape(ex.title)}">'
-                for i, name in enumerate(ex.previews, start=1)
+                f' alt="{escape(alt)}">'
+                for name, alt in zip(ex.previews, alts)
             )
             preview = (f'<a class="ex-pages" href="{GALLERY_DIR}/{ex.dir}/{escape(ex.pdf)}"'
                        f' aria-label="Open {escape(ex.title)} (PDF)">{imgs}</a>')
+        swatches = "".join(
+            f'<li style="--sw:{colour}">{label}</li>'
+            for colour, label in ((ex.paper, "paper"), (ex.ink, "ink"), (ex.accent, "accent"))
+        )
         pdf_link = ""
         if ex.pdf:
             span = f" · {ex.pages} pp" if ex.pages else ""
@@ -455,6 +462,7 @@ def gallery_cards_html() -> str:
         cards.append(f"""
 <article class="ex" style="--ex-accent:{ex.accent};--ex-paper:{ex.paper};--ex-ink:{ex.ink}">
   {preview}
+  <ul class="ex-swatches" aria-label="palette: paper, ink, accent">{swatches}</ul>
   <p class="ex-kind"><span>{escape(ex.genre)}</span>
     <span class="ex-trim">{escape(ex.trim)}</span></p>
   <h3 class="ex-name">{escape(ex.title)}</h3>

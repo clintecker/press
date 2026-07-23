@@ -415,6 +415,19 @@ h1 .tag, h2 .tag, h3 .tag{vertical-align:.28em; margin-left:.35rem}
   padding:var(--s5); display:flex; flex-direction:column; gap:.4rem;
   overflow:hidden;
 }
+/* The palette, named: paper, ink, accent -- the three colours the cover above
+   is drawn from. A small caption rides beside each chip so the legend is
+   legible without relying on hover alone. */
+.ex-swatches{display:flex; flex-wrap:wrap; gap:.6rem; margin:.15rem 0; padding:0; list-style:none}
+.ex-swatches li{
+  display:inline-flex; align-items:center; gap:.32rem;
+  font-family:var(--sans); font-size:.6rem; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--muted);
+}
+.ex-swatches li::before{
+  content:""; width:.8rem; height:.8rem; border-radius:3px;
+  background:var(--sw); border:1px solid rgb(0 0 0 / .2);
+}
 .ex-kind{
   display:flex; flex-wrap:wrap; gap:.4rem; align-items:center; margin:0;
   font-family:var(--sans); font-size:.68rem; letter-spacing:.07em;

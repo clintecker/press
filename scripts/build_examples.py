@@ -32,6 +32,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import gen_cover  # sibling script; scripts/ is on sys.path when run directly
+
 ROOT = Path(__file__).resolve().parent.parent
 EXAMPLES = ROOT / "examples"
 OUT = ROOT / "build" / "examples"
@@ -78,14 +80,17 @@ def build_example(book: Path) -> bool:
     pages = _page_count(pdf)
     (dest / "pages.txt").write_text(f"{pages}\n", encoding="utf-8")
 
-    # Three pages that span the book: the opening (a generated title page, or
-    # the first chapter); an early interior page (past any front matter, so a
-    # chapter opening and its drop cap show); and the last page (where the
-    # index, also-by, or about-the-author matter lives). Deduped and clamped,
-    # so a short book simply shows fewer.
-    targets = sorted({1, min(3, pages), pages})
-    ok = True
-    for slot, page in enumerate(targets, start=1):
+    # preview-1 is the cover -- a typographic cover drawn from the book's
+    # palette (gen_cover), where the accent colour actually lives. An interior
+    # prints in a single ink, so the cover is the one place the book's full
+    # palette shows, and it makes each example read as a book, not a text
+    # block. Then two interior pages: an early one (past any front matter, so a
+    # chapter opening and its drop cap show) and the last (index / also-by /
+    # about-the-author matter). Deduped and clamped for a short book.
+    gen_cover.cover_for(book, dest / "preview-1.jpg")
+    ok = (dest / "preview-1.jpg").is_file()
+    interior = sorted({min(3, pages), pages})
+    for slot, page in enumerate(interior, start=2):
         ok = _render_page(pdf, page, dest / f"preview-{slot}") and ok
     if not ok:
         print(f"FAIL {slug}: PDF built but a preview did not render")

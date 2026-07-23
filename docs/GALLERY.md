@@ -15,20 +15,20 @@ its config passes the same typed model a live build demands, the design
 surfaces genuinely vary across the set, and every one passes the editorial law
 (`press check`).
 
-Each card below shows real pages rendered from that book's **actual PDF**,
-built by the same pipeline in the same toolchain, sitting on the book's own
-paper colour — so the palette you see is the book's real ink on its real
-paper, not a swatch. Everything else on the card — the trim, the summary, the
-imprint, what the book exercises — is read from the example's own files when
-this page is built, and the whole PDF is one click away. Nothing here is
-described or drawn by hand, so nothing here can drift.
+Each card below leads with a **cover** drawn from the book's palette, then two
+real pages rendered from the book's **actual PDF**, built by the same pipeline
+in the same toolchain. Everything on the card — the palette, the trim, the
+summary, the imprint, what the book exercises — is read from the example's own
+files when this page is built, and the whole PDF is one click away. Nothing
+here is described by hand, so nothing here can drift.
 
-A book's interior prints in a **single ink**, so the pages carry one colour on
-their paper; the brighter accent each book also defines is a cover and screen
-colour, and it appears here as the card's own trim rather than in the printed
-pages. The examples carry no commissioned cover art (they are written to build
-without images), so the previews are generated title pages and interior
-typography: the real trim, front matter, and chapter openings.
+A book's interior prints in a **single ink**, so the two interior pages carry
+one colour on their paper. The brighter accent each book also defines is a
+cover and screen colour, not an interior ink — so it does its work on the
+cover, where the paper, ink, and accent chips beneath each card all show at
+once. The covers are typographic (type and colour, no imagery), generated from
+each book's palette rather than commissioned, so they too regenerate on every
+build and cannot drift.
 
 <!--GALLERY-CARDS-->
 
