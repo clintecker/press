@@ -80,6 +80,36 @@ def run_capture(command: list[str]) -> str:
     return subprocess.run(command, check=True, text=True, capture_output=True).stdout
 
 
+def verify_cover_page(pdf: Path, root: Path, first_page: Path) -> None:
+    """The reading PDF leads with the book's cover. When assets/cover.jpg
+    exists and no hand-authored title page owns page 1, page 1 must both carry
+    the cover raster and actually render it -- so a front-matter regression
+    that drops the cover (a coverless title page) or mis-sizes the plate (a
+    fixed plate clipped off a small trim, leaving a blank page) turns this red
+    instead of shipping a coverless or clipped book. This is the check whose
+    absence let exactly those two bugs ship."""
+    if not (root / "assets" / "cover.jpg").is_file():
+        return
+    if (root / "tex" / "title-page.tex").is_file():
+        return  # a hand-authored title page owns page 1; the cover is on the wrap
+    # Rendered blank means the plate was placed off the page (the clip bug).
+    if looks_blank(Image.open(first_page)):
+        raise SystemExit(
+            "assets/cover.jpg exists but page 1 of the reading PDF renders "
+            "blank -- the cover plate was clipped off the page")
+    # And page 1 must be the cover, not a text title page: the cover raster is
+    # a large embedded image (the source is ~1000px wide).
+    if shutil.which("pdfimages") is None:
+        print("  note: pdfimages absent; cover-on-page-1 identity unverified")
+        return
+    listing = run_capture(["pdfimages", "-list", "-f", "1", "-l", "1", str(pdf)])
+    widths = [int(w) for w in re.findall(r"^\s*1\s+\d+\s+\w+\s+(\d+)\s+\d+", listing, re.M)]
+    if not any(w >= 600 for w in widths):
+        raise SystemExit(
+            "assets/cover.jpg exists but page 1 of the reading PDF carries no "
+            "cover image -- the generated front matter dropped it")
+
+
 def looks_blank(image: Image.Image) -> bool:
     gray = image.convert("L")
     stats = ImageStat.Stat(gray)
@@ -365,6 +395,13 @@ def main(argv: list[str] | None = None) -> int:
         verify_mirrored_margins(images)
         verify_black_ink(images)
         profile_note = ", mirrored margins, black ink only"
+    else:
+        # The reading PDF leads with the cover; the print interior drops it
+        # (the cover lives on the wrap), so this is a reading-profile check.
+        verify_cover_page(pdf, root, images[0])
+        if (root / "assets" / "cover.jpg").is_file() \
+                and not (root / "tex" / "title-page.tex").is_file():
+            profile_note = ", cover on page 1"
 
     print(
         f"Verified {pdf.name}: {expected_pages} pages, "
