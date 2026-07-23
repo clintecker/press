@@ -260,6 +260,12 @@ def _run_cover(args: list[str]) -> int:
     return cover.main(args[1:])
 
 
+def _run_illustrate(args: list[str]) -> int:
+    from . import illustrate
+
+    return illustrate.main(args[1:])
+
+
 def _run_improve(args: list[str]) -> int:
     from . import operator
 
@@ -475,6 +481,7 @@ ROUTES: dict[str, Callable[[list[str]], int]] = {
     "doctor": _run_doctor,
     "art": _run_art,
     "cover": _run_cover,
+    "illustrate": _run_illustrate,
     "improve": _run_improve,
     "aesthetic": _run_aesthetic,
     "research": _run_research,

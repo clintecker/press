@@ -164,6 +164,8 @@ REGISTRY: tuple[Field, ...] = (
     _w("cover.type-treatment", AESTHETIC, help="cover type treatment"),
     _w("cover.ornament", AESTHETIC, help="cover ornament"),
     _w("cover.emblem", AESTHETIC, help="cover emblem placement"),
+    _w("plates.style", AESTHETIC,
+       help="default illustration style id (default wood-engraving)"),
     _w("plates.medium", AESTHETIC, help="interior plate medium"),
     _w("plates.composition", AESTHETIC, help="interior plate composition"),
     _w("logomark.tradition", AESTHETIC, help="logomark tradition"),

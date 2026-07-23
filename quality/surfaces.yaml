@@ -52,6 +52,7 @@ modules:
   config_schema: {default: pure, overrides: {validate_file: verifier}}
   config_store: {default: pure, overrides: {load: parser, split_path: parser, coerce: parser, write_atomic: adapter}}
   cover: {default: pure, overrides: {main: presenter}}
+  illustrate: {default: pure, overrides: {main: presenter}}
   desk_model: producer
   doctor: {default: presenter, overrides: {tool_runs: adapter, examine: adapter, render_finding: pure}}
   dropcaps: {default: pure, overrides: {settings: parser}}

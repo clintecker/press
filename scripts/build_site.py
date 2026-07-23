@@ -55,6 +55,7 @@ NAV_GROUPS = [
     ("Design", [
         ("docs/GALLERY.md", "gallery.html", "gallery"),
         ("docs/COVER-STYLES.md", "cover-styles.html", "cover styles"),
+        ("docs/ILLUSTRATIONS.md", "illustrations.html", "illustrations"),
     ]),
     ("Print & sell", [
         ("docs/PRINT-FORMATS.md", "print-formats.html", "trim & binding"),
@@ -299,6 +300,10 @@ COVER_STYLES_DATA = ROOT / "src" / "press" / "data" / "cover-styles.yaml"
 COVER_STYLES_IMAGES = ROOT / "site" / "cover-styles"
 COVER_STYLES_MARKER = "<!--COVER-STYLES-->"
 
+ILLUSTRATION_STYLES_DATA = ROOT / "src" / "press" / "data" / "illustration-styles.yaml"
+ILLUSTRATION_STYLES_IMAGES = ROOT / "site" / "illustration-styles"
+ILLUSTRATION_STYLES_MARKER = "<!--ILLUSTRATION-STYLES-->"
+
 # The card shows the physical trim size, not the internal profile name.
 PROFILE_LABELS = {"novella-5x8": "5×8", "house-6x9": "6×9"}
 
@@ -510,39 +515,51 @@ def gallery_cards_html() -> str:
     return f'<section class="gallery">{"".join(cards)}\n</section>'
 
 
-def cover_styles_html() -> str:
-    """The cover-style catalogue: one card per style in the library, its name,
-    era, and note read from data/cover-styles.yaml and paired with the
-    committed sample cover. Generated, so the page cannot drift from the
-    library; a style with no sample image is simply skipped."""
-    text = COVER_STYLES_DATA.read_text(encoding="utf-8")
+def _style_catalogue(data_file: Path, image_dir: Path, url_prefix: str,
+                     alt_tail: str) -> str:
+    """A catalogue of one card per style in a style library (cover or
+    illustration): its name, era (if any), and note read from the YAML and
+    paired with the committed sample image. Generated, so the page cannot
+    drift; a style with no sample image is simply skipped."""
+    text = data_file.read_text(encoding="utf-8")
     # Split on the 2-space-indented style ids, keeping the id and its block.
     parts = re.split(r'\n  ([a-z0-9-]+):\n', text)
     cards = []
     for i in range(1, len(parts), 2):
         sid, body = parts[i], parts[i + 1]
-        image = COVER_STYLES_IMAGES / f"{sid}.jpg"
-        if not image.is_file():
+        if not (image_dir / f"{sid}.jpg").is_file():
             continue
 
         def field(key: str, block: str = body) -> str:
             m = re.search(rf'^    {key}:[ \t]*"?(.+?)"?[ \t]*$', block, re.M)
             return m.group(1).strip().strip('"') if m else ""
 
+        era = field("era")
+        era_html = f'<span class="cs-era">{escape(era)}</span>' if era else ""
         cards.append(f"""
 <figure class="cs">
-  <img src="cover-styles/{sid}.jpg" loading="lazy"
-       alt="{escape(field('name'))} cover of Between the Tides">
+  <img src="{url_prefix}/{sid}.jpg" loading="lazy"
+       alt="A {escape(field('name'))} {alt_tail}">
   <figcaption>
     <span class="cs-name">{escape(field('name'))}</span>
-    <span class="cs-era">{escape(field('era'))}</span>
+    {era_html}
     <span class="cs-note">{escape(field('note'))}</span>
     <code class="cs-id">{sid}</code>
   </figcaption>
 </figure>""")
     if not cards:
-        raise SystemExit("cover-styles: no sample images under site/cover-styles/")
+        raise SystemExit(f"{url_prefix}: no sample images under {image_dir}")
     return f'<section class="cover-styles">{"".join(cards)}\n</section>'
+
+
+def cover_styles_html() -> str:
+    return _style_catalogue(COVER_STYLES_DATA, COVER_STYLES_IMAGES,
+                            "cover-styles", "cover of Between the Tides")
+
+
+def illustration_styles_html() -> str:
+    return _style_catalogue(ILLUSTRATION_STYLES_DATA, ILLUSTRATION_STYLES_IMAGES,
+                            "illustration-styles", "sample plate")
 
 
 def build_page(source: str, name: str, label: str) -> None:
@@ -597,6 +614,10 @@ def build_page(source: str, name: str, label: str) -> None:
         if COVER_STYLES_MARKER not in html:
             raise SystemExit(f"cover-styles: {source} lost its {COVER_STYLES_MARKER} marker")
         html = html.replace(COVER_STYLES_MARKER, cover_styles_html(), 1)
+    if name == "illustrations.html":
+        if ILLUSTRATION_STYLES_MARKER not in html:
+            raise SystemExit(f"illustrations: {source} lost its {ILLUSTRATION_STYLES_MARKER} marker")
+        html = html.replace(ILLUSTRATION_STYLES_MARKER, illustration_styles_html(), 1)
     # Wrap the pandoc content in one <main class="prose"> between the
     # toolbar and the colophon, so the whole column is a single centered
     # container and no element can detach from it. The toolbar and footer
@@ -736,6 +757,8 @@ def main() -> int:
     # The cover-style catalogue's sample images (committed, one per style).
     if COVER_STYLES_IMAGES.is_dir():
         shutil.copytree(COVER_STYLES_IMAGES, OUT / "cover-styles")
+    if ILLUSTRATION_STYLES_IMAGES.is_dir():
+        shutil.copytree(ILLUSTRATION_STYLES_IMAGES, OUT / "illustration-styles")
     for source, name, label in PAGES + FOOTER_PAGES:
         build_page(source, name, label)
     write_sitemap_and_robots()

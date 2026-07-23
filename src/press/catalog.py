@@ -80,6 +80,8 @@ COMMANDS: tuple[Command, ...] = (
             args="commission [targets] | accept <file> --as <target>"),
     Command("cover", "art", "Commission a cover in a chosen style",
             args="[--style <id>] [--subject <text>] | --list"),
+    Command("illustrate", "art", "Commission an in-book illustration or plate",
+            args="<name> [--style <id>] [--from <image>] | --list"),
     # operator
     Command("improve", "operator", "Editorial counsel (report-first)", args="[--apply]"),
     Command("research", "operator", "Build the table of authorities"),

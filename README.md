@@ -84,13 +84,17 @@ on.
   the ONIX 3.0 metadata record distributors ingest; `press pcn` assembles
   the Library of Congress PrePub Book Link fields for the LCCN
   application.
-- Art: `art` -- `press art commission` submits the prompts the
-  `art-direction` workflow wrote to image models (GPT Image, Gemini) at
-  print-grade sizes, collecting candidates under `art/candidates/`; an
-  author photograph at `art/author-photo.jpg` turns the portrait
-  commission into an engraving of the actual author. `press art accept
-  <file> --as cover|plate:<name>|logomark|portrait` takes a chosen
-  image into the book in house format.
+- Art: `art cover illustrate` -- `press art commission` submits the
+  prompts the `art-direction` workflow wrote to image models (GPT
+  Image, Gemini) at print-grade sizes, collecting candidates under
+  `art/candidates/`; an author photograph at `art/author-photo.jpg`
+  turns the portrait commission into an engraving of the actual author.
+  `press cover` commissions the book's cover in a chosen style from the
+  ten-style library (or one a book defines), and `press illustrate`
+  commissions an in-book plate, map, diagram, or ornament -- optionally
+  redrawn from source material an author supplies with `--from`. `press
+  art accept <file> --as cover|plate:<name>|logomark|portrait` takes a
+  chosen image into the book in house format.
 - Operator: `improve research aesthetic` -- the agent workflows as
   shell commands, driven headlessly through the Claude Code CLI.
   `press improve` writes `build/editorial-report.md` and touches

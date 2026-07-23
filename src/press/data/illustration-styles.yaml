@@ -1,0 +1,76 @@
+# The press's library of in-book illustration styles.
+#
+# An illustration is a cover style pointed inward. The differences: it prints in
+# a SINGLE INK (the interior print law -- a full-colour cover is the exception),
+# it carries no lettering, and it lands as a plate/figure rather than the cover.
+# It may be drawn from a subject alone, or from SOURCE MATERIAL an author
+# supplies -- a photograph they took, a rough map, a sketch -- redrawn into the
+# book's style with `press illustrate --from <image>`.
+#
+# A book selects a default in config/aesthetic.yaml (`plates: {style: ...}`) and
+# may add its own styles in config/illustration-styles.yaml, merged over these.
+#
+# Each template may use {subject}, {ink}, and {paper}. A shared guardrail keeps
+# every illustration wordless and single-ink; `source: required` marks a style
+# that only makes sense with a reference image.
+
+styles:
+
+  wood-engraving:
+    name: "Wood engraving"
+    note: "The house interior plate: bold engraved linework, one ink."
+    prompt: |
+      A wood-engraving / woodcut plate for a book interior: {subject}. Bold,
+      clean engraved linework with cross-hatching and high contrast, printed in
+      {ink} ink on {paper} paper. Centred, with a calm margin.
+
+  engraved-map:
+    name: "Engraved map"
+    note: "An antique cartographic engraving; give it a real map to redraw."
+    prompt: |
+      An engraved illustrated map: {subject}. In the manner of an antique
+      cartographic engraving in {ink} on {paper} — fine coastline and boundary
+      linework, hachures or stippling for relief, a simple compass rose and
+      scale, restrained. Only the place names named in the subject.
+
+  botanical-plate:
+    name: "Botanical plate"
+    note: "A precise natural-history engraving of a specimen."
+    prompt: |
+      A botanical / natural-history engraving plate: {subject}. Precise,
+      scientific linework in {ink} on {paper}, in the manner of a 19th-century
+      specimen plate — habit, detail, and section — single ink, no shading wash.
+
+  line-diagram:
+    name: "Line diagram"
+    note: "A spare technical diagram; clear over pretty."
+    prompt: |
+      A clean technical line diagram: {subject}. Spare, confident strokes in
+      {ink} on {paper}, schematic and legible, even line weight, plenty of
+      white space. Labels and leader lines only where the subject names them.
+
+  technical-cutaway:
+    name: "Technical cutaway"
+    note: "An engraving-style cutaway showing internal structure."
+    prompt: |
+      A technical cutaway illustration: {subject}. Engraving-style linework in
+      {ink} on {paper} revealing the internal structure in section, with quiet
+      hatching to separate parts, single ink.
+
+  figure-from-photo:
+    name: "Engraving from a photograph"
+    note: "Redraws a photograph you supply into a wood engraving."
+    source: required
+    prompt: |
+      A wood-engraving redrawn from the supplied photograph: {subject}.
+      Translate the scene entirely into bold woodcut linework and cross-hatching
+      in {ink} on {paper}, keeping the composition and subject of the reference
+      but rendering it as a single-ink engraving, not a photograph.
+
+  ornament:
+    name: "Printer's ornament"
+    note: "A small engraved vignette, rule, or device."
+    prompt: |
+      A decorative printer's ornament or vignette: {subject}. A small,
+      symmetrical engraved flourish in {ink} on {paper}, the kind set between
+      chapters, single ink.
