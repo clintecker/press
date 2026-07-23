@@ -283,9 +283,8 @@ GALLERY_DIR = "gallery"
 # Where docs/GALLERY.md asks for the generated cards.
 GALLERY_MARKER = "<!--GALLERY-CARDS-->"
 
-# A trim that is not the house 6x9 is named by the print profile a book
-# selects; the house profile is the absence of that key.
-PROFILE_LABELS = {"novella-5x8": "5×8 novella", "house-6x9": "6×9 house"}
+# The card shows the physical trim size, not the internal profile name.
+PROFILE_LABELS = {"novella-5x8": "5×8", "house-6x9": "6×9"}
 
 
 def _yaml_scalar(text: str, key: str, indent: str = "") -> str | None:
@@ -412,7 +411,7 @@ def _example_facts(book: Path) -> Example:
         summary=summary,
         register=(_yaml_block(aesthetic, "register")
                   or _yaml_scalar(aesthetic, "register") or ""),
-        trim=PROFILE_LABELS.get(profile or "house-6x9", profile or "6×9 house"),
+        trim=PROFILE_LABELS.get(profile or "house-6x9", profile or "6×9"),
         paper=palette[0] or "", ink=palette[1] or "", accent=palette[2] or "",
         chapters=len(chapters),
         exercises=exercises,

@@ -1,32 +1,33 @@
-# Small Hours: a warm, dim, lamplit identity. Values are prose where the
-# art workflow reads them and tokens where the builders substitute them.
+# Small Hours: a nocturnal, violet-ink identity -- deep indigo on a cool,
+# pale paper, the colour of a room lit only by the window. Values are prose
+# where the art workflow reads them and tokens where the builders substitute.
 
-name: "Lamplight nocturne"
+name: "Midnight violet"
 
 register: >-
-  Hushed, nocturnal, spare. A small warm circle of lamplight in a dark
-  room, everything softened, nothing hurried.
+  Hushed, nocturnal, spare. A small circle of cold light in a dark room,
+  everything softened, nothing hurried.
 
 web-palette:
-  ink: "#211c17"
-  ink-soft: "#4a4038"
-  paper: "#f6ecd8"
-  paper-warm: "#efe1c6"
-  accent: "#a8632c"
+  ink: "#1e1a2b"
+  ink-soft: "#463f5c"
+  paper: "#f1eef7"
+  paper-warm: "#e7e2f1"
+  accent: "#6a4ba8"
 
 web-palette-dark:
-  ink: "#e9ddc6"
-  ink-soft: "#b6a789"
-  paper: "#1a1712"
-  paper-warm: "#221d16"
-  accent: "#c8823f"
+  ink: "#e0daf0"
+  ink-soft: "#a79cc4"
+  paper: "#151220"
+  paper-warm: "#1d1830"
+  accent: "#9a7fd4"
 
 typography:
   web-family: '"Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif'
   pdf-family: "EB Garamond"
 
 book-colors:
-  ink: "211C17"
-  muted: "5C5148"
-  accent: "A8632C"
-  link: "8F4E22"
+  ink: "1E1A2B"
+  muted: "554E68"
+  accent: "6A4BA8"
+  link: "5A4B9C"

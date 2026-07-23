@@ -1,29 +1,30 @@
-# A warm, worn identity: iron-gall ink on aged paper with a single ochre
-# accent, like a commonplace book kept for decades.
+# A field-and-hedge identity: dark bark-brown ink on aged paper with a single
+# olive-green accent, the colour of a summer field going over. Like a
+# commonplace book kept outdoors for decades.
 register: "Reflective and unhurried; a writer who circles a question, admits what she does not know, and stays with it anyway."
 
 web-palette:
-  paper: "#f5efe3"
-  ink: "#26211b"
-  muted: "#6b6152"
-  accent: "#96601f"
-  link: "#7a5a2c"
-  rule: "#ddd2be"
+  paper: "#f4f1e4"
+  ink: "#232019"
+  muted: "#65604f"
+  accent: "#77802f"
+  link: "#5f6a28"
+  rule: "#d9d5c1"
 
 web-palette-dark:
-  paper: "#191612"
-  ink: "#e6ded1"
-  muted: "#9d9384"
-  accent: "#d29a4c"
-  link: "#c9a463"
-  rule: "#332c24"
+  paper: "#16150f"
+  ink: "#e5e2d3"
+  muted: "#9a9782"
+  accent: "#a9b356"
+  link: "#b3bd63"
+  rule: "#2d2c1f"
 
 book-colors:
-  ink: "#26211b"
-  muted: "#6b6152"
-  accent: "#96601f"
-  link: "#7a5a2c"
+  ink: "#232019"
+  muted: "#65604f"
+  accent: "#77802f"
+  link: "#5f6a28"
 
 typography:
   web-family: "'Crimson Pro', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif"
-  pdf-family: "EB Garamond"
+  pdf-family: "Latin Modern Roman"

@@ -1,27 +1,28 @@
-# A bright, friendly identity for young readers: fresh grass-green ink on
-# warm cream, with a poppy-red accent. Open and cheerful, never babyish.
+# A bright, friendly identity for young readers: a warm near-black ink on
+# cream, with a fresh leaf-green accent that carries the book's whole mood.
+# Open and cheerful, never babyish.
 register: "Warm, direct, and curious; a grown-up who takes a child's attention seriously and never talks down."
 
 web-palette:
-  paper: "#fbf6e9"
-  ink: "#22371f"
-  muted: "#5f7355"
-  accent: "#d94b2b"
+  paper: "#f7f4e6"
+  ink: "#2c2a22"
+  muted: "#6a6a52"
+  accent: "#3f9142"
   link: "#2f7d4f"
   rule: "#dfe3c8"
 
 web-palette-dark:
-  paper: "#12180f"
-  ink: "#e4ead6"
-  muted: "#93a385"
-  accent: "#f2704f"
+  paper: "#12140d"
+  ink: "#e7e6d4"
+  muted: "#9aa088"
+  accent: "#5cc061"
   link: "#69c088"
-  rule: "#2a331f"
+  rule: "#282b1c"
 
 book-colors:
-  ink: "#22371f"
-  muted: "#5f7355"
-  accent: "#d94b2b"
+  ink: "#2c2a22"
+  muted: "#6a6a52"
+  accent: "#3f9142"
   link: "#2f7d4f"
 
 typography:

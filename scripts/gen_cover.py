@@ -108,66 +108,149 @@ def _centered_block(draw: ImageDraw.ImageDraw, lines: list[str],
     return y
 
 
+class _Cover:
+    """The drawing surface and everything a grammar needs, so each grammar is
+    just a layout of a shared vocabulary (title, rules, colophon, imprint)."""
+
+    def __init__(self, dest_size: tuple[int, int], paper: str, ink: str,
+                 accent: str, font_file: str | None, title: str, subtitle: str,
+                 author: str, imprint: str) -> None:
+        self.W, self.H = dest_size
+        self.pap, self.ic, self.ac = _hex(paper), _hex(ink), _hex(accent)
+        # Text laid on the accent field is light or near-black by contrast.
+        self.on_ac = (250, 250, 248) if _luminance(self.ac) < 0.62 else (24, 20, 16)
+        self.font_file = font_file
+        self.title, self.subtitle = title, subtitle
+        self.author, self.imprint = author, imprint
+        self.margin = 100
+        self.inner = self.W - 2 * self.margin
+        self.img = Image.new("RGB", (self.W, self.H), self.pap)
+        self.d = ImageDraw.Draw(self.img)
+
+    def title_block(self, top: int, colour: tuple[int, int, int], size: int,
+                    region_h: int | None = None) -> int:
+        f = _font(self.font_file, size)
+        lines = _wrap(self.d, self.title, f, self.inner)
+        a, de = f.getmetrics()
+        line_h = int((a + de) * 1.08)
+        y = top if region_h is None else top + (region_h - line_h * len(lines)) // 2
+        return _centered_block(self.d, lines, f, self.W // 2, y, colour, leading=1.08)
+
+    def text_block(self, top: int, text: str, size: int,
+                   colour: tuple[int, int, int]) -> int:
+        if not text:
+            return top
+        f = _font(self.font_file, size)
+        return _centered_block(self.d, _wrap(self.d, text, f, self.inner), f,
+                               self.W // 2, top, colour, leading=1.2)
+
+    def rule(self, y: int, colour: tuple[int, int, int], width: int = 150,
+             thick: int = 4) -> None:
+        self.d.rectangle([(self.W - width) // 2, y, (self.W + width) // 2, y + thick],
+                         fill=colour)
+
+    def colophon(self, cy: int, colour: tuple[int, int, int]) -> None:
+        skip = {"and", "the", "of", "for", "&", "a"}
+        initials = "".join(
+            w[0] for w in self.imprint.split()
+            if w[:1].isalpha() and w.lower() not in skip
+        )[:3].upper()
+        if not initials:
+            return
+        r, cx = 46, self.W // 2
+        self.d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=colour, width=4)
+        f = _font(self.font_file, 36)
+        bb = self.d.textbbox((0, 0), initials, font=f)
+        self.d.text((cx - (bb[2] - bb[0]) / 2 - bb[0], cy - (bb[3] - bb[1]) / 2 - bb[1]),
+                    initials, font=f, fill=colour)
+
+    def imprint_line(self, y: int, colour: tuple[int, int, int]) -> None:
+        if not self.imprint:
+            return
+        f = _font(self.font_file, 34)
+        w = self.d.textlength(self.imprint.upper(), font=f)
+        self.d.text((self.W // 2 - w / 2, y), self.imprint.upper(), font=f, fill=colour)
+
+    def frame(self, colour: tuple[int, int, int], inset: int = 30,
+              width: int = 3) -> None:
+        self.d.rectangle([inset, inset, self.W - inset, self.H - inset],
+                         outline=colour, width=width)
+
+    def colophon_stack(self, colour_mark: tuple[int, int, int],
+                       colour_text: tuple[int, int, int]) -> None:
+        """The recurring bottom stack: author, colophon mark, imprint."""
+        if self.author:
+            self.text_block(self.H - 390, self.author, 54, colour_text)
+        self.colophon(self.H - 250, colour_mark)
+        self.imprint_line(self.H - 140, colour_text)
+
+
+def _g_band(cv: _Cover) -> None:
+    """An accent field across the top carries the title; paper below."""
+    band_h = int(cv.H * 0.46)
+    cv.d.rectangle([0, 0, cv.W, band_h], fill=cv.ac)
+    cv.d.rectangle([0, band_h, cv.W, band_h + 10], fill=cv.ic)
+    cv.title_block(0, cv.on_ac, 116, region_h=band_h)
+    cv.text_block(band_h + 90, cv.subtitle, 52, cv.ic)
+    cv.rule(cv.H - 430, cv.ac)
+    cv.colophon_stack(cv.ac, cv.ic)
+    cv.frame(cv.ic)
+
+
+def _g_full(cv: _Cover) -> None:
+    """The whole cover is the accent colour; all type reversed out of it."""
+    cv.d.rectangle([0, 0, cv.W, cv.H], fill=cv.ac)
+    by = cv.title_block(int(cv.H * 0.22), cv.on_ac, 122)
+    cv.rule(by + 44, cv.on_ac, width=120)
+    cv.text_block(by + 90, cv.subtitle, 50, cv.on_ac)
+    cv.colophon_stack(cv.on_ac, cv.on_ac)
+    cv.frame(cv.on_ac, inset=34, width=2)
+
+
+def _g_framed(cv: _Cover) -> None:
+    """Paper field inside a broad accent border; title in ink."""
+    cv.d.rectangle([0, 0, cv.W, cv.H], outline=cv.ac, width=48)
+    by = cv.title_block(int(cv.H * 0.27), cv.ic, 108)
+    cv.rule(by + 46, cv.ac)
+    cv.text_block(by + 92, cv.subtitle, 50, cv.ic)
+    cv.colophon_stack(cv.ac, cv.ic)
+
+
+def _g_stack(cv: _Cover) -> None:
+    """Austere: the title set between two heavy accent rules, much air."""
+    top = int(cv.H * 0.29)
+    cv.rule(top, cv.ac, width=cv.inner, thick=12)
+    by = cv.title_block(top + 70, cv.ic, 100)
+    cv.rule(by + 54, cv.ac, width=cv.inner, thick=12)
+    cv.text_block(by + 120, cv.subtitle, 48, cv.ic)
+    cv.colophon_stack(cv.ac, cv.ic)
+
+
+def _g_panel(cv: _Cover) -> None:
+    """An accent panel floats on the paper field and holds the title."""
+    px0, py0, px1, py1 = cv.margin, int(cv.H * 0.15), cv.W - cv.margin, int(cv.H * 0.49)
+    cv.d.rectangle([px0, py0, px1, py1], fill=cv.ac)
+    cv.title_block(py0, cv.on_ac, 98, region_h=py1 - py0)
+    cv.text_block(py1 + 80, cv.subtitle, 50, cv.ic)
+    cv.colophon_stack(cv.ac, cv.ic)
+    cv.frame(cv.ic)
+
+
+_GRAMMARS = {
+    "band": _g_band, "full": _g_full, "framed": _g_framed,
+    "stack": _g_stack, "panel": _g_panel,
+}
+
+
 def make_cover(dest: Path, *, title: str, subtitle: str, author: str,
                imprint: str, paper: str, ink: str, accent: str,
-               font_family: str = "") -> None:
-    """Draw a 2:3 typographic cover and write it as JPEG to ``dest``."""
-    W, H = 1200, 1800
-    pap, ic, ac = _hex(paper), _hex(ink), _hex(accent)
-    # Text on the accent field is white or near-black by contrast, so a light
-    # accent still reads.
-    on_accent = (250, 250, 248) if _luminance(ac) < 0.6 else (26, 22, 18)
-
-    img = Image.new("RGB", (W, H), pap)
-    d = ImageDraw.Draw(img)
-
-    # The book's own face where it can be found, a serif fallback otherwise.
-    font_file = _find_font_file(font_family)
-    title_f = _font(font_file, 118)
-    sub_f = _font(font_file, 52)
-    author_f = _font(font_file, 54)
-    imprint_f = _font(font_file, 34)
-
-    margin = 96
-    inner = W - 2 * margin
-
-    # The accent field: the top of the cover, carrying the title. This is where
-    # the book's accent colour does its work.
-    band_h = int(H * 0.46)
-    d.rectangle([0, 0, W, band_h], fill=ac)
-    # A thin rule of the ink under the band ties the two colours together.
-    d.rectangle([0, band_h, W, band_h + 10], fill=ic)
-
-    title_lines = _wrap(d, title, title_f, inner)
-    ta, td = title_f.getmetrics()
-    t_line_h = int((ta + td) * 1.1)
-    t_block_h = t_line_h * len(title_lines)
-    _centered_block(d, title_lines, title_f, W // 2,
-                    (band_h - t_block_h) // 2 - 10, on_accent, leading=1.1)
-
-    # Below the band, on the book's paper: subtitle, then author and imprint.
-    y = band_h + 90
-    if subtitle:
-        sub_lines = _wrap(d, subtitle, sub_f, inner)
-        y = _centered_block(d, sub_lines, sub_f, W // 2, y, ic, leading=1.2)
-
-    # A short accent rule as a divider above the author.
-    rule_w = 150
-    d.rectangle([(W - rule_w) // 2, H - 360, (W + rule_w) // 2, H - 356], fill=ac)
-
-    if author:
-        _centered_block(d, _wrap(d, author, author_f, inner), author_f,
-                        W // 2, H - 320, ic)
-    if imprint:
-        w = d.textlength(imprint.upper(), font=imprint_f)
-        d.text((W // 2 - w / 2, H - 150), imprint.upper(), font=imprint_f,
-               fill=ic, features=None)
-
-    # A hairline frame in the ink, for a finished edge.
-    d.rectangle([30, 30, W - 30, H - 30], outline=ic, width=3)
-
+               font_family: str = "", grammar: str = "band") -> None:
+    """Draw a 2:3 typographic cover in the chosen grammar and write it as JPEG."""
+    cv = _Cover((1200, 1800), paper, ink, accent, _find_font_file(font_family),
+                title, subtitle, author, imprint)
+    _GRAMMARS.get(grammar, _g_band)(cv)
     dest.parent.mkdir(parents=True, exist_ok=True)
-    img.save(dest, "JPEG", quality=90)
+    cv.img.save(dest, "JPEG", quality=90)
 
 
 def _read(meta: str, key: str) -> str:
@@ -191,6 +274,31 @@ def _first_author(meta: str) -> str:
     return m.group(1).strip().strip('"') if m else ""
 
 
+# Each example gets a distinct cover grammar so the gallery does not read as
+# one template recoloured. A book may name its own in aesthetic.yaml
+# (`cover-grammar:`); otherwise it is assigned deterministically from the slug,
+# and these known examples are pinned so adjacent cards never share a layout.
+_GRAMMAR_BY_SLUG = {
+    "field-days-almanac": "full",
+    "hearthstone-cookbook": "band",
+    "on-the-commons-monograph": "stack",
+    "signal-and-noise-manual": "framed",
+    "small-hours-chapbook": "panel",
+    "the-long-field-essays": "stack",
+    "the-tinsmith-novella": "band",
+    "tidepool-field-notes": "framed",
+}
+_GRAMMAR_ORDER = ["band", "framed", "panel", "stack", "full"]
+
+
+def _grammar_for(slug: str, declared: str) -> str:
+    if declared in _GRAMMARS:
+        return declared
+    if slug in _GRAMMAR_BY_SLUG:
+        return _GRAMMAR_BY_SLUG[slug]
+    return _GRAMMAR_ORDER[sum(ord(c) for c in slug) % len(_GRAMMAR_ORDER)]
+
+
 def cover_for(book: Path, dest: Path) -> str:
     """Read one example's identity and palette and draw its cover to ``dest``.
     Returns the accent colour used, for logging."""
@@ -208,6 +316,7 @@ def cover_for(book: Path, dest: Path) -> str:
         ink=_read_indented(aesthetic, "ink") or "#1b1b1b",
         accent=accent,
         font_family=_read_indented(aesthetic, "pdf-family"),
+        grammar=_grammar_for(book.name, _read_indented(aesthetic, "cover-grammar")),
     )
     return accent
 
