@@ -431,20 +431,19 @@ def gallery_cards_html() -> str:
         chips = "".join(f"<li>{escape(e)}</li>" for e in ex.exercises)
         register = (f'<p class="ex-register">{escape(ex.register)}</p>'
                     if ex.register else "")
-        swatches = "".join(
-            f'<li style="background:{colour}"></li>'
-            for colour in (ex.paper, ex.ink, ex.accent)
-        )
         # The built pages, when this build has them: real page images from the
-        # book's own PDF, and a link to the whole file. Emitted only when the
-        # files exist on disk, so a pandoc-only local build (no previews) still
+        # book's own PDF, on the book's own paper colour, and a link to the
+        # whole file. The interior prints in a single ink, so the pages show
+        # that ink on that paper -- the honest palette -- while the accent (a
+        # cover and screen colour, not an interior ink) stays the card's chrome.
+        # Emitted only when the files exist, so a pandoc-only local build still
         # passes the link check.
         preview = ""
         if ex.previews:
             imgs = "".join(
                 f'<img src="{GALLERY_DIR}/{ex.dir}/{escape(name)}" loading="lazy"'
-                f' alt="A page from {escape(ex.title)}">'
-                for name in ex.previews
+                f' alt="Page {i} of {escape(ex.title)}">'
+                for i, name in enumerate(ex.previews, start=1)
             )
             preview = (f'<a class="ex-pages" href="{GALLERY_DIR}/{ex.dir}/{escape(ex.pdf)}"'
                        f' aria-label="Open {escape(ex.title)} (PDF)">{imgs}</a>')
@@ -452,11 +451,10 @@ def gallery_cards_html() -> str:
         if ex.pdf:
             span = f" · {ex.pages} pp" if ex.pages else ""
             pdf_link = (f'<a class="ex-pdf" href="{GALLERY_DIR}/{ex.dir}/{escape(ex.pdf)}">'
-                        f'PDF{span} ↓</a>')
+                        f'Read the PDF{span} ↓</a>')
         cards.append(f"""
-<article class="ex" style="--ex-accent:{ex.accent}">
+<article class="ex" style="--ex-accent:{ex.accent};--ex-paper:{ex.paper};--ex-ink:{ex.ink}">
   {preview}
-  <ul class="ex-swatches" aria-label="palette">{swatches}</ul>
   <p class="ex-kind"><span>{escape(ex.genre)}</span>
     <span class="ex-trim">{escape(ex.trim)}</span></p>
   <h3 class="ex-name">{escape(ex.title)}</h3>

@@ -204,13 +204,20 @@ body.doc-entries h2 + p{                       /* id · criticality subtitle */
   font-family:var(--mono); font-size:0.78rem; color:var(--muted); margin-bottom:.9rem;
 }
 body.doc-entries h2 + p code{color:var(--accent-ink); font-weight:600}
-body.doc-entries table{max-width:min(440px, 100%); margin-left:0;
+/* A reference record's table reads at the column's width in the reading
+   font. It used to be pinned at a fixed 440px while its cells were monospace
+   at a rem size that scales with the fluid root, so on a wide desktop huge
+   monospace text was crammed into a narrow box and prose wrapped a few words
+   per line. Width is now the reading measure (rem, so it scales with the same
+   root the text does), and the description reads in the body face; inline
+   `code` stays monospace on its own. */
+body.doc-entries table{max-width:var(--measure); margin-left:0;
   border:1px solid var(--rule); border-radius:9px; overflow:hidden; display:table}
 body.doc-entries td:first-child{
   font-family:var(--sans); font-weight:600; color:var(--muted);
-  background:var(--surface); width:40%; white-space:nowrap;
+  background:var(--surface); width:28%; white-space:nowrap;
 }
-body.doc-entries td{font-family:var(--mono); font-size:0.78rem}
+body.doc-entries td{font-size:0.95rem; line-height:1.5}
 
 /* ---- Landing (body.home) ----------------------------------- */
 /* The landing is h1 then a description paragraph (no eyebrow in the
@@ -366,8 +373,8 @@ h1 .tag, h2 .tag, h3 .tag{vertical-align:.28em; margin-left:.35rem}
 @media (max-width:620px){
   .prose table{font-size:.92rem}
   .prose th, .prose td{padding:8px 10px}
-  body.doc-entries td{font-size:.82rem}
-  body.doc-entries td:first-child{width:34%}
+  body.doc-entries td{font-size:.9rem}
+  body.doc-entries td:first-child{width:32%; white-space:normal}
 }
 
 /* ---- Accessibility ----------------------------------------- */
@@ -408,12 +415,6 @@ h1 .tag, h2 .tag, h3 .tag{vertical-align:.28em; margin-left:.35rem}
   padding:var(--s5); display:flex; flex-direction:column; gap:.4rem;
   overflow:hidden;
 }
-/* The book's colours, stated plainly rather than mimicked as a cover. */
-.ex-swatches{display:flex; gap:.25rem; margin:0 0 .1rem; padding:0; list-style:none}
-.ex-swatches li{
-  width:1.1rem; height:1.1rem; border-radius:3px;
-  border:1px solid rgb(0 0 0 / .18);
-}
 .ex-kind{
   display:flex; flex-wrap:wrap; gap:.4rem; align-items:center; margin:0;
   font-family:var(--sans); font-size:.68rem; letter-spacing:.07em;
@@ -445,17 +446,26 @@ h1 .tag, h2 .tag, h3 .tag{vertical-align:.28em; margin-left:.35rem}
 .ex-foot a{white-space:nowrap; font-weight:600}
 
 /* The built-book previews: real page images rendered from each example's PDF,
-   shown as little sheets of paper at the top of the card, linking to the full
-   file. Fixed aspect via the image's own ratio; they scale with the card. */
+   shown as sheets on the book's OWN paper colour (--ex-paper, set per card).
+   The pages carry the single interior ink on that paper -- the honest print
+   palette -- so the colours the card names are the colours you see. The mat
+   stays the book's light paper in dark mode too: paper is paper. Three pages
+   sit in a row and scale down together; on a narrow card they scroll rather
+   than shrink to nothing. */
 .ex-pages{
-  display:flex; gap:.5rem; margin:0 0 .2rem; padding:.6rem;
-  background:var(--zebra); border:1px solid var(--rule); border-radius:7px;
-  justify-content:center;
+  display:flex; gap:.55rem; margin:0 0 .1rem; padding:.7rem;
+  background:var(--ex-paper); border:1px solid var(--rule); border-radius:7px;
+  justify-content:center; overflow-x:auto;
 }
 .ex-pages img{
-  width:auto; max-width:48%; height:auto; max-height:13rem;
-  border:1px solid var(--rule-strong); border-radius:2px;
-  background:#fff; box-shadow:0 1px 4px rgb(0 0 0 / .16);
+  width:auto; flex:0 1 auto; max-width:32%; height:auto; max-height:15rem;
+  border:1px solid rgb(0 0 0 / .14); border-radius:2px;
+  background:#fff; box-shadow:0 1px 5px rgb(0 0 0 / .2);
 }
-.ex-links{display:inline-flex; gap:.7rem; align-items:baseline}
-.ex-pdf{font-weight:600; white-space:nowrap}
+/* A hairline of the book's paper against a dark card, so the light mat reads
+   as a deliberate lightbox rather than a glare. */
+@media (prefers-color-scheme:dark){ .ex-pages{box-shadow:inset 0 0 0 1px rgb(0 0 0 / .3)} }
+:root[data-theme="dark"] .ex-pages{box-shadow:inset 0 0 0 1px rgb(0 0 0 / .3)}
+:root[data-theme="light"] .ex-pages{box-shadow:none}
+.ex-links{display:inline-flex; gap:.7rem; align-items:baseline; flex-wrap:wrap}
+.ex-pdf{font-weight:600; white-space:nowrap; color:var(--accent-ink)}

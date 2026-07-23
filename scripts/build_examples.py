@@ -78,13 +78,15 @@ def build_example(book: Path) -> bool:
     pages = _page_count(pdf)
     (dest / "pages.txt").write_text(f"{pages}\n", encoding="utf-8")
 
-    # An early page and a later one. On a book with a generated title page the
-    # first chapter is a few pages in, so reach past the front matter for the
-    # second preview to land on real body text (and any chapter-opening cap).
-    second = 3 if pages >= 3 else pages
-    ok = _render_page(pdf, 1, dest / "preview-1")
-    if second > 1:
-        ok = _render_page(pdf, second, dest / "preview-2") and ok
+    # Three pages that span the book: the opening (a generated title page, or
+    # the first chapter); an early interior page (past any front matter, so a
+    # chapter opening and its drop cap show); and the last page (where the
+    # index, also-by, or about-the-author matter lives). Deduped and clamped,
+    # so a short book simply shows fewer.
+    targets = sorted({1, min(3, pages), pages})
+    ok = True
+    for slot, page in enumerate(targets, start=1):
+        ok = _render_page(pdf, page, dest / f"preview-{slot}") and ok
     if not ok:
         print(f"FAIL {slug}: PDF built but a preview did not render")
         return False
