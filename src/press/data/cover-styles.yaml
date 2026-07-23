@@ -1,0 +1,150 @@
+# The press's library of cover styles.
+#
+# A cover "style" is an art-direction template: a layout, a typographic idiom,
+# and rules for imagery, that an image model fills with one book's subject,
+# palette, and exact text. A book selects one in config/aesthetic.yaml:
+#
+#     cover:
+#       style: penguin-tri-band     # any id below, or one you define
+#       subject: "the rocky intertidal shore at low tide, ..."
+#
+# and the press commissions the cover in that style (scripts/commission_covers).
+# A book may define its OWN style by adding config/cover-styles.yaml with the
+# same shape; it merges over these built-ins, so an author is never limited to
+# the house set.
+#
+# Each template may use these placeholders, filled from the book's config:
+#   {title} {author} {imprint} {initials} {subject} {accent} {paper}
+# Every template ends with the same exact-text guardrail so the model letters
+# the title/author correctly; `text: composited` instead leaves the art clear
+# and the press sets the type itself (for styles where model lettering is
+# unreliable, e.g. dense Swiss grids).
+
+styles:
+
+  penguin-tri-band:
+    name: "Penguin tri-band"
+    era: "1935–, Edward Young & Jan Tschichold"
+    note: "Horizontal colour bands, cream centre, Gill Sans, a woodcut vignette."
+    text: baked
+    prompt: |
+      A classic mid-century Penguin-style paperback cover, portrait, flat print,
+      printed in a SINGLE colour ({accent}) on warm cream ({paper}).
+      STRICT HORIZONTAL TRI-BAND GRID: top band (~22%) solid {accent} with a thin
+      cream oval enclosing "{imprint}" in tiny sans caps; middle band (~56%) cream,
+      with two centred Gill Sans lines in {accent} (title large-bold, author below),
+      and beneath them a woodcut/linocut of {subject} in {accent} on cream; bottom
+      band (~22%) solid {accent} with a small cream oval enclosing "{initials}".
+
+  swiss-international:
+    name: "Swiss / International Typographic"
+    era: "1950s–60s, Müller-Brockmann, Facetti"
+    note: "Asymmetric grid, Helvetica, flush-left, vast whitespace, one bold field."
+    text: baked
+    prompt: |
+      A Swiss International Typographic Style book cover, portrait, on {paper}.
+      A strict mathematical grid, generous empty space. The title and author set
+      flush-left in a clean neutral grotesque (Helvetica/Akzidenz), lower-case,
+      tight leading, small-to-medium size, in near-black. One bold rectangular
+      field of {accent} anchoring a corner or third of the cover; optionally one
+      small, abstract, reductive geometric mark evoking {subject}. No illustration,
+      no ornament, no gradient. Rational, objective, calm.
+
+  midcentury-modern:
+    name: "Mid-century Modernist"
+    era: "1940s–50s, Alvin Lustig, Paul Rand"
+    note: "An abstract symbolic mark, limited palette, playful and intellectual."
+    text: baked
+    prompt: |
+      A mid-century modern book cover in the spirit of Alvin Lustig and Paul Rand,
+      portrait, on {paper}. A single ABSTRACT, symbolic composition evoking
+      {subject} — simple cut-paper shapes, calligraphic line, or a reductive
+      emblem, NOT a literal illustration — in {accent} with at most one supporting
+      hue. Title and author in a spare modern mix of type, asymmetric, confident,
+      lots of air. Flat, matte, hand-made feeling. No realism, no texture noise.
+
+  victorian-clothbound:
+    name: "Victorian patterned clothbound"
+    era: "19th c.; revived by Coralie Bickford-Smith"
+    note: "A repeating engraved pattern fills the cloth; a central gilt cartouche."
+    text: baked
+    prompt: |
+      A decorative clothbound hardback cover, portrait, the whole surface a
+      REPEATING engraved pattern of motifs drawn from {subject}, in {accent} ink on
+      {paper}, dense and symmetrical, edge to edge. At the centre, a framed
+      cartouche or ribboned panel holding the title and author in an elegant
+      engraved serif, with fine rule borders and small ornaments, gilded feeling.
+      Ornate, patterned, luxurious, Victorian.
+
+  pulp-paperback:
+    name: "Pulp / genre paperback"
+    era: "1940s–60s dime paperbacks"
+    note: "A dramatic full-bleed painted scene, bold condensed title."
+    text: baked
+    prompt: |
+      A vintage pulp paperback cover, portrait, a full-bleed dramatic painted
+      illustration of {subject}, high contrast, saturated, cinematic lighting,
+      gouache/oil poster style toned around {accent}. The title across the top in a
+      bold condensed display face, the author below, in punchy colour with a slight
+      outline for legibility over the art. Energetic, lurid, mass-market.
+
+  minimalist-literary:
+    name: "Contemporary minimalist literary"
+    era: "2000s–present"
+    note: "Vast negative space, one small motif, elegant restraint."
+    text: baked
+    prompt: |
+      A contemporary minimalist literary cover, portrait, a vast calm field of
+      {paper} with generous negative space. One small, precise motif or object
+      evoking {subject}, rendered simply in {accent}, placed off-centre. The title
+      and author small and elegant in a refined serif, quiet, confident, plenty of
+      air. Understated, tasteful, no clutter.
+
+  photographic:
+    name: "Photographic / commercial"
+    era: "1990s–present trade fiction"
+    note: "A full-bleed toned photograph with overlaid clean type."
+    text: baked
+    prompt: |
+      A modern trade-fiction cover, portrait, a full-bleed atmospheric PHOTOGRAPH
+      evoking {subject}, colour-graded toward {accent}, shallow depth of field,
+      evocative light. A soft darkened gradient at the top or bottom for
+      legibility. The title in large clean contemporary sans caps and the author
+      below, in {paper}-white, well-kerned. Cinematic, emotive, commercial.
+
+  art-deco:
+    name: "Art Deco"
+    era: "1920s–30s"
+    note: "Symmetric geometry, stepped forms, sunbursts, gold on dark."
+    text: baked
+    prompt: |
+      An Art Deco book cover, portrait, strictly symmetrical geometric composition
+      inspired by {subject} — stepped forms, sunburst rays, chevrons, streamlined
+      motifs — in {accent} and gold on a deep field, with fine linework and
+      metallic accents. Title and author in a geometric deco display face, centred,
+      with rule frames. Elegant, machine-age, luxurious.
+
+  bold-typographic:
+    name: "Bold typographic"
+    era: "2010s–present trend"
+    note: "The title IS the image — oversized letters fill the cover."
+    text: baked
+    prompt: |
+      A bold typographic cover, portrait, where the TITLE is the whole image: the
+      title "{title}" set very large in a characterful display face, filling the
+      cover edge to edge, in {accent} on {paper}. The letterforms interact with a
+      subtle texture or a few small motifs evoking {subject} tucked into the
+      counters and gaps. The author small and neat below. Graphic, confident,
+      contemporary.
+
+  collage-mixed-media:
+    name: "Collage / mixed media"
+    era: "2010s–present literary & memoir"
+    note: "Layered torn paper, overlapping image scraps, hand elements."
+    text: baked
+    prompt: |
+      A contemporary collage cover, portrait, layered mixed media: torn-paper
+      edges, overlapping scraps of woodcut, photograph, and painted paper evoking
+      {subject}, with visible tape, stitching, or hand marks, in a palette built
+      around {accent} on {paper}. The title and author hand-set among the layers,
+      part of the composition. Textured, tactile, indie-literary.
