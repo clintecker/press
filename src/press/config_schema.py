@@ -412,3 +412,22 @@ def validate_file(root: Path, file: str, proposed: object) -> list[str]:
     plain = yamlio.loads(config_store.dumps(proposed))
     validator = FILE_VALIDATORS.get(file, _validate_none)
     return validator(root, plain)
+
+
+def enforce_file(root: Path, file: str, proposed: object) -> None:
+    """Raise a located SystemExit if a build-consumed config file has a
+    shape the renderer would dereference into a bare TypeError.
+
+    `press check` runs the same shape check up front, but the direct
+    format targets (`press pdf`, `press epub`, `press html`, ...) dispatch
+    to the build with no check in front, so each generator calls this
+    before touching the file. Same guard, same single source of truth as
+    check time; a malformed file fails naming itself, not deep in a
+    generator with `string indices must be integers`."""
+
+    problems = validate_file(root, file, proposed)
+    if problems:
+        raise SystemExit(
+            f"{file} is malformed (fix it before building):\n"
+            + "\n".join(f"  - {p}" for p in problems)
+        )

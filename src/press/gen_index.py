@@ -38,16 +38,25 @@ def strip_markup(text: str) -> str:
 
 
 def generate() -> Path | None:
-    terms_path = booklib.root() / "config" / "index-terms.yaml"
+    root = booklib.root()
+    terms_path = root / "config" / "index-terms.yaml"
     if not terms_path.is_file():
         return None
     with terms_path.open(encoding="utf-8") as handle:
         entries = yamlio.loads(handle.read())
 
+    # A file the typed model accepts but the sort lambda cannot dereference
+    # (a terms: wrapper, bare strings, an entry missing match) once crashed
+    # here with `string indices must be integers`; refuse it up front with a
+    # diagnostic that names the file (#207). check_source runs the same guard,
+    # but a direct `press pdf` reaches this generator with no check in front.
+    from . import config_schema
+    config_schema.enforce_file(root, config_schema.INDEX_TERMS, entries)
+
     # The index takes the first free appendix letter.
     from .gen_authorities import next_letter, taken_letters
     letter = next_letter(taken_letters())
-    output = booklib.root() / "build" / "generated" / f"{letter}-index-of-subjects.md"
+    output = root / "build" / "generated" / f"{letter}-index-of-subjects.md"
 
     sources = [
         (chapter_label(path), strip_markup(path.read_text(encoding="utf-8")).lower())

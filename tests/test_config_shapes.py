@@ -171,3 +171,71 @@ def test_a_hand_broken_index_terms_is_also_caught_by_config_validate(scaffolded_
     _write(path, "terms:\n  - soup\n")
     data = store.load(path)
     assert schema.validate_file(scaffolded_book, "config/index-terms.yaml", data)
+
+
+# ---- the direct-build proof: the generators self-guard too ------------
+#
+# The format targets (`press pdf`, `press epub`, ...) dispatch to the build
+# with no `press check` in front, so the generators must refuse a malformed
+# shape themselves. Before the guard, gen_index crashed with a bare
+# TypeError and gen_front_matter with a bare AttributeError; after it, each
+# raises a SystemExit that names the file. (#207)
+
+def test_gen_index_self_guards_against_the_terms_wrapper(scaffolded_book):
+    import pytest
+
+    from press import gen_index
+
+    _write(
+        scaffolded_book / "config" / "index-terms.yaml",
+        "terms:\n  - soup\n  - bread\n",
+    )
+    with pytest.raises(SystemExit) as caught:
+        gen_index.generate()
+    message = str(caught.value)
+    assert "config/index-terms.yaml" in message
+    assert "must be a list" in message
+
+
+def test_gen_index_self_guards_against_an_entry_missing_match(scaffolded_book):
+    import pytest
+
+    from press import gen_index
+
+    _write(
+        scaffolded_book / "config" / "index-terms.yaml",
+        "- term: soup\n",
+    )
+    with pytest.raises(SystemExit) as caught:
+        gen_index.generate()
+    assert "config/index-terms.yaml" in str(caught.value)
+
+
+def test_gen_front_matter_self_guards_against_a_scalar_epigraph(scaffolded_book):
+    import pytest
+
+    from press import gen_front_matter
+
+    _write(
+        scaffolded_book / "config" / "front-matter.yaml",
+        "epigraph: just a line\n",
+    )
+    with pytest.raises(SystemExit) as caught:
+        gen_front_matter.generate()
+    message = str(caught.value)
+    assert "config/front-matter.yaml" in message
+    assert "epigraph" in message
+
+
+def test_gen_front_matter_self_guards_against_a_list_top_level(scaffolded_book):
+    import pytest
+
+    from press import gen_front_matter
+
+    _write(
+        scaffolded_book / "config" / "front-matter.yaml",
+        "- dedication\n- epigraph\n",
+    )
+    with pytest.raises(SystemExit) as caught:
+        gen_front_matter.generate()
+    assert "config/front-matter.yaml" in str(caught.value)
