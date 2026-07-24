@@ -12,6 +12,7 @@ import subprocess
 import sys
 from typing import Callable
 
+from . import adapters
 from . import booklib
 from . import catalog
 from . import version
@@ -38,9 +39,13 @@ def jargon_check() -> int:
         *[arg for term in allow for arg in ("--allow", term)],
         *files,
     ]
-    result = subprocess.run(command, capture_output=True, text=True, cwd=root)
+    result = adapters.process_runner.run(command, cwd=root, capture=True)
+    # ProcessResult carries bytes; decode before writing the report, or a
+    # later reader/regex silently matches nothing on a non-ASCII manuscript.
+    output = (result.stdout.decode("utf-8", errors="replace")
+              + result.stderr.decode("utf-8", errors="replace"))
     report = root / "build" / "jargon-report.txt"
-    report.write_text(result.stdout + result.stderr, encoding="utf-8")
+    report.write_text(output, encoding="utf-8")
     if result.returncode != 0:
         print(report.read_text(encoding="utf-8"))
         return result.returncode
@@ -477,8 +482,6 @@ def _commerce_gate() -> int:
     in a development build; fail-closed under PRESS_RELEASE, like the
     witness gate."""
 
-    import os
-
     from . import booklib, commerce
 
     problems, summary = commerce.release_gate(booklib.root(), booklib.book())
@@ -487,7 +490,7 @@ def _commerce_gate() -> int:
         return 0
     for problem in problems:
         print(f"  - {problem}")
-    if os.environ.get("PRESS_RELEASE"):
+    if adapters.environment.get("PRESS_RELEASE"):
         return 1
     print("(commerce gate is advisory here; a release build (PRESS_RELEASE=1) "
           "enforces it)")
@@ -500,7 +503,7 @@ def _run_render(args: list[str]) -> int:
     build.build_target("pdf")
     out = booklib.root() / "build" / "rendered-book"
     out.mkdir(parents=True, exist_ok=True)
-    subprocess.run(
+    adapters.process_runner.run(
         ["pdftoppm", "-png", "-r", "160",
          str(booklib.root() / "dist" / f"{booklib.slug()}.pdf"), str(out / "page")],
         check=True,

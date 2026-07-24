@@ -41,7 +41,6 @@ MIGRATED = {
 # can only shrink as later work migrates them. Adding a boundary call to a
 # module not listed here -- or to a migrated one -- fails the gate.
 LEGACY_ALLOWED = {
-    "__main__",
     "booklib",
     "check_the_checkers",
     "gen_coverwrap",
