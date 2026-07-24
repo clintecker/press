@@ -75,15 +75,17 @@ on.
   site: every local reference must resolve, every declared download
   must exist and be linked, and the book's sentinels must appear on
   the public reading surface.
-- Print pack: `print verify-print coverwrap publish isbn onix pcn` -- a
-  twoside interior with mirrored margins and black ink (verified from the
-  rendered pages), a cover wrap whose spine width is computed from the
+- Print pack: `print verify-print coverwrap publish isbn onix pcn lookup`
+  -- a twoside interior with mirrored margins and black ink (verified from
+  the rendered pages), a cover wrap whose spine width is computed from the
   interior and paper stock with a validated EAN-13 barcode,
   `press publish kdp|ingram` channel checklists, and `press isbn assign`
   to mint ISBNs from a registrant prefix you own. `press onix` generates
   the ONIX 3.0 metadata record distributors ingest; `press pcn` assembles
   the Library of Congress PrePub Book Link fields for the LCCN
-  application.
+  application. `press lookup lccn|issn` is an opt-in, read-only check that
+  an already-issued LCCN or ISSN resolves to its record at the authority
+  (never an issuance path; ordinary builds stay offline).
 - Art: `art cover illustrate` -- `press art commission` submits the
   prompts the `art-direction` workflow wrote to image models (GPT
   Image, Gemini) at print-grade sizes, collecting candidates under

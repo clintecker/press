@@ -242,6 +242,52 @@ def _run_pcn(args: list[str]) -> int:
     return 0
 
 
+def _render_lookup(result) -> str:
+    """A labelled report of one lookup outcome."""
+
+    lines = [
+        f"{result.kind.upper()} lookup: {result.query}",
+        f"  outcome:    {result.outcome.value}",
+        f"  source:     {result.source_url or '(not reached)'}",
+        f"  provenance: {result.provenance}",
+    ]
+    if result.title:
+        lines.append(f"  title:      {result.title}")
+    if result.detail:
+        lines.append(f"  detail:     {result.detail}")
+    return "\n".join(lines)
+
+
+def _run_lookup(args: list[str]) -> int:
+    """Opt-in, read-only lookup of an already-issued LCCN or ISSN against
+    its authority (the LC Permalink service, the ISSN Portal). This is the
+    one command that reaches the network; ordinary builds never do. It is
+    never an issuance path. With no number it looks up the one configured
+    under registrations.lccn / registrations.issn."""
+
+    from . import idlookup, registrations
+    from .adapters import http
+
+    sub = args[1:]
+    usage = "usage: press lookup lccn|issn [<number>]"
+    if not sub or sub[0] not in ("lccn", "issn"):
+        print(usage)
+        return 2
+    kind = sub[0]
+    number: str | None = sub[1] if len(sub) > 1 else None
+    if number is None:
+        configured = registrations.block().get(kind)
+        if not configured or str(configured).strip().lower() == registrations.PENDING:
+            print(f"no registrations.{kind} configured; pass a number: "
+                  f"press lookup {kind} <number>")
+            return 2
+        number = str(configured)
+    lookup = idlookup.lookup_lccn if kind == "lccn" else idlookup.lookup_issn
+    result = lookup(http.urlopen_transport, number)
+    print(_render_lookup(result))
+    return 0 if result.ok else 1
+
+
 def _run_selftest(args: list[str]) -> int:
     from . import selftest
 
@@ -484,6 +530,7 @@ ROUTES: dict[str, Callable[[list[str]], int]] = {
     "isbn": _run_isbn,
     "onix": _run_onix,
     "pcn": _run_pcn,
+    "lookup": _run_lookup,
     "selftest": _run_selftest,
     "doctor": _run_doctor,
     "art": _run_art,
