@@ -9,6 +9,26 @@ audit).
 
 ## [Unreleased]
 
+### Added
+
+- **Opt-in read-only registration lookups** (#203). `press lookup lccn
+  <number>` and `press lookup issn <number>` resolve a record from the
+  Library of Congress and the ISSN Portal through read-only adapters, off
+  by default: network access is explicit, response parsing is defensive
+  (ElementTree expands no external entities), and every failure resolves to
+  an honest UNAVAILABLE rather than a crash. With `registrations.lccn` or
+  `registrations.issn` configured, the number argument is optional.
+- **A jargon-parity contract between the packaged checker and the portable
+  skill copy** (#201, INV-editorial-jargon-parity). A differential corpus
+  and fuzz prove the press's jargon checker and the standalone skill agree
+  case for case, and a source-identity check holds their shared logic
+  byte-identical, so the copy an author runs cannot drift from the one CI
+  enforces.
+- **Automatic roadmap reconciliation** (#197). The `Roadmap integrity`
+  workflow reconciles `roadmap/milestones.json` and ROADMAP.md against the
+  live GitHub milestones after a merge to `main` (and weekly), so the
+  registry cannot silently drift from the issues it tracks.
+
 ### Changed
 
 - **The packaged provider ledger is now a generated artifact, not a
@@ -22,6 +42,13 @@ audit).
   divergent record. The duplicated header and footer comment in the old
   mirror are gone. The update/review workflow is documented in
   `docs/PROVIDER-DATA.md`, linked from the print-format docs.
+
+### Fixed
+
+- **Collection-policy meta-tests are warning-clean across the supported
+  pytest and pytest-asyncio range** (#202). The nested pytest runs disable
+  the asyncio plugin and the root suite pins the fixture loop scope, so a
+  version bump within the supported range no longer raises warnings.
 
 ## [2.1.0] - 2026-07-23
 
