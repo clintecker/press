@@ -108,7 +108,13 @@ pre code { font-size: inherit; background: none; padding: 0; }
 
 /* 8. Plates */
 figure { margin: 2.4rem auto; text-align: center; }
-figure img { max-width: 100%; height: auto; aspect-ratio: 2 / 3;
+/* Each plate renders at its own intrinsic ratio. The sheet used to force
+   aspect-ratio: 2/3 -- a portrait cover shape -- onto every figure, which
+   distorted any plate that was not portrait: a landscape engraving
+   (2528x1696) was crushed into a tall box and stretched vertically.
+   height:auto against the natural width is the true ratio, so a portrait
+   and a landscape plate are each shown undistorted. */
+figure img { max-width: 100%; height: auto;
   background: var(--paper-warm);
   border: 1px solid var(--foil); padding: 6px;
   box-shadow: 0 .8rem 2rem rgba(0,0,0,.18); }
