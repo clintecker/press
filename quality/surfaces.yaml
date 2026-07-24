@@ -24,6 +24,7 @@ roles:
 
 # module -> role, or module -> {default: role, overrides: {func: role}}
 modules:
+  add: {default: pure, overrides: {main: presenter, slugify: normalizer}}
   aesthetic: {default: normalizer, overrides: {write_tex_overrides: producer}}
   art: presenter
   art_commission: adapter
