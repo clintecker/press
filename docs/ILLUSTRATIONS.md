@@ -92,8 +92,12 @@ press art enhance assets/woodcuts/shop.jpg  # or just one
    keeps the hatching crisp instead of inventing the smooth gradients a photo
    model would. The upscaler is an external tool, detected not bundled: install
    [Upscayl](https://upscayl.org) or a standalone `realesrgan-ncnn-vulkan` and
-   `press doctor` will report it. Absent, the command still runs -- it resamples
-   instead of upscaling, so the rest of the win lands.
+   `press doctor` will report it. The CI toolchain image bakes it in (the
+   `realesrgan-ncnn-vulkan` CLI with the remacri and ultrasharp models), so a
+   build in the container upscales too -- on amd64, where CPU inference runs
+   against a software Vulkan device; the arm64 image has no upstream binary and
+   resamples. Absent an upscaler the command still runs -- it resamples instead
+   of upscaling, so the rest of the win lands.
 2. **Resample** to a print-grade long edge (2400px by default; `--max-edge`).
 3. **Quantize** to a small palette (`--colors`, default from the medium) and
    write a lossless PNG. An engraving is a few grays, so this is visually
