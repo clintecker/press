@@ -299,6 +299,10 @@ nav[aria-label="Site"] a[aria-current="page"]::before{
   border-top:1px solid var(--rule); padding:24px var(--gutter); background:var(--paper);
   font-family:var(--sans); display:flex; align-items:center; justify-content:space-between;
   flex-wrap:wrap; gap:12px 28px; margin-top:var(--s16);
+  /* The desktop sidebar is position:sticky over the full body height (z-index
+     20); the full-width footer must paint above it, or the sidebar's bottom
+     clips the footer's left edge when the page is scrolled to the end. */
+  position:relative; z-index:21;
 }
 .colophon nav{display:flex; gap:22px; flex-wrap:wrap}
 .colophon a{color:var(--muted); font-size:0.85rem; font-weight:500; text-decoration:none}
