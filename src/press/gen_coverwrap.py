@@ -12,11 +12,10 @@ raster.
 from __future__ import annotations
 
 import shutil
-import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import barcode, booklib
+from . import adapters, barcode, booklib
 
 # Cover bleed is universal across print vendors (0.125in on the outer edges);
 # only the spine caliper and wrap geometry are provider-specific, and those
@@ -329,13 +328,18 @@ def generate(interior: Path, output: Path) -> Path:
     build.mkdir(parents=True)
     source = build / "coverwrap.tex"
     source.write_text(tex, encoding="utf-8")
-    compiled = subprocess.run(
+    compiled = adapters.process_runner.run(
         ["latexmk", "-lualatex", "-interaction=nonstopmode", "coverwrap.tex"],
-        cwd=build, capture_output=True, text=True,
+        cwd=build, capture=True,
     )
     if compiled.returncode != 0:
         log = build / "coverwrap.log"
-        tail = log.read_text(encoding="utf-8", errors="replace")[-2000:] if log.is_file() else compiled.stdout[-2000:]
+        if log.is_file():
+            tail = log.read_text(encoding="utf-8", errors="replace")[-2000:]
+        else:
+            # ProcessResult.stdout is bytes (the runner never sets text=True);
+            # decode before slicing so the diagnostic carries the real log tail.
+            tail = compiled.stdout.decode("utf-8", errors="replace")[-2000:]
         raise SystemExit(f"coverwrap TeX failed; log tail:\n{tail}")
     output.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(build / "coverwrap.pdf", output)

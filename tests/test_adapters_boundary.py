@@ -44,7 +44,6 @@ LEGACY_ALLOWED = {
     "__main__",
     "booklib",
     "check_the_checkers",
-    "gen_coverwrap",
     "scaffold",
     "selftest",
     "verify_coverwrap",
