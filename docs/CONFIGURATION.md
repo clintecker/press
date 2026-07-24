@@ -264,6 +264,10 @@ regenerates on every build; locations are never stored.
   matched on word boundaries against markup-stripped chapter text.
 - A curated term that matches nothing in the text fails the build by
   name; silence is not allowed. Fix the patterns or remove the term.
+- The shape is checked before any byte is rendered: `press check`, `press
+  config validate`, and every build refuse a wrong top-level shape (a
+  `terms:` wrapper, a list of bare strings, an entry missing `match`) with
+  a diagnostic that names the file, never a `TypeError` deep in the build.
 
 Absent file: no subject index is generated.
 

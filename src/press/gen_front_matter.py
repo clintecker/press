@@ -108,6 +108,15 @@ def generate(include_cover: bool = True) -> Path | None:
 
     front = ((yamlio.loads(config.read_text(encoding="utf-8")) or {})
              if config.is_file() else {})
+
+    # A front-matter.yaml the typed model accepts but this generator
+    # dereferences as a mapping (or reads epigraph as a nested mapping)
+    # once crashed here with a bare AttributeError; refuse a wrong shape up
+    # front with a diagnostic that names the file (#207). check_source runs
+    # the same guard, but a direct `press pdf` reaches here with no check.
+    from . import config_schema
+    config_schema.enforce_file(root, config_schema.FRONT_MATTER, front)
+
     meta = booklib.metadata()
     missing = [
         key for key in ("title", "author", "copyright", "publisher", "publisher-place")
