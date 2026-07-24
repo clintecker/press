@@ -43,7 +43,6 @@ MIGRATED = {
 LEGACY_ALLOWED = {
     "__main__",
     "booklib",
-    "gen_coverwrap",
     "selftest",
     "verify_coverwrap",
     "verify_formats",

@@ -276,3 +276,85 @@ def test_diagnostics_passes_jargon_allow_terms_to_runner(
     argv = fake_runner.runs[0].argv
     assert "--allow" in argv
     assert argv[argv.index("--allow") + 1] == "leverage"
+# gen_coverwrap.generate compiles the wrap through the process runner
+# --------------------------------------------------------------------------
+
+
+@pytest.fixture
+def coverwrap_book(tmp_path, monkeypatch):
+    """A factory book wired so ``gen_coverwrap.generate`` reaches its
+    ``latexmk`` call with the heavy upstream helpers -- interior page count,
+    wrap layout, print-safe asset prep -- stubbed to constants. Only the
+    subprocess seam and its failure handling stay real, so a fake runner
+    observes exactly the argv, cwd, and capture flag the module drives."""
+
+    from tests.factories import BookFactory
+
+    from press import gen_coverwrap as cw
+    from press import print_safe
+
+    handle = (
+        BookFactory(slug="cw-routing")
+        .with_metadata(publisher="Routing Press", **{"publisher-place": "Nowhere"})
+        .build(tmp_path)
+    )
+    cover = handle.root / "assets" / "cover.jpg"
+    cover.parent.mkdir(parents=True, exist_ok=True)
+    cover.write_bytes(b"\xff\xd8\xff\xd9")  # a stand-in: prepare_cover is stubbed
+
+    monkeypatch.setattr(cw, "interior_page_count", lambda interior: 100)
+    monkeypatch.setattr(
+        cw,
+        "layout",
+        lambda pages: cw.wrap_geometry(
+            6.0, 9.0, 0.115, True, 0.125, 0.0, 0.0, 0.0, "paperback"
+        ),
+    )
+    monkeypatch.setattr(print_safe, "prepare_cover", lambda *a, **k: {"cover": cover})
+    return handle
+
+
+def test_coverwrap_generate_drives_latexmk_through_runner(coverwrap_book, monkeypatch):
+    from press import gen_coverwrap as cw
+    from press.adapters.protocols import ProcessResult
+
+    # A nonzero return stops generate before it would copy a nonexistent PDF,
+    # leaving the recorded run as the observable signal.
+    fake = fakes.FakeProcessRunner(results=[ProcessResult(1, stdout=b"stopped")])
+    monkeypatch.setattr(adapters, "process_runner", fake)
+    with coverwrap_book.use():
+        interior = coverwrap_book.root / "interior.pdf"  # stubbed reader ignores it
+        with pytest.raises(SystemExit):
+            cw.generate(interior, coverwrap_book.root / "dist" / "wrap.pdf")
+
+    assert len(fake.runs) == 1, "the wrap must compile through the process runner"
+    run = fake.runs[0]
+    assert run.argv == (
+        "latexmk", "-lualatex", "-interaction=nonstopmode", "coverwrap.tex",
+    )
+    assert run.cwd == str(coverwrap_book.root / "build" / "coverwrap")
+    assert run.capture is True
+
+
+def test_coverwrap_generate_decodes_stdout_tail_on_failure(coverwrap_book, monkeypatch):
+    from press import gen_coverwrap as cw
+    from press.adapters.protocols import ProcessResult
+
+    # No coverwrap.log is written (the fake never runs latexmk), so the
+    # diagnostic falls back to the captured stdout -- which is now BYTES. The
+    # trailing 0xff proves errors="replace" decoding; an undecoded value would
+    # render as a b'...' repr and this endswith would not hold.
+    marker = "coverwrap latexmk boom"
+    fake = fakes.FakeProcessRunner(
+        results=[ProcessResult(1, stdout=marker.encode("utf-8") + b"\xff")]
+    )
+    monkeypatch.setattr(adapters, "process_runner", fake)
+    with coverwrap_book.use():
+        with pytest.raises(SystemExit) as excinfo:
+            cw.generate(
+                coverwrap_book.root / "interior.pdf",
+                coverwrap_book.root / "dist" / "wrap.pdf",
+            )
+    message = str(excinfo.value)
+    assert marker in message
+    assert message.endswith(f"coverwrap TeX failed; log tail:\n{marker}�")
