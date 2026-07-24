@@ -33,11 +33,18 @@ be turned off unnoticed.
 - **Secret hygiene.** Secret scanning, push protection, non-provider
   patterns, and validity checks are enabled, so a committed credential
   is rejected at push time where the platform supports it.
+- **Protection rulesets.** `main` cannot be force-pushed or deleted, and
+  the three-part release tags (`v*.*.*`) are immutable -- they cannot be
+  moved or deleted -- so the trust graph a pinned book resolves cannot be
+  rewritten under it. Pages deploys only from `main`, through the
+  documentation workflow. These are repository rulesets, applied on the
+  platform rather than in the tree.
 - **Drift detection.** `.github/workflows/security-controls.yml` runs
   weekly and on demand: it asserts the source-versioned controls are
-  present and reads the admin-only `security_and_analysis` toggles back
+  present, reads the admin-only `security_and_analysis` toggles back
   through a repository-scoped fine-grained token (`SECURITY_AUDIT_TOKEN`,
-  Administration: read), failing loudly on any regression.
+  Administration: read), and reads the branch and tag protection rulesets
+  back, failing loudly if either is removed or weakened.
 
 ### Accepted limitations
 
@@ -46,8 +53,12 @@ be turned off unnoticed.
   workflow token cannot read it. That token is repository-scoped and
   read-only.
 - Repository-wide enforcement that every workflow action is pinned to a
-  full-length commit SHA is a ruleset control, tracked with the other
-  repository rulesets (branch, tag, and Pages protection) in #153. Every
+  full-length commit SHA is a ruleset control still tracked in #153. Every
   action is already SHA-pinned in source and reviewed on change by
   dependency review; the outstanding item is repository-level
   *enforcement*, not the current state.
+- Requiring the trust checks to pass on a pull request before a merge to
+  `main` (the branch ruleset's merge gate) is deferred by choice: `main` is
+  hardened against force-push and deletion, but direct pushes remain allowed
+  for now, so the gates run on push rather than blocking a merge. Also
+  tracked in #153.

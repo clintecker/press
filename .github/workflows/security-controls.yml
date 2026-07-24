@@ -64,3 +64,33 @@ jobs:
           fi
           [ "$fail" = 0 ] && echo "all platform security controls enabled"
           exit "$fail"
+
+      - name: Branch and tag protection rulesets are active (#153)
+        env:
+          GH_TOKEN: ${{ secrets.SECURITY_AUDIT_TOKEN }}
+        run: |
+          set -euo pipefail
+          repo="${{ github.repository }}"
+          rulesets=$(gh api "repos/${repo}/rulesets")
+          fail=0
+          # main cannot be force-pushed or deleted; the three-part release tags
+          # (v*.*.*) cannot be moved or deleted -- so the trust graph a pinned
+          # book resolves cannot be quietly rewritten under it. Checked by name,
+          # target, active enforcement, and the immutability rules themselves.
+          for pair in "main-hardening:branch" "release-tags-immutable:tag"; do
+            name="${pair%%:*}"; target="${pair##*:}"
+            id=$(echo "$rulesets" | jq -r --arg n "$name" --arg t "$target" \
+              'map(select(.name==$n and .target==$t and .enforcement=="active")) | .[0].id // empty')
+            if [ -z "$id" ]; then
+              echo "drift: no active ${target} ruleset '${name}'"; fail=1; continue
+            fi
+            has=$(gh api "repos/${repo}/rulesets/${id}" \
+              --jq '[.rules[].type] | contains(["non_fast_forward","deletion"])')
+            if [ "$has" != "true" ]; then
+              echo "drift: ruleset '${name}' lacks non_fast_forward+deletion"; fail=1
+            else
+              echo "ruleset '${name}' active and enforcing immutability"
+            fi
+          done
+          [ "$fail" = 0 ] && echo "protection rulesets present and enforcing"
+          exit "$fail"
