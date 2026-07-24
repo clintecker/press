@@ -9,6 +9,14 @@ audit).
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-07-24
+
+Mobile and boundary repairs, no design change to any book. The documentation
+site's masthead no longer collapses and its wide tables read on a phone; a
+book's own web tables stack on a narrow screen while rendering byte-identically
+at reading width; and a registration lookup bounds its response as it reads it.
+Compatible within v2.
+
 ### Fixed
 
 - **A registration lookup bounds the response body as it reads it** (#209).
