@@ -106,6 +106,9 @@ NOT_PUBLISHED = {
     "docs/TUI-PLAN.md": "internal design plan; lives in the repo and issues, not the docs site",
     "docs/DIRECT-ORDERING-PLAN.md": "internal PRD/TRD; lives in the repo and issues, not the docs site",
     "docs/PRINT-PROFILES-PLAN.md": "internal v2 design record; lives in the repo and issues, not the docs site",
+    "docs/PROVIDER-DATA.md": "contributor workflow for regenerating the packaged "
+                             "provider ledger; lives in the repo for maintainers, "
+                             "not on a site written for authors",
     "docs/EXTENSION-CONTRACT.md": "implementer-facing spec for extending the press "
                                   "itself; lives in the repo for the few who write an "
                                   "extension, not on a site written for authors",

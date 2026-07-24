@@ -101,6 +101,11 @@ What each vendor offers (from their sourced specs):
 The full trim × binding matrix and page-count bounds live in each provider's
 spec; `press coverwrap` refuses a combination the vendor does not offer.
 
+Which providers exist and what each can actually do is one reviewed ledger,
+`quality/providers.yaml`; the copy shipped in the wheel is generated from it,
+never hand-copied. To add a provider or correct a citation, follow the
+[provider-data update workflow](https://github.com/clintecker/press/blob/main/docs/PROVIDER-DATA.md).
+
 ## Verify and inspect
 
 `press verify-print` builds and verifies the interior and cover wrap at the

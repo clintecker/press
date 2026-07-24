@@ -1541,8 +1541,13 @@ def main(argv: list[str] | None = None) -> int:
         (docs / "INVARIANTS.md").write_text(invariants.render(), encoding="utf-8")
         (docs / "PROVIDER-QUALIFICATION.md").write_text(
             qualification.render(), encoding="utf-8")
+        # The packaged provider record is a generated projection of the one
+        # canonical ledger (quality/providers.yaml), not a hand-kept mirror.
+        qualification.PACKAGED_RECORD.write_text(
+            qualification.render_packaged(), encoding="utf-8")
         print(f"wrote {docs / 'REFERENCE.md'}, {docs / 'INVARIANTS.md'}, "
-              f"and {docs / 'PROVIDER-QUALIFICATION.md'}")
+              f"{docs / 'PROVIDER-QUALIFICATION.md'}, and "
+              f"{qualification.PACKAGED_RECORD}")
     for check in CHECKS:
         check()
     print(f"Selftest passed: {len(modules())} modules import, arithmetic agrees "
