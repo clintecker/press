@@ -336,19 +336,31 @@ def _match_issn(canonical: str, digits: str, body: _Body, url: str) -> LookupRes
         return LookupResult("issn", canonical, Outcome.NOT_FOUND, url, _ISSN_PROVENANCE,
                             detail="no ISSN resource in the response")
     matches = [record for record in records if digits in record[0]]
-    if len(matches) == 1:
+    # Collapse the graph nodes that describe one resource. The ISSN Portal
+    # returns the main resource node plus #fragment sub-nodes (#ISSN,
+    # #KeyTitle, #Record, ...) on the same base IRI; every one reduces to the
+    # same eight digits. AMBIGUOUS must mean two DIFFERENT resources carry
+    # this ISSN, not one resource described by several nodes -- so key by the
+    # fragment-stripped resource IRI and keep whichever node names it.
+    resources: dict[str, str | None] = {}
+    for issns, title, iri in matches:
+        if resources.get(iri) is None:
+            resources[iri] = title
+    if len(resources) == 1:
+        (title,) = resources.values()
         return LookupResult("issn", canonical, Outcome.FOUND, url, _ISSN_PROVENANCE,
-                            identifier=canonical, title=matches[0][1])
-    if len(matches) > 1:
+                            identifier=canonical, title=title)
+    if len(resources) > 1:
         return LookupResult("issn", canonical, Outcome.AMBIGUOUS, url, _ISSN_PROVENANCE,
-                            detail=f"{len(matches)} resources carry this ISSN")
+                            detail=f"{len(resources)} resources carry this ISSN")
     return LookupResult("issn", canonical, Outcome.MISMATCH, url, _ISSN_PROVENANCE,
                         detail="the portal returned a different ISSN")
 
 
-def _parse_issn(text: str) -> "list[tuple[set[str], str | None]] | None":
-    """Each ISSN resource in the JSON-LD graph as (its ISSNs, its title).
-    ``None`` when the JSON is malformed or not an object/graph."""
+def _parse_issn(text: str) -> "list[tuple[set[str], str | None, str]] | None":
+    """Each ISSN node in the JSON-LD graph as (its ISSNs, its title, its
+    fragment-stripped resource IRI). ``None`` when the JSON is malformed or
+    not an object/graph."""
 
     try:
         data = json.loads(text)
@@ -358,13 +370,13 @@ def _parse_issn(text: str) -> "list[tuple[set[str], str | None]] | None":
         return None
     graph = data.get("@graph")
     nodes = graph if isinstance(graph, list) else [data]
-    records: list[tuple[set[str], str | None]] = []
+    records: list[tuple[set[str], str | None, str]] = []
     for node in nodes:
         if not isinstance(node, dict):
             continue
         issns = _issn_ids(node)
         if issns:
-            records.append((issns, _issn_title(node)))
+            records.append((issns, _issn_title(node), _issn_resource_iri(node)))
     return records
 
 
@@ -374,6 +386,16 @@ def _issn_ids(node: dict) -> set[str]:
         return set()
     token = _issn_from_id(identifier)
     return {token} if token else set()
+
+
+def _issn_resource_iri(node: dict) -> str:
+    """The node's @id with any ``#fragment`` removed: the IRI of the resource
+    it belongs to, so a resource and its #ISSN/#KeyTitle/#Record sub-nodes
+    collapse to one identity."""
+    identifier = node.get("@id")
+    if not isinstance(identifier, str):
+        return ""
+    return identifier.split("#", 1)[0].strip().lower()
 
 
 def _issn_from_id(identifier: str) -> str:

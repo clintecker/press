@@ -23,6 +23,17 @@ audit).
   the grain is quantized to a handful of grays, a plate ships as a lossless PNG
   smaller than the lossy JPEG it replaces.
 
+### Fixed
+
+- **An ISSN lookup no longer reads one issued ISSN as a collision.** The live
+  ISSN Portal returns a resource's JSON-LD as the main node plus `#ISSN`,
+  `#KeyTitle`, `#Record`, ... fragment sub-nodes on the same base IRI; every
+  node reduces to the same eight digits, so `press lookup issn` counted them as
+  several resources and returned AMBIGUOUS for a perfectly good ISSN. The match
+  now collapses the nodes of one resource by their fragment-stripped IRI, so
+  AMBIGUOUS means two genuinely distinct resources carry the ISSN, and the
+  ordinary success path resolves to FOUND.
+
 ## [2.2.1] - 2026-07-24
 
 Mobile and boundary repairs, no design change to any book. The documentation

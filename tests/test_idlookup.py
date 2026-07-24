@@ -108,6 +108,28 @@ ISSN_MISMATCH = """{"@graph": [{"@id": "resource/ISSN/1234-5679", "name": "Other
 
 ISSN_EMPTY = """{"@graph": []}"""
 
+# What the live ISSN Portal actually returns for one issued ISSN: the main
+# resource node plus #fragment sub-nodes on the same base IRI. Every node
+# reduces to the same eight digits, so this must be FOUND, not AMBIGUOUS.
+ISSN_FOUND_WITH_FRAGMENTS = """{
+  "@graph": [
+    {"@id": "resource/ISSN/0378-5955#ISSN", "value": "0378-5955"},
+    {"@id": "resource/ISSN/0378-5955#KeyTitle", "value": "Ecology letters"},
+    {"@id": "resource/ISSN/0378-5955#Record"},
+    {"@id": "resource/ISSN/0378-5955", "name": "Ecology Letters"},
+    {"@id": "resource/ISSN-L/0378-5955"}
+  ]
+}"""
+
+# Two genuinely distinct resources (different fragment-stripped IRIs) both
+# bearing the requested ISSN: this is the real collision AMBIGUOUS guards.
+ISSN_AMBIGUOUS = """{
+  "@graph": [
+    {"@id": "https://portal.issn.org/resource/ISSN/0378-5955", "name": "Journal A"},
+    {"@id": "https://mirror.issn.org/resource/ISSN/0378-5955", "name": "Journal B"}
+  ]
+}"""
+
 
 # --------------------------------------------------------------------------
 # LCCN: success, mismatch, ambiguity, not-found, malformed.
@@ -298,6 +320,24 @@ def test_issn_found_returns_record():
     assert result.title == "Ecology Letters"
     assert result.source_url == "https://portal.issn.org/resource/ISSN/0378-5955"
     assert transport.calls[0]["timeout"] == idlookup.TIMEOUT
+
+
+def test_issn_fragment_subnodes_collapse_to_one_found_record():
+    # The main resource node plus its #ISSN/#KeyTitle/#Record fragments all
+    # reduce to the same digits; one issued ISSN must resolve, not read as
+    # a false collision.
+    transport = FakeTransport([json_response(ISSN_FOUND_WITH_FRAGMENTS)])
+    result = idlookup.lookup_issn(transport, "03785955")
+    assert result.outcome is Outcome.FOUND
+    assert result.identifier == VALID_ISSN
+    assert result.title == "Ecology Letters"
+
+
+def test_issn_two_distinct_resources_are_ambiguous():
+    transport = FakeTransport([json_response(ISSN_AMBIGUOUS)])
+    result = idlookup.lookup_issn(transport, VALID_ISSN)
+    assert result.outcome is Outcome.AMBIGUOUS
+    assert "2 resources" in result.detail
 
 
 def test_issn_invalid_check_digit_never_touches_the_network():
