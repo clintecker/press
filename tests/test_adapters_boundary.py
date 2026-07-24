@@ -45,7 +45,6 @@ LEGACY_ALLOWED = {
     "booklib",
     "selftest",
     "verify_coverwrap",
-    "verify_formats",
     "verify_pdf",
 }
 

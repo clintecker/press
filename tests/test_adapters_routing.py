@@ -10,6 +10,7 @@ the call, with no live process, credential, or socket.
 from __future__ import annotations
 
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -358,3 +359,69 @@ def test_coverwrap_generate_decodes_stdout_tail_on_failure(coverwrap_book, monke
     message = str(excinfo.value)
     assert marker in message
     assert message.endswith(f"coverwrap TeX failed; log tail:\n{marker}�")
+# verify_formats.epubcheck resolves the tool, the toolchain promise, and the
+# validator run through the adapters.
+# --------------------------------------------------------------------------
+
+
+def test_epubcheck_absent_outside_toolchain_warns_and_returns(fake_env, capsys):
+    from press import verify_formats
+
+    env = fake_env(values={}, present_tools=[])  # epubcheck not on PATH
+    # No PRESS_TOOLCHAIN, so the structural-only warning path, not a refusal.
+    verify_formats.epubcheck(Path("book.epub"))
+    assert env.which_calls == ["epubcheck"]
+    assert "PRESS_TOOLCHAIN" in env.reads
+    assert "WARNING: epubcheck not installed" in capsys.readouterr().out
+
+
+def test_epubcheck_absent_inside_toolchain_refuses(fake_env):
+    from press import verify_formats
+
+    fake_env(values={"PRESS_TOOLCHAIN": "1"}, present_tools=[])
+    with pytest.raises(SystemExit) as excinfo:
+        verify_formats.epubcheck(Path("book.epub"))
+    assert "missing from the press toolchain image" in str(excinfo.value)
+
+
+def test_epubcheck_drives_runner_with_epubcheck_argv(fake_env, fake_runner, tmp_path):
+    from press import verify_formats
+
+    fake_env(present_tools=["epubcheck"])
+    epub = tmp_path / "book.epub"
+    fake_runner._by_command["epubcheck"] = ProcessResult(0)
+    verify_formats.epubcheck(epub)
+    assert len(fake_runner.runs) == 1
+    recorded = fake_runner.runs[0]
+    assert recorded.argv == ("epubcheck", str(epub))
+    assert recorded.capture is True
+
+
+def test_epubcheck_decodes_bytes_report_into_diagnostic(fake_env, fake_runner, tmp_path):
+    from press import verify_formats
+
+    fake_env(present_tools=["epubcheck"])
+    # The runner returns BYTES; the diagnostic must decode them, not embed a
+    # bytes-repr. Fails before the migration if stdout/stderr are used raw.
+    fake_runner._by_command["epubcheck"] = ProcessResult(
+        1, stdout=b"ERROR: bad spine item\n", stderr=b"WARN: missing nav\n"
+    )
+    with pytest.raises(SystemExit) as excinfo:
+        verify_formats.epubcheck(tmp_path / "book.epub")
+    message = str(excinfo.value)
+    assert "ERROR: bad spine item" in message
+    assert "WARN: missing nav" in message
+    assert "b'" not in message  # decoded text, never a bytes-repr
+
+
+def test_epubcheck_oserror_is_toolchain_fault(fake_env, monkeypatch, tmp_path):
+    from press import verify_formats
+
+    fake_env(present_tools=["epubcheck"])
+    fake = fakes.FakeProcessRunner(
+        by_command={"epubcheck": OSError("Exec format error")}
+    )
+    monkeypatch.setattr(adapters, "process_runner", fake)
+    with pytest.raises(SystemExit) as excinfo:
+        verify_formats.epubcheck(tmp_path / "book.epub")
+    assert "present but cannot run" in str(excinfo.value)
