@@ -237,6 +237,18 @@ def test_verifier_refuses_a_leaked_secret_in_a_page(tmp_path):
     assert any("leak a secret" in p for p in verify_pages.check_commerce(pages, cfg))
 
 
+def test_verifier_accepts_innocent_secret_prose_in_a_page(tmp_path):
+    # The shape-based marker does not read the book's own prose as a leak: a
+    # page that says "secret"/"password" as English is not credential-shaped.
+    cfg = _cfg()
+    page = (f"<html><body>{commerce.render(cfg)}"
+            "<p>The secretary kept the password to herself; it was her "
+            "secret. Read Secrets of the Trade to learn the api key concept."
+            "</p></body></html>")
+    pages = _pages_with(page, tmp_path)
+    assert verify_pages.check_commerce(pages, cfg) == []
+
+
 @pytest.mark.invariant("INV-commerce-config")
 @pytest.mark.layer("unit")
 @pytest.mark.proof("negative")

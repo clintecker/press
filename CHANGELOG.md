@@ -9,6 +9,22 @@ audit).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The page secret scan no longer false-rejects a book whose own words
+  contain "secret" or "password".** The credential marker matched bare
+  English substrings, so a valid book titled "Secrets of the Trade", or any
+  page whose prose read "the secretary kept the password to herself", failed
+  `press pages` / `verify-pages` / `check` with a spurious "page metadata
+  leaks private build data or a secret" -- the og:title, og:description, and
+  JSON-LD carry the book's own title and prose legitimately. The marker now
+  matches on credential *shape* (a provider key prefix, a bearer token, a
+  credential-bearing query parameter, or a key=value assignment whose value
+  looks like a token), never a bare word, closing the false positive across
+  all three scans that share it (the metadata head, the rendered-page
+  commerce scan, and commerce-config validation) without weakening detection
+  of a real leak such as `?apikey=sk_live_...`.
+
 ### Added
 
 - **`press art enhance`** finishes plate art for print and web in three
