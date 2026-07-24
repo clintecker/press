@@ -265,3 +265,35 @@ def test_built_wheel_imports_every_nested_module_outside_checkout(tmp_path):
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert "IMPORTS_OK" in result.stdout, result.stdout + result.stderr
+
+
+def test_module_needing_an_absent_optional_extra_is_skipped_not_failed(
+    synthetic_package, monkeypatch
+):
+    # Like press.desk.* needing textual (the [tui] extra): a module that fails
+    # to import ONLY because a known optional extra is absent is skipped, with
+    # its reason, not failed -- so the base wheel's import gate does not demand
+    # a dependency the base install never ships. A module missing a genuinely
+    # required dependency still fails the gate.
+    synthetic_package("optpkg", {
+        "needs_optional.py": "import _absent_optional_extra\n",
+        "needs_required.py": "import _absent_required_dep\n",
+    })
+    monkeypatch.setitem(
+        selftest.IMPORT_OPTIONAL_DEPS, "_absent_optional_extra", "the fake extra"
+    )
+
+    # check_imports's loop: the optional one is skipped (named), the required
+    # one is a hard failure that names the module.
+    assert selftest._import_module_names(["optpkg.needs_optional"]) == [
+        "optpkg.needs_optional (needs the fake extra)"
+    ]
+    with pytest.raises(SystemExit, match="needs_required"):
+        selftest._import_module_names(["optpkg.needs_required"])
+
+    # the side-effect probe skips the same way (a module it cannot import cannot
+    # be probed): no offender for the optional one, a real error for the missing
+    # required dependency.
+    assert selftest._prove_no_import_side_effects(["optpkg.needs_optional"]) is None
+    with pytest.raises(ModuleNotFoundError):
+        selftest._prove_no_import_side_effects(["optpkg.needs_required"])

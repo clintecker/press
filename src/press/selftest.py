@@ -35,6 +35,17 @@ IMPORT_EXCEPTIONS: dict[str, str] = {
     ),
 }
 
+# Optional dependencies a distributable module may need to import. The base
+# wheel does not ship these (they are extras), so a module that needs one is
+# skipped -- with a reason, never silently -- when the extra is absent, rather
+# than failing the gate for a dependency the base install never promised. When
+# the extra IS installed (the dev environment, the [tui] CI job) the module is
+# imported and proven like any other, so this is a runtime-conditional skip,
+# not a blanket exception. Keyed by the top-level import name of the extra.
+IMPORT_OPTIONAL_DEPS: dict[str, str] = {
+    "textual": "the [tui] extra (press.desk.*, the operator desk)",
+}
+
 
 def _on_walk_error(name: str) -> None:
     """Discovery walks subpackages by importing them; a package whose
@@ -63,18 +74,31 @@ def _discover_package_modules(package: ModuleType) -> list[str]:
     )
 
 
-def _import_module_names(names: list[str]) -> None:
+def _import_module_names(names: list[str]) -> list[str]:
     """Import each named module exactly once, in the order given, naming the
-    precise module and preserving the original exception on the first
-    failure -- never a bare traceback that hides which module broke."""
+    precise module and preserving the original exception on the first genuine
+    failure -- never a bare traceback that hides which module broke. A module
+    that fails only because a known optional extra (IMPORT_OPTIONAL_DEPS) is not
+    installed is skipped, not failed; the skipped names are returned so the gate
+    can report them. A ModuleNotFoundError for anything else is a real failure."""
 
+    skipped: list[str] = []
     for name in names:
         try:
             importlib.import_module(name)
+        except ModuleNotFoundError as exc:
+            extra = IMPORT_OPTIONAL_DEPS.get(exc.name or "")
+            if extra is not None:
+                skipped.append(f"{name} (needs {extra})")
+                continue
+            raise SystemExit(
+                f"selftest: importing {name} failed: ModuleNotFoundError: {exc}"
+            ) from exc
         except Exception as exc:
             raise SystemExit(
                 f"selftest: importing {name} failed: {type(exc).__name__}: {exc}"
             ) from exc
+    return skipped
 
 
 def modules() -> list[str]:
@@ -114,7 +138,9 @@ def check_imports() -> None:
             "broken module under adapters/, providers/, or desk/ could ship "
             "unimported"
         )
-    _import_module_names(modules())
+    skipped = _import_module_names(modules())
+    for name in skipped:
+        print(f"selftest: skipped (optional extra not installed): {name}")
 
 
 class _ForbiddenImportSideEffect(Exception):
@@ -217,6 +243,12 @@ def _prove_no_import_side_effects(names: list[str]) -> str | None:
                     importlib.import_module(name)
                 except _ForbiddenImportSideEffect as exc:
                     return f"{name}: {exc}"
+                except ModuleNotFoundError as exc:
+                    # A module needing an absent optional extra can't be probed
+                    # (it won't import); skip it, as check_imports does. A
+                    # missing *required* dep is a real failure -- re-raise.
+                    if IMPORT_OPTIONAL_DEPS.get(exc.name or "") is None:
+                        raise
     finally:
         for name in names:
             sys.modules.pop(name, None)
