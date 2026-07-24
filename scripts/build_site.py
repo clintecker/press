@@ -304,6 +304,33 @@ ILLUSTRATION_STYLES_DATA = ROOT / "src" / "press" / "data" / "illustration-style
 ILLUSTRATION_STYLES_IMAGES = ROOT / "site" / "illustration-styles"
 ILLUSTRATION_STYLES_MARKER = "<!--ILLUSTRATION-STYLES-->"
 
+# The `--from` showcase: a real royalty-free source photo beside the house plate
+# the illustration engine drew from it. Each row is (source, result, what the
+# source is, the medium it became, the source's credit + licence). The images
+# are committed under site/from-demo/; a row whose files are missing is skipped.
+FROM_DEMO_IMAGES = ROOT / "site" / "from-demo"
+FROM_DEMO_MARKER = "<!--FROM-DEMO-->"
+FROM_DEMO = [
+    ("insect.jpg", "insect--botanical-plate.jpg", "a macro photograph of a fly",
+     "botanical plate",
+     'USGS Bee Inventory &amp; Monitoring Lab, <em>Calliphora vicina</em> — public domain'),
+    ("aerial.jpg", "aerial--engraved-map.jpg", "an aerial image of an island coastline",
+     "engraved map",
+     'NASA WorldWind / USGS imagery, Acker Island, California — public domain'),
+    ("people.jpg", "people--figure-from-photo.jpg", "a documentary photograph of a family",
+     "figure engraving",
+     'Dorothea Lange, FSA, near Tracy, California, 1937 — public domain'),
+    ("skyline.jpg", "skyline--wood-engraving.jpg", "a photograph of a city skyline",
+     "wood engraving",
+     'Chicago lakefront skyline, 2025 — CC0'),
+    ("nuclear.jpg", "nuclear--wood-engraving.jpg", "a photograph of nuclear cooling towers",
+     "wood engraving",
+     'Sequoyah Nuclear Plant cooling towers, TVA — public domain'),
+    ("tractor.jpg", "tractor--line-diagram.jpg", "a photograph of a tractor and plough",
+     "line diagram",
+     'Gravely tractor and plough attachment, U.S. National Archives — public domain'),
+]
+
 # The card shows the physical trim size, not the internal profile name.
 PROFILE_LABELS = {"novella-5x8": "5×8", "house-6x9": "6×9"}
 
@@ -554,12 +581,37 @@ def _style_catalogue(data_file: Path, image_dir: Path, url_prefix: str,
 
 def cover_styles_html() -> str:
     return _style_catalogue(COVER_STYLES_DATA, COVER_STYLES_IMAGES,
-                            "cover-styles", "cover of Between the Tides")
+                            "cover-styles", "sample cover")
 
 
 def illustration_styles_html() -> str:
     return _style_catalogue(ILLUSTRATION_STYLES_DATA, ILLUSTRATION_STYLES_IMAGES,
                             "illustration-styles", "sample plate")
+
+
+def from_demo_html() -> str:
+    """The `--from` showcase: each real source photo beside the house plate the
+    illustration engine drew from it. Generated from FROM_DEMO and the committed
+    site/from-demo/ images; a pair whose files are absent is skipped."""
+    cards = []
+    for src, res, what, medium, credit in FROM_DEMO:
+        if not (FROM_DEMO_IMAGES / src).is_file() or not (FROM_DEMO_IMAGES / res).is_file():
+            continue
+        cards.append(f"""
+<figure class="from-pair">
+  <div class="from-imgs">
+    <img class="from-src" src="from-demo/{escape(src)}" loading="lazy"
+         alt="{escape(what.capitalize())}, the source">
+    <span class="from-arrow" aria-hidden="true">&rarr;</span>
+    <img class="from-res" src="from-demo/{escape(res)}" loading="lazy"
+         alt="{escape(what.capitalize())} redrawn as a {escape(medium)}">
+  </div>
+  <figcaption><span class="from-medium">{escape(medium)}</span>
+    from {escape(what)} <span class="from-credit">{credit}</span></figcaption>
+</figure>""")
+    if not cards:
+        raise SystemExit(f"from-demo: no source/result pairs under {FROM_DEMO_IMAGES}")
+    return f'<section class="from-demo">{"".join(cards)}\n</section>'
 
 
 def build_page(source: str, name: str, label: str) -> None:
@@ -618,6 +670,9 @@ def build_page(source: str, name: str, label: str) -> None:
         if ILLUSTRATION_STYLES_MARKER not in html:
             raise SystemExit(f"illustrations: {source} lost its {ILLUSTRATION_STYLES_MARKER} marker")
         html = html.replace(ILLUSTRATION_STYLES_MARKER, illustration_styles_html(), 1)
+        if FROM_DEMO_MARKER not in html:
+            raise SystemExit(f"illustrations: {source} lost its {FROM_DEMO_MARKER} marker")
+        html = html.replace(FROM_DEMO_MARKER, from_demo_html(), 1)
     # Wrap the pandoc content in one <main class="prose"> between the
     # toolbar and the colophon, so the whole column is a single centered
     # container and no element can detach from it. The toolbar and footer
@@ -759,6 +814,8 @@ def main() -> int:
         shutil.copytree(COVER_STYLES_IMAGES, OUT / "cover-styles")
     if ILLUSTRATION_STYLES_IMAGES.is_dir():
         shutil.copytree(ILLUSTRATION_STYLES_IMAGES, OUT / "illustration-styles")
+    if FROM_DEMO_IMAGES.is_dir():
+        shutil.copytree(FROM_DEMO_IMAGES, OUT / "from-demo")
     for source, name, label in PAGES + FOOTER_PAGES:
         build_page(source, name, label)
     write_sitemap_and_robots()

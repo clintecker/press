@@ -45,6 +45,11 @@ Your snapshot becomes a wood engraving that belongs in the book; a real map
 becomes an engraved map in the book's ink. The `figure-from-photo` style needs a
 `--from`; every other style accepts one and will lean on it.
 
+Each pair below is a real, public-domain photograph and the plate the engine
+drew from it — the composition kept, the medium and the ink the book's:
+
+<!--FROM-DEMO-->
+
 ## What does *not* belong here
 
 **Data figures — bar charts, line graphs — are not illustrations.** An image
