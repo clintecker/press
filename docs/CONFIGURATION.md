@@ -185,6 +185,52 @@ commerce:
 
 Absent file: refusal. There is no book without metadata.
 
+## Web metadata: canonical, social cards, structured data
+
+Every public HTML surface the press builds — the book landing page, the
+reader index, and each reader chapter page — carries a canonical URL,
+Open Graph and Twitter cards, and a schema.org JSON-LD node, so a search
+engine or a link preview reads the book's identity instead of guessing it
+from body text. None of this is hand-written per page: it is generated
+from the fields you already set, and it invents nothing it cannot warrant.
+
+What each field supplies:
+
+- `site-url` is the one authority for every absolute URL. When it is set,
+  the landing page's canonical is the site root, the reader index is
+  `…/read/index.html`, and each chapter is `…/read/<chapter>.html`; the
+  cover becomes an absolute, pixel-dimensioned `og:image`; and a
+  `sitemap.xml` plus `robots.txt` are written listing exactly those
+  surfaces. When `site-url` is **absent** — a local build or a preview —
+  no canonical, no `og:url`, no `og:image`, and no sitemap are emitted at
+  all: the build never claims an address it is not served from.
+- `title`, `author`, `publisher`, `description`, and the book's year feed
+  the JSON-LD `Book` node (author, publisher, `datePublished`,
+  `description`) and the card titles. A chapter page carries an `Article`
+  node whose `isPartOf` names the same book, plus a breadcrumb.
+- The available editions (the same downloads the landing page links)
+  become the `Book`'s `workExample` list. A JSON-LD node can therefore
+  only ever name an edition the book actually ships.
+- `assets/cover.jpg`, when present, is the social image; its real pixel
+  dimensions are read from the file, never declared. No cover means no
+  `og:image`, not a broken one.
+
+Absent facts are omitted rather than faked. The press docs site carries
+the same metadata dialect for its own pages.
+
+Overriding it: the machinery is deliberately not a template you edit —
+correct metadata is a property the verifier enforces (`press verify`
+rejects a stale title, a canonical that does not match `site-url`, a
+foreign edition, a missing cover claimed as an `og:image`, or any local
+build path or credential leaking into the head). To change what the
+metadata says, change the authoritative field: rename the book in
+`title`, move it with `site-url`, revise `description`. To replace a
+surface's `<head>` wholesale, `tex/title-page.tex` overrides the PDF
+front matter, and `assets/web/reader.css` / `assets/web/extra.css` own
+the reading site's styling; the identity metadata above is generated
+regardless, because a public page with no honest canonical is the defect
+this contract exists to prevent.
+
 ## config/qualification.yaml (optional)
 
 The record that an ordered copy of a named edition passed every physical

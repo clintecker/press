@@ -1005,15 +1005,19 @@ def check_pages_verifier() -> None:
         (pages / "read").mkdir()
         (pages / "downloads").mkdir()
         (pages / "downloads" / "proof.pdf").write_text("x", encoding="utf-8")
+        head = ('<meta property="og:title" content="Proof Book">\n'
+                '<meta name="twitter:card" content="summary_large_image">\n'
+                '<script type="application/ld+json">\n'
+                '{"@type": "Book", "name": "Proof Book"}\n</script>\n')
         (pages / "index.html").write_text(
-            '<html><head>\n<script type="application/ld+json">\n'
-            '{"@type": "Book", "name": "Proof Book"}\n</script>\n</head>'
+            f'<html><head>\n{head}</head>'
             '<body>Proof Book <a href="read/index.html">read</a> '
             '<a href="downloads/proof.pdf">pdf</a></body></html>',
             encoding="utf-8",
         )
         (pages / "read" / "index.html").write_text(
-            "<html><body>the sentinel phrase lives here</body></html>",
+            f"<html><head>\n{head}</head>"
+            "<body>the sentinel phrase lives here</body></html>",
             encoding="utf-8",
         )
         clean = verify_pages.crawl(pages, ["sentinel phrase"], ["proof.pdf"], "Proof Book")
@@ -1045,8 +1049,7 @@ def check_pages_verifier() -> None:
         assert any("missing.png" in f for f in damaged), damaged
         (pages / "reader.css").unlink()
         (pages / "index.html").write_text(
-            '<html><head>\n<script type="application/ld+json">\n'
-            '{"@type": "Book", "name": "Proof Book"}\n</script>\n</head>'
+            f'<html><head>\n{head}</head>'
             '<body id="top">Proof Book <a href="#top">top</a> '
             '<a href="read/index.html">read</a> '
             '<a href="downloads/proof.pdf">pdf</a></body></html>',

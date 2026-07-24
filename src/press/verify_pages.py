@@ -199,6 +199,221 @@ def check_landing_metadata(pages: Path, title: str, site_url: str) -> list[str]:
     return failures
 
 
+# The metadata surfaces whose head contract this verifier enforces (#158):
+# the landing page and every reader page. Commerce policy pages and download
+# blobs are not part of the metadata contract.
+def _metadata_surfaces(pages: Path) -> list[Path]:
+    surfaces = [pages / "index.html"]
+    surfaces += sorted((pages / "read").glob("*.html"))
+    return [p for p in surfaces if p.is_file()]
+
+
+# Local build paths and other data that must never reach a public preview or
+# search index (#158). The commerce secret scan is reused for credential-shaped
+# strings; these catch filesystem paths and file:// URLs.
+_PRIVATE_DATA = re.compile(r"/Users/|/home/|/dist/|/build/|file://", re.IGNORECASE)
+
+_JSONLD = re.compile(r'<script type="application/ld\+json">\n(.*?)\n\s*</script>', re.S)
+_HEAD = re.compile(r"<head\b[^>]*>(.*?)</head>", re.S | re.I)
+
+
+def _jsonld_nodes(text: str) -> list:
+    """Every JSON-LD node on a page, flattening a top-level list into its
+    members so a page may carry an Article and a BreadcrumbList together."""
+
+    import json
+
+    nodes: list = []
+    for match in _JSONLD.finditer(text):
+        loaded = json.loads(match.group(1))
+        nodes.extend(loaded if isinstance(loaded, list) else [loaded])
+    return nodes
+
+
+def _book_names(nodes: list) -> list[str]:
+    """The `name` of every schema.org Book identity on the page, whether a
+    top-level Book or the `isPartOf` Book of an Article."""
+
+    names: list[str] = []
+    for node in nodes:
+        if not isinstance(node, dict):
+            continue
+        if node.get("@type") == "Book" and node.get("name"):
+            names.append(node["name"])
+        part = node.get("isPartOf")
+        if isinstance(part, dict) and part.get("@type") == "Book" and part.get("name"):
+            names.append(part["name"])
+    return names
+
+
+def _jsonld_urls(node) -> list[str]:
+    """Every url/image/item string anywhere in a JSON-LD node."""
+
+    urls: list[str] = []
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key in ("url", "image", "item") and isinstance(value, str):
+                urls.append(value)
+            else:
+                urls.extend(_jsonld_urls(value))
+    elif isinstance(node, list):
+        for item in node:
+            urls.extend(_jsonld_urls(item))
+    return urls
+
+
+def _resolve_absolute(url: str, base: str, pages: Path) -> Path | None:
+    """The file a base-relative absolute URL is served from, or None if the
+    URL is not under the site base. A trailing slash maps to index.html."""
+
+    if not base or not url.startswith(base):
+        return None
+    rel = url[len(base):]
+    if rel == "" or rel.endswith("/"):
+        rel += "index.html"
+    return (pages / rel).resolve()
+
+
+def _check_canonical(where, head: str, base: str, base_root: str) -> list[str]:
+    """A canonical URL exists exactly when a site-url is configured, and
+    points under it -- never a false or foreign canonical."""
+
+    m = re.search(r'<link rel="canonical" href="([^"]*)"', head)
+    canonical = m.group(1) if m else None
+    out: list[str] = []
+    if base and not canonical:
+        out.append(f"{where}: site-url is set but there is no canonical URL")
+    if not base and canonical:
+        out.append(f"{where}: canonical URL {canonical!r} but no site-url is configured")
+    if base and canonical and not canonical.startswith(base_root + "/"):
+        out.append(f"{where}: canonical {canonical!r} is not under the site-url {base_root!r}")
+    return out
+
+
+def _check_jsonld_identity(where, nodes: list, want: str) -> list[str]:
+    """The structured data names this book, never a stale or missing one."""
+
+    out: list[str] = []
+    if not nodes:
+        out.append(f"{where}: carries no JSON-LD structured metadata")
+    names = _book_names(nodes)
+    if names and want not in names:
+        out.append(f"{where}: JSON-LD names {names!r}, not the book {want!r}")
+    for name in names:
+        if name != want:
+            out.append(f"{where}: JSON-LD carries a stale book name {name!r} (expected {want!r})")
+    return out
+
+
+def _check_urls_resolve(where, nodes: list, head: str, base: str, pages: Path,
+                        download_set: set) -> list[str]:
+    """Every base-relative JSON-LD/image URL resolves, names no foreign
+    edition, and the og:image points at a cover that exists."""
+
+    out: list[str] = []
+    for url in {u for node in nodes for u in _jsonld_urls(node)}:
+        target = _resolve_absolute(url, base, pages)
+        if "/downloads/" in url and url.rsplit("/", 1)[-1] not in download_set:
+            out.append(f"{where}: JSON-LD names a foreign edition "
+                       f"{url.rsplit('/', 1)[-1]!r} that is not among this book's downloads")
+        if target is not None and not target.exists():
+            out.append(f"{where}: JSON-LD URL does not resolve: {url}")
+    img = re.search(r'property="og:image" content="([^"]*)"', head)
+    if img:
+        target = _resolve_absolute(img.group(1), base, pages)
+        if target is not None and not target.exists():
+            out.append(f"{where}: og:image points at a missing cover: {img.group(1)}")
+    return out
+
+
+def _check_one_surface(page: Path, pages: Path, want: str, base: str,
+                       base_root: str, download_set: set) -> list[str]:
+    import json
+
+    where = page.relative_to(pages)
+    text = page.read_text(encoding="utf-8", errors="replace")
+    head_match = _HEAD.search(text)
+    head = head_match.group(0) if head_match else text
+
+    out = _check_canonical(where, head, base, base_root)
+    if 'property="og:title"' not in head:
+        out.append(f"{where}: no Open Graph title")
+    if 'name="twitter:card"' not in head:
+        out.append(f"{where}: no Twitter card")
+    try:
+        nodes = _jsonld_nodes(text)
+    except json.JSONDecodeError as exc:
+        out.append(f"{where}: JSON-LD is not valid JSON: {exc}")
+        nodes = []
+    out += _check_jsonld_identity(where, nodes, want)
+    out += _check_urls_resolve(where, nodes, head, base, pages, download_set)
+    if _PRIVATE_DATA.search(head) or commerce_secret(head):
+        out.append(f"{where}: page metadata leaks private build data or a secret")
+    return out
+
+
+def check_metadata(pages: Path, title: str, site_url: str,
+                   downloads: list[str]) -> list[str]:
+    """Every metadata surface declares honest identity (#158): a canonical URL
+    exactly when a site-url is configured (and pointing at it), Open Graph and
+    Twitter cards, valid JSON-LD that names this book (never a stale or foreign
+    one), a social image that resolves and is not claimed for a missing cover,
+    and no private build data anywhere in the head."""
+
+    import html as html_mod
+
+    want = html_mod.unescape(title)
+    base_root = (site_url or "").strip().rstrip("/")
+    base = (base_root + "/") if base_root else ""
+    download_set = set(downloads)
+
+    failures: list[str] = []
+    for page in _metadata_surfaces(pages):
+        failures += _check_one_surface(page, pages, want, base, base_root, download_set)
+    return failures
+
+
+def commerce_secret(text: str) -> bool:
+    from . import commerce
+
+    return bool(commerce._SECRET_MARKERS.search(text))
+
+
+def check_book_sitemap(pages: Path, site_url: str) -> list[str]:
+    """The book-site sitemap is explicit and deterministic (#158): present only
+    when a site-url is configured, every declared <loc> resolves to a real
+    file, and every metadata surface's canonical is listed."""
+
+    failures: list[str] = []
+    base_root = (site_url or "").strip().rstrip("/")
+    base = (base_root + "/") if base_root else ""
+    sitemap = pages / "sitemap.xml"
+
+    if not base:
+        if sitemap.is_file():
+            failures.append("a sitemap.xml was emitted but no site-url is configured")
+        return failures
+
+    if not sitemap.is_file():
+        return ["site-url is set but no sitemap.xml was emitted"]
+    locs = re.findall(r"<loc>([^<]+)</loc>", sitemap.read_text(encoding="utf-8", errors="replace"))
+    loc_set = set(locs)
+    for loc in locs:
+        target = _resolve_absolute(loc, base, pages)
+        if target is None:
+            failures.append(f"sitemap <loc> is not under the site-url: {loc}")
+        elif not target.exists():
+            failures.append(f"sitemap <loc> does not resolve to a file: {loc}")
+
+    for page in _metadata_surfaces(pages):
+        text = page.read_text(encoding="utf-8", errors="replace")
+        m = re.search(r'<link rel="canonical" href="([^"]*)"', text)
+        if m and m.group(1) not in loc_set:
+            failures.append(
+                f"{page.relative_to(pages)}: canonical {m.group(1)!r} is absent from the sitemap")
+    return failures
+
+
 def crawl(pages: Path, sentinels: list[str], downloads: list[str],
           title: str, commerce_config=None, site_url: str = "") -> list[str]:
     """Every defect found, as human-readable failure lines."""
@@ -220,6 +435,8 @@ def crawl(pages: Path, sentinels: list[str], downloads: list[str],
     failures += check_reading_surface(pages, sentinels, title)
     failures += check_commerce(pages, commerce_config)
     failures += check_landing_metadata(pages, title, site_url)
+    failures += check_metadata(pages, title, site_url, downloads)
+    failures += check_book_sitemap(pages, site_url)
     return failures
 
 

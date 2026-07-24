@@ -36,6 +36,12 @@ from typing import NamedTuple
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import check_layout  # noqa: E402  (sibling script, path set just above)
 
+# The one metadata emitter, shared with the book pipeline (#158). It is
+# stdlib-only, and press/__init__ imports nothing heavy, so the pandoc-only
+# docs runner can import it without the package's dependencies installed.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+from press import webmeta  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "build" / "site"
 
@@ -250,31 +256,75 @@ def page_description(source: str) -> str:
     return "The press: build, check, and verify books from Markdown."
 
 
+def _png_dims(path: Path) -> tuple[int, int] | None:
+    """Width and height from a PNG's IHDR, stdlib-only so the pandoc runner
+    needs no imaging library to give the social card verified dimensions."""
+
+    import struct
+
+    try:
+        header = path.read_bytes()[:24]
+    except OSError:
+        return None
+    if len(header) < 24 or header[:8] != b"\x89PNG\r\n\x1a\n":
+        return None
+    width, height = struct.unpack(">II", header[16:24])
+    return int(width), int(height)
+
+
+BRAND_CARD = "brand/press-lockup-reversed.png"
+
+
 def head_metadata(name: str, title: str, description: str) -> str:
-    """Canonical, Open Graph, and Twitter-card tags for one page, injected
-    into <head> so identity is declared, not inferred."""
+    """Canonical, Open Graph, Twitter-card, and JSON-LD tags for one page,
+    injected into <head> so identity is declared, not inferred (#158). Built
+    through the shared emitter so the docs site and the book surfaces speak
+    one metadata dialect. Description here comes from the plain
+    unescaped text; the emitter escapes."""
 
     import html as html_mod
 
-    canonical = SITE_URL if name == "index.html" else SITE_URL + name
-    social = SITE_URL + "brand/press-lockup-reversed.png"
-    t = html_mod.escape(title)
-    return "\n".join([
-        f'  <meta name="description" content="{description}" />',
-        f'  <link rel="canonical" href="{canonical}" />',
-        '  <link rel="icon" type="image/svg+xml" href="brand/press-favicon.svg" />',
-        '  <link rel="icon" type="image/png" href="brand/press-icon-ink.png" />',
-        '  <meta property="og:type" content="website" />',
-        '  <meta property="og:site_name" content="press" />',
-        f'  <meta property="og:title" content="{t}" />',
-        f'  <meta property="og:description" content="{description}" />',
-        f'  <meta property="og:url" content="{canonical}" />',
-        f'  <meta property="og:image" content="{social}" />',
-        '  <meta name="twitter:card" content="summary_large_image" />',
-        f'  <meta name="twitter:title" content="{t}" />',
-        f'  <meta name="twitter:description" content="{description}" />',
-        f'  <meta name="twitter:image" content="{social}" />',
-    ]) + "\n"
+    is_index = name == "index.html"
+    canonical = SITE_URL if is_index else SITE_URL + name
+    social = SITE_URL + BRAND_CARD
+    desc = html_mod.unescape(description)
+    dims = _png_dims(ROOT / "site" / BRAND_CARD) or (None, None)
+
+    node: dict[str, object]
+    if is_index:
+        node = {
+            "@context": "https://schema.org", "@type": "WebSite",
+            "name": "press", "url": SITE_URL, "description": desc,
+            "inLanguage": "en",
+        }
+    else:
+        node = {
+            "@context": "https://schema.org", "@type": "TechArticle",
+            "headline": title, "url": canonical, "description": desc,
+            "inLanguage": "en",
+            "isPartOf": {"@type": "WebSite", "name": "press", "url": SITE_URL},
+        }
+
+    fragment = webmeta.head_fragment(
+        base=SITE_URL,
+        title=title,
+        description=desc,
+        og_type="website",
+        site_name="press",
+        canonical=canonical,
+        image=social,
+        image_width=dims[0],
+        image_height=dims[1],
+        image_alt="The press imprint lockup",
+        description_meta=True,
+        jsonld=node,
+        indent="  ",
+    )
+    favicons = (
+        '  <link rel="icon" type="image/svg+xml" href="brand/press-favicon.svg" />\n'
+        '  <link rel="icon" type="image/png" href="brand/press-icon-ink.png" />\n'
+    )
+    return favicons + fragment + "\n"
 
 
 # ---- The gallery, generated from the example books themselves -------------
