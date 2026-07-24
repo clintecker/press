@@ -65,6 +65,32 @@ def _sentinel_failures(seen: set[Path]) -> list[str]:
     ]
 
 
+def _config_shape_failures(root: Path) -> list[str]:
+    """Prove the shape of every optional, build-consumed config file before
+    Pandoc or TeX runs. A file the typed model accepts but the renderer
+    dereferences (the index terms, the authorities ledger, the front matter,
+    the house rules) must fail here with a located diagnostic, not deep in a
+    generator with a bare TypeError."""
+
+    from . import config_schema, config_store
+
+    failures: list[str] = []
+    for file in config_schema.CHECKED_SHAPES:
+        path = root / file
+        if not path.is_file():
+            continue
+        try:
+            proposed = config_store.load(path)
+        except config_store.ConfigError as exc:
+            failures.append(str(exc))
+            continue
+        failures.extend(
+            f"{file}: {problem}"
+            for problem in config_schema.validate_file(root, file, proposed)
+        )
+    return failures
+
+
 def _plate_failures(root: Path, seen: set[Path]) -> list[str]:
     # A plate on disk that no manuscript file references ships in every
     # archive and the site while appearing in no book; orphans are
@@ -91,6 +117,7 @@ def main() -> int:
     failures.extend(commerce.failures())
     failures.extend(_sentinel_failures(seen))
     failures.extend(_plate_failures(root, seen))
+    failures.extend(_config_shape_failures(root))
 
     if failures:
         print("Source checks failed:")

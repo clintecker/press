@@ -33,6 +33,8 @@ METADATA = "config/metadata.yaml"
 HOUSE_RULES = "config/house-rules.yaml"
 FRONT_MATTER = "config/front-matter.yaml"
 AESTHETIC = "config/aesthetic.yaml"
+INDEX_TERMS = "config/index-terms.yaml"
+AUTHORITIES = "config/authorities.yaml"
 
 
 @dataclass(frozen=True)
@@ -233,9 +235,30 @@ def covers(path: str) -> Field | None:
 
 # ---- validation routing (the real authorities, on proposed data) -----
 
-def _validate_metadata(root: Path, proposed: dict) -> list[str]:
+def _shape_name(value: object) -> str:
+    """A human name for a YAML top-level shape, for a diagnostic that tells
+    an author what they wrote instead of the expected structure."""
+
+    if isinstance(value, dict):
+        return "a mapping"
+    if isinstance(value, list):
+        return "a list"
+    if isinstance(value, str):
+        return "a string"
+    if isinstance(value, bool):
+        return "a boolean"
+    if isinstance(value, (int, float)):
+        return "a number"
+    if value is None:
+        return "empty"
+    return type(value).__name__
+
+
+def _validate_metadata(root: Path, proposed: object) -> list[str]:
     from . import bookmodel, commerce, registrations
 
+    if not isinstance(proposed, dict):
+        return [f"must be a YAML mapping, not {_shape_name(proposed)}"]
     problems: list[str] = []
     try:
         bookmodel.load(root, dict(proposed))
@@ -246,9 +269,29 @@ def _validate_metadata(root: Path, proposed: dict) -> list[str]:
     return problems
 
 
-def _validate_house_rules(root: Path, proposed: dict) -> list[str]:
+def _validate_house_rules(root: Path, proposed: object) -> list[str]:
     from . import style_audit
 
+    if not isinstance(proposed, dict):
+        return [f"must be a YAML mapping, not {_shape_name(proposed)}"]
+    problems: list[str] = []
+    banned = proposed.get("banned-patterns")
+    if banned is not None and not isinstance(banned, dict):
+        problems.append(
+            f"banned-patterns must be a mapping of regex -> label, "
+            f"not {_shape_name(banned)}"
+        )
+    for key in ("jargon-allow", "audit-dirs"):
+        value = proposed.get(key)
+        if value is not None and (
+            not isinstance(value, list)
+            or not all(isinstance(item, str) for item in value)
+        ):
+            problems.append(f"{key} must be a list of strings")
+    if problems:
+        # A wrong shape would crash the regex compiler or the audit walk with
+        # a bare traceback; stop here rather than hand it a malformed value.
+        return problems
     try:
         style_audit.banned_book_patterns(dict(proposed))
     except SystemExit as exc:
@@ -256,32 +299,116 @@ def _validate_house_rules(root: Path, proposed: dict) -> list[str]:
     return []
 
 
-def _validate_none(root: Path, proposed: dict) -> list[str]:
-    # front-matter.yaml and aesthetic.yaml have no load-time validator; the
-    # build validates them in context. The registry's typed coercion is the
-    # guard for a scalar edit here.
+def _validate_front_matter(root: Path, proposed: object) -> list[str]:
+    # front-matter.yaml has no typed model, but the build dereferences it as a
+    # mapping (gen_front_matter) and reads epigraph as a nested mapping; a
+    # wrong shape here crashes the renderer with a bare AttributeError, so the
+    # shapes the generator touches are guarded at check time instead.
+    if proposed is None or proposed == {}:
+        return []
+    if not isinstance(proposed, dict):
+        return [f"must be a YAML mapping, not {_shape_name(proposed)}"]
+    epigraph = proposed.get("epigraph")
+    if epigraph is not None and not isinstance(epigraph, dict):
+        return [
+            "epigraph must be a mapping with quote and attribution, "
+            f"not {_shape_name(epigraph)}"
+        ]
     return []
 
 
-FILE_VALIDATORS: dict[str, Callable[[Path, dict], list[str]]] = {
+def _validate_index_terms(root: Path, proposed: object) -> list[str]:
+    """The subject-index ledger gen_index.py reads: a list of {term, match}
+    entries. A wrong shape (a terms: wrapper, bare strings) is accepted by no
+    other guard and crashes the renderer with `string indices must be
+    integers`; refuse it here with a located diagnostic."""
+
+    if proposed is None:
+        return []
+    if not isinstance(proposed, list):
+        return [
+            "must be a list of {term, match} entries, "
+            f"not {_shape_name(proposed)} (see docs/CONFIGURATION.md)"
+        ]
+    problems: list[str] = []
+    for index, entry in enumerate(proposed, start=1):
+        if not isinstance(entry, dict):
+            problems.append(
+                f"entry {index}: must be a mapping with term and match, "
+                f"not {_shape_name(entry)}"
+            )
+            continue
+        term = entry.get("term")
+        if not isinstance(term, str) or not term.strip():
+            problems.append(f"entry {index}: term is missing or empty")
+        match = entry.get("match")
+        if not isinstance(match, list) or not match:
+            problems.append(
+                f"entry {index}: match must be a non-empty list of strings"
+            )
+        elif not all(isinstance(alt, str) and alt.strip() for alt in match):
+            problems.append(f"entry {index}: every match alternative must be a string")
+    return problems
+
+
+def _validate_authorities(root: Path, proposed: object) -> list[str]:
+    """The claim ledger gen_authorities.py reads: a list of entries, each a
+    mapping with a non-empty claim and authority. The build additionally
+    proves each claim still appears in the text; this validates only the
+    shape, so a malformed ledger fails at check time with a located
+    diagnostic rather than deep in the appendix generator."""
+
+    if proposed is None:
+        return []
+    if not isinstance(proposed, list):
+        return [f"must be a list of claim entries, not {_shape_name(proposed)}"]
+    problems: list[str] = []
+    for index, entry in enumerate(proposed, start=1):
+        if not isinstance(entry, dict):
+            problems.append(
+                f"entry {index}: must be a mapping, not {_shape_name(entry)}"
+            )
+            continue
+        for key in ("claim", "authority"):
+            value = entry.get(key)
+            if not isinstance(value, str) or not value.strip():
+                problems.append(f"entry {index}: {key} is missing or empty")
+    return problems
+
+
+def _validate_none(root: Path, proposed: object) -> list[str]:
+    # aesthetic.yaml has no load-time validator; the build validates it in
+    # context. The registry's typed coercion is the guard for a scalar edit.
+    return []
+
+
+FILE_VALIDATORS: dict[str, Callable[[Path, object], list[str]]] = {
     METADATA: _validate_metadata,
     HOUSE_RULES: _validate_house_rules,
-    FRONT_MATTER: _validate_none,
+    FRONT_MATTER: _validate_front_matter,
     AESTHETIC: _validate_none,
+    INDEX_TERMS: _validate_index_terms,
+    AUTHORITIES: _validate_authorities,
 }
 
+# The optional, build-consumed config files whose shape `press check` proves
+# before a byte is rendered: files a malformed edit could otherwise sneak past
+# check and crash the renderer on. (metadata is already checked by
+# check_source and registrations; aesthetic has no crashing dereference.)
+CHECKED_SHAPES: tuple[str, ...] = (INDEX_TERMS, AUTHORITIES, FRONT_MATTER, HOUSE_RULES)
 
-def validate_file(root: Path, file: str, proposed: dict) -> list[str]:
+
+def validate_file(root: Path, file: str, proposed: object) -> list[str]:
     """Run the real validator for a config file against a proposed
     document, returning every problem (empty when it would be accepted).
 
     The proposed document is read back through the package's plain loader
     first, so the validator judges the parsed types that will land on disk
-    (a quoted number as a string, a bare number as an int), not ruamel's
-    round-trip nodes."""
+    (a quoted number as a string, a bare number as an int, a top-level list
+    that stays a list), not ruamel's round-trip nodes."""
 
-    from . import config_store
+    from . import config_store, yamlio
 
-    plain = config_store.as_build_reads(proposed)
+    plain = yamlio.loads(config_store.dumps(proposed))
     validator = FILE_VALIDATORS.get(file, _validate_none)
     return validator(root, plain)
