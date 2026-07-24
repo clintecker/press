@@ -123,6 +123,12 @@ Deterministic and explicit, with no ambient step:
 1. **Discover.** Registries are read from disk in sorted order
    (`glob("*.yaml")` sorted, registry declaration order). Discovery is a
    function of what files exist, never of import or entry-point order.
+   Under `contract-major: 3` a second source follows the first: the
+   extensions the *book* declares in `config/extensions.yaml`, each resolved
+   from its installed distribution and read as packaged data, in sorted
+   extension-name order. Still never entry-point order, and still never a
+   scan -- see
+   [the third-party decision record](THIRD-PARTY-EXTENSIONS-PLAN.md).
 2. **Parse.** `load_manifest` turns the mapping into a `Manifest`, refusing
    anything structurally malformed (a missing or mistyped required key) at
    the parser boundary.
@@ -210,10 +216,18 @@ press no longer honors.
 
 ## What this contract deliberately does not do
 
-It does not admit a code extension — no hook, no callback, no imported
-plugin — because that is the accidental plugin API
+Under `contract-major: 2` it does not admit a code extension — no hook, no
+callback, no imported plugin — because that is the accidental plugin API
 [#171](https://github.com/clintecker/press/issues/171) was opened to
-prevent. Everything an extension contributes is a declaration validated
-before it runs. If a future need genuinely cannot be met by a declarative
-registry entry, that is a new decision record and a new major, not a hook
-slipped in under this one.
+prevent. Everything a `2` extension contributes is a declaration validated
+before it runs, and that stays true of every `2` manifest forever.
+
+The clause above also anticipated its own successor: a need that genuinely
+cannot be met by a declarative registry entry "is a new decision record and
+a new major, not a hook slipped in under this one." That need arrived — a
+third-party *artifact family* requires a builder and a verifier, and both are
+code — and it was answered in the open, as required, by
+[the third-party extensions decision record](THIRD-PARTY-EXTENSIONS-PLAN.md)
+and the `contract-major: 3` it defines. Code arrives there as **declared,
+typed callables** returning the ordinary receipt and report, held to the
+press's own import, containment, and collision guards; not as a hook.

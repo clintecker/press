@@ -119,6 +119,9 @@ NOT_PUBLISHED = {
     "docs/EXTENSION-CONTRACT.md": "implementer-facing spec for extending the press "
                                   "itself; lives in the repo for the few who write an "
                                   "extension, not on a site written for authors",
+    "docs/THIRD-PARTY-EXTENSIONS-PLAN.md": "internal decision record for the v3 "
+                                           "extension contract; lives in the repo and "
+                                           "issues, not the docs site",
 }
 
 
