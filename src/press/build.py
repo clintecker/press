@@ -264,6 +264,145 @@ def recompress_images(target: Path) -> None:
         image.save(path, quality=70, optimize=True)
 
 
+def _image_dims(path: Path) -> tuple[int, int] | None:
+    """Pixel dimensions of an image, or None if it cannot be read. Social
+    cards must carry verified dimensions, so this reads the real file rather
+    than trusting a declared size."""
+
+    if not path.is_file():
+        return None
+    try:
+        from PIL import Image
+
+        with Image.open(path) as image:
+            return int(image.width), int(image.height)
+    except Exception:
+        return None
+
+
+def _first_paragraph_text(html_text: str) -> str:
+    """The visible text of a reader page's first body paragraph, for a
+    per-page meta description. Derived from the built page, not hand-kept, so
+    it cannot drift from what the chapter actually says."""
+
+    import html as html_mod
+
+    body = re.search(r'<main id="content">(.*?)</main>', html_text, re.S)
+    region = body.group(1) if body else html_text
+    for match in re.finditer(r"<p[^>]*>(.*?)</p>", region, re.S):
+        text = re.sub(r"<[^>]+>", " ", match.group(1))
+        text = html_mod.unescape(" ".join(text.split()))
+        if len(text) < 20:
+            continue
+        if len(text) > 157:
+            text = text[:157].rsplit(" ", 1)[0] + "..."
+        return text
+    return ""
+
+
+def _reader_page_title(html_text: str) -> str:
+    """The chapter/page heading pandoc wrote into the reader page's <title>."""
+
+    import html as html_mod
+
+    match = re.search(r"<title>(.*?)</title>", html_text, re.S)
+    return html_mod.unescape(match.group(1).strip()) if match else ""
+
+
+def _reader_jsonld(book, is_index: bool, page_title: str, canonical: str,
+                   read_base: str, desc: str, has_cover: bool):
+    """The structured node for one reader page: a Book on the index (consistent
+    with the landing's identity), an Article that isPartOf that Book on a
+    chapter, plus a BreadcrumbList when there is a public base to point at."""
+
+    identity: dict = {"@type": "Book", "name": book.title, "inLanguage": "en"}
+    if book.authors:
+        identity["author"] = [{"@type": "Person", "name": a} for a in book.authors]
+    if book.publisher:
+        identity["publisher"] = {"@type": "Organization", "name": book.publisher}
+
+    if is_index:
+        node = dict(identity)
+        node["@context"] = "https://schema.org"
+        if desc:
+            node["description"] = desc
+        if book.year:
+            node["datePublished"] = book.year
+        if canonical:
+            node["url"] = canonical
+        if canonical and has_cover:
+            node["image"] = read_base + "cover.jpg"
+        return node
+
+    article: dict = {
+        "@context": "https://schema.org", "@type": "Article",
+        "headline": page_title or book.title, "inLanguage": "en",
+        "isPartOf": identity,
+    }
+    if desc:
+        article["description"] = desc
+    if canonical:
+        article["url"] = canonical
+    if book.authors:
+        article["author"] = [{"@type": "Person", "name": a} for a in book.authors]
+    if not canonical:
+        return article
+    breadcrumb = {
+        "@context": "https://schema.org", "@type": "BreadcrumbList",
+        "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": book.title,
+             "item": read_base + "index.html"},
+            {"@type": "ListItem", "position": 2, "name": page_title or book.title,
+             "item": canonical},
+        ],
+    }
+    return [article, breadcrumb]
+
+
+def inject_reader_metadata(site_dir: Path, book) -> None:
+    """Post-pandoc pass: give every reader page its canonical/OG/JSON-LD.
+
+    Pandoc's chunked writer owns each page's <head>, so identity is stamped
+    here after the fact (mirroring how the docs-site builder post-processes a
+    pandoc render). The reader is served under ``read/`` on the public site,
+    so canonicals are absolute against ``site-url + read/`` -- and omitted
+    entirely on an offline build, where the shared emitter claims no URL.
+    """
+
+    from . import webmeta
+
+    base = (book.site_url or "").strip()
+    read_base = (base.rstrip("/") + "/read/") if base else ""
+    has_cover = (site_dir / "cover.jpg").is_file()
+
+    for page in sorted(site_dir.glob("*.html")):
+        text = page.read_text(encoding="utf-8")
+        is_index = page.name == "index.html"
+        canonical = (read_base + page.name) if read_base else ""
+        if is_index:
+            desc = str(book.description or "").strip()
+            page_title = book.title
+        else:
+            desc = _first_paragraph_text(text)
+            page_title = _reader_page_title(text) or book.title
+        node = _reader_jsonld(
+            book, is_index, page_title, canonical, read_base, desc, has_cover)
+        fragment = webmeta.head_fragment(
+            base=read_base,
+            title=page_title,
+            description=desc,
+            og_type="book" if is_index else "article",
+            site_name=book.publisher or "",
+            canonical=canonical,
+            image=(read_base + "cover.jpg") if (read_base and has_cover) else "",
+            image_alt=f"Cover of {book.title}" if has_cover else "",
+            jsonld=node,
+        )
+        if fragment:
+            text = text.replace("</head>", fragment + "\n</head>", 1)
+            page.write_text(text, encoding="utf-8")
+
+
 def site_stylesheet() -> str:
     """The reader stylesheet, with the book in charge of every layer.
 
@@ -311,6 +450,9 @@ def site_build(output_dir: str) -> None:
     if woodcuts.is_dir():
         shutil.copytree(woodcuts, out / "assets" / "woodcuts", dirs_exist_ok=True)
     recompress_images(out)
+    # Stamp canonical/OG/JSON-LD onto every reader page (#158); a no-op for
+    # the URL-shaped tags on an offline build with no site-url.
+    inject_reader_metadata(out, booklib.book())
     archive = root / "dist" / f"{booklib.slug()}-site"
     if archive.with_suffix(".zip").exists():
         archive.with_suffix(".zip").unlink()
@@ -367,36 +509,6 @@ _SCHEMA_FORMATS = {
 }
 
 
-def _landing_social_tags(book, base: str, desc: str, has_cover: bool) -> list[str]:
-    """Open Graph and Twitter-card tags; a canonical/og:url and og:image only
-    when a site-url (and cover) exists, so nothing is invented."""
-
-    import html as html_mod
-
-    def esc(value: str) -> str:
-        return html_mod.escape(str(value or ""), quote=True)
-
-    tags = [
-        '<meta property="og:type" content="book">',
-        f'<meta property="og:title" content="{esc(book.title)}">',
-        '<meta name="twitter:card" content="summary_large_image">',
-        f'<meta name="twitter:title" content="{esc(book.title)}">',
-    ]
-    if desc:
-        tags.append(f'<meta property="og:description" content="{esc(desc)}">')
-        tags.append(f'<meta name="twitter:description" content="{esc(desc)}">')
-    if book.publisher:
-        tags.append(f'<meta property="og:site_name" content="{esc(book.publisher)}">')
-    for author in book.authors:
-        tags.append(f'<meta property="book:author" content="{esc(author)}">')
-    if base:
-        tags.append(f'<link rel="canonical" href="{esc(base)}">')
-        tags.append(f'<meta property="og:url" content="{esc(base)}">')
-        if has_cover:
-            tags.append(f'<meta property="og:image" content="{esc(base + "cover.jpg")}">')
-    return tags
-
-
 def _landing_jsonld(book, base: str, desc: str, has_cover: bool,
                     format_names: list[str]) -> dict:
     """A schema.org Book node carrying only the facts the book actually has."""
@@ -429,27 +541,37 @@ def _landing_jsonld(book, base: str, desc: str, has_cover: bool,
     return node
 
 
-def landing_head_metadata(book, has_cover: bool, format_names: list[str]) -> str:
+def landing_head_metadata(book, has_cover: bool, format_names: list[str],
+                          cover_dims: tuple[int, int] | None = None) -> str:
     """Canonical, social-card, and schema.org JSON-LD for the book's landing
     page, generated from the book's own config (#158). No fact is invented: a
     canonical/og:url and og:image appear only when a `site-url` is set (and a
     cover exists); absent facts are simply omitted, so an offline build never
-    claims a false canonical URL."""
+    claims a false canonical URL. The shared emitter (webmeta) enforces the
+    no-public-base law; this only assembles the book's facts."""
 
-    import json
+    from . import webmeta
 
     base = (book.site_url or "").strip()
     base = (base.rstrip("/") + "/") if base else ""
     desc = str(book.description or "").strip()
+    width, height = cover_dims if cover_dims else (None, None)
 
-    tags = _landing_social_tags(book, base, desc, has_cover)
     node = _landing_jsonld(book, base, desc, has_cover, format_names)
-    tags.append(
-        '<script type="application/ld+json">\n'
-        + json.dumps(node, ensure_ascii=False, indent=2)
-        + "\n</script>"
+    return webmeta.head_fragment(
+        base=base,
+        title=book.title,
+        description=desc,
+        og_type="book",
+        site_name=book.publisher or "",
+        canonical=base,
+        image=(base + "cover.jpg") if (base and has_cover) else "",
+        image_width=width if has_cover else None,
+        image_height=height if has_cover else None,
+        image_alt=f"Cover of {book.title}" if has_cover else "",
+        extra_properties=[("book:author", author) for author in book.authors],
+        jsonld=node,
     )
-    return "\n".join(tags)
 
 
 def pages_build(output_dir: str) -> None:
@@ -518,10 +640,12 @@ def pages_build(output_dir: str) -> None:
     commerce_block = commerce_mod.render(commerce_mod.load(meta))
 
     template = (booklib.DATA / "web" / "index-template.html").read_text(encoding="utf-8")
+    has_cover = (root / "assets" / "cover.jpg").is_file()
     head_meta = landing_head_metadata(
         booklib.book(),
-        has_cover=(root / "assets" / "cover.jpg").is_file(),
+        has_cover=has_cover,
         format_names=list(download_names()),
+        cover_dims=_image_dims(root / "assets" / "cover.jpg") if has_cover else None,
     )
     replacements = {
         "{{TITLE}}": title,
@@ -577,7 +701,46 @@ def pages_build(output_dir: str) -> None:
                 "(silent gaps in the public downloads are not allowed)"
             )
         shutil.copy(source, downloads / name)
+    _write_book_sitemap(out, booklib.book())
     print(f"+ assembled pages site -> {output_dir}")
+
+
+def book_sitemap_locs(out: Path, book) -> list[str]:
+    """The absolute URLs of every indexable HTML surface on the book site:
+    the landing page and every reader page. Empty when no `site-url` is set,
+    so a preview/offline build declares no sitemap at all (#158)."""
+
+    base = (book.site_url or "").strip()
+    if not base:
+        return []
+    base = base.rstrip("/") + "/"
+    locs = [base]
+    read = out / "read"
+    if read.is_dir():
+        for page in sorted(read.glob("*.html")):
+            locs.append(base + "read/" + page.name)
+    return locs
+
+
+def _write_book_sitemap(out: Path, book) -> None:
+    """A sitemap.xml and robots.txt for the book site, absolute against
+    `site-url` and emitted only on a release build that has one. A
+    preview/offline build gets neither, so it never advertises URLs it is not
+    served from."""
+
+    locs = book_sitemap_locs(out, book)
+    if not locs:
+        return
+    base = (book.site_url or "").strip().rstrip("/") + "/"
+    entries = "\n".join(f"  <url><loc>{loc}</loc></url>" for loc in locs)
+    (out / "sitemap.xml").write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f"{entries}\n</urlset>\n",
+        encoding="utf-8")
+    (out / "robots.txt").write_text(
+        f"User-agent: *\nAllow: /\nSitemap: {base}sitemap.xml\n",
+        encoding="utf-8")
 
 
 def _write_policy_pages(out, meta, book) -> None:

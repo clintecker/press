@@ -45,6 +45,7 @@ modules:
       run: adapter
       subtitle_stack_html: pure
       download_names: pure
+      book_sitemap_locs: pure
   catalog: {default: pure, overrides: {render_usage: producer, render_global_help: producer, render_command_help: producer}}
   check_source: verifier
   check_the_checkers: verifier
@@ -90,8 +91,9 @@ modules:
   verify_archives: verifier
   verify_coverwrap: {default: verifier, overrides: {render: adapter}}
   verify_formats: {default: verifier, overrides: {normalized: normalizer, manuscript_witness: pure, chapter_witnesses: pure, docx_visible_text: parser, sentinel_present: pure, plate_count: pure}}
-  verify_pages: {default: verifier, overrides: {scan_page: parser, check_refs: pure, check_downloads: pure, check_reading_surface: verifier}}
+  verify_pages: {default: verifier, overrides: {scan_page: parser, check_refs: pure, check_downloads: pure, check_reading_surface: verifier, commerce_secret: pure}}
   verify_pdf: {default: verifier, overrides: {run_capture: adapter, looks_blank: pure, ink_bbox: pure, edge_has_ink: pure, parse_args: parser}}
+  webmeta: pure
   wordcount: presenter
   yamlio: {default: parser, overrides: {dump: producer, write: producer}}
 
