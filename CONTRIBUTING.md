@@ -44,6 +44,29 @@ the live second-party proofs — runs on push and on a release tag. Do not run
 `scripts/coverage_ratchet.py --update`: it re-measures on your machine and
 can push the committed baselines above the floor CI enforces.
 
+## What a proof has to prove
+
+Coverage measures that a line *ran*, not that its output was *right*. A branch
+can execute under an integration test whose only assertion is "it built" — and
+ship a wrong result. That is exactly how a title-page generator shipped a
+dropped and a clipped cover at 11.5% coverage: the lines ran, the artifact was
+never inspected.
+
+So the bar is the artifact, not the line count:
+
+- **Assert what the code produces, not that it ran.** A test for output-making
+  code checks a property of the output (the cover is on page 1; the spine width
+  equals the computed value), not merely that the function returned.
+- **A producer is only proven by a verifier that rejects a broken artifact.**
+  Every module classified `producer` in `quality/surfaces.yaml` must name that
+  rejection in `PRODUCER_REJECTION_PROOFS` (or sit, visibly, on the shrinking
+  pending list); the selftest enforces it. Add a producer, and you add the
+  known-bad case its verifier turns red on.
+- **A verifier with no known-bad fixture is an untested claim.** Prove a check
+  by feeding it something that must fail, not only something that passes.
+- **A low coverage floor is a decision on the record.** Below 50% a module must
+  give its reason in `LOW_FLOOR_ALLOWED`; the floor is not a place for silence.
+
 ## Filing and proposing
 
 Open issues through the [issue forms](https://github.com/clintecker/press/issues/new/choose)
