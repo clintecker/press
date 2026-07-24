@@ -1,12 +1,13 @@
-# Pull requests that touch the toolchain build the image and smoke it
-# with read-only permissions and no registry credentials: PR jobs
-# build contributor-controlled Dockerfile changes, so they hold no
-# package-write surface at all. Main builds once, smokes that exact
-# local image, and only then logs in and pushes the very same image
-# object with docker push, never a second build, so the published
-# digest is mechanically the digest that passed. The smoke itself
-# lives in scripts/toolchain_smoke.sh, shared by both paths so they
-# cannot drift.
+# The toolchain image is multi-arch: native amd64 (CI) and native arm64
+# (Apple Silicon dev machines). Each architecture is built AND smoked on its
+# own native runner -- never under emulation -- so the "smoke the exact bytes,
+# then push that same object" invariant holds per architecture: the published
+# per-arch digest is mechanically the digest that passed its native smoke.
+# A final manifest job assembles :latest and :sha-<SHA> as a manifest list over
+# the two smoked per-arch images, so `docker run` resolves the host's arch
+# (arm64 on a Mac, amd64 in CI) with no qemu. Pull requests build and smoke
+# both arches with no credentials and no push. The smoke lives in
+# scripts/toolchain_smoke.sh, shared by both paths so they cannot drift.
 
 name: Build toolchain image
 
@@ -34,32 +35,22 @@ permissions:
   contents: read
 
 jobs:
-  smoke:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Build for smoke (no push, no credentials)
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
-        with:
-          context: .
-          push: false
-          load: true
-          tags: press-toolchain:candidate
-      - name: Smoke the candidate
-        run: scripts/toolchain_smoke.sh press-toolchain:candidate "$PWD"
-
-  publish:
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-24.04
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Build once
+      - name: Build for smoke (native ${{ matrix.arch }}, no push, no credentials)
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
@@ -68,23 +59,48 @@ jobs:
           tags: press-toolchain:candidate
       - name: Smoke the exact image that will publish
         run: scripts/toolchain_smoke.sh press-toolchain:candidate "$PWD"
-      - name: Log in to GHCR (after the smoke, never before)
+      - name: Log in to GHCR (main only, after the smoke, never before)
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Publish the smoked image object
+      - name: Push the smoked per-arch image object (main only)
+        if: github.event_name != 'pull_request'
         run: |
-          # docker push of the same local image, never a second build:
-          # the pushed layers are byte-for-byte the layers that passed.
+          # docker push of the same local image, never a second build: the
+          # pushed layers are byte-for-byte the layers that passed the smoke.
           smoked_id=$(docker image inspect -f '{{.Id}}' press-toolchain:candidate)
-          docker tag press-toolchain:candidate ghcr.io/clintecker/press-toolchain:latest
-          docker tag press-toolchain:candidate "ghcr.io/clintecker/press-toolchain:sha-$GITHUB_SHA"
-          docker push ghcr.io/clintecker/press-toolchain:latest
-          docker push "ghcr.io/clintecker/press-toolchain:sha-$GITHUB_SHA"
-          published_id=$(docker image inspect -f '{{.Id}}' "ghcr.io/clintecker/press-toolchain:sha-$GITHUB_SHA")
-          test "$smoked_id" = "$published_id" || { echo "published image is not the smoked image"; exit 1; }
-          digest=$(docker image inspect -f '{{index .RepoDigests 0}}' "ghcr.io/clintecker/press-toolchain:sha-$GITHUB_SHA" || true)
-          echo "smoked image id: $smoked_id"
-          echo "published: $digest"
+          tag="ghcr.io/clintecker/press-toolchain:sha-${GITHUB_SHA}-${{ matrix.arch }}"
+          docker tag press-toolchain:candidate "$tag"
+          docker push "$tag"
+          published_id=$(docker image inspect -f '{{.Id}}' "$tag")
+          test "$smoked_id" = "$published_id" || { echo "published != smoked"; exit 1; }
+          echo "smoked and published ${{ matrix.arch }}: $smoked_id"
+
+  manifest:
+    # Only after both architectures are smoked and pushed: assemble the
+    # consumable tags as a manifest list over the two per-arch images.
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Assemble :latest and :sha-<SHA> from the two smoked images
+        run: |
+          repo=ghcr.io/clintecker/press-toolchain
+          amd="$repo:sha-${GITHUB_SHA}-amd64"
+          arm="$repo:sha-${GITHUB_SHA}-arm64"
+          for tag in "latest" "sha-${GITHUB_SHA}"; do
+            docker buildx imagetools create -t "$repo:$tag" "$amd" "$arm"
+          done
+          docker buildx imagetools inspect "$repo:sha-${GITHUB_SHA}"
