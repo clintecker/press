@@ -23,6 +23,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install pandoc
         run: sudo apt-get update -q && sudo apt-get install -y --no-install-recommends pandoc
+      # The browser layout regression (scripts/check_layout.py) drives headless
+      # Chrome over the built pages to prove the sidebar never overlaps the
+      # prose (issue #195). The ubuntu-24.04 image ships google-chrome-stable;
+      # confirm it is present so a missing browser is a loud failure, not a
+      # silent skip, before the required check runs below.
+      - name: Confirm headless Chrome is available
+        run: google-chrome --version
       # The gallery shows each example book's real output. Building a PDF needs
       # the full toolchain, so it happens in the toolchain image, not on this
       # pandoc-only runner. The result is cached on the content of the examples
@@ -53,7 +60,12 @@ jobs:
               rc=$?
               chown -R "$HOST_UID:$HOST_GID" build 2>/dev/null || true
               exit $rc'
-      - run: python3 scripts/build_site.py
+      - name: Build the site and run the browser layout regression
+        # PRESS_REQUIRE_BROWSER_CHECK turns a missing browser into a hard
+        # failure, so the layout check can never be silently skipped in CI.
+        env:
+          PRESS_REQUIRE_BROWSER_CHECK: "1"
+        run: python3 scripts/build_site.py
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: build/site
