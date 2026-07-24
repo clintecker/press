@@ -10,6 +10,7 @@ press.
 
 from __future__ import annotations
 
+import contextlib
 import importlib
 import pkgutil
 import re
@@ -93,8 +94,9 @@ def check_imports() -> None:
     modules (adapters, providers, desk) are importable, not only the
     top-level ones a filename glob would find -- the gap where a nested
     module could ship unimportable while the selftest stayed green. It
-    proves importability alone: not that a module is wired into any
-    pipeline, nor that its import is free of side effects beyond loading."""
+    proves importability and a single deterministic import; that an import
+    is free of forbidden side effects is proven separately, by
+    check_import_side_effects."""
 
     import press
 
@@ -113,6 +115,155 @@ def check_imports() -> None:
             "unimported"
         )
     _import_module_names(modules())
+
+
+class _ForbiddenImportSideEffect(Exception):
+    """Raised by the import sandbox the instant a module, while being
+    imported, reaches for the network, spawns a subprocess, or writes a
+    file. Importing a runtime module must load code, not do work."""
+
+
+@contextlib.contextmanager
+def _import_sandbox():
+    """Trap the forbidden import-time side effects for the duration of the
+    block: a network connection, a spawned subprocess, or a filesystem
+    write. Constructing a socket or a Path is fine; *connecting* it,
+    *running* it, or *writing* through it is the side effect, so the guard
+    sits on the acting call, not the object. Bytecode caching writes go
+    through the import system's own low-level path (os.replace), not these
+    Python-level APIs, so a normal import does not trip the guard."""
+
+    import builtins
+    import os
+    import socket
+    import subprocess
+
+    write_modes = ("w", "a", "x", "+")
+    real_open = builtins.open
+    real_connect = socket.socket.connect
+    real_connect_ex = socket.socket.connect_ex
+    real_create_connection = socket.create_connection
+    real_popen_init = subprocess.Popen.__init__
+    real_system = os.system
+    real_write_text = Path.write_text
+    real_write_bytes = Path.write_bytes
+
+    def guard_open(file, mode="r", *args, **kwargs):
+        if isinstance(mode, str) and any(flag in mode for flag in write_modes):
+            raise _ForbiddenImportSideEffect(f"opened {file!r} for writing at import")
+        return real_open(file, mode, *args, **kwargs)
+
+    def guard_connect(self, address, *args, **kwargs):
+        raise _ForbiddenImportSideEffect(f"opened a network connection to {address!r} at import")
+
+    def guard_connect_ex(self, address, *args, **kwargs):
+        raise _ForbiddenImportSideEffect(f"opened a network connection to {address!r} at import")
+
+    def guard_create_connection(address, *args, **kwargs):
+        raise _ForbiddenImportSideEffect(f"opened a network connection to {address!r} at import")
+
+    def guard_popen(self, *args, **kwargs):
+        command = args[0] if args else kwargs.get("args")
+        raise _ForbiddenImportSideEffect(f"spawned a subprocess {command!r} at import")
+
+    def guard_system(command):
+        raise _ForbiddenImportSideEffect(f"ran a shell command {command!r} at import")
+
+    def guard_write_text(self, *args, **kwargs):
+        raise _ForbiddenImportSideEffect(f"wrote a file {str(self)!r} at import")
+
+    def guard_write_bytes(self, *args, **kwargs):
+        raise _ForbiddenImportSideEffect(f"wrote a file {str(self)!r} at import")
+
+    builtins.open = guard_open
+    socket.socket.connect = guard_connect
+    socket.socket.connect_ex = guard_connect_ex
+    socket.create_connection = guard_create_connection
+    subprocess.Popen.__init__ = guard_popen
+    os.system = guard_system
+    Path.write_text = guard_write_text
+    Path.write_bytes = guard_write_bytes
+    try:
+        yield
+    finally:
+        builtins.open = real_open
+        socket.socket.connect = real_connect
+        socket.socket.connect_ex = real_connect_ex
+        socket.create_connection = real_create_connection
+        subprocess.Popen.__init__ = real_popen_init
+        os.system = real_system
+        Path.write_text = real_write_text
+        Path.write_bytes = real_write_bytes
+
+
+def _prove_no_import_side_effects(names: list[str]) -> str | None:
+    """Re-execute each named module's body under the import sandbox, in the
+    given order, returning the first module that reaches for the network,
+    spawns a subprocess, or writes a file at import -- named, with the
+    effect -- or None when every one is clean. Each module is dropped from
+    sys.modules first so its body actually runs again (a cached import is a
+    no-op that would prove nothing), then sys.modules is restored so the
+    proof does not disturb the process that ran it. Meant to run in a fresh
+    interpreter, where the drop-and-reimport starts from the module's real
+    import-time state."""
+
+    saved = {name: sys.modules[name] for name in names if name in sys.modules}
+    for name in names:
+        sys.modules.pop(name, None)
+    try:
+        with _import_sandbox():
+            for name in names:
+                try:
+                    importlib.import_module(name)
+                except _ForbiddenImportSideEffect as exc:
+                    return f"{name}: {exc}"
+    finally:
+        for name in names:
+            sys.modules.pop(name, None)
+        sys.modules.update(saved)
+    return None
+
+
+def _side_effect_probe() -> int:
+    """The body of the fresh-interpreter subprocess check_import_side_effects
+    spawns: prove every distributable module imports without a forbidden
+    side effect, printing the offending module if one does."""
+
+    import press  # noqa: F401  (ensures the package resolves before discovery)
+
+    offender = _prove_no_import_side_effects(modules())
+    if offender is not None:
+        print(offender)
+        return 1
+    return 0
+
+
+def check_import_side_effects() -> None:
+    """Every distributable runtime module imports without a forbidden
+    side effect: no network connection, no spawned subprocess, no
+    filesystem write while the module body runs. Importing a module must
+    load code, not do work -- an import that phones home or writes to disk
+    makes the pipeline non-deterministic and unsafe to run in a sandbox.
+    The proof runs in a fresh interpreter so each module body truly
+    re-executes under the sandbox and the isolation cannot disturb this
+    selftest. Clock reads and environment lookups are not trapped: they
+    neither corrupt state nor leak on their own at import time."""
+
+    import subprocess
+
+    probe = (
+        "import sys; from press import selftest; "
+        "sys.exit(selftest._side_effect_probe())"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", probe], capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        detail = (result.stdout + result.stderr).strip()
+        raise SystemExit(
+            "selftest: a module has a forbidden import-time side effect "
+            f"(network, subprocess, or filesystem write):\n  {detail}"
+        )
 
 
 # The slug invariant's evidence, stated once: the pytest suite
@@ -1317,6 +1468,7 @@ def check_producers_are_verified() -> None:
 # cannot disagree about which invariants the press proves.
 CHECKS = [
     check_imports,
+    check_import_side_effects,
     check_arithmetic,
     check_slug_invariant,
     check_source_policy,

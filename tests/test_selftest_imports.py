@@ -121,6 +121,67 @@ def test_broken_nested_package_fails_discovery_rather_than_shrinking_it(syntheti
     assert "init exploded" in str(exc.value.__cause__)
 
 
+@pytest.mark.invariant("INV-pkg-import-inventory")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
+@pytest.mark.parametrize("effect, body, needle", [
+    ("filesystem write",
+     "from pathlib import Path; Path('scratch.txt').write_text('x')\n",
+     "wrote a file"),
+    ("builtin open for write",
+     "open('scratch.txt', 'w').close()\n",
+     "for writing"),
+    ("spawned subprocess",
+     "import subprocess; subprocess.run(['true'])\n",
+     "spawned a subprocess"),
+    ("shell command",
+     "import os; os.system('true')\n",
+     "ran a shell command"),
+    ("network connection",
+     "import socket; socket.create_connection(('127.0.0.1', 9))\n",
+     "network connection"),
+])
+def test_forbidden_import_side_effect_is_named_and_refused(
+        synthetic_package, effect, body, needle):
+    """The invariant's teeth: a module that reaches for the network, spawns
+    a subprocess, or writes a file *while being imported* is caught by the
+    sandbox and named -- the guard sits on the acting call, so the effect is
+    trapped before it happens (the socket never connects, the file is never
+    written), never merely observed after the damage. The leaf is only ever
+    imported inside the sandbox, so the effect cannot escape into the test
+    run."""
+
+    # Empty __init__: discovery finds the leaf without importing it, so the
+    # side effect fires only under the sandbox, never when the package loads.
+    pkg = synthetic_package("hostilefx", {"leaf.py": body})
+    names = selftest._discover_package_modules(pkg)
+    assert names == ["hostilefx.leaf"]
+    offender = selftest._prove_no_import_side_effects(names)
+    assert offender is not None, f"{effect} slipped past the import sandbox"
+    assert offender.startswith("hostilefx.leaf"), offender
+    assert needle in offender, offender
+
+
+@pytest.mark.invariant("INV-pkg-import-inventory")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("positive")
+def test_side_effect_free_import_passes_the_sandbox(synthetic_package):
+    """A module that only defines names -- constructing a Path or a socket
+    without acting on it -- is not a side effect and passes clean."""
+
+    pkg = synthetic_package("cleanfx", {
+        "leaf.py": (
+            "from pathlib import Path\n"
+            "import socket\n"
+            "HANDLE = Path('never-written.txt')\n"
+            "SOCK = socket.socket(); SOCK.close()\n"
+            "VALUE = 2 + 2\n"
+        ),
+    })
+    names = selftest._discover_package_modules(pkg)
+    assert selftest._prove_no_import_side_effects(names) is None
+
+
 def test_import_side_effect_runs_once_in_deterministic_order(synthetic_package, monkeypatch):
     """Each module body executes exactly once, in sorted order, even when a
     name is offered twice -- the import gate does not re-run side effects."""
@@ -193,6 +254,8 @@ def test_built_wheel_imports_every_nested_module_outside_checkout(tmp_path):
         "assert any('.providers.' in m for m in ms), 'no providers module discovered';"
         "assert any('.desk.' in m for m in ms), 'no desk module discovered';"
         "selftest.check_imports();"
+        "assert selftest._prove_no_import_side_effects(ms) is None, "
+        "selftest._prove_no_import_side_effects(ms);"
         "print('IMPORTS_OK', len(ms))"
     )
     result = subprocess.run(
