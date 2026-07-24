@@ -37,6 +37,7 @@ modules:
     default: parser
     overrides:
       validate_slug: pure
+      plate_files: pure
       require_release_witnesses: verifier
   bookmodel: parser
   build:

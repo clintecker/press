@@ -54,7 +54,7 @@ def book_inputs() -> list[str]:
 
 
 def woodcut_count() -> int:
-    return len(list((booklib.root() / "assets" / "woodcuts").glob("*.jpg")))
+    return len(booklib.plate_files(booklib.root() / "assets" / "woodcuts"))
 
 
 def _resolve_entry(value: str) -> str | None:

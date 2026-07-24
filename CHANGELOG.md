@@ -9,6 +9,17 @@ audit).
 
 ## [Unreleased]
 
+### Changed
+
+- **The plate pipeline accepts PNG as well as JPEG**, so a plate finished by
+  `press art enhance` (which produces a lossless quantized PNG) is a
+  first-class plate: it is counted for the List of Plates, verified, and
+  print-prepared exactly as a JPEG plate is. Every place that resolved plates
+  globbed `*.jpg` only, so an enhanced book silently lost its List of Plates
+  and its plate verification; they now resolve through one `booklib.plate_files`
+  helper that returns both formats. This completes the enhance feature and
+  fully retires the "PNG barely compresses engraving grain" scar.
+
 ### Fixed
 
 - **The page secret scan no longer false-rejects a book whose own words

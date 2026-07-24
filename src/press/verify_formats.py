@@ -109,7 +109,7 @@ def require_witnesses(text: str, label: str) -> None:
 
 
 def plate_count() -> int:
-    return len(list((booklib.root() / "assets" / "woodcuts").glob("*.jpg")))
+    return len(booklib.plate_files(booklib.root() / "assets" / "woodcuts"))
 
 
 def verify_html(path: Path) -> None:
@@ -287,7 +287,7 @@ def verify_site(path: Path) -> None:
             )
     source_plates = plate_count()
     if source_plates:
-        woodcuts = list((path / "assets" / "woodcuts").glob("*.jpg"))
+        woodcuts = booklib.plate_files(path / "assets" / "woodcuts")
         if len(woodcuts) < source_plates:
             raise SystemExit(f"site carries {len(woodcuts)} plates; expected {source_plates}")
     aggregate = VisibleText()

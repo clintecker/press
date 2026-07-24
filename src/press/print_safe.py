@@ -24,6 +24,8 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
+from . import booklib
+
 # Interiors print on white paper, so a flattened alpha composites to white.
 _WHITE = (255, 255, 255)
 
@@ -45,8 +47,8 @@ def _targets(root: Path) -> list[tuple[Path, int]]:
         jobs.append((jpg, _FIGURE_MAX_EDGE))
     woodcuts = root / "assets" / "woodcuts"
     if woodcuts.is_dir():
-        for jpg in sorted(woodcuts.glob("*.jpg")):
-            jobs.append((jpg, _FIGURE_MAX_EDGE))
+        for plate in booklib.plate_files(woodcuts):
+            jobs.append((plate, _FIGURE_MAX_EDGE))
     return jobs
 
 

@@ -101,7 +101,7 @@ def _plate_failures(root: Path, seen: set[Path]) -> list[str]:
     )
     return [
         f"plate never referenced by the manuscript: assets/woodcuts/{plate.name}"
-        for plate in sorted((root / "assets" / "woodcuts").glob("*.jpg"))
+        for plate in booklib.plate_files(root / "assets" / "woodcuts")
         if f"woodcuts/{plate.name}" not in manuscript
     ]
 

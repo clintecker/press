@@ -111,6 +111,23 @@ def slug() -> str:
     return book().slug
 
 
+# A plate is a JPEG or a lossless PNG. `press art enhance` produces quantized
+# PNG (smaller than the JPEG it replaces once the engraving grain is a handful
+# of grays), so a book may carry either; every place that counts, verifies, or
+# print-prepares plates resolves them through here so the format is one
+# decision, not seven scattered globs.
+_PLATE_SUFFIXES = ("*.jpg", "*.png")
+
+
+def plate_files(woodcuts_dir: Path) -> list[Path]:
+    """Every plate under a woodcuts directory, JPEG or PNG, in stable order."""
+
+    found: list[Path] = []
+    for pattern in _PLATE_SUFFIXES:
+        found.extend(woodcuts_dir.glob(pattern))
+    return sorted(found)
+
+
 def sentinels() -> list[str]:
     """Prose fragments every rendered artifact must contain.
 
