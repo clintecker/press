@@ -243,6 +243,11 @@ body.home > p:first-of-type{font-size:1.24rem; line-height:1.5; color:var(--ink)
   padding:12px var(--gutter); background:var(--paper);
   border-bottom:1px solid var(--rule); font-family:var(--sans);
   position:sticky; top:0; z-index:20;
+  /* The bar is sticky at top:0; when the hamburger reveals a nav taller
+     than a short screen, a pinned bar would strand its last items below the
+     fold with no way to scroll to them. Cap it to the viewport and let it
+     scroll inside its own region so every item stays reachable (#195). */
+  max-height:100vh; overflow-y:auto;
 }
 /* The wordmark is the designed lockup (badge + serif press.), swapped by
    theme: the ink badge / dark serif reads on light, the transparent

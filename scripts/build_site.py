@@ -30,6 +30,12 @@ from html import escape
 from pathlib import Path
 from typing import NamedTuple
 
+# The browser layout regression lives beside this script; run as
+# `python3 scripts/build_site.py`, that directory is already on sys.path, but
+# make the import work regardless of how the script is launched.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import check_layout  # noqa: E402  (sibling script, path set just above)
+
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "build" / "site"
 
@@ -824,6 +830,11 @@ def main() -> int:
     check_accessibility()
     pages = len(PAGES) + len(FOOTER_PAGES)
     print(f"+ built press site -> {OUT.relative_to(ROOT)} ({pages} pages)")
+    # Static checks cannot see a laid-out box overlap the prose; a real engine
+    # can. This drives headless Chrome over the built pages (a hard failure in
+    # CI via PRESS_REQUIRE_BROWSER_CHECK, a skip when no browser is installed
+    # locally). See scripts/check_layout.py and issue #195.
+    check_layout.run(OUT)
     return 0
 
 

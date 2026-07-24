@@ -30,8 +30,11 @@ book repository that consumes this package.
   first-time author; then the `docs/` suite, CHANGELOG, ROADMAP, and
   CONTRIBUTING/SUPPORT/SECURITY through pandoc) with a grouped left-sidebar
   nav, theme-aware syntax highlighting, canonical/social metadata, and
-  build-time link, on-site-link, and accessibility checks; `README.md` is
-  the repository front page and stays off the site (NOT_PUBLISHED).
+  build-time link, on-site-link, accessibility, and headless-browser
+  layout checks (`scripts/check_layout.py` drives Chrome over the built
+  pages so the sidebar never overlaps the prose at any viewport or zoom,
+  #195); `README.md` is the repository front page and stays off the site
+  (NOT_PUBLISHED).
   `.github/workflows/docs-site.yml` deploys it to
   <https://clintecker.github.io/press/> on every push to main. The site's
   content is generated from the repo, so it cannot drift.

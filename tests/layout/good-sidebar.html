@@ -1,0 +1,79 @@
+<!doctype html>
+<!--
+  KNOWN-GOOD counterpart to bad-sidebar.html for scripts/check_layout.py.
+
+  Identical markup and CSS except the desktop .toolbar carries the #195 fix:
+  flex-wrap:nowrap and flex:0 0 auto. The over-tall nav now scrolls vertically
+  inside its own region instead of wrapping into a clipped second column, so
+  the layout check passes at every viewport and zoom, including 1265x697.
+-->
+<html lang="en">
+<head><meta charset="utf-8"><title>known-good sidebar</title>
+<style>
+:root{--paper:#fff;--ink:#111;--rule:#ccc;--accent:#c0392b;--muted:#666;--gutter:20px}
+*{box-sizing:border-box}
+body{margin:0;font-family:sans-serif;color:var(--ink);background:var(--paper)}
+.skip-link{position:absolute;left:-999px;top:auto}
+.skip-link:focus{left:8px;top:8px}
+.toolbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:12px var(--gutter);background:var(--paper);border-bottom:1px solid var(--rule);
+  position:sticky;top:0;z-index:20;max-height:100vh;overflow-y:auto}
+.nav-toggle{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.nav-burger{display:flex;flex-direction:column;gap:4px;margin-left:auto;
+  width:42px;height:38px;border:1px solid var(--rule)}
+nav[aria-label="Site"]{display:none;flex-direction:column;align-items:flex-start;gap:22px;
+  width:100%;margin-top:10px;padding-top:16px;border-top:1px solid var(--rule)}
+#nav-toggle:checked ~ nav[aria-label="Site"]{display:flex}
+nav[aria-label="Site"] a{font-size:14px;color:var(--muted);text-decoration:none;line-height:1.3}
+nav[aria-label="Site"] a[aria-current="page"]{color:var(--ink);font-weight:700}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main.prose{padding:20px}
+@media (min-width:900px){
+  body{display:flex;flex-wrap:wrap;align-items:flex-start}
+  /* THE FIX (a367852): reset the inherited wrap, pin the bar's width. */
+  .toolbar{flex-direction:column;flex-wrap:nowrap;align-items:flex-start;gap:26px;
+    width:clamp(200px,19vw,250px);flex:0 0 auto;align-self:flex-start;
+    height:auto;max-height:100vh;overflow-y:auto;
+    padding:24px 22px;border-bottom:none;border-right:1px solid var(--rule)}
+  .nav-burger{display:none}
+  nav[aria-label="Site"]{display:flex !important;gap:24px;margin:0;padding:0;border-top:none}
+  main.prose{flex:1;min-width:0}
+}
+</style></head>
+<body>
+<a class="skip-link" href="#main-content">Skip to content</a>
+<header class="toolbar">
+  <a class="wordmark" href="index.html">press.</a>
+  <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Toggle menu">
+  <label for="nav-toggle" class="nav-burger" aria-hidden="true"><span></span></label>
+  <nav aria-label="Site">
+    <a href="a1.html" aria-current="page">Overview one</a>
+    <a href="a2.html">Section two two</a>
+    <a href="a3.html">Section three</a>
+    <a href="a4.html">Section four here</a>
+    <a href="a5.html">Section five long</a>
+    <a href="a6.html">Section six item</a>
+    <a href="a7.html">Section seven x</a>
+    <a href="a8.html">Section eight yy</a>
+    <a href="a9.html">Section nine zz</a>
+    <a href="a10.html">Section ten aaa</a>
+    <a href="a11.html">Section eleven b</a>
+    <a href="a12.html">Section twelve c</a>
+    <a href="a13.html">Section thirteen</a>
+    <a href="a14.html">Section fourteen</a>
+    <a href="a15.html">Section fifteen d</a>
+    <a href="a16.html">Section sixteen e</a>
+    <a href="a17.html">Section seventeen</a>
+    <a href="a18.html">Section eighteen f</a>
+    <a href="a19.html">Section nineteen g</a>
+    <a href="a20.html">Section twenty h</a>
+    <a class="repo" href="https://example.com/repo">source of truth last</a>
+  </nav>
+</header>
+<main class="prose" id="main-content">
+  <h1>Article heading</h1>
+  <p>Prose that must never be covered or crowded by the sidebar. This column
+  carries the reading content, and the nav must sit beside it, scrolling in its
+  own region rather than wrapping into a clipped second column over the text.</p>
+</main>
+</body></html>
