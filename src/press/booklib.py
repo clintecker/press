@@ -9,12 +9,11 @@ time anywhere else.
 
 from __future__ import annotations
 
-import os
 import re
 from functools import lru_cache
 from pathlib import Path
 
-from . import yamlio
+from . import adapters, yamlio
 
 DATA = Path(__file__).resolve().parent / "data"
 
@@ -23,7 +22,7 @@ DATA = Path(__file__).resolve().parent / "data"
 def root() -> Path:
     """The book repository being built: $BOOK_ROOT or the working directory."""
 
-    candidate = Path(os.environ.get("BOOK_ROOT") or Path.cwd()).resolve()
+    candidate = Path(adapters.environment.get("BOOK_ROOT") or Path.cwd()).resolve()
     if not (candidate / "config" / "metadata.yaml").is_file():
         raise SystemExit(
             f"{candidate} is not a book: config/metadata.yaml not found "
@@ -143,7 +142,7 @@ def require_release_witnesses() -> None:
     verification that proves nothing is worse than a red one.
     """
 
-    if not os.environ.get("PRESS_RELEASE"):
+    if not adapters.environment.get("PRESS_RELEASE"):
         return
     b = book()
     problems = []
