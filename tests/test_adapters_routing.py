@@ -632,7 +632,9 @@ def test_commerce_gate_reads_press_release_through_environment(
     monkeypatch.setattr(
         commerce, "release_gate", lambda root, book: (["blocked"], "1 problem")
     )
-    env = fake_env(values={"PRESS_RELEASE": "1"})
+    # booklib.root() now reads BOOK_ROOT through the same environment adapter,
+    # so the fake must carry it too or root() falls back to cwd and refuses.
+    env = fake_env(values={"PRESS_RELEASE": "1", "BOOK_ROOT": str(scaffolded_book)})
     # A release build fails closed when the gate has problems.
     assert cli._commerce_gate() == 1
     assert "PRESS_RELEASE" in env.reads
@@ -647,7 +649,7 @@ def test_commerce_gate_advisory_when_press_release_unset(
     monkeypatch.setattr(
         commerce, "release_gate", lambda root, book: (["blocked"], "1 problem")
     )
-    env = fake_env(values={})
+    env = fake_env(values={"BOOK_ROOT": str(scaffolded_book)})
     # Same problems, no PRESS_RELEASE: advisory, exit 0.
     assert cli._commerce_gate() == 0
     assert "PRESS_RELEASE" in env.reads
