@@ -80,6 +80,24 @@ def test_wheel_carries_the_provider_qualification_record(tmp_path):
     assert "press/data/providers.yaml" in members
 
 
+def test_wheel_provider_record_is_the_generated_projection(tmp_path):
+    """The provider record inside the built wheel is byte-for-byte the
+    deterministic projection of the one canonical ledger
+    (quality/providers.yaml). An installed wheel therefore loads the exact
+    canonical data, not a hand-copied mirror that could drift."""
+
+    from press import qualification as q
+
+    _build(tmp_path)
+    wheels = list(tmp_path.glob("*.whl"))
+    assert wheels, "no wheel was built"
+    packaged = zipfile.ZipFile(wheels[0]).read("press/data/providers.yaml")
+    assert packaged.decode("utf-8") == q.render_packaged()
+    # And the canonical bytes survive intact inside the shipped copy.
+    canonical = (ROOT / "quality" / "providers.yaml").read_text(encoding="utf-8")
+    assert packaged.decode("utf-8").endswith(canonical)
+
+
 def test_membership_is_stable_across_runs(tmp_path):
     """Two builds, one after running the scripts, produce the same
     logical member set (ignoring the dist filenames themselves)."""

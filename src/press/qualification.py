@@ -33,6 +33,33 @@ PACKAGED_RECORD = Path(__file__).resolve().parent / "data" / "providers.yaml"
 # mirror instead of guessing that the repository exists above site-packages.
 RECORD = SOURCE_RECORD
 
+# The one canonical provider ledger is quality/providers.yaml. The packaged
+# copy an installed wheel loads is a deterministic projection of it: this
+# fixed banner, then the canonical bytes verbatim. Generating (rather than
+# hand-copying) the mirror is what keeps a maintainer's edit -- a new
+# provider, a corrected citation, even a reworded comment -- from silently
+# shipping stale in the wheel. Regenerate with `press selftest --write-docs`;
+# the selftest fails when regeneration would change the packaged bytes.
+PACKAGED_HEADER = (
+    "# GENERATED -- DO NOT EDIT. Deterministic projection of\n"
+    "# quality/providers.yaml (the one canonical provider ledger): this\n"
+    "# banner, then that file verbatim. Edit quality/providers.yaml, then run\n"
+    "# `press selftest --write-docs` to regenerate this copy; the selftest\n"
+    "# fails when regeneration would change these bytes. The update and review\n"
+    "# workflow is docs/PROVIDER-DATA.md.\n"
+    "\n"
+)
+
+
+def render_packaged() -> str:
+    """The exact bytes the packaged mirror must contain: the fixed banner
+    followed by quality/providers.yaml verbatim. Deterministic -- the same
+    canonical source always yields the same packaged bytes -- so a byte
+    comparison against the committed copy is a real staleness gate, catching
+    comment and whitespace drift a semantic (post-YAML-load) compare misses."""
+
+    return PACKAGED_HEADER + SOURCE_RECORD.read_text(encoding="utf-8")
+
 SCHEMA_VERSION = 1
 DISPOSITIONS = frozenset({
     "primary", "secondary", "hosted-candidate", "candidate", "not-fit"})
@@ -128,9 +155,10 @@ def validate(record: dict | None = None) -> list[str]:
     if default_record and SOURCE_RECORD.is_file():
         if not PACKAGED_RECORD.is_file():
             problems.append("packaged provider record is missing: press/data/providers.yaml")
-        elif load(SOURCE_RECORD) != load(PACKAGED_RECORD):
+        elif PACKAGED_RECORD.read_text(encoding="utf-8") != render_packaged():
             problems.append(
-                "packaged provider record has drifted from quality/providers.yaml")
+                "packaged provider record is stale: regenerate it byte-for-byte "
+                "from quality/providers.yaml with `press selftest --write-docs`")
     if record.get("schema_version") != SCHEMA_VERSION:
         problems.append(
             f"unknown schema version {record.get('schema_version')} "

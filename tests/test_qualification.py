@@ -42,12 +42,50 @@ def test_installed_package_falls_back_to_its_provider_record(monkeypatch, tmp_pa
     assert "lulu" in record["providers"]
 
 
+def test_the_committed_packaged_record_is_the_generated_projection():
+    """The packaged copy is byte-for-byte what render_packaged() produces
+    from the canonical ledger: a generated artifact, not a hand-kept mirror.
+    This is the check the selftest runs; if it fails, regenerate with
+    `press selftest --write-docs`."""
+
+    assert q.SOURCE_RECORD.is_file()
+    assert q.PACKAGED_RECORD.read_text(encoding="utf-8") == q.render_packaged()
+
+
+def test_generated_projection_is_the_canonical_bytes_under_one_fixed_banner():
+    """render_packaged() prepends exactly one fixed banner to the canonical
+    file verbatim -- no duplicated header, no footer comment."""
+
+    projection = q.render_packaged()
+    canonical = q.SOURCE_RECORD.read_text(encoding="utf-8")
+    assert projection == q.PACKAGED_HEADER + canonical
+    assert projection.endswith(canonical)  # canonical bytes are untouched
+    # The banner appears once; the canonical explanatory block is not doubled.
+    assert projection.count("GENERATED -- DO NOT EDIT") == 1
+    assert projection.count("The print-provider qualification record:") == 1
+
+
+def test_a_comment_only_edit_to_the_packaged_copy_is_refused(
+        monkeypatch, tmp_path):
+    """A whitespace/comment edit that leaves the YAML semantically identical
+    still fails the byte gate -- the failure the old semantic-only compare
+    let through."""
+
+    drifted = tmp_path / "providers.yaml"
+    drifted.write_text(
+        q.render_packaged() + "# a hand edit that never went through the generator\n",
+        encoding="utf-8")
+    monkeypatch.setattr(q, "PACKAGED_RECORD", drifted)
+    assert any("packaged provider record is stale" in problem
+               for problem in q.validate())
+
+
 def test_packaged_provider_record_cannot_drift_from_repository_copy(
         monkeypatch, tmp_path):
     stale = tmp_path / "providers.yaml"
     stale.write_text("schema_version: 1\nproviders: {}\n", encoding="utf-8")
     monkeypatch.setattr(q, "PACKAGED_RECORD", stale)
-    assert any("packaged provider record has drifted" in problem
+    assert any("packaged provider record is stale" in problem
                for problem in q.validate())
 
 

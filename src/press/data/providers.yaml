@@ -1,7 +1,9 @@
-# Packaged mirror of quality/providers.yaml. The source checkout keeps the
-# governance ledger at quality/providers.yaml for review and durable links;
-# installed wheels load this semantically identical copy.
-# press.qualification.validate fails when the two drift.
+# GENERATED -- DO NOT EDIT. Deterministic projection of
+# quality/providers.yaml (the one canonical provider ledger): this
+# banner, then that file verbatim. Edit quality/providers.yaml, then run
+# `press selftest --write-docs` to regenerate this copy; the selftest
+# fails when regeneration would change these bytes. The update and review
+# workflow is docs/PROVIDER-DATA.md.
 
 # The print-provider qualification record: the PRD vendor research turned
 # into structured, versioned evidence. This file answers "which providers
@@ -30,14 +32,14 @@ physical_checklist:
   - content        # the interior text matches the release-approved manuscript
   - pagination     # page count and page order match the manifest
   - trim           # cut size matches the declared trim within tolerance
-  - bleed           # full-bleed art reaches the trimmed edge without white slivers
-  - spine           # spine text is centered and square for the page count
-  - barcode         # the EAN-13 scans and matches the declared ISBN
-  - color           # single-ink interior and cover reproduce as specified
-  - paper           # stock weight and shade match the declared paper
-  - binding         # binding is square, tight, and opens flat enough to read
-  - packaging       # the copy arrives undamaged and appropriately protected
-  - tracking        # the tracking link resolves and matches the destination
+  - bleed          # full-bleed art reaches the trimmed edge without white slivers
+  - spine          # spine text is centered and square for the page count
+  - barcode        # the EAN-13 scans and matches the declared ISBN
+  - color          # single-ink interior and cover reproduce as specified
+  - paper          # stock weight and shade match the declared paper
+  - binding        # binding is square, tight, and opens flat enough to read
+  - packaging      # the copy arrives undamaged and appropriately protected
+  - tracking       # the tracking link resolves and matches the destination
 
 providers:
   lulu:
@@ -64,7 +66,7 @@ providers:
       cancellation: unknown
       webhooks: unknown
       worldwide: supported
-      seller_of_record: unsupported
+      seller_of_record: unsupported   # the publisher is the seller in the custom route
     unknowns:
       - exact trim/paper/binding qualification for the press 6x9 single-ink object
       - cancellation and webhook semantics
@@ -118,7 +120,7 @@ providers:
       cancellation: unknown
       webhooks: unknown
       worldwide: supported
-      seller_of_record: supported
+      seller_of_record: supported   # the reason to prefer Peecho when avoiding MoR
     unknowns:
       - trade-book geometry and monochrome economics
       - data terms, checkout branding, support ownership, API access
@@ -268,5 +270,3 @@ providers:
       - none material -- the 10-copy minimum rules out one-reader/one-copy
     notes: Not a one-reader/one-copy adapter; keep as a bulk proof or launch-stock
       option only.
-# Packaged mirror of quality/providers.yaml for installed-wheel selftests.
-# qualification.validate() rejects semantic drift while in a source checkout.
