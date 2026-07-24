@@ -16,11 +16,10 @@ from __future__ import annotations
 import contextlib
 import io
 import re
-import subprocess
 import sys
 from pathlib import Path
 
-from . import booklib, style_audit
+from . import adapters, booklib, style_audit
 
 EXPECT = re.compile(r"<!--\s*expect:\s*(.+?)\s*-->")
 """The declared-diagnostic convention: a fixture's first line names the
@@ -46,11 +45,13 @@ def diagnostics(fixture: Path) -> list[str]:
         *[arg for term in allow for arg in ("--allow", term)],
         str(fixture),
     ]
-    result = subprocess.run(command, capture_output=True, text=True)
+    result = adapters.process_runner.run(command, capture=True, check=False)
     if result.returncode != 0:
+        output = result.stdout.decode("utf-8", errors="replace") + \
+            result.stderr.decode("utf-8", errors="replace")
         found.extend(
             f"jargon: {line.strip()}"
-            for line in (result.stdout + result.stderr).splitlines()
+            for line in output.splitlines()
             if "rewrite:" in line
         )
     return found

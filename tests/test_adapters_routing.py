@@ -217,3 +217,62 @@ def test_git_identity_none_when_git_absent(monkeypatch):
     fake = fakes.FakeProcessRunner(by_command={"git": OSError("no git")})
     monkeypatch.setattr(adapters, "process_runner", fake)
     assert scaffold.git_identity() is None
+# check_the_checkers.diagnostics drives the jargon lint through the runner
+# --------------------------------------------------------------------------
+
+
+def test_diagnostics_runs_jargon_lint_through_runner(
+    scaffolded_book, tmp_path, fake_runner, monkeypatch
+):
+    """The jargon-lint invocation goes through the process runner with the
+    exact argv, captures output, and does not raise on the nonzero exit it
+    inspects itself (check must be off)."""
+
+    from press import check_the_checkers
+
+    monkeypatch.setattr(check_the_checkers.booklib, "house_rules", lambda: {})
+    fixture = tmp_path / "clean-prose.md"
+    fixture.write_text("A calm and ordinary sentence.\n", encoding="utf-8")
+
+    # A nonzero exit whose captured stdout names a rewrite the parser must
+    # surface. Bytes on purpose: the runner never decodes.
+    fake_runner._queue.append(
+        ProcessResult(1, b"clean-prose.md:1: rewrite: avoid 'utilize'\n")
+    )
+
+    found = check_the_checkers.diagnostics(fixture)
+
+    # The fake was actually driven: the jargon-lint argv, captured.
+    recorded = fake_runner.runs[0]
+    assert recorded.argv[1:4] == ("-m", "press.jargon_lint", "--fail-on")
+    assert recorded.argv[4] == "rewrite"
+    assert recorded.argv[-1] == str(fixture)
+    assert recorded.capture is True
+    assert recorded.check is False
+
+    # The decode landmine: the bytes were decoded before the "rewrite:"
+    # parse, so the diagnostic actually surfaces. Match bytes and it silently
+    # disappears (or raises) and this assertion fails.
+    assert any("rewrite: avoid 'utilize'" in d for d in found)
+    assert any(d.startswith("jargon: ") for d in found)
+
+
+def test_diagnostics_passes_jargon_allow_terms_to_runner(
+    scaffolded_book, tmp_path, fake_runner, monkeypatch
+):
+    """A book's jargon-allow list becomes ``--allow`` argv on the faked run,
+    proving the house-rules read reaches the command the runner sees."""
+
+    from press import check_the_checkers
+
+    monkeypatch.setattr(
+        check_the_checkers.booklib, "house_rules", lambda: {"jargon-allow": ["leverage"]}
+    )
+    fixture = tmp_path / "clean-prose.md"
+    fixture.write_text("A calm and ordinary sentence.\n", encoding="utf-8")
+
+    check_the_checkers.diagnostics(fixture)
+
+    argv = fake_runner.runs[0].argv
+    assert "--allow" in argv
+    assert argv[argv.index("--allow") + 1] == "leverage"
