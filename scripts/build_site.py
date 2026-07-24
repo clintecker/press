@@ -70,6 +70,7 @@ NAV_GROUPS = [
     ]),
     ("Operate", [
         ("docs/DESK.md", "desk.html", "desk"),
+        ("docs/WORKFLOWS.md", "workflows.html", "workflows & skills"),
     ]),
     ("Reference", [
         ("docs/REFERENCE.md", "reference.html", "reference"),

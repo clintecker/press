@@ -1495,6 +1495,104 @@ def check_producers_are_verified() -> None:
             f"rejection-proof registry names modules that are not producers: {sorted(stale)}")
 
 
+def _jargon_impl_paths() -> tuple[Path, Path]:
+    """The two jargon checker sources: the package copy press check runs,
+    and the portable skill copy an author can run without the package."""
+
+    package = Path(__file__).resolve().parent
+    package_copy = package / "jargon_lint.py"
+    skill_copy = (
+        package / "data" / "skills" / "overused-jargon" / "scripts" / "jargon_lint.py"
+    )
+    return package_copy, skill_copy
+
+
+def _jargon_shared_defs(source: str) -> dict[str, str]:
+    """Top-level function and class source, keyed by name, minus parse_args
+    (whose only sanctioned difference is how each copy finds its default
+    watchlist)."""
+
+    import ast
+
+    defs: dict[str, str] = {}
+    for node in ast.parse(source).body:
+        if isinstance(node, (ast.FunctionDef, ast.ClassDef)) and node.name != "parse_args":
+            segment = ast.get_source_segment(source, node)
+            defs[node.name] = segment or ""
+    return defs
+
+
+def _check_jargon_default_watchlist_agrees() -> None:
+    """Both copies default to the very same watchlist file and status
+    table, so identical matching code cannot still diverge on which terms
+    it reads."""
+
+    import importlib.util
+
+    from . import jargon_lint as package_impl
+
+    _, skill_copy = _jargon_impl_paths()
+    spec = importlib.util.spec_from_file_location(
+        "press._jargon_skill_selftest", skill_copy)
+    if spec is None or spec.loader is None:
+        raise SystemExit("selftest: cannot load the portable jargon skill copy")
+    skill_impl = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = skill_impl
+    spec.loader.exec_module(skill_impl)
+
+    if package_impl.STATUS_LEVEL != skill_impl.STATUS_LEVEL:
+        raise SystemExit("selftest: jargon STATUS_LEVEL tables disagree")
+
+    pkg_default = package_impl.parse_args([]).watchlist.resolve()
+    skill_default = skill_impl.parse_args([]).watchlist.resolve()
+    if pkg_default != skill_default:
+        raise SystemExit(
+            "selftest: jargon checkers default to different watchlists -- "
+            f"package {pkg_default}, skill {skill_default}")
+
+
+def check_jargon_parity() -> None:
+    """The package jargon checker and the portable skill copy share every
+    line of parsing, normalization, matching, allowlist, and reporting
+    logic, and resolve the same default watchlist; a fix or rule cannot
+    land in one execution surface and silently skip the other. The
+    behavioural corpus lives in tests/test_jargon_parity.py."""
+
+    package_copy, skill_copy = _jargon_impl_paths()
+    for path in (package_copy, skill_copy):
+        if not path.is_file():
+            raise SystemExit(f"selftest: jargon checker missing at {path}")
+
+    skill_source = skill_copy.read_text(encoding="utf-8")
+    pkg_defs = _jargon_shared_defs(package_copy.read_text(encoding="utf-8"))
+    skill_defs = _jargon_shared_defs(skill_source)
+
+    if pkg_defs.keys() != skill_defs.keys():
+        only_pkg = sorted(pkg_defs.keys() - skill_defs.keys())
+        only_skill = sorted(skill_defs.keys() - pkg_defs.keys())
+        raise SystemExit(
+            "selftest: jargon checkers define different names -- "
+            f"package only {only_pkg}, skill only {only_skill}")
+
+    drifted = sorted(name for name, body in pkg_defs.items() if skill_defs[name] != body)
+    if drifted:
+        raise SystemExit(
+            "selftest: jargon checker logic drifted between the package copy and "
+            f"the portable skill copy in: {drifted}. A matching or reporting fix "
+            "must land in both src/press/jargon_lint.py and "
+            "src/press/data/skills/overused-jargon/scripts/jargon_lint.py.")
+
+    # The portable copy must not reach back into the package: an author runs it
+    # standalone, from a checkout, with no press on the path.
+    for forbidden in ("from . import", "import press", "from press "):
+        if forbidden in skill_source:
+            raise SystemExit(
+                "selftest: the portable jargon skill imports the package "
+                f"({forbidden!r}); it must stay importable without it.")
+
+    _check_jargon_default_watchlist_agrees()
+
+
 # The one ordered list of invariant checks. main() runs it and the
 # pytest suite parametrizes over it, so the CLI and the test runner
 # cannot disagree about which invariants the press proves.
@@ -1503,6 +1601,7 @@ CHECKS = [
     check_import_side_effects,
     check_arithmetic,
     check_slug_invariant,
+    check_jargon_parity,
     check_source_policy,
     check_pages_verifier,
     check_scaffold_neutrality,
