@@ -4,14 +4,11 @@ from __future__ import annotations
 
 import argparse
 import html.parser
-import os
 import re
-import shutil
-import subprocess
 import zipfile
 from pathlib import Path
 
-from . import booklib
+from . import adapters, booklib
 
 
 class VisibleText(html.parser.HTMLParser):
@@ -172,12 +169,12 @@ def epubcheck(path: Path) -> None:
     not (it needs a Java runtime).
     """
 
-    if shutil.which("epubcheck") is None:
+    if adapters.environment.which("epubcheck") is None:
         # Strictness keys on the toolchain's own promise (PRESS_TOOLCHAIN,
         # set in the image), not the ambient CI variable: CI=false would
         # read truthy, and an image predating epubcheck must degrade to
         # this warning rather than fail every book while :latest catches up.
-        if os.environ.get("PRESS_TOOLCHAIN"):
+        if adapters.environment.get("PRESS_TOOLCHAIN"):
             raise SystemExit(
                 "epubcheck missing from the press toolchain image; the "
                 "retail-format gate cannot be skipped where releases are cut"
@@ -189,8 +186,8 @@ def epubcheck(path: Path) -> None:
         )
         return
     try:
-        result = subprocess.run(
-            ["epubcheck", str(path)], capture_output=True, text=True
+        result = adapters.process_runner.run(
+            ["epubcheck", str(path)], capture=True
         )
     except OSError as exc:
         # A tool that exists but cannot execute (a container without
@@ -199,9 +196,13 @@ def epubcheck(path: Path) -> None:
         raise SystemExit(f"epubcheck is present but cannot run ({exc}); "
                          "the toolchain image is broken") from exc
     if result.returncode != 0:
+        # ProcessResult carries bytes (the runner never sets text=True);
+        # decode so the diagnostic reproduces the captured epubcheck report.
+        stdout = result.stdout.decode("utf-8", errors="replace")
+        stderr = result.stderr.decode("utf-8", errors="replace")
         raise SystemExit(
             f"epubcheck failed on {path} (exit {result.returncode}):\n"
-            f"{result.stdout}{result.stderr}"
+            f"{stdout}{stderr}"
         )
     print(f"epubcheck passed: {path.name}")
 
