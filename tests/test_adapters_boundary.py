@@ -47,7 +47,6 @@ LEGACY_ALLOWED = {
     "gen_coverwrap",
     "scaffold",
     "selftest",
-    "verify_coverwrap",
     "verify_formats",
     "verify_pdf",
 }

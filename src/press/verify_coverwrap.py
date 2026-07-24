@@ -14,20 +14,19 @@ readable when an ISBN is declared.
 
 from __future__ import annotations
 
-import subprocess
 import tempfile
 from pathlib import Path
 
 from PIL import Image, ImageStat
 
-from . import booklib, gen_coverwrap
+from . import adapters, booklib, gen_coverwrap
 from .verify_pdf import looks_blank, verify_fonts
 
 
 def render(wrap: Path, out_dir: Path) -> Image.Image:
-    subprocess.run(
+    adapters.process_runner.run(
         ["pdftoppm", "-png", "-r", "150", str(wrap), str(out_dir / "wrap")],
-        check=True, capture_output=True,
+        check=True, capture=True,
     )
     rendered = sorted(out_dir.glob("wrap*.png"))
     if len(rendered) != 1:
@@ -109,8 +108,6 @@ def check_print_safe(wrap: Path) -> None:
     Transparency is read from the PDF itself; resolution needs pdfimages, and
     its absence softens the PPI half to a note rather than a false pass."""
 
-    import shutil
-
     from pypdf import PdfReader
 
     reader = PdfReader(str(wrap))
@@ -130,14 +127,15 @@ def check_print_safe(wrap: Path) -> None:
             "onto their background (print_safe.prepare_cover)."
         )
 
-    if shutil.which("pdfimages") is None:
+    if adapters.environment.which("pdfimages") is None:
         print("  (pdfimages absent; cover image resolution not checked)")
         return
-    listing = subprocess.run(
-        ["pdfimages", "-list", str(wrap)], capture_output=True, text=True
+    listing = adapters.process_runner.run(
+        ["pdfimages", "-list", str(wrap)], capture=True
     )
+    stdout = listing.stdout.decode("utf-8", errors="replace")
     over = []
-    for line in listing.stdout.splitlines()[2:]:
+    for line in stdout.splitlines()[2:]:
         cols = line.split()
         if len(cols) < 14:
             continue
