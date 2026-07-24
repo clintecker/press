@@ -74,6 +74,13 @@ RUN python3 -m pip install --break-system-packages --no-cache-dir \
 #   models: github.com/upscayl/upscayl @ v2.15.0
 #           (commit 4f39acfc6f88260d105920a64deff8431d5e1544),
 #           resources/models/{remacri-4x,ultrasharp-4x}.{param,bin}
+#
+# NEXT STEPS (operator, not the author -- the immutable-release-contract steps
+# this change deliberately does NOT take): rebuild the multi-arch toolchain
+# image, push it, then repin the toolchain image's @sha256 digest in
+# .github/workflows/build.yml so a pinned book resolves the exact bytes that
+# carry this upscaler. Until that repin lands, the baked tool lives only in a
+# locally built image, not in the release contract.
 ARG TARGETARCH
 RUN set -eux; \
     if [ "${TARGETARCH:-amd64}" = "amd64" ]; then \

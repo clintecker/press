@@ -41,9 +41,14 @@ PY
 # The plate upscaler for `press art enhance`. It is amd64-only (no durable
 # upstream arm64 Linux build), so presence is asserted where present and its
 # absence accepted on arm64, where the command degrades to a plain resample.
-# When present the binary must be executable AND the remacri model it profiles
-# to must be beside it -- a present binary with no model is the binfmt trap
-# again (the enhance would fail, not degrade).
+# Where present, the binary is EXECUTED, not merely stat-ed: it upscales a
+# tiny PNG with remacri-4x through the exact argv art_enhance.upscale() builds.
+# The binfmt scar says existence is not executability, and here that is the
+# whole point -- a present binary with no working software-Vulkan device or a
+# broken shared-lib/model load would let find_upscaler() return non-None, so
+# enhance() takes the check=True upscale path and CRASHES an author's build
+# instead of degrading to resample. Running it makes that failure surface at
+# smoke time, not at first container use.
 docker run --rm "$image" bash -euo pipefail -c '
   bin=/usr/local/bin/realesrgan-ncnn-vulkan
   models=/usr/local/share/realesrgan/models
@@ -52,7 +57,16 @@ docker run --rm "$image" bash -euo pipefail -c '
       test -f "$models/$m.param" && test -f "$models/$m.bin" \
         || { echo "upscaler present but model $m missing"; exit 1; }
     done
-    echo "realesrgan-ncnn-vulkan present with remacri/ultrasharp models"
+    cd /tmp
+    python3 - <<PY
+from PIL import Image
+Image.new("RGB", (8, 8), (90, 90, 90)).save("upin.png")
+PY
+    # Exactly the argv art_enhance.upscale() runs (-i/-o/-n/-m/-s), remacri-4x.
+    "$bin" -i upin.png -o upout.png -n remacri-4x -m "$models" -s 4
+    test -s upout.png \
+      || { echo "upscaler ran but produced no output"; exit 1; }
+    echo "realesrgan-ncnn-vulkan upscales with remacri (software Vulkan)"
   else
     echo "realesrgan-ncnn-vulkan absent (arm64 degrades to resample) -- ok"
   fi
