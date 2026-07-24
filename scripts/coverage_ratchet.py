@@ -135,6 +135,53 @@ def compare(
     return regressions, new_modules
 
 
+# A floor below this is a smell -- thin coverage that quietly persists (as
+# gen_front_matter's 11.5% did). It is allowed only as a reviewed decision: a
+# module floored below the line must be listed here with the reason its real
+# coverage lives elsewhere (a toolchain/integration layer, a boundary adapter,
+# a thin CLI dispatch). A new low floor that is NOT here fails the ratchet, so
+# thin coverage is a choice on the record, not a decaying number. This list may
+# only shrink as coverage rises.
+LOW_FLOOR = 50.0
+LOW_FLOOR_ALLOWED = {
+    "publish": "retail-channel checklist; proven by the integration build",
+    "verify_pdf": "renders and inspects a real PDF; proven at the toolchain layer",
+    "build": "orchestrates the toolchain; proven by the integration build",
+    "art_commission": "image-model boundary; proven against fakes at the adapter layer",
+    "gen_front_matter": "front-matter TeX; proven by verify_cover_page and a real build",
+    "gen_coverwrap": "cover-wrap TeX; proven by verify_coverwrap and a real build",
+    "art": "art intake; proven by the integration build",
+    "operator": "operator command dispatch; proven by improve/research/aesthetic",
+    "style_audit": "prose audit over real manuscripts; proven at integration",
+    "gen_index": "index appendix; proven by a build that rejects a zero-hit term",
+    "check_the_checkers": "meta-checker; proven by the checkers it drives",
+    "aesthetic": "TeX/CSS token substitution; proven by a real build",
+    "__main__": "CLI dispatch; every route proven by its command",
+    "jargon_lint": "jargon lint over real prose; proven at integration",
+    "instruments": "skills/workflows listing; proven by the listed instruments",
+    "wordcount": "manuscript word count; proven by a real book",
+    "cover": "cover-style engine; the image call is proven at the art-commission layer",
+    "verify_coverwrap": "inspects a real wrap PDF; proven at the toolchain layer",
+    "registrations": "ISBN/LCCN paperwork; proven by the retail integration",
+    "registry": "surface/target registry; proven by the drift checks",
+    "verify_formats": "inspects real EPUB/HTML/txt/docx; proven at the toolchain layer",
+    "illustrate": "illustration engine; the image call is proven at the art-commission layer",
+}
+
+
+def check_low_floors(baseline_modules: dict[str, float]) -> list[str]:
+    """A floor below LOW_FLOOR must be justified in LOW_FLOOR_ALLOWED; and an
+    allowlist entry whose module has risen above the line (or vanished) must be
+    removed, so the exception list only shrinks."""
+    below = {m for m, pct in baseline_modules.items() if pct < LOW_FLOOR}
+    issues = [f"{m} floored at {baseline_modules[m]:.1f}% with no reason "
+              "(raise it, or add it to LOW_FLOOR_ALLOWED)"
+              for m in sorted(below - set(LOW_FLOOR_ALLOWED))]
+    issues += [f"{m} is in LOW_FLOOR_ALLOWED but no longer below {LOW_FLOOR:g}% "
+               "(remove it)" for m in sorted(set(LOW_FLOOR_ALLOWED) - below)]
+    return issues
+
+
 def main(argv: list[str] | None = None) -> int:
     args = list(argv if argv is not None else sys.argv[1:])
     current = measure()
@@ -149,6 +196,7 @@ def main(argv: list[str] | None = None) -> int:
     baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
     tolerance = float(baseline.get("tolerance", 1.5))
     regressions, new_modules = compare(current, baseline["modules"], tolerance)
+    low_floor_issues = check_low_floors(baseline["modules"])
     if new_modules:
         print("modules with no coverage baseline (run --update):")
         for m in new_modules:
@@ -157,7 +205,11 @@ def main(argv: list[str] | None = None) -> int:
         print("branch coverage regressed below baseline:")
         for r in regressions:
             print(f"  - {r}")
-    if regressions or new_modules:
+    if low_floor_issues:
+        print(f"coverage floors below {LOW_FLOOR:g}% need an explicit reason:")
+        for issue in low_floor_issues:
+            print(f"  - {issue}")
+    if regressions or new_modules or low_floor_issues:
         return 1
     print(f"coverage ratchet holds: {len(current)} modules at or above baseline")
     return 0

@@ -87,3 +87,29 @@ def test_the_committed_baseline_is_well_formed():
     assert isinstance(data["tolerance"], (int, float))
     assert data["modules"]
     assert all(isinstance(v, (int, float)) for v in data["modules"].values())
+
+
+def test_real_baseline_low_floors_are_all_justified():
+    ratchet = _load_ratchet()
+    modules = json.loads((ROOT / "quality" / "coverage-baseline.json")
+                         .read_text(encoding="utf-8"))["modules"]
+    # Every module floored below the line is on the reasoned allowlist, and no
+    # allowlist entry has silently risen above it.
+    assert ratchet.check_low_floors(modules) == []
+
+
+def test_a_new_low_floor_without_a_reason_is_flagged():
+    ratchet = _load_ratchet()
+    modules = {m: 90.0 for m in ratchet.LOW_FLOOR_ALLOWED}  # clear the allowlist set
+    modules["a_new_thin_module"] = 12.0
+    issues = ratchet.check_low_floors(modules)
+    assert any("a_new_thin_module" in i and "no reason" in i for i in issues)
+
+
+def test_an_allowlisted_module_that_rose_is_flagged_stale():
+    ratchet = _load_ratchet()
+    someone = next(iter(ratchet.LOW_FLOOR_ALLOWED))
+    modules = {m: 10.0 for m in ratchet.LOW_FLOOR_ALLOWED}
+    modules[someone] = 95.0  # rose above the floor; its allowlist entry is stale
+    issues = ratchet.check_low_floors(modules)
+    assert any(someone in i and "remove it" in i for i in issues)
