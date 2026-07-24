@@ -36,11 +36,17 @@ proof, fast layers first:
 scripts/verify.sh          # lint + type + selftest + pytest, then the
                            # coverage and mutation ratchets and the site build
 scripts/verify.sh --quick  # stop after the fast lint/type/test layer
+scripts/verify.sh --full   # also run CI's container gauntlet locally (Docker)
 ```
 
-CI calls these same tools. What `verify.sh` cannot run locally — the
-integration gauntlet inside the toolchain container, the consumer proof, and
-the live second-party proofs — runs on push and on a release tag. Do not run
+CI calls these same tools. `--full` additionally runs the integration gauntlet
+in the pinned toolchain image (`scripts/gauntlet.sh`) — build the wheel,
+scaffold a stranger's book, run the whole `press all`, and prove tampering
+turns the verifier red — so the container tier where rendered-artifact bugs
+surface is proven before you push, not on the CI round-trip. It runs natively
+on Apple Silicon since the toolchain image went multi-arch (needs Docker).
+Only the live second-party proofs (a fork-PR from another account, a private
+book in another org) stay CI/human-only. Do not run
 `scripts/coverage_ratchet.py --update`: it re-measures on your machine and
 can push the committed baselines above the floor CI enforces.
 

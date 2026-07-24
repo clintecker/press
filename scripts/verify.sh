@@ -3,21 +3,27 @@
 # checks, fast layers first so a cheap failure stops before an expensive one.
 # It composes the existing tools; it does not reimplement their laws.
 #
-#   scripts/verify.sh          # the default ladder
+#   scripts/verify.sh          # the default ladder (host-side)
 #   scripts/verify.sh --quick  # stop after the fast lint/type/test layer
+#   scripts/verify.sh --full   # also run CI's container gauntlet locally
 #
-# What it does NOT run (CI-only, needs the container or a second identity):
-# the integration gauntlet in the toolchain image, the consumer proof, and
-# the live second-party proofs. Those run on push and on a release tag.
+# --full closes the local/CI gap: it runs the integration gauntlet in the
+# pinned toolchain image (scripts/gauntlet.sh) so the "consumer" tier -- where
+# rendered-artifact bugs surface -- is proven before you push, not 15 minutes
+# later in CI. Native on Apple Silicon since the image went multi-arch (#206);
+# needs Docker. Still CI/human-only even with --full: the live second-party
+# proofs (a fork-PR from another account, a private book in another org).
 set -euo pipefail
 cd "$(dirname "$0")/.."
+
+mode="${1:-}"
 
 step() { printf '\n== %s\n' "$1"; }
 
 step "lint, type, format, selftest, pytest (the CI battery)"
 pre-commit run --all-files
 
-if [ "${1:-}" = "--quick" ]; then
+if [ "$mode" = "--quick" ]; then
   echo "--quick: stopping before the ratchets and site build."
   exit 0
 fi
@@ -33,5 +39,14 @@ python3 scripts/mutation_ratchet.py
 step "the documentation site builds and its checks pass"
 python3 scripts/build_site.py >/dev/null
 
+if [ "$mode" = "--full" ]; then
+  step "the integration gauntlet in the pinned toolchain image"
+  scripts/gauntlet.sh
+  echo
+  echo "verify --full: OK. (Only the live second-party proofs remain CI/human-only.)"
+  exit 0
+fi
+
 echo
-echo "verify: OK. (CI additionally runs the container gauntlet and consumer proof.)"
+echo "verify: OK. (Run --full to also prove the container gauntlet; CI runs it and"
+echo "the live second-party proofs on push and on a release tag.)"
