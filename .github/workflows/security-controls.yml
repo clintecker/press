@@ -65,6 +65,13 @@ jobs:
           [ "$fail" = 0 ] && echo "all platform security controls enabled"
           exit "$fail"
 
+  # A separate job, so a drift in one control cannot mask a drift in another:
+  # a disabled secret-scanning toggle must not hide a removed branch ruleset.
+  rulesets:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
       - name: Branch and tag protection rulesets are active (#153)
         env:
           GH_TOKEN: ${{ secrets.SECURITY_AUDIT_TOKEN }}
