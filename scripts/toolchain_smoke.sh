@@ -38,6 +38,26 @@ PY
   grep -qi "error" out.txt && echo "epubcheck executes and rejects"
 '
 
+# The plate upscaler for `press art enhance`. It is amd64-only (no durable
+# upstream arm64 Linux build), so presence is asserted where present and its
+# absence accepted on arm64, where the command degrades to a plain resample.
+# When present the binary must be executable AND the remacri model it profiles
+# to must be beside it -- a present binary with no model is the binfmt trap
+# again (the enhance would fail, not degrade).
+docker run --rm "$image" bash -euo pipefail -c '
+  bin=/usr/local/bin/realesrgan-ncnn-vulkan
+  models=/usr/local/share/realesrgan/models
+  if [ -x "$bin" ]; then
+    for m in remacri-4x ultrasharp-4x; do
+      test -f "$models/$m.param" && test -f "$models/$m.bin" \
+        || { echo "upscaler present but model $m missing"; exit 1; }
+    done
+    echo "realesrgan-ncnn-vulkan present with remacri/ultrasharp models"
+  else
+    echo "realesrgan-ncnn-vulkan absent (arm64 degrades to resample) -- ok"
+  fi
+'
+
 docker run --rm -v "$press_dir":/press "$image" bash -euo pipefail -c '
   python3 -m pip install --break-system-packages -q /press
   cd /tmp && press new smoke-proof --author "Smoke Proof"
