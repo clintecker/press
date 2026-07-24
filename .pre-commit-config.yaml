@@ -33,9 +33,11 @@ repos:
     hooks:
       - id: pymarkdown
         args: ["--config", ".pymarkdown.json", "scan"]
-        # known-bad fixtures are deliberately defective; linting them
-        # to cleanliness would defeat their purpose.
-        exclude: "known-bad/"
+        # known-bad fixtures and the jargon parity corpus inputs are
+        # deliberately defective (bare URLs, language-less fences, the
+        # constructs the checkers must strip); linting them to
+        # cleanliness would defeat their purpose.
+        exclude: "(known-bad/|tests/corpus/jargon_parity/inputs/)"
   - repo: local
     hooks:
       - id: roadmap

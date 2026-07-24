@@ -71,6 +71,7 @@ TITLES = {
     "INV-config-registrations": "Computed check digits",
     "INV-editorial-battery": "The prose battery",
     "INV-editorial-jargon": "Jargon watchlist",
+    "INV-editorial-jargon-parity": "Jargon checkers stay in step",
     "INV-editorial-checkers": "Checkers proven by fixtures",
     "INV-editorial-banned-regex": "Guarded banned patterns",
     "INV-authorities-claims": "Authorities claims exist",

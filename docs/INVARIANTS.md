@@ -294,6 +294,19 @@ Watchlist terms at rewrite severity fail the run.
 | **Tested by** | `fixture:jargon.md` |
 | **Known limit** | Exact matches only; a per-book allow list can silence any term. |
 
+## Jargon checkers stay in step
+
+`INV-editorial-jargon-parity` · standard
+
+The package jargon checker and the portable skill copy return equivalent findings and refusals for the same text and watchlist, and default to the same watchlist.
+
+| | |
+|---|---|
+| **If it breaks** | A matching, normalization, or allowlist fix lands in one checker and authors running the standalone skill get different accept/reject results than press check. |
+| **Enforced by** | `selftest.check_jargon_parity` |
+| **Tested by** | `check_jargon_parity` |
+| **Known limit** | A shared-source and fixture/property contract, not a single shared engine; the watchlist data is shared by construction. |
+
 ## Extensions refused before execution
 
 `INV-extension-conformance` · critical

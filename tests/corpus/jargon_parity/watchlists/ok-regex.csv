@@ -1,0 +1,5 @@
+term,match,status,category,question,allowed_when,source,notes
+co-?occurrence,regex,inspect,coined,Which cooccurrence?,defined,seed,regex rule
+big data,phrase,rewrite,stock,Which dataset?,defined,seed,phrase before word
+data,word,inspect,overloaded,Which data?,defined,seed,word after phrase
+the,word,allow,none,n/a,always,seed,allow-skip path

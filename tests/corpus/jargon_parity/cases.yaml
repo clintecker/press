@@ -1,0 +1,163 @@
+# The jargon parity contract corpus.
+#
+# One versioned set of inputs, watchlists, and run options that BOTH jargon
+# checkers -- the package copy (src/press/jargon_lint.py, run by press check)
+# and the portable skill copy
+# (src/press/data/skills/overused-jargon/scripts/jargon_lint.py) -- must
+# process into byte-identical findings and exit codes. tests/test_jargon_parity.py
+# reads this file and drives every case through both implementations.
+#
+# Bump `version` (and tests/corpus/jargon_parity/VERSION) whenever a case is
+# added or changed, so a book pinning an older press can tell the contract moved.
+#
+# Fields per case:
+#   id             stable identifier, used as the pytest parameter id
+#   input          markdown file under inputs/ (relative to this dir)
+#   watchlist      "default" (each impl resolves its own default, which the
+#                  contract also requires to be the same file) or a path under
+#                  watchlists/
+#   allow          terms passed as --allow (repeatable)
+#   fail_on        --fail-on threshold (none|inspect|rewrite|ban)
+#   include_quotes whether --include-quotes is set
+#   expect_error   true when load_rules must refuse the watchlist (exit 2);
+#                  both impls must refuse with the identical message
+
+version: 1
+
+cases:
+  # --- matching, normalization, reporting over real prose ---------------
+  - id: clean-default
+    input: inputs/clean.md
+    watchlist: default
+    allow: []
+    fail_on: rewrite
+    include_quotes: false
+
+  - id: mixed-severity-default
+    input: inputs/mixed-severity.md
+    watchlist: default
+    allow: []
+    fail_on: rewrite
+    include_quotes: false
+
+  - id: mixed-severity-fail-on-none
+    input: inputs/mixed-severity.md
+    watchlist: default
+    allow: []
+    fail_on: none
+    include_quotes: false
+
+  - id: mixed-severity-fail-on-inspect
+    input: inputs/mixed-severity.md
+    watchlist: default
+    allow: []
+    fail_on: inspect
+    include_quotes: false
+
+  - id: mixed-severity-fail-on-ban
+    input: inputs/mixed-severity.md
+    watchlist: default
+    allow: []
+    fail_on: ban
+    include_quotes: false
+
+  # --- Unicode and word-boundary edges ----------------------------------
+  - id: unicode-boundaries-default
+    input: inputs/unicode-boundaries.md
+    watchlist: default
+    allow: []
+    fail_on: rewrite
+    include_quotes: false
+
+  - id: hyphen-adjacency-default
+    input: inputs/hyphen-adjacency.md
+    watchlist: default
+    allow: []
+    fail_on: rewrite
+    include_quotes: false
+
+  # --- allowlist behaviour ----------------------------------------------
+  - id: allowlist-none
+    input: inputs/allowlist-scenario.md
+    watchlist: default
+    allow: []
+    fail_on: rewrite
+    include_quotes: false
+
+  - id: allowlist-silences-drift-and-parity
+    input: inputs/allowlist-scenario.md
+    watchlist: default
+    allow: [drift, parity]
+    fail_on: rewrite
+    include_quotes: false
+
+  - id: allowlist-is-case-folded
+    input: inputs/allowlist-scenario.md
+    watchlist: default
+    allow: [DRIFT, Parity, SEAM]
+    fail_on: rewrite
+    include_quotes: false
+
+  # --- non-prose stripping: code, quotes, URLs --------------------------
+  - id: quotes-and-code-default
+    input: inputs/quotes-and-code.md
+    watchlist: default
+    allow: []
+    fail_on: rewrite
+    include_quotes: false
+
+  - id: quotes-and-code-include-quotes
+    input: inputs/quotes-and-code.md
+    watchlist: default
+    allow: []
+    fail_on: rewrite
+    include_quotes: true
+
+  # --- regex path, phrase-before-word, allow-status skip ----------------
+  - id: regex-and-phrase-custom-watchlist
+    input: inputs/regex-and-phrase.md
+    watchlist: watchlists/ok-regex.csv
+    allow: []
+    fail_on: inspect
+    include_quotes: false
+
+  # --- malformed watchlists: both must refuse identically ---------------
+  - id: malformed-no-header
+    input: inputs/clean.md
+    watchlist: watchlists/no-header.csv
+    allow: []
+    fail_on: rewrite
+    include_quotes: false
+    expect_error: true
+
+  - id: malformed-missing-columns
+    input: inputs/clean.md
+    watchlist: watchlists/missing-columns.csv
+    allow: []
+    fail_on: rewrite
+    include_quotes: false
+    expect_error: true
+
+  - id: malformed-empty-term
+    input: inputs/clean.md
+    watchlist: watchlists/empty-term.csv
+    allow: []
+    fail_on: rewrite
+    include_quotes: false
+    expect_error: true
+
+  - id: malformed-bad-match
+    input: inputs/clean.md
+    watchlist: watchlists/bad-match.csv
+    allow: []
+    fail_on: rewrite
+    include_quotes: false
+    expect_error: true
+
+  - id: malformed-bad-status
+    input: inputs/clean.md
+    watchlist: watchlists/bad-status.csv
+    allow: []
+    fail_on: rewrite
+    include_quotes: false
+    expect_error: true
