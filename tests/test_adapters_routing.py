@@ -181,3 +181,51 @@ def test_run_workflow_needs_claude_on_path(scaffolded_book, fake_env, monkeypatc
     with pytest.raises(SystemExit) as excinfo:
         operator.run_workflow("editorial-passes", {"root": str(scaffolded_book)}, full_bash=False)
     assert "Claude Code CLI" in str(excinfo.value)
+
+
+# --------------------------------------------------------------------------
+# booklib reads BOOK_ROOT and PRESS_RELEASE through the environment
+# --------------------------------------------------------------------------
+
+
+def test_root_reads_book_root_through_environment(scaffolded_book, fake_env):
+    from press import booklib
+
+    fake = fake_env(values={"BOOK_ROOT": str(scaffolded_book)})
+    booklib.root.cache_clear()
+    try:
+        resolved = booklib.root()
+    finally:
+        booklib.root.cache_clear()
+    assert resolved == scaffolded_book.resolve()
+    # the fake actually served the read: proof the call crossed the adapter
+    # and did not touch os.environ (which would leave the fake untouched).
+    assert "BOOK_ROOT" in fake.reads
+
+
+def test_require_release_witnesses_early_returns_off_press_release(fake_env):
+    from press import booklib
+
+    fake = fake_env(values={})  # PRESS_RELEASE unset
+    assert booklib.require_release_witnesses() is None
+    assert "PRESS_RELEASE" in fake.reads
+
+
+def test_require_release_witnesses_honors_press_release_from_environment(
+    scaffolded_book, fake_env
+):
+    from press import booklib
+
+    fake = fake_env(values={"BOOK_ROOT": str(scaffolded_book), "PRESS_RELEASE": "1"})
+    # a fresh scaffold's witnesses are vacuous (no sentinels, 1-page floor),
+    # so reading PRESS_RELEASE=1 through the fake must force the release refusal.
+    for cache in (booklib.root, booklib.metadata, booklib.book):
+        cache.cache_clear()
+    try:
+        with pytest.raises(SystemExit) as excinfo:
+            booklib.require_release_witnesses()
+    finally:
+        for cache in (booklib.root, booklib.metadata, booklib.book):
+            cache.cache_clear()
+    assert "PRESS_RELEASE=1" in str(excinfo.value)
+    assert "PRESS_RELEASE" in fake.reads

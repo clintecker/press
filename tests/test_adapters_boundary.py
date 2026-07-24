@@ -42,7 +42,6 @@ MIGRATED = {
 # module not listed here -- or to a migrated one -- fails the gate.
 LEGACY_ALLOWED = {
     "__main__",
-    "booklib",
     "check_the_checkers",
     "gen_coverwrap",
     "scaffold",
