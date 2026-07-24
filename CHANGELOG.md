@@ -9,6 +9,32 @@ audit).
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-07-24
+
+The art department grows a finisher, and a book becomes its showcase. The press
+learns to finish a commissioned plate -- upscale it through a style-matched
+model, quantize it to a small palette, and write it as a lossless PNG smaller
+than the JPEG it replaces -- and the whole plate pipeline becomes format-
+agnostic so that PNG is a first-class plate. The operator desk shows more of
+what it already knows, three confirmed defects are fixed, and the reference
+book Make Ready. is re-commissioned end to end through the built-in facilities.
+Compatible within v2.
+
+### Added
+
+- **`press art enhance`** finishes plate art for print and web in three
+  style-matched stages: an AI upscale through a Real-ESRGAN model chosen for
+  the medium (a line model for an engraving, not a photo model), a resample to
+  a print-grade long edge, and a quantize to a small palette written as a
+  lossless PNG. The medium in `config/aesthetic.yaml` drives the model and the
+  palette. The upscaler is a detected external tool (Upscayl's `upscayl-bin`
+  or a standalone `realesrgan-ncnn-vulkan`), reported by `press doctor`; absent,
+  the command still quantizes and compresses, so the win lands without it. This
+  retires the standing scar that "PNG barely compresses engraving grain": once
+  the grain is quantized to a handful of grays, a plate ships as a lossless PNG
+  smaller than the lossy JPEG it replaces.
+- **The operator desk shows more, and shows progress.** The dashboard renders the full `press doctor` report -- every tool's state and its purpose -- not just a one-line summary, and a run screen tracks the build's stages as they stream by instead of only echoing the log. The command list was already complete (catalog-driven, parity-enforced); this surfaces the data the desk already held.
+
 ### Changed
 
 - **The plate pipeline accepts PNG as well as JPEG**, so a plate finished by
@@ -35,23 +61,6 @@ audit).
   all three scans that share it (the metadata head, the rendered-page
   commerce scan, and commerce-config validation) without weakening detection
   of a real leak such as `?apikey=sk_live_...`.
-
-### Added
-
-- **`press art enhance`** finishes plate art for print and web in three
-  style-matched stages: an AI upscale through a Real-ESRGAN model chosen for
-  the medium (a line model for an engraving, not a photo model), a resample to
-  a print-grade long edge, and a quantize to a small palette written as a
-  lossless PNG. The medium in `config/aesthetic.yaml` drives the model and the
-  palette. The upscaler is a detected external tool (Upscayl's `upscayl-bin`
-  or a standalone `realesrgan-ncnn-vulkan`), reported by `press doctor`; absent,
-  the command still quantizes and compresses, so the win lands without it. This
-  retires the standing scar that "PNG barely compresses engraving grain": once
-  the grain is quantized to a handful of grays, a plate ships as a lossless PNG
-  smaller than the lossy JPEG it replaces.
-
-### Fixed
-
 - **An ISSN lookup no longer reads one issued ISSN as a collision.** The live
   ISSN Portal returns a resource's JSON-LD as the main node plus `#ISSN`,
   `#KeyTitle`, `#Record`, ... fragment sub-nodes on the same base IRI; every
@@ -60,6 +69,7 @@ audit).
   now collapses the nodes of one resource by their fragment-stripped IRI, so
   AMBIGUOUS means two genuinely distinct resources carry the ISSN, and the
   ordinary success path resolves to FOUND.
+- **The print-profile PDF checks gain the known-bad fixtures they lacked.** `verify_black_ink` and `verify_mirrored_margins` -- the black-ink-only and mirrored-gutter guards for a print interior -- had no negative test, so breaking either left the suite green. Each now has a synthetic page it must reject (a colored region; a wrong-side gutter), confirmed by mutation.
 
 ## [2.2.1] - 2026-07-24
 
