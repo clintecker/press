@@ -1200,6 +1200,9 @@ def check_producers_are_verified() -> None:
     PRODUCER_REJECTION_PROOFS or, visibly, in PRODUCERS_PENDING_REJECTION_PROOF;
     a new producer forces that choice instead of inheriting a blind verifier."""
 
+    if _repo_root() is None:
+        return  # surfaces.yaml is a repo-dev artifact, absent from the wheel
+
     from . import surfaces
 
     config = surfaces.load_config().get("modules", {})

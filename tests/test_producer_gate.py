@@ -16,6 +16,19 @@ def test_every_current_producer_is_registered():
 
 
 @pytest.mark.layer("unit")
+def test_the_gate_skips_from_an_installed_wheel(monkeypatch):
+    # surfaces.yaml is a repo artifact, absent from the wheel. Run from an
+    # install (no checkout root), the gate must skip, not crash reading it --
+    # the fresh-install path `press selftest` takes. A guard that instead
+    # touched surfaces would raise FileNotFoundError here.
+    monkeypatch.setattr(selftest, "_repo_root", lambda: None)
+    monkeypatch.setattr(surfaces, "load_config",
+                        lambda *a, **k: (_ for _ in ()).throw(
+                            AssertionError("must not read surfaces from an install")))
+    assert selftest.check_producers_are_verified() is None
+
+
+@pytest.mark.layer("unit")
 @pytest.mark.proof("negative")
 def test_a_new_producer_without_a_proof_is_rejected(monkeypatch):
     base = surfaces.load_config()["modules"]
