@@ -181,3 +181,39 @@ def test_run_workflow_needs_claude_on_path(scaffolded_book, fake_env, monkeypatc
     with pytest.raises(SystemExit) as excinfo:
         operator.run_workflow("editorial-passes", {"root": str(scaffolded_book)}, full_bash=False)
     assert "Claude Code CLI" in str(excinfo.value)
+
+
+# --------------------------------------------------------------------------
+# scaffold.git_identity reads the git byline through the process runner
+# --------------------------------------------------------------------------
+
+
+def test_git_identity_drives_runner_and_decodes_name(fake_runner):
+    from press import scaffold
+
+    # Programmed as BYTES, the way the production runner always answers a
+    # captured run; the site must decode them. If it forgets and strips the
+    # raw bytes, `name or None` yields b"Ada Lovelace", not the str -- so
+    # this equality is the fail-before/pass-after signal for the decode.
+    fake_runner._by_command["git"] = ProcessResult(0, b"Ada Lovelace\n")
+    assert scaffold.git_identity() == "Ada Lovelace"
+    recorded = fake_runner.runs[0]
+    assert recorded.argv == ("git", "config", "user.name")
+    assert recorded.capture is True
+
+
+def test_git_identity_none_when_name_unset(fake_runner):
+    from press import scaffold
+
+    # git exits nonzero (or clean) with empty stdout when no user.name is
+    # configured; the empty byline collapses to None.
+    fake_runner._by_command["git"] = ProcessResult(1, b"")
+    assert scaffold.git_identity() is None
+
+
+def test_git_identity_none_when_git_absent(monkeypatch):
+    from press import scaffold
+
+    fake = fakes.FakeProcessRunner(by_command={"git": OSError("no git")})
+    monkeypatch.setattr(adapters, "process_runner", fake)
+    assert scaffold.git_identity() is None

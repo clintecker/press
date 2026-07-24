@@ -9,7 +9,7 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from . import booklib, instruments, version
+from . import adapters, booklib, instruments, version
 
 TEMPLATE = booklib.DATA / "template"
 TEMPLATE_MARKER = "{{SLUG}}"
@@ -29,15 +29,13 @@ def stamp_workflows(destination: Path) -> None:
 
 
 def git_identity() -> str | None:
-    import subprocess
-
     try:
-        result = subprocess.run(
-            ["git", "config", "user.name"], capture_output=True, text=True
+        result = adapters.process_runner.run(
+            ["git", "config", "user.name"], capture=True
         )
     except OSError:
         return None
-    name = result.stdout.strip()
+    name = result.stdout.decode("utf-8", errors="replace").strip()
     return name or None
 
 
