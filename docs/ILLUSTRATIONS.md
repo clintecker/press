@@ -5,8 +5,9 @@ in a **single ink** — the interior print law, of which a full-colour cover is
 the one exception — carries no lettering, and lands as a **plate**: a figure the
 build sets into the text and lists in the plates. You draw it from a subject, or
 from **source material you supply** — a photograph you took, a rough map, a
-sketch — redrawn into the book's own hand. The samples below are all in one
-book's ink.
+sketch — redrawn into the book's own hand. Each sample below is a different
+subject in a different ink, to show the range a medium covers; a real book prints
+all of its plates in its own single ink.
 
 <!--ILLUSTRATION-STYLES-->
 

@@ -3,9 +3,10 @@
 A cover **style** is an art-direction template — a layout, a typographic idiom,
 and rules for imagery — that the press fills with one book's title, author,
 palette, and subject. The house library spans the history of the form, from the
-1935 Penguin grid to contemporary collage. Every cover below is the **same
-book** — *Between the Tides*, in the same teal palette — asked for in a
-different style. One field in your config chooses which.
+1935 Penguin grid to contemporary collage. Every cover below is a **different
+book** — its own title, author, palette, and subject — so the catalogue shows
+the range each style covers, not one book drawn ten ways. Your config names the
+style; the same engine draws them all.
 
 <!--COVER-STYLES-->
 
