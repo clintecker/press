@@ -71,14 +71,18 @@ def test_runtime_dependencies_are_hash_pinned():
     # bytes, not whatever PyPI serves today. The runtime deps are locked to
     # exact versions with hashes in requirements-lock.txt, and action.yml
     # installs from it with --require-hashes, then press with --no-deps.
-    import tomllib
-
     lock = (ROOT / "requirements-lock.txt").read_text(encoding="utf-8")
     assert "--hash=sha256:" in lock, "requirements-lock.txt carries no hashes"
 
-    deps = tomllib.loads(
-        (ROOT / "pyproject.toml").read_text(encoding="utf-8")
-    )["project"]["dependencies"]
+    # Parse [project.dependencies] from the pyproject text with a regex rather
+    # than tomllib -- tomllib is stdlib only on 3.11+, and the press supports
+    # 3.10. The dependencies array is a simple list of quoted requirement
+    # strings, so this stays robust without a TOML parser or a backport dep.
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    block = re.search(r"^dependencies\s*=\s*\[(.*?)\]", pyproject, re.S | re.M)
+    assert block, "could not find [project.dependencies] in pyproject.toml"
+    deps = re.findall(r'"([^"]+)"', block.group(1))
+    assert deps, "no runtime dependencies parsed from pyproject.toml"
     locked = {_norm(ln) for ln in lock.splitlines() if ln[:1].isalpha()}
     for dep in deps:
         assert _norm(dep) in locked, \
