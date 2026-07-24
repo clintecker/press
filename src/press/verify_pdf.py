@@ -11,13 +11,12 @@ from __future__ import annotations
 import argparse
 import re
 import shutil
-import subprocess
 from pathlib import Path
 from typing import cast
 
 from PIL import Image, ImageDraw, ImageStat
 
-from . import booklib
+from . import adapters, booklib
 
 RENDER_SCRIPT = Path("/home/oai/skills/pdfs/scripts/render_pdf.py")
 
@@ -77,7 +76,11 @@ def verify_plate_links(pdf: Path) -> None:
 
 
 def run_capture(command: list[str]) -> str:
-    return subprocess.run(command, check=True, text=True, capture_output=True).stdout
+    # ProcessResult.stdout is bytes (the runner never sets text=True); decode
+    # here so callers regex over text, and a check=True nonzero exit still
+    # raises CalledProcessError from the production runner untouched.
+    result = adapters.process_runner.run(command, capture=True, check=True)
+    return result.stdout.decode("utf-8", errors="replace")
 
 
 def verify_cover_page(pdf: Path, root: Path, first_page: Path) -> None:
@@ -99,7 +102,7 @@ def verify_cover_page(pdf: Path, root: Path, first_page: Path) -> None:
             "blank -- the cover plate was clipped off the page")
     # And page 1 must be the cover, not a text title page: the cover raster is
     # a large embedded image (the source is ~1000px wide).
-    if shutil.which("pdfimages") is None:
+    if adapters.environment.which("pdfimages") is None:
         print("  note: pdfimages absent; cover-on-page-1 identity unverified")
         return
     listing = run_capture(["pdfimages", "-list", "-f", "1", "-l", "1", str(pdf)])
@@ -197,7 +200,7 @@ def verify_black_ink(images: list[Path]) -> None:
 
 
 def verify_fonts(pdf: Path) -> None:
-    if shutil.which("pdffonts") is None:
+    if adapters.environment.which("pdffonts") is None:
         raise SystemExit("required verification tool missing: pdffonts")
     output = run_capture(["pdffonts", str(pdf)])
     rows = [line.split() for line in output.splitlines()[2:] if line.strip()]
@@ -250,7 +253,7 @@ def verify_info(pdf: Path, trim_width: float, trim_height: float, min_pages: int
     """Trim size and page count from pdfinfo; returns the page count."""
 
     for tool in ["pdfinfo", "pdftotext"]:
-        if shutil.which(tool) is None:
+        if adapters.environment.which(tool) is None:
             raise SystemExit(f"required verification tool missing: {tool}")
 
     info = run_capture(["pdfinfo", str(pdf)])
@@ -279,7 +282,7 @@ def verify_sentinel_text(pdf: Path, root: Path, arg_sentinels: list[str] | None)
 
     text_path = root / "build" / "verify-text.txt"
     text_path.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run(["pdftotext", str(pdf), str(text_path)], check=True)
+    adapters.process_runner.run(["pdftotext", str(pdf), str(text_path)], check=True)
     text = text_path.read_text(encoding="utf-8", errors="replace")
     normalized_text = " ".join(text.split())
     required = arg_sentinels if arg_sentinels is not None else sentinels()
@@ -305,13 +308,13 @@ def render_pages(pdf: Path, render_dir: Path, expected_pages: int) -> list[Path]
     if render_dir.exists():
         shutil.rmtree(render_dir)
     if RENDER_SCRIPT.exists():
-        subprocess.run(
+        adapters.process_runner.run(
             ["python3", str(RENDER_SCRIPT), str(pdf), "--out_dir", str(render_dir), "--dpi", "120"],
             check=True,
         )
     else:
         render_dir.mkdir(parents=True)
-        subprocess.run(
+        adapters.process_runner.run(
             ["pdftoppm", "-png", "-r", "120", str(pdf), str(render_dir / "page")],
             check=True,
         )

@@ -49,7 +49,6 @@ LEGACY_ALLOWED = {
     "selftest",
     "verify_coverwrap",
     "verify_formats",
-    "verify_pdf",
 }
 
 # subprocess members that actually execute a command (as opposed to the

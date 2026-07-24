@@ -10,6 +10,7 @@ the call, with no live process, credential, or socket.
 from __future__ import annotations
 
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -181,3 +182,83 @@ def test_run_workflow_needs_claude_on_path(scaffolded_book, fake_env, monkeypatc
     with pytest.raises(SystemExit) as excinfo:
         operator.run_workflow("editorial-passes", {"root": str(scaffolded_book)}, full_bash=False)
     assert "Claude Code CLI" in str(excinfo.value)
+
+
+# --------------------------------------------------------------------------
+# verify_pdf: run_capture, tool probes, and page rendering
+# --------------------------------------------------------------------------
+
+
+def test_run_capture_drives_runner_and_decodes_bytes(fake_runner):
+    """run_capture routes through the runner with capture+check and turns
+    the runner's BYTES stdout into the ``str`` its callers regex over.
+    Against the pre-migration code the fake is never driven and this argv
+    assertion has nothing to read."""
+    from press import verify_pdf
+
+    fake_runner._by_command["pdfinfo"] = ProcessResult(0, b"Pages:          7\n")
+    out = verify_pdf.run_capture(["pdfinfo", "book.pdf"])
+    assert out == "Pages:          7\n"  # decoded to str, not left as bytes
+    recorded = fake_runner.runs[0]
+    assert recorded.argv == ("pdfinfo", "book.pdf")
+    assert recorded.capture is True
+    assert recorded.check is True
+
+
+def test_run_capture_propagates_calledprocesserror(monkeypatch):
+    """check=True must let the runner's CalledProcessError propagate; the
+    wrapper never catches and rethrows it."""
+    from press import verify_pdf
+
+    fake = fakes.FakeProcessRunner(
+        by_command={"pdffonts": subprocess.CalledProcessError(1, ["pdffonts"])}
+    )
+    monkeypatch.setattr(adapters, "process_runner", fake)
+    with pytest.raises(subprocess.CalledProcessError):
+        verify_pdf.run_capture(["pdffonts", "book.pdf"])
+
+
+def test_verify_fonts_probes_pdffonts_through_environment(fake_env):
+    """The pdffonts presence check goes through environment.which; with the
+    tool absent the diagnostic is unchanged. The which_calls assertion is
+    empty against the pre-migration shutil.which call."""
+    from press import verify_pdf
+
+    env = fake_env(present_tools=[])  # pdffonts absent
+    with pytest.raises(SystemExit) as excinfo:
+        verify_pdf.verify_fonts(Path("book.pdf"))
+    assert "required verification tool missing: pdffonts" in str(excinfo.value)
+    assert "pdffonts" in env.which_calls
+
+
+def test_verify_info_probes_tools_and_parses_pdfinfo_through_runner(fake_env, fake_runner):
+    """verify_info probes pdfinfo+pdftotext through the environment, then
+    parses pdfinfo's decoded output from the runner (trim 6x9 in => 432x648
+    pts, 50 pages >= 40)."""
+    from press import verify_pdf
+
+    env = fake_env(present_tools=["pdfinfo", "pdftotext"])
+    fake_runner._by_command["pdfinfo"] = ProcessResult(
+        0, b"Pages:          50\nPage size:      432 x 648 pts\n"
+    )
+    pages = verify_pdf.verify_info(Path("book.pdf"), 6.0, 9.0, 40)
+    assert pages == 50
+    assert env.which_calls == ["pdfinfo", "pdftotext"]
+    assert fake_runner.runs[0].argv == ("pdfinfo", "book.pdf")
+    assert fake_runner.runs[0].capture is True
+
+
+def test_render_pages_drives_pdftoppm_through_runner(tmp_path, fake_runner, monkeypatch):
+    """With the sandbox render script absent, render_pages falls back to
+    pdftoppm through the runner. The fake produces no PNGs, so the page-count
+    guard fires -- but only after the runner was driven with the pdftoppm
+    argv. Against the pre-migration code the fake is never touched."""
+    from press import verify_pdf
+
+    monkeypatch.setattr(verify_pdf, "RENDER_SCRIPT", Path("/nonexistent/render_pdf.py"))
+    with pytest.raises(SystemExit):  # 0 PNGs vs 3 expected
+        verify_pdf.render_pages(Path("book.pdf"), tmp_path / "render", 3)
+    recorded = fake_runner.runs[0]
+    assert recorded.argv[0] == "pdftoppm"
+    assert "-png" in recorded.argv
+    assert recorded.check is True
