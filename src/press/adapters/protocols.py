@@ -49,15 +49,22 @@ class ProcessRunner(Protocol):
 
 
 class Environment(Protocol):
-    """Reads the ambient process environment and PATH. The one seam through
-    which credentials and tool locations enter; a fake supplies a fixed map
-    so no test depends on the machine it runs on."""
+    """Reads and writes the ambient process environment and PATH. Reads are
+    the common case (credentials and tool locations enter here); the writes
+    exist for the few sites that must redirect a child process or a memoized
+    lookup -- ``borrow_book`` pointing ``BOOK_ROOT`` at a fixture, for one --
+    through the same seam they read, so a fake observes both and no test
+    depends on the machine it runs on."""
 
     def get(self, key: str, default: str | None = None) -> str | None: ...
 
     def copy(self) -> dict[str, str]: ...
 
     def which(self, tool: str) -> str | None: ...
+
+    def set(self, key: str, value: str) -> None: ...
+
+    def unset(self, key: str) -> None: ...
 
 
 class HttpImageClient(Protocol):

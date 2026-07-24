@@ -100,6 +100,12 @@ class OsEnvironment:
     def which(self, tool: str) -> str | None:
         return shutil.which(tool)
 
+    def set(self, key: str, value: str) -> None:
+        os.environ[key] = value
+
+    def unset(self, key: str) -> None:
+        os.environ.pop(key, None)
+
 
 class UrllibImageClient:
     """POSTs to image-generation APIs with ``urllib``. The production

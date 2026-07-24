@@ -8,21 +8,16 @@ parses every module's AST and fails if a boundary call appears anywhere the
 policy does not permit. A brand-new module, or a regression that reaches for
 ``subprocess.run`` in already-migrated code, turns this test red.
 
-Two tiers of permission:
-
-* the ``press.adapters`` package -- the one approved home;
-* a shrinking ``LEGACY_ALLOWED`` set of modules not yet migrated. Every
-  entry must still contain a boundary call (a stale entry fails, so the
-  allowlist can only shrink), and none of the five modules #82 migrated may
-  appear in it (they must be clean).
+There is now exactly one approved home: the ``press.adapters`` package.
+The legacy allowlist that once carried the not-yet-migrated modules is
+empty and gone (issue #199 migrated the last one, ``selftest``), so no
+module outside ``press.adapters`` may hold a direct boundary call.
 """
 
 from __future__ import annotations
 
 import ast
 from pathlib import Path
-
-import pytest
 
 PRESS = Path(__file__).resolve().parent.parent / "src" / "press"
 
@@ -34,14 +29,6 @@ MIGRATED = {
     "operator",
     "art_commission",
     "package_source",
-}
-
-# Modules that still hold direct boundary calls and are not part of #82's
-# scope. Each must genuinely still contain one (proven below), so this list
-# can only shrink as later work migrates them. Adding a boundary call to a
-# module not listed here -- or to a migrated one -- fails the gate.
-LEGACY_ALLOWED = {
-    "selftest",
 }
 
 # subprocess members that actually execute a command (as opposed to the
@@ -142,39 +129,18 @@ def test_migrated_modules_have_no_direct_boundary_calls():
     )
 
 
-def test_no_boundary_calls_outside_adapters_or_legacy_allowlist():
-    """No module may grow a direct boundary call unless it is on the
-    explicit, shrinking legacy allowlist. A new module reaching for
-    subprocess/os.environ/urllib/requests/shutil.which fails here."""
+def test_no_boundary_calls_outside_adapters():
+    """No module outside ``press.adapters`` may hold a direct boundary
+    call: the legacy allowlist is empty, so a module reaching for
+    subprocess/os.environ/urllib/requests/shutil.which anywhere else fails
+    here. A new module, or a regression in a migrated one, turns this red."""
 
     offenders = {}
     for path in _package_modules():
-        if path.stem in LEGACY_ALLOWED:
-            continue
         findings = _boundary_findings(path)
         if findings:
             offenders[path.stem] = findings
     assert not offenders, (
-        "direct boundary calls found outside press.adapters and the legacy "
-        f"allowlist -- route them through an adapter: {offenders}"
+        "direct boundary calls found outside press.adapters -- route them "
+        f"through an adapter: {offenders}"
     )
-
-
-@pytest.mark.parametrize("module", sorted(LEGACY_ALLOWED))
-def test_legacy_allowlist_has_no_stale_entries(module):
-    """A module on the legacy allowlist must still contain a boundary call.
-    Once migrated, it must be removed from the list, so the allowlist can
-    only shrink -- it cannot rot into a silent permanent exemption."""
-
-    path = PRESS / f"{module}.py"
-    assert path.exists(), f"allowlisted module {module} does not exist"
-    assert _boundary_findings(path), (
-        f"{module} is on LEGACY_ALLOWED but has no direct boundary call; "
-        "remove it from the allowlist"
-    )
-
-
-def test_migrated_and_legacy_are_disjoint():
-    """A module cannot be both claimed-clean and legacy-exempt."""
-
-    assert not (MIGRATED & LEGACY_ALLOWED)

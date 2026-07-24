@@ -182,6 +182,45 @@ def test_side_effect_free_import_passes_the_sandbox(synthetic_package):
     assert selftest._prove_no_import_side_effects(names) is None
 
 
+@pytest.mark.parametrize("act, needle", [
+    (lambda: __import__("socket").create_connection(("127.0.0.1", 9)),
+     "network connection"),
+    (lambda: __import__("subprocess").Popen(["true"]),
+     "spawned a subprocess"),
+    (lambda: __import__("os").system("true"),
+     "ran a shell command"),
+    (lambda: Path("scratch.txt").write_text("x"),
+     "wrote a file"),
+    (lambda: open("scratch.txt", "w"),
+     "for writing"),
+])
+def test_relocated_import_guard_traps_and_names_the_offender(act, needle):
+    """The import sandbox now lives in press.adapters.import_guard (issue
+    #199), the one package allowed to reference the raw subprocess/socket
+    primitives it must intercept. Exercised directly from its new home, the
+    guard still sits on the acting call: the effect is trapped before it
+    happens and named."""
+
+    from press.adapters import import_guard
+
+    with import_guard._import_sandbox():
+        with pytest.raises(import_guard._ForbiddenImportSideEffect) as exc:
+            act()
+    assert needle in str(exc.value)
+
+
+def test_selftest_reuses_the_relocated_import_guard():
+    """selftest imports the very context manager and exception the adapter
+    module defines -- one guard, not a drifted copy -- so its side-effect
+    proof and the adapter stay the same code."""
+
+    from press import selftest
+    from press.adapters import import_guard
+
+    assert selftest._import_sandbox is import_guard._import_sandbox
+    assert selftest._ForbiddenImportSideEffect is import_guard._ForbiddenImportSideEffect
+
+
 def test_import_side_effect_runs_once_in_deterministic_order(synthetic_package, monkeypatch):
     """Each module body executes exactly once, in sorted order, even when a
     name is offered twice -- the import gate does not re-run side effects."""
