@@ -48,6 +48,29 @@ be turned off unnoticed.
   Administration: read), and reads the branch and tag protection rulesets
   back, failing loudly if either is removed or weakened.
 
+### Canaries
+
+Each control the press owns in the tree carries a known-bad fixture it
+rejects, paired with a clean case it passes (fail-before / pass-after);
+house law is that a checker is only real with a known-bad it rejects.
+
+- **Proven in-tree.** The action-pinning gate
+  (`tests/test_ci_posture.py::test_unpinned_action_canary`) is fed a
+  floating-tag snippet (`uses: actions/checkout@v4`) and must flag it while
+  a SHA-pinned snippet passes. The published-output secret scan
+  (`tests/test_security_canaries.py`) is fed a synthetic, obviously-fake
+  credential and must flag it while ordinary page text passes. Both use
+  string fixtures, so no real unpinned action or real secret is ever
+  committed.
+- **Platform-side, not seedable here.** GitHub secret scanning / push
+  protection and dependency-review *live firing* are platform detectors:
+  seeding them would require a real credential (which push protection would
+  reject) or a real vulnerable dependency (which would poison the lockfile).
+  Their live firing is proven by the platform on real pull requests and
+  pushes, not by a seeded fixture. The dependency-review canary instead
+  proves the *config* is present and armed to fail a PR on a high-severity
+  vulnerable dependency; the action proves the firing on a real PR.
+
 ### Accepted limitations
 
 - The toggle drift-check needs `SECURITY_AUDIT_TOKEN` because GitHub

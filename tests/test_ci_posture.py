@@ -105,6 +105,26 @@ def _all_job_names() -> set[str]:
     return names
 
 
+def _unpinned_actions(workflow_text: str) -> list[str]:
+    """Every third-party action reference in a workflow that is NOT pinned to
+    a full 40-hex commit SHA, returned as ``owner/repo@ref``. A local reusable
+    workflow (``./.github/...``) and this repo's own action ref
+    (``clintecker/press@vN``, the pinned release contract) are exempt. Pure
+    over the workflow text so a canary can feed it a known-bad snippet."""
+
+    unpinned: list[str] = []
+    for line in workflow_text.splitlines():
+        m = re.search(r"uses:\s*([\w.-]+/[\w.-]+(?:/[\w.-]+)?)@(\S+)", line)
+        if not m:
+            continue
+        owner_repo, ref = m.group(1), m.group(2)
+        if owner_repo.startswith("./") or owner_repo == "clintecker/press":
+            continue
+        if not re.fullmatch(r"[0-9a-f]{40}", ref):
+            unpinned.append(f"{owner_repo}@{ref}")
+    return unpinned
+
+
 @pytest.mark.parametrize("workflow", _workflow_files(), ids=lambda p: p.name)
 def test_every_action_is_pinned_by_full_commit_sha(workflow):
     """Every third-party action is pinned to a 40-hex commit SHA with its
@@ -112,19 +132,27 @@ def test_every_action_is_pinned_by_full_commit_sha(workflow):
     @main) is a supply-chain and reproducibility hole, and the SHA is how a
     runtime-deprecation bump is a reviewed, immutable change."""
 
-    unpinned = []
-    for line in workflow.read_text(encoding="utf-8").splitlines():
-        m = re.search(r"uses:\s*([\w.-]+/[\w.-]+(?:/[\w.-]+)?)@(\S+)", line)
-        if not m:
-            continue
-        owner_repo, ref = m.group(1), m.group(2)
-        # A local reusable workflow (./.github/...) or this repo's own action
-        # ref (clintecker/press@vN, the pinned release contract) is exempt.
-        if owner_repo.startswith("./") or owner_repo == "clintecker/press":
-            continue
-        if not re.fullmatch(r"[0-9a-f]{40}", ref):
-            unpinned.append(f"{workflow.name}: {owner_repo}@{ref}")
-    assert not unpinned, "actions must be pinned by full commit SHA:\n  " + "\n  ".join(unpinned)
+    unpinned = _unpinned_actions(workflow.read_text(encoding="utf-8"))
+    assert not unpinned, "actions must be pinned by full commit SHA:\n  " + \
+        "\n  ".join(f"{workflow.name}: {u}" for u in unpinned)
+
+
+def test_unpinned_action_canary():
+    """Fail-before / pass-after for the action-pinning gate (#154). A
+    known-bad snippet with a floating tag (``uses: actions/checkout@v4``)
+    must be FLAGGED; a SHA-pinned snippet must pass clean; the local and
+    own-action exemptions must still hold. Not a real unpinned action in
+    ``.github/workflows`` -- the fixture is a string. If ``_unpinned_actions``
+    ever stopped flagging a floating tag, the gate above would silently
+    admit a supply-chain hole, and this catches that regression."""
+
+    assert _unpinned_actions("      - uses: actions/checkout@v4\n") == \
+        ["actions/checkout@v4"]
+    pinned = ("      - uses: actions/checkout@"
+              "3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n")
+    assert _unpinned_actions(pinned) == []
+    assert _unpinned_actions("      - uses: ./.github/actions/x@v1\n") == []
+    assert _unpinned_actions("      - uses: clintecker/press@v2\n") == []
 
 
 def test_no_pull_request_target_anywhere():
