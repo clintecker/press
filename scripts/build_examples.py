@@ -41,6 +41,23 @@ OUT = ROOT / "build" / "examples"
 # Render at a size that stays crisp on a card without bloating the page.
 PREVIEW_DPI = "110"
 
+# The interior pages that show what makes each book *different* -- a table, a
+# recipe with its ingredient list, verse, a drop-cap chapter opening, footnotes,
+# the subject index -- rather than the title/copyright/about-the-author matter
+# that looks the same in every book. Curated by eye from the built PDFs; a book
+# not listed (or whose numbers fall out of range) falls back to an early
+# interior page and the last page. Page numbers are 1-based into the PDF.
+SHOWCASE_PAGES = {
+    "signal-and-noise-manual": [5, 11],   # a decision table, the subject index
+    "field-days-almanac": [5, 8],         # drop-cap season openings (Spring, Winter)
+    "hearthstone-cookbook": [7, 9],       # a recipe with its ingredient list, the index
+    "small-hours-chapbook": [7, 8],       # verse (Nocturnes, Streetlights)
+    "on-the-commons-monograph": [7, 8],   # footnoted scholarly prose
+    "the-long-field-essays": [5, 9],      # the epigraph, a subsectioned essay
+    "the-tinsmith-novella": [6, 8],       # a drop-cap chapter, the "Also by" page
+    "tidepool-field-notes": [7, 8],       # a boxed field note, zoned observations
+}
+
 
 def _run(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
@@ -93,17 +110,18 @@ def build_example(book: Path) -> bool:
     # preview-1 is the cover. A book that carries commissioned cover art
     # (assets/cover.jpg -- a Penguin-style woodcut cover, committed once) shows
     # it; otherwise a typographic cover is drawn from the book's palette
-    # (gen_cover) as a graceful fallback. Then two interior pages: an early one
-    # (past any front matter, so a chapter opening and its drop cap show) and
-    # the last (index / also-by / about-the-author matter). Deduped and clamped
-    # for a short book.
+    # (gen_cover) as a graceful fallback. Then two interior pages chosen to show
+    # off what makes this book different (SHOWCASE_PAGES), falling back to an
+    # early interior page and the last page for a book with no curated pages.
     commissioned = book / "assets" / "cover.jpg"
     if commissioned.is_file():
         shutil.copy(commissioned, dest / "preview-1.jpg")
     else:
         gen_cover.cover_for(book, dest / "preview-1.jpg")
     ok = (dest / "preview-1.jpg").is_file()
-    interior = sorted({min(3, pages), pages})
+    interior = [p for p in SHOWCASE_PAGES.get(slug, ()) if 1 <= p <= pages]
+    if not interior:
+        interior = sorted({min(3, pages), pages})
     for slot, page in enumerate(interior, start=2):
         ok = _render_page(pdf, page, dest / f"preview-{slot}") and ok
     if not ok:
