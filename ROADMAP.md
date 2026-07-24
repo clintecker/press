@@ -86,6 +86,10 @@ The delivery-trust work that cannot be finished from a single identity or a sing
 
 The custom merchant-of-record commerce machinery, deferred from v1.16 when the publisher chose a provider seller-of-record model. Built only if the publisher ever becomes merchant of record: the order broker, hosted Stripe checkout, provider API adapters, payment/fulfillment state machines, verified webhooks, exactly-once outbox, reconciliation, artifact delivery, and the privacy/operator/observability infrastructure. Plan: [direct-ordering-plan](https://github.com/clintecker/press/blob/main/docs/DIRECT-ORDERING-PLAN.md).
 
+### [Icebox](https://github.com/clintecker/press/milestone/17) · Open
+
+Deferred indefinitely: worthwhile work with a finished design or plan, held out of the active train until it is prioritized. Not blocked on anything external -- a deliberate scheduling choice. Holds #173 (third-party extension registration), whose design is ratified in docs/THIRD-PARTY-EXTENSIONS-PLAN.md and whose implementation is a future major.
+
 ## Completed foundations
 
 Closed milestones retained as the historical foundation for the active work and as links to their shipped issue records.
