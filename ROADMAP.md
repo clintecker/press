@@ -21,18 +21,41 @@ page is the human-readable view and is published directly as the website's
 roadmap.
 
 The generated section below must never be edited by hand. Run
-`python3 scripts/sync_roadmap.py --write` after changing the registry. CI checks
-the projection and reconciles the same metadata to GitHub after changes reach
-`main`. Every milestone links to its live issue list; every description links
-back to the relevant repository contracts or successor work.
+`python3 scripts/sync_roadmap.py --write` after changing the registry. Every
+milestone links to its live issue list; every description links back to the
+relevant repository contracts or successor work.
 
 This direction is intentionally one-way:
 
 1. Propose roadmap intent in the repository.
-2. Review the registry and generated roadmap in a pull request.
-3. Merge the immutable record.
-4. Reconcile GitHub's milestone metadata from that record.
+2. Review the registry and generated roadmap in a pull request. The
+   `pull_request` run only proves schema and projection; it holds no write
+   authority, so a fork PR can never edit GitHub metadata.
+3. Merge the immutable record to `main`.
+4. Reconcile GitHub's milestone metadata from that record. The push-to-`main`
+   `reconcile` job runs `scripts/sync_roadmap.py --apply-github` with
+   least-privilege `issues: write` (and `contents: read`), guarded by a
+   concurrency group keyed to the workflow so an older commit's run is
+   superseded and cannot overwrite a newer commit's metadata. It aligns only
+   `title`, `state`, and `description` for milestone numbers already in the
+   registry; it never creates or deletes a milestone and never edits an issue,
+   and it writes a job summary linking the source commit and each changed
+   milestone. A milestone in the registry but absent on GitHub is reported,
+   not created.
 5. Build the website from the same commit.
+
+A weekly (and manually dispatchable) `github-drift` job stays an independent,
+read-only alarm: it reports out-of-band edits but never repairs them, so GitHub
+is never treated as a second source of truth.
+
+Manual recovery: if the reconcile job is unavailable (an outage, a revoked
+token) and GitHub has drifted, a maintainer with `gh` authenticated repairs it
+locally with the same idempotent command the job runs:
+
+```sh
+python3 scripts/sync_roadmap.py --apply-github   # write: reconcile GitHub to the registry
+python3 scripts/sync_roadmap.py --check-github   # read-only: report drift without writing
+```
 
 Editing milestone metadata only in GitHub is detectable drift, not a second
 source of truth. Issue titles, bodies, labels, and milestone assignments remain

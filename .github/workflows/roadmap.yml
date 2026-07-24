@@ -1,6 +1,8 @@
 name: Roadmap integrity
 
 on:
+  push:
+    branches: [main]
   pull_request:
   schedule:
     - cron: "17 8 * * 1"
@@ -15,6 +17,32 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: python3 scripts/sync_roadmap.py --check
+
+  reconcile:
+    # Post-merge only: the reviewed, immutable registry is now on main, so
+    # reconcile GitHub's mutable milestone metadata to it. This is the one
+    # job in the press that holds GitHub write authority, so it is fenced:
+    # push-to-main only (never a pull_request, never a fork), least-privilege
+    # issues:write, and a concurrency group keyed to the workflow so an older
+    # commit's run is superseded and cannot overwrite a newer commit's
+    # metadata. It only PATCHes title/state/description for milestone numbers
+    # already in the registry; it never creates, deletes, or edits issues.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: projection
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+    concurrency:
+      group: ${{ github.workflow }}-reconcile
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Reconcile GitHub milestone metadata to the registry
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: python3 scripts/sync_roadmap.py --apply-github
 
   github-drift:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
