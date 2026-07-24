@@ -60,6 +60,37 @@ def test_the_build_pins_a_versioned_toolchain_image():
     ), "build.yml does not pin the toolchain by an immutable @sha256 digest"
 
 
+def _norm(name: str) -> str:
+    # PyPI project-name normalization: case-fold and fold runs of . _ - to one -.
+    stem = re.split(r"[<>=!~ ]", name, maxsplit=1)[0]
+    return re.sub(r"[._-]+", "-", stem).lower()
+
+
+def test_runtime_dependencies_are_hash_pinned():
+    # #194 (Python half): a pinned release must resolve immutable dependency
+    # bytes, not whatever PyPI serves today. The runtime deps are locked to
+    # exact versions with hashes in requirements-lock.txt, and action.yml
+    # installs from it with --require-hashes, then press with --no-deps.
+    import tomllib
+
+    lock = (ROOT / "requirements-lock.txt").read_text(encoding="utf-8")
+    assert "--hash=sha256:" in lock, "requirements-lock.txt carries no hashes"
+
+    deps = tomllib.loads(
+        (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    )["project"]["dependencies"]
+    locked = {_norm(ln) for ln in lock.splitlines() if ln[:1].isalpha()}
+    for dep in deps:
+        assert _norm(dep) in locked, \
+            f"runtime dependency {dep!r} is not pinned in requirements-lock.txt"
+
+    action = (ROOT / "action.yml").read_text(encoding="utf-8")
+    assert "--require-hashes" in action and "requirements-lock.txt" in action, \
+        "action.yml does not install runtime deps from the hash-pinned lock"
+    assert "--no-deps" in action, \
+        "action.yml does not install press with --no-deps (deps could resolve fresh)"
+
+
 def _all_job_names() -> set[str]:
     from press import yamlio
 

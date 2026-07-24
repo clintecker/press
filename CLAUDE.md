@@ -20,6 +20,11 @@ book repository that consumes this package.
   fixture), but self-checkout install is still the law: it keeps a
   private book working with no cross-repo token and pins the installed
   press to the exact action ref; do not replace it with pip-from-git.
+  The action installs the runtime dependencies from `requirements-lock.txt`
+  with `--require-hashes`, then press itself with `--no-deps`, so a pinned
+  release resolves immutable dependency bytes (#194), not whatever PyPI
+  serves today. Regenerate the lock with `scripts/lock-deps.sh` after
+  changing `[project.dependencies]`, then run the gauntlet.
 - `scripts/build_site.py` + `site/press.css` build the press's own
   documentation site (its home is `site/landing.md`, written for a
   first-time author; then the `docs/` suite, CHANGELOG, ROADMAP, and

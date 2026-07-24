@@ -24,7 +24,10 @@ rm -rf /tmp/press-src && mkdir -p /tmp/press-src
 tar -C "$src" --exclude=.git --exclude=.venv --exclude=build --exclude=dist \
     --exclude=.pytest_cache --exclude=.mypy_cache -cf - . | tar -C /tmp/press-src -xf -
 python3 -m build --wheel --outdir /tmp/wheels /tmp/press-src >/dev/null
-python3 -m pip install --break-system-packages -q /tmp/wheels/press-*.whl
+# Runtime dependencies from the hash-pinned lock (#194: immutable identities),
+# then press itself with --no-deps so nothing is resolved fresh from PyPI.
+python3 -m pip install --break-system-packages -q --require-hashes -r "$src/requirements-lock.txt"
+python3 -m pip install --break-system-packages -q --no-deps /tmp/wheels/press-*.whl
 
 echo "-- wheel carries the package data"
 cd /tmp
