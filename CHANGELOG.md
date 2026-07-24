@@ -9,6 +9,83 @@ audit).
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-07-23
+
+The art department and the test bar. The press gains a cover-design system and
+an in-book illustration system, its toolchain image goes native on Apple
+Silicon, and — after a title-page generator shipped a dropped and a clipped
+cover behind green integration tests — every example book is now verified as a
+built artifact and the machinery that lets a producer ship unproven is closed.
+Compatible within v2: a book without a baked cover renders byte-for-byte
+unchanged. The one design change touches only books that carry a cover — the
+cover plate now fits the text block of whatever trim it is, correcting a fixed
+plate that clipped on 5×8 and overflowed the block even at 6×9.
+
+### Added
+
+- **A cover-design system** (`press cover`). Ten house cover styles in a
+  catalogue (`src/press/data/cover-styles.yaml`), selected by
+  `config` (`cover.style`, `cover.subject`) and rendered through the shared
+  image-model layer; a book may also write its own style directly into its
+  repo. The art is generated once and committed as a static asset, never in
+  CI, so a build is deterministic. Listed by `press cover` and documented on
+  the site with visual examples.
+- **An in-book illustration system** (`press illustrate`). Seven single-ink
+  illustration media (`src/press/data/illustration-styles.yaml`) for plates,
+  maps, and diagrams, selected by `plates.style`; `--from` turns real source
+  material (a photograph the author took, a rough map) into a house-format
+  plate. Installed through `press art accept --as plate:<name>`, so it lands in
+  the same geometry-checked pipeline as every other commission.
+- **A gallery of eight example books**, each with a distinct palette, a real
+  Penguin-style illustrated cover, and its actual built PDF with page previews
+  on the site — the press proving, on itself, that nothing is hardcoded.
+- **The example PDFs are verified in CI.** The gallery build now runs
+  `press verify` on every example it builds; a book whose PDF loses a sentinel,
+  a cover, or a page turns the build red. This caught a fragile sentinel on its
+  first run.
+- **A producer must name the rejection its verifier turns on.** Every module
+  classified `producer` in the surface inventory is now held, by the selftest,
+  to an entry in `PRODUCER_REJECTION_PROOFS` (or a visible, shrinking pending
+  list) — so a new artifact-maker cannot inherit a blind verifier the way the
+  title-page generator did.
+- **A coverage-floor gate.** A module baselined below 50% branch coverage must
+  now name its reason in the ratchet's allowlist, and the list may only shrink;
+  a new, silent low floor turns the gate red. CONTRIBUTING gains a "what a proof
+  has to prove" section stating the principle: assert the artifact, not that the
+  line ran.
+
+### Changed
+
+- **The toolchain image is multi-arch** (#206). `press-toolchain` is now built
+  and smoked on native runners for both `linux/amd64` (CI) and `linux/arm64`
+  (Apple Silicon), assembled into a manifest list; local Docker PDF builds on a
+  Mac run natively instead of dying under qemu. `build.yml` pins the multi-arch
+  image, so a book's CI resolves the exact multi-arch bytes.
+- **A baked cover fits the text block of any trim.** The generated title page
+  sized its cover plate to a fixed 5.6×7.1in box; it now fits `\textwidth` by
+  `\textheight`. A book carrying a cover renders its cover page at the trim's
+  own proportions (on 6×9, a hair smaller and no longer overflowing the block);
+  a book without a cover is unaffected.
+
+### Fixed
+
+- **Every book's reading PDF leads with its cover, on any trim.** The cover
+  plate rendered only when a book supplied `config/front-matter.yaml`, so a book
+  with a `cover.jpg` and no front-matter config shipped with no cover at all;
+  and where it did render, the fixed plate size clipped on 5×8. Covers now
+  trigger on the asset itself and fit the trim, and `verify_pdf` refuses a
+  reading PDF whose first page is not the cover — the miss that started this
+  release, now a checked property.
+- **The producer gate runs from an installed wheel.** It read the repo-only
+  surface inventory unconditionally and crashed `press selftest` on a fresh
+  install; it now skips outside a checkout, like the other repo-reading checks.
+- **A gallery example's sentinel moved off its drop cap.** A sentinel anchored
+  on a chapter's opening word could never match, because the house drop cap
+  raises the initial and small-caps the remainder; re-anchored mid-chapter.
+- Site reference tables render correctly on desktop, drop caps stay off back
+  matter, the gallery preview strip no longer scrolls, and the
+  signal-and-noise example's index-terms schema builds.
+
 ## [2.0.0] - 2026-07-21
 
 The composable press. A new design major: trim, binding, cover material, and
