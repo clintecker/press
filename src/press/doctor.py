@@ -143,6 +143,7 @@ def examine(
     runs: Callable[[str], bool] | None = None,
     python_version: tuple[int, int] | None = None,
     deps_probe: Callable[[], str | None] | None = None,
+    upscaler_probe: Callable[[], object | None] | None = None,
 ) -> DoctorReport:
     """Probe the machine and return immutable findings without printing.
 
@@ -181,6 +182,18 @@ def examine(
             )
         else:
             findings.append(Finding(tool, "tool", "ok", purpose, required))
+
+    # The plate-enhancement upscaler lives outside PATH (Upscayl bundles it in
+    # its app), so it is found by the enhancer's own resolver, not env.which --
+    # injected here so a test pins it, the same discipline as every other probe.
+    # Optional: absent, `press art enhance` quantizes without an AI upscale.
+    if upscaler_probe is None:
+        from . import art_enhance
+
+        upscaler_probe = art_enhance.find_upscaler
+    upscaler_purpose = "plate enhancement upscaling (press art enhance)"
+    upscaler_state = "absent" if upscaler_probe() is None else "ok"
+    findings.append(Finding("realesrgan", "tool", upscaler_state, upscaler_purpose, False))
 
     for key, purpose in KEYS:
         state = "ok" if env.get(key) else "unset"

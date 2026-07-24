@@ -9,6 +9,20 @@ audit).
 
 ## [Unreleased]
 
+### Added
+
+- **`press art enhance`** finishes plate art for print and web in three
+  style-matched stages: an AI upscale through a Real-ESRGAN model chosen for
+  the medium (a line model for an engraving, not a photo model), a resample to
+  a print-grade long edge, and a quantize to a small palette written as a
+  lossless PNG. The medium in `config/aesthetic.yaml` drives the model and the
+  palette. The upscaler is a detected external tool (Upscayl's `upscayl-bin`
+  or a standalone `realesrgan-ncnn-vulkan`), reported by `press doctor`; absent,
+  the command still quantizes and compresses, so the win lands without it. This
+  retires the standing scar that "PNG barely compresses engraving grain": once
+  the grain is quantized to a handful of grays, a plate ships as a lossless PNG
+  smaller than the lossy JPEG it replaces.
+
 ## [2.2.1] - 2026-07-24
 
 Mobile and boundary repairs, no design change to any book. The documentation

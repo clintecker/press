@@ -28,6 +28,7 @@ modules:
   aesthetic: {default: normalizer, overrides: {write_tex_overrides: producer}}
   art: presenter
   art_commission: adapter
+  art_enhance: {default: pure, overrides: {enhance: producer, upscale: adapter, find_upscaler: adapter}}
   artifact_status: pure
   barcode: pure
   brand: presenter

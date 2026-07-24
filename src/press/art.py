@@ -151,8 +151,56 @@ def main(argv: list[str]) -> int:
         "--as", dest="target", required=True,
         help="cover | plate:<name> | logomark | portrait",
     )
+    enhance_cmd = sub.add_parser(
+        "enhance", help="upscale, quantize, and losslessly compress plate art")
+    enhance_cmd.add_argument(
+        "file", type=Path, nargs="?",
+        help="one image to finish; omit to finish every committed plate")
+    enhance_cmd.add_argument("--colors", type=int, default=None,
+                             help="palette size (default from the aesthetic medium)")
+    enhance_cmd.add_argument("--max-edge", type=int, default=None,
+                             help="target long edge in px (default 2400, print-grade)")
     args = parser.parse_args(argv)
+    if args.command == "enhance":
+        return _enhance(args)
     if not args.file.is_file():
         raise SystemExit(f"no such file: {args.file}")
     accept(args.file, args.target)
+    return 0
+
+
+def _enhance(args) -> int:
+    """Finish plate art: one file, or every committed plate when none is named.
+    The book's plate medium (config/aesthetic.yaml) picks the upscale model and
+    the palette, so an engraving finishes in engraving grain."""
+
+    from . import aesthetic, art_enhance, booklib
+
+    plates = aesthetic.effective().get("plates") or {}
+    medium = str(plates.get("medium", "") if isinstance(plates, dict) else "")
+    default_model, default_colors = art_enhance.profile_for(medium)
+    colors = args.colors if args.colors is not None else default_colors
+    max_edge = args.max_edge if args.max_edge is not None else art_enhance._DEFAULT_MAX_EDGE
+
+    if art_enhance.find_upscaler() is None:
+        print("no Real-ESRGAN upscaler found (Upscayl or realesrgan-ncnn-vulkan); "
+              "quantizing and compressing without an AI upscale")
+
+    if args.file is not None:
+        targets = [args.file]
+    else:
+        woodcuts = booklib.root() / "assets" / "woodcuts"
+        targets = sorted(woodcuts.glob("*.jpg")) + sorted(woodcuts.glob("*.png"))
+        if not targets:
+            raise SystemExit("no plates under assets/woodcuts/ to enhance")
+
+    for src in targets:
+        if not src.is_file():
+            raise SystemExit(f"no such file: {src}")
+        dst = src.with_suffix(".png")
+        result = art_enhance.enhance(src, dst, model=default_model, colors=colors,
+                                     max_edge=max_edge)
+        how = "upscaled" if result.upscaled else "resampled"
+        print(f"enhanced {src.name} -> {dst.name}: {result.width}x{result.height}, "
+              f"{result.colors} grays, {how}")
     return 0

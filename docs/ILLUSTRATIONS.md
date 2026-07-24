@@ -75,3 +75,27 @@ styles:
 A template may use `{subject}`, `{ink}` (your interior ink), and `{paper}`; the
 press adds the wordless, single-ink guardrail. Then `press illustrate fig1
 --style my-plate`.
+
+## Finishing a plate for print and web
+
+A commissioned plate is a modest raster; the print interior wants it large and
+crisp, the reader wants it small and clean. `press art enhance` does both in
+three stages matched to the art's own grain:
+
+```sh
+press art enhance                         # finish every plate under assets/woodcuts/
+press art enhance assets/woodcuts/shop.jpg  # or just one
+```
+
+1. **Upscale** through a Real-ESRGAN model chosen for the medium in
+   `config/aesthetic.yaml` -- a line model (remacri) for an engraving, which
+   keeps the hatching crisp instead of inventing the smooth gradients a photo
+   model would. The upscaler is an external tool, detected not bundled: install
+   [Upscayl](https://upscayl.org) or a standalone `realesrgan-ncnn-vulkan` and
+   `press doctor` will report it. Absent, the command still runs -- it resamples
+   instead of upscaling, so the rest of the win lands.
+2. **Resample** to a print-grade long edge (2400px by default; `--max-edge`).
+3. **Quantize** to a small palette (`--colors`, default from the medium) and
+   write a lossless PNG. An engraving is a few grays, so this is visually
+   lossless and turns a multi-megabyte truecolor image into a small one -- small
+   enough that a plate ships as a lossless PNG rather than a lossy JPEG.

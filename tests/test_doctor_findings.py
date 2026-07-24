@@ -26,6 +26,7 @@ def _run(**kwargs) -> doctor.DoctorReport:
     so a test isolates the facet it cares about."""
 
     kwargs.setdefault("deps_probe", lambda: None)
+    kwargs.setdefault("upscaler_probe", lambda: object())  # present by default
     return doctor.examine(**kwargs)
 
 
@@ -199,12 +200,14 @@ def test_fully_capable_machine_is_ready():
         runs=lambda tool: True,
         python_version=(3, 11),
         deps_probe=lambda: None,
+        upscaler_probe=lambda: object(),
     )
     assert report.failing == ()
     assert report.ready is True
     assert report.exit_code == 0
-    # One finding per tool, key, plus python version and python deps.
-    assert len(report.findings) == len(doctor.CHECKS) + len(doctor.KEYS) + 2
+    # One finding per tool, key, plus python version, python deps, and the
+    # optional plate-enhancement upscaler.
+    assert len(report.findings) == len(doctor.CHECKS) + len(doctor.KEYS) + 3
 
 
 # --------------------------------------------------------------------------
@@ -308,3 +311,27 @@ def test_main_renders_examine_report_exactly(
     assert code == expect_code
     assert code == report.exit_code
     assert out == _render_expected(report)
+
+
+# --------------------------------------------------------------------------
+# the optional plate-enhancement upscaler (detected outside PATH)
+# --------------------------------------------------------------------------
+
+
+def test_upscaler_present_is_reported_ok():
+    from press import art_enhance
+
+    env = fakes.FakeEnvironment(present_tools=ALL_TOOLS)
+    report = _run(environment=env, runs=lambda tool: True, python_version=(3, 11),
+                  upscaler_probe=lambda: art_enhance.Upscaler("/x/re", "/x/m"))
+    finding = _by_name(report)["realesrgan"]
+    assert finding.state == "ok" and not finding.required
+
+
+def test_upscaler_absent_is_optional_and_does_not_deny():
+    env = fakes.FakeEnvironment(present_tools=ALL_TOOLS)
+    report = _run(environment=env, runs=lambda tool: True, python_version=(3, 11),
+                  upscaler_probe=lambda: None)
+    finding = _by_name(report)["realesrgan"]
+    assert finding.state == "absent" and not finding.required
+    assert report.ready  # an absent optional tool never denies the machine
