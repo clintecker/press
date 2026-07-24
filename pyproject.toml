@@ -37,7 +37,7 @@ dependencies = [
     # reads and writes at YAML 1.2 so a bare no/yes/on is always a string,
     # and its round-trip mode lets `press config` edit a book's YAML in
     # place without discarding the template's comments or a user's additions.
-    "ruamel.yaml>=0.18",
+    "ruamel.yaml>=0.19.1",
 ]
 
 [project.optional-dependencies]
