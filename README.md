@@ -113,9 +113,13 @@ on.
   optional operator desk: a terminal interface over these same targets
   that reads facts from the registries and runs every action as a
   `press` child (`pip install 'press[tui]'`).
-- Utilities: `render wordcount clean new config migrate selftest doctor` --
-  `press config get|set|unset|list|validate` reads and writes every book
-  configuration field, validating each value before it writes;
+- Utilities: `render wordcount clean new add config migrate selftest doctor` --
+  `press add chapter|appendix <name> [--front]` creates a book part,
+  owning the numbering and lettering prefixes that place it in the
+  manuscript merge order (so no author types `00-` or `z-` by hand) and
+  refusing to overwrite an existing file; `press config get|set|unset|list|validate`
+  reads and writes every book configuration field, validating each value
+  before it writes;
   `press migrate plan|apply|rollback|status` moves a book to the next
   press major by repinning it (and nothing else), previews every change
   before it writes, and rolls back to the exact prior pin; `press doctor`

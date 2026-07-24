@@ -65,6 +65,8 @@ COMMANDS: tuple[Command, ...] = (
     Command("wordcount", "utilities", "Count the manuscript words"),
     Command("clean", "utilities", "Remove build and dist"),
     Command("new", "utilities", "Scaffold a new book", args="<directory>"),
+    Command("add", "utilities", "Add a chapter, appendix, or front-matter part",
+            args="chapter|appendix <name> [--front]"),
     Command("config", "utilities", "Read and write book configuration",
             args="get|set|unset|list|validate"),
     Command("selftest", "utilities", "The press checking itself"),

@@ -90,6 +90,12 @@ def _run_config(args: list[str]) -> int:
     return config_cli.main(args)
 
 
+def _run_add(args: list[str]) -> int:
+    from . import add
+
+    return add.main(args[1:])
+
+
 def _run_isbn(args: list[str]) -> int:
     """Manage an owned ISBN block: show its usage, or mint the next unused
     ISBN-13 to an edition. Assignment is offline arithmetic over a prefix you
@@ -472,6 +478,7 @@ def _run_clean(args: list[str]) -> int:
 
 ROUTES: dict[str, Callable[[list[str]], int]] = {
     "new": _run_new,
+    "add": _run_add,
     "config": _run_config,
     "migrate": _run_migrate,
     "isbn": _run_isbn,

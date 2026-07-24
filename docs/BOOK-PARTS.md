@@ -160,38 +160,51 @@ and have their own guide.
 
 ## An "about the author" page [authored]{.tag .made}
 
-Press has no about-the-author field: you write this one. Add a back-matter
-Markdown file and press typesets it with the book:
+Press has no about-the-author field: you write this one. Ask press for a
+back-matter page and it typesets the file with the book:
 
 ```sh
-printf '# About the author\n\nJane Roe writes about ...\n' > book/appendices/z-about-the-author.md
+press add appendix about-the-author     # -> book/appendices/z-about-the-author.md
 ```
 
-Files in `book/appendices/` merge in filename order, so a leading letter
-places the page — `z-` keeps it last. If you commissioned a portrait plate,
+Files in `book/appendices/` merge in filename order, and `press add
+appendix` owns the leading letter that places the page — the first
+back-matter part it makes lands at `z-` to keep it last, the next at `y-`,
+and so on. It refuses to overwrite a page you have already drafted, so
+running it twice never eats your work. Open the new file, replace the
+placeholder line, and write. If you commissioned a portrait plate,
 reference it here as you would any figure.
 
 ## Also by this author, and further reading [authored]{.tag .made}
 
 Also authored, and a stated gap: press has no "also by" field yet — a
-cross-book catalogue is planned but not built. Write it as a short Markdown
-page, placed by filename, an early letter for front matter or a late one for
-back:
+cross-book catalogue is planned but not built. Make it a short back-matter
+page and press places it by filename; add `--front` if you would rather it
+sort ahead of the other appendices:
 
 ```sh
-printf '# Also by Jane Roe\n\n- *The First Book* (2021)\n- *The Second Book* (2023)\n' > book/appendices/y-also-by.md
+press add appendix also-by              # -> book/appendices/y-also-by.md
 ```
 
 ## A preface, foreword, or introduction [authored]{.tag .made}
 
-These are chapters, not front-matter pages. Name the file so it sorts before
-the numbered chapters:
+These are chapters, not front-matter pages. Ask press for one with
+`--front` and it sorts before the numbered chapters:
 
 ```sh
-printf '# Preface\n\nThis book began as ...\n' > book/chapters/00-preface.md
+press add chapter preface --front       # -> book/chapters/00-preface.md
 ```
 
-Chapters merge in filename order, so `00-` runs ahead of `01-` and the rest.
+Chapters merge in filename order, so the `00-` prefix `--front` assigns
+runs ahead of `01-` and the rest. Without `--front`, `press add chapter`
+takes the next numbered slot:
+
+```sh
+press add chapter "The Long Winter"     # -> the next NN- chapter
+```
+
+The title can carry spaces and apostrophes; press makes the filename from
+it and seeds the heading, so you never quote Markdown into a shell.
 
 ## Footnotes [authored]{.tag .made}
 
@@ -234,11 +247,11 @@ skip it silently.
 ## A glossary [authored]{.tag .made}
 
 Authored, and a gap like "also by": press does not generate or check a
-glossary the way it does the index. Write one as a back-matter page with a
-Markdown definition list:
+glossary the way it does the index. Make one as a back-matter page and
+fill it with a Markdown definition list:
 
 ```sh
-printf '# Glossary\n\n**Colophon**\n: The note at the back on how the book was made.\n' > book/appendices/x-glossary.md
+press add appendix glossary             # -> book/appendices/x-glossary.md
 ```
 
 ::: {.callout .gap}
