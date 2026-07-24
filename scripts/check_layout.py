@@ -288,6 +288,13 @@ _GEOMETRY_JS = """
     lastId: id(last),
     currentId: id(current),
     navCount: anchors.length,
+    // The masthead lockup and the box that clips it. A flex item with
+    // `overflow:hidden` has an automatic minimum size of zero, so under the
+    // shrink pressure of a capped column sidebar it can collapse to nothing
+    // and shear the logo to a sliver while the <img> still reports its full
+    // height -- so measure the CLIPPING BOX, not the image.
+    lockup: rect(document.querySelector('.wm-lockup')),
+    wordmark: rect(document.querySelector('.wordmark')),
   };
 })()
 """
@@ -381,6 +388,8 @@ def measure(chrome: Chrome, url: str, css_w: int, css_h: int) -> dict:
         "current_id": geometry.get("currentId"),
         "current_focus": current_focus,
         "last_focus": last_focus,
+        "lockup": geometry.get("lockup"),
+        "wordmark": geometry.get("wordmark"),
     }
 
 
@@ -412,6 +421,23 @@ def assess_page(m: dict) -> list[str]:
             "navigation wrapped into a clipped second column "
             f"(nav scrollWidth {m['nav_scroll_w']} > clientWidth "
             f"{m['nav_client_w']})")
+
+    # The masthead lockup must be shown whole. Its clipping box collapsing
+    # under flex shrink pressure -- while the <img> still measures its full
+    # height -- sheared the logo to a sliver at every desktop width until
+    # `.wordmark` was pinned to flex:0 0 auto.
+    lockup, wordmark = m.get("lockup"), m.get("wordmark")
+    if lockup and wordmark and lockup["height"] > 0:
+        if wordmark["height"] + OVERLAP_EPSILON < lockup["height"]:
+            problems.append(
+                "the masthead lockup is clipped by its own box "
+                f"(box {wordmark['height']:.1f}px high, logo "
+                f"{lockup['height']:.1f}px)")
+        if wordmark["width"] + OVERLAP_EPSILON < lockup["width"]:
+            problems.append(
+                "the masthead lockup is cropped horizontally "
+                f"(box {wordmark['width']:.1f}px wide, logo "
+                f"{lockup['width']:.1f}px)")
 
     cf = m.get("current_focus")
     if m.get("current_id") is None:

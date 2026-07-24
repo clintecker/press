@@ -50,6 +50,8 @@ def _sound() -> dict:
         "current_focus": {"focusVisible": True, "outlineWidth": 2.0,
                           "outlineStyle": "solid"},
         "last_focus": {"onScreen": True, "area": 900.0},
+        "lockup": {"x": 22.0, "y": 24.0, "width": 153.0, "height": 48.0},
+        "wordmark": {"x": 22.0, "y": 24.0, "width": 153.0, "height": 48.0},
     }
 
 
@@ -140,6 +142,37 @@ def test_last_item_reachable_but_offscreen_is_rejected():
     m["last_focus"] = {"onScreen": False, "area": 900.0}
     problems = cl.assess_page(m)
     assert any("not on screen" in p for p in problems)
+
+
+def test_a_collapsed_lockup_box_is_rejected():
+    """The real defect this guard was built for: the desktop sidebar is a
+    column flex container capped at the viewport height, and `.wordmark`
+    carries `overflow:hidden` -- which zeroes a flex item's automatic minimum
+    size. Under shrink pressure the box collapsed to 0 while the <img> kept
+    reporting its full 48px, so the logo shipped sheared to a sliver at every
+    desktop width. Measuring the image alone would have called this healthy."""
+
+    m = _sound()
+    m["wordmark"] = {"x": 22.0, "y": 24.0, "width": 153.0, "height": 0.0}
+    problems = cl.assess_page(m)
+    assert any("lockup is clipped" in p for p in problems), problems
+
+
+def test_a_horizontally_cropped_lockup_is_rejected():
+    m = _sound()
+    m["wordmark"] = {"x": 22.0, "y": 24.0, "width": 90.0, "height": 48.0}
+    problems = cl.assess_page(m)
+    assert any("cropped horizontally" in p for p in problems), problems
+
+
+def test_a_page_without_a_lockup_is_exempt():
+    """Not every built page carries the masthead lockup; its absence is not a
+    layout fault, so the check stays silent rather than inventing one."""
+
+    m = _sound()
+    m["lockup"] = None
+    m["wordmark"] = None
+    assert cl.assess_page(m) == []
 
 
 def test_a_page_with_no_nav_items_is_rejected():
