@@ -425,3 +425,88 @@ def test_epubcheck_oserror_is_toolchain_fault(fake_env, monkeypatch, tmp_path):
     with pytest.raises(SystemExit) as excinfo:
         verify_formats.epubcheck(tmp_path / "book.epub")
     assert "present but cannot run" in str(excinfo.value)
+# verify_coverwrap.render + check_print_safe (issue #199)
+# --------------------------------------------------------------------------
+
+
+def _blank_pdf(path):
+    from pypdf import PdfWriter
+
+    writer = PdfWriter()
+    writer.add_blank_page(width=72, height=72)
+    with open(path, "wb") as handle:
+        writer.write(handle)
+    return path
+
+
+def test_render_drives_runner_with_pdftoppm(tmp_path, fake_runner):
+    from PIL import Image
+
+    from press import verify_coverwrap
+
+    wrap = tmp_path / "wrap.pdf"
+    wrap.write_bytes(b"%PDF-1.4\n")
+    out_dir = tmp_path / "render"
+    out_dir.mkdir()
+    # pdftoppm would write this page; the fake does not shell out, so stand
+    # in the one page render() demands and prove the call was still made.
+    Image.new("RGB", (10, 10), "white").save(out_dir / "wrap-1.png")
+
+    image = verify_coverwrap.render(wrap, out_dir)
+    assert isinstance(image, Image.Image)
+
+    assert len(fake_runner.runs) == 1
+    recorded = fake_runner.runs[0]
+    assert recorded.argv == (
+        "pdftoppm", "-png", "-r", "150", str(wrap), str(out_dir / "wrap"),
+    )
+    assert recorded.check is True
+    assert recorded.capture is True
+
+
+def test_check_print_safe_parses_pdfimages_ppi_through_runner(
+    tmp_path, fake_runner, fake_env
+):
+    from press import verify_coverwrap
+
+    wrap = _blank_pdf(tmp_path / "wrap.pdf")
+    fake_env(present_tools=["pdfimages"])
+    # A pdfimages -list listing, as bytes (the runner never sets text=True):
+    # two header rows then one image well over the 600 PPI print cap.
+    listing = (
+        "page   num  type   width height color comp bpc  enc  interp  "
+        "object ID x-ppi y-ppi size ratio\n"
+        "----------------------------------------------------------------\n"
+        "   1     0 image    1000  1200  rgb     3   8  jpeg   no        "
+        "7  0   700   700  100K  2.0%\n"
+    ).encode("utf-8")
+    fake_runner._by_command["pdfimages"] = ProcessResult(0, listing)
+
+    with pytest.raises(SystemExit) as excinfo:
+        verify_coverwrap.check_print_safe(wrap)
+    message = str(excinfo.value)
+    # Decoded parse: the offending image reads "image 700x700ppi". Skip the
+    # decode and the column comes through as b'image', so this exact
+    # substring is absent -- the fail-before/pass-after signal.
+    assert "image 700x700ppi" in message
+    assert "over 600 PPI" in message
+
+    run = next(r for r in fake_runner.runs if r.argv and r.argv[0] == "pdfimages")
+    assert run.argv == ("pdfimages", "-list", str(wrap))
+    assert run.capture is True
+
+
+def test_check_print_safe_softens_when_pdfimages_absent(
+    tmp_path, capsys, fake_runner, fake_env
+):
+    from press import verify_coverwrap
+
+    wrap = _blank_pdf(tmp_path / "wrap.pdf")
+    env = fake_env(present_tools=[])  # pdfimages not on PATH
+
+    # No transparency and no resolution tool: the check softens to a note and
+    # never reaches for the runner.
+    verify_coverwrap.check_print_safe(wrap)
+    assert "pdfimages" in env.which_calls
+    assert not any(r.argv and r.argv[0] == "pdfimages" for r in fake_runner.runs)
+    assert "pdfimages absent" in capsys.readouterr().out
