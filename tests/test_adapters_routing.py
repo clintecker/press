@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
+import sys
 
 import pytest
 
@@ -586,4 +587,86 @@ def test_render_pages_drives_pdftoppm_through_runner(tmp_path, fake_runner, monk
     recorded = fake_runner.runs[0]
     assert recorded.argv[0] == "pdftoppm"
     assert "-png" in recorded.argv
+# __main__.jargon_check runs the lint through the runner and DECODES its
+# bytes into the report -- the migration's decode landmine.
+# --------------------------------------------------------------------------
+
+
+def test_jargon_check_routes_lint_and_decodes_report(scaffolded_book, fake_runner):
+    from press import __main__ as cli
+
+    # Non-ASCII lint output: bytes that must be UTF-8 decoded, not stringified.
+    fake_runner._by_command[sys.executable] = ProcessResult(0, b"clean \xe2\x9c\x93", b"")
+    assert cli.jargon_check() == 0
+
+    recorded = fake_runner.runs[0]
+    assert recorded.argv[:3] == (sys.executable, "-m", "press.jargon_lint")
+    assert recorded.cwd == str(scaffolded_book)
+    assert recorded.capture is True
+    # The bytes result is decoded (not passed through as bytes, which would
+    # raise TypeError on write_text) -- proving the decode step survives.
+    report = (scaffolded_book / "build" / "jargon-report.txt").read_text(encoding="utf-8")
+    assert "clean ✓" in report
+
+
+def test_jargon_check_returns_lint_exit_code(scaffolded_book, fake_runner):
+    from press import __main__ as cli
+
+    fake_runner._by_command[sys.executable] = ProcessResult(3, b"rewrite: widget", b"")
+    assert cli.jargon_check() == 3
+    report = (scaffolded_book / "build" / "jargon-report.txt").read_text(encoding="utf-8")
+    assert "rewrite: widget" in report
+
+
+# --------------------------------------------------------------------------
+# __main__._commerce_gate reads PRESS_RELEASE through the environment.
+# --------------------------------------------------------------------------
+
+
+def test_commerce_gate_reads_press_release_through_environment(
+    scaffolded_book, fake_env, monkeypatch
+):
+    from press import __main__ as cli
+    from press import commerce
+
+    monkeypatch.setattr(
+        commerce, "release_gate", lambda root, book: (["blocked"], "1 problem")
+    )
+    env = fake_env(values={"PRESS_RELEASE": "1"})
+    # A release build fails closed when the gate has problems.
+    assert cli._commerce_gate() == 1
+    assert "PRESS_RELEASE" in env.reads
+
+
+def test_commerce_gate_advisory_when_press_release_unset(
+    scaffolded_book, fake_env, monkeypatch
+):
+    from press import __main__ as cli
+    from press import commerce
+
+    monkeypatch.setattr(
+        commerce, "release_gate", lambda root, book: (["blocked"], "1 problem")
+    )
+    env = fake_env(values={})
+    # Same problems, no PRESS_RELEASE: advisory, exit 0.
+    assert cli._commerce_gate() == 0
+    assert "PRESS_RELEASE" in env.reads
+
+
+# --------------------------------------------------------------------------
+# __main__._run_render drives pdftoppm through the runner with check=True.
+# --------------------------------------------------------------------------
+
+
+def test_run_render_routes_pdftoppm_through_runner(
+    scaffolded_book, fake_runner, monkeypatch
+):
+    from press import __main__ as cli
+    from press import build
+
+    monkeypatch.setattr(build, "build_target", lambda name: None)
+    assert cli._run_render([]) == 0
+
+    recorded = fake_runner.runs[-1]
+    assert recorded.argv[0] == "pdftoppm"
     assert recorded.check is True
