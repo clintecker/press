@@ -207,32 +207,20 @@ p.author, p.date { font-variant: small-caps; letter-spacing: .16em;
   html { scroll-behavior: auto; }
 }
 
-/* 12. Tables
-   The house sheet styled no tables at all, so a table in a chapter fell back
-   to browser defaults: no rule, no padding, no header weight, and on a phone
-   a wide one either crushed its columns or pushed the page sideways. These
-   are set in the book's own voice -- foil hairlines, the paper-warm field,
-   ink-soft small caps for the head -- not the docs site's. */
-table {
-  width: 100%; border-collapse: collapse; margin: 1.6rem 0;
-  font-size: .92em; line-height: 1.5;
-}
-thead th {
-  text-align: left; font-weight: 700; font-size: .78em;
-  text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft);
-  padding: .5rem .7rem; border-bottom: 2px solid var(--hairline);
-}
-tbody td { padding: .55rem .7rem; border-bottom: 1px solid var(--paper-warm);
-  vertical-align: top; }
-tbody tr:last-child td { border-bottom: none; }
-caption { caption-side: bottom; font-size: .85em; color: var(--ink-soft);
-  text-align: left; padding-top: .5rem; }
-
-/* On a phone a multi-column table cannot be read across: each row becomes a
-   card on the warm field, and every cell wears its column's header -- carried
+/* 12. Tables, on a narrow screen only
+   A multi-column table cannot be read across on a phone: the columns crush,
+   or a wide one pushes the page sideways. Each row becomes a card on the
+   warm field instead, and every cell wears its column's header -- carried
    onto the cell as data-label when the page is built, because CSS cannot
    reach a header from a cell. Tables with no header row (a two-column
-   definition list) already read fine and are left alone. */
+   definition list) already read fine and are left alone.
+
+   Deliberately scoped to the narrow breakpoint and nothing else: design is
+   part of the release contract, and within a major the press may correct
+   broken output but must not restyle a valid book. At reading width a book's
+   tables render exactly as they always have; only the phone, where they were
+   unreadable, changes. Giving tables a house treatment at every width is a
+   design change and belongs to the next major. */
 @media (max-width: 34rem) {
   table:has(td[data-label]) { display: block; }
   table:has(td[data-label]) thead {

@@ -40,32 +40,17 @@ pre { overflow-x: auto; background: #efefeb; padding: 1rem; }
 }
 .chapter-opening .opening-word-rest { font-variant: small-caps; letter-spacing: .04em; }
 
-/* Tables.
-   The single-file edition styled no tables, so one fell back to browser
-   defaults: no rule, no padding, no header weight. Set in this edition's own
-   tokens, and stacked into cards on a narrow screen where a multi-column
-   table cannot be read across -- each cell wearing its column's header,
-   carried onto it as data-label when the page is built. A table with no
-   header row is a two-column definition list; it reads fine and is left be. */
-table {
-  width: 100%; border-collapse: collapse; margin: 1.5rem 0;
-  font-size: .95em; line-height: 1.5;
-}
-thead th {
-  text-align: left; font-weight: 700; font-size: .78em;
-  text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
-  padding: .5rem .7rem; border-bottom: 2px solid var(--rule);
-}
-tbody td {
-  padding: .55rem .7rem; border-bottom: 1px solid var(--rule);
-  vertical-align: top;
-}
-tbody tr:last-child td { border-bottom: none; }
-caption {
-  caption-side: bottom; font-size: .85em; color: var(--muted);
-  text-align: left; padding-top: .5rem;
-}
+/* Tables, on a narrow screen only.
+   A multi-column table cannot be read across on a phone, so each row becomes
+   a card and every cell wears its column's header -- carried onto it as
+   data-label when the page is built, because CSS cannot reach a header from
+   a cell. A table with no header row is a two-column definition list; it
+   reads fine and is left be.
 
+   Scoped to the narrow breakpoint on purpose: within a major the press may
+   correct broken output but must not restyle a valid book, so at reading
+   width this edition's tables are exactly what they always were. A house
+   table treatment at every width is a design change for the next major. */
 @media (max-width: 34rem) {
   table:has(td[data-label]) { display: block; }
   table:has(td[data-label]) thead {

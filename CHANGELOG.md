@@ -19,11 +19,14 @@ audit).
   header -- carried onto the cell as `data-label` by
   `webmeta.label_table_cells` when the page is built, because CSS cannot reach
   a cell's header on its own. One implementation serves the docs site, the
-  book's reader pages, the landing page, and the single-file HTML edition; the
-  reader and single-file stylesheets, which styled tables not at all, gain a
-  table treatment in their own voice. Tables with no header row -- the
-  reference records, a book's downloads list -- already read in two columns
-  and are deliberately left untouched.
+  book's reader pages, the landing page, and the single-file HTML edition.
+  On the book surfaces the change is scoped to the narrow breakpoint and
+  nothing else: at reading width a book's tables render exactly as they always
+  have (proven pixel-identical), because within a major the press may correct
+  broken output but must not restyle a valid book. Giving tables a house
+  treatment at every width is a design change and waits for the next major.
+  Tables with no header row -- the reference records, a book's downloads
+  list -- already read in two columns and are deliberately left untouched.
 - **The masthead lockup no longer collapses on the documentation site.** The
   desktop sidebar is a column flex container capped at the viewport height, and
   the lockup's `overflow:hidden` zeroed its automatic minimum size, so under
