@@ -9,6 +9,18 @@ audit).
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-07-24
+
+Composability and proof. The typed adapter boundary closes over the whole
+package, so a direct process, environment, or tool call is now refused
+anywhere outside `press.adapters`; every public web surface a book publishes
+carries one honest metadata contract; the packaged provider ledger becomes a
+generated projection of its canonical source; and the two prose checkers a
+book runs are held in step by a differential corpus. The repository's own
+security baseline is proven end to end, limitations recorded rather than
+claimed away. Compatible within v2: no typography or layout changes, and a
+book with no `site-url` publishes byte-identically to before.
+
 ### Added
 
 - **Opt-in read-only registration lookups** (#203). `press lookup lccn
@@ -28,8 +40,6 @@ audit).
   workflow reconciles `roadmap/milestones.json` and ROADMAP.md against the
   live GitHub milestones after a merge to `main` (and weekly), so the
   registry cannot silently drift from the issues it tracks.
-
-### Added
 
 - **One metadata contract across every press-built web surface** (#158).
   Canonical URLs, Open Graph, Twitter cards, and JSON-LD now cover the docs
