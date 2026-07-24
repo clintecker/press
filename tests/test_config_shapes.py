@@ -239,3 +239,49 @@ def test_gen_front_matter_self_guards_against_a_list_top_level(scaffolded_book):
     with pytest.raises(SystemExit) as caught:
         gen_front_matter.generate()
     assert "config/front-matter.yaml" in str(caught.value)
+
+
+# ---- coverage of the shape-name helper and the guards it feeds -------
+
+def test_shape_name_names_every_yaml_top_level_shape():
+    # The diagnostic tells an author what they wrote instead; every shape
+    # has a name. (None cannot reach a validator -- it means an absent file --
+    # so the pure helper is exercised directly for that branch.)
+    assert schema._shape_name({}) == "a mapping"
+    assert schema._shape_name([]) == "a list"
+    assert schema._shape_name("x") == "a string"
+    assert schema._shape_name(True) == "a boolean"
+    assert schema._shape_name(3) == "a number"
+    assert schema._shape_name(2.5) == "a number"
+    assert schema._shape_name(None) == "empty"
+    assert schema._shape_name((1, 2)) == "tuple"
+
+
+def test_covers_resolves_a_subpath_to_its_file_ancestor():
+    field = schema.covers("index-terms.x")
+    assert field is not None and field.file == schema.INDEX_TERMS
+    assert schema.covers("nope.deep.path") is None
+
+
+def test_metadata_that_is_not_a_mapping_is_refused():
+    problems = schema.validate_file(ROOT, schema.METADATA, ["not", "a", "mapping"])
+    assert any("must be a YAML mapping" in p and "a list" in p for p in problems)
+
+
+def test_house_rules_that_is_not_a_mapping_is_refused():
+    problems = schema.validate_file(ROOT, schema.HOUSE_RULES, "a string")
+    assert any("must be a YAML mapping" in p and "a string" in p for p in problems)
+
+
+def test_index_terms_bare_scalar_names_the_shape():
+    assert any("a boolean" in p
+               for p in schema.validate_file(ROOT, schema.INDEX_TERMS, True))
+    assert any("a number" in p
+               for p in schema.validate_file(ROOT, schema.INDEX_TERMS, 5))
+
+
+def test_authorities_whitespace_claim_is_refused():
+    problems = schema.validate_file(
+        ROOT, schema.AUTHORITIES, [{"claim": "   ", "authority": "a source"}]
+    )
+    assert any("claim is missing or empty" in p for p in problems)
