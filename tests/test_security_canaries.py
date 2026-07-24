@@ -39,17 +39,17 @@ ROOT = Path(__file__).resolve().parent.parent
 
 def test_secret_scan_rejects_a_synthetic_credential():
     """A known-bad: text shaped like a leaked credential must be FLAGGED by
-    the published-output secret scan. The fixtures deliberately avoid any
-    provider-shaped token -- a full ``sk_live_<body>`` would trip GitHub push
-    protection and never reach the repo, which is exactly why platform firing
-    is not seedable here. The press's own scanner keys on marker SUBSTRINGS
-    (bearer, ``api[_-]?key``, credential query params), so a bare marker
-    exercises it without embedding anything a platform detector would flag."""
+    the published-output secret scan. The scanner keys on a credential SHAPE --
+    a key with a value, a bearer token, a credential query param -- not a bare
+    English word, so a book titled "Secrets of the Trade" is not a leak (that
+    tightening is its own test). The fixtures use obvious EXAMPLE placeholders
+    with no real entropy, so they exercise the scanner without embedding
+    anything a platform detector (or GitHub push protection) would flag."""
 
-    dummy = "Authorization: Bearer REDACTED; api_key=REDACTED"
+    dummy = "config: api_key=EXAMPLE0000NOTREAL; Authorization: Bearer EXAMPLE0000NOTATOKEN"
     assert commerce._SECRET_MARKERS.search(dummy), \
         "secret scan failed to flag credential-shaped text"
-    assert commerce._SECRET_MARKERS.search("https://x.test/cb?token=DUMMY000"), \
+    assert commerce._SECRET_MARKERS.search("https://x.test/cb?token=EXAMPLE00000"), \
         "secret scan failed to flag a url carrying a token query param"
 
 
