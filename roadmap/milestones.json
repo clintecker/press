@@ -56,28 +56,28 @@
     },
     {
       "number": 6,
-      "group": "active-v1",
+      "group": "complete",
       "title": "v1.10 \u2014 Boundary integrity",
       "state": "closed",
       "description": "Completed boundary-integrity release: source/publication safety, archive and format verification, retail artifacts, workflow input containment, exact toolchain identity, and resumable releases. Release: https://github.com/clintecker/press/releases/tag/v1.10.0. Closed scope: https://github.com/clintecker/press/milestone/6. Architecture and artifact laws: https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md. Its verifiers become named accumulated-trust proofs in https://github.com/clintecker/press/milestone/9; release/container outcomes feed https://github.com/clintecker/press/milestone/10."
     },
     {
       "number": 7,
-      "group": "active-v1",
+      "group": "complete",
       "title": "v1.11 \u2014 Workflow coherence",
       "state": "closed",
       "description": "Workflow and public-contract coherence: durable editorial/research outcomes, domain-neutral instruments, aesthetic/config documentation, contributor guidance, package metadata, and complexity debt. Milestone/issues: https://github.com/clintecker/press/milestone/7. Public architecture/reference issue: https://github.com/clintecker/press/issues/33. Contributor contract: https://github.com/clintecker/press/blob/main/CONTRIBUTING.md. Testing traceability is implemented separately in https://github.com/clintecker/press/milestone/8."
     },
     {
       "number": 8,
-      "group": "active-v1",
+      "group": "complete",
       "title": "v1.12 \u2014 Trust foundations",
       "state": "closed",
       "description": "Accumulated-trust foundation: pytest/selftest structure, executable invariant and callable-surface ledgers, collection-time proof enforcement, typed deterministic adapters, composable book factories, fixture provenance, property tests, and bounded replayable fuzzing. Milestone/issues: https://github.com/clintecker/press/milestone/8. Start at https://github.com/clintecker/press/issues/78, then invariant ledger https://github.com/clintecker/press/issues/79. Feeds adversarial artifact proof: https://github.com/clintecker/press/milestone/9. Architecture: https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md."
     },
     {
       "number": 9,
-      "group": "active-v1",
+      "group": "complete",
       "title": "v1.13 \u2014 Adversarial artifact proof",
       "state": "closed",
       "description": "Adversarial artifact proof built on v1.12: named damage operators, fixture-specific negative diagnostics, deterministic build/mutate/verify state models, pairwise/high-risk scenarios, real-tool integrations, compatibility, and design-major visual regression. Milestone/issues: https://github.com/clintecker/press/milestone/9. Prerequisite foundation: https://github.com/clintecker/press/milestone/8. Damage harness: https://github.com/clintecker/press/issues/88. Real-tool runner: https://github.com/clintecker/press/issues/91. Feeds delivery trust: https://github.com/clintecker/press/milestone/10."
@@ -91,16 +91,16 @@
     },
     {
       "number": 11,
-      "group": "active-v1",
+      "group": "complete",
       "title": "v1.15 \u2014 Operator desk",
       "state": "closed",
       "description": "Post-v1.14 optional operator desk: a single typed command catalog, digest/receipt-backed artifact status (never mtimes), typed doctor findings, a versioned child-event protocol, deterministic single-child control, DESK/target-picker/RUN views, headless active-signal tests, installed-wheel proof, and public documentation. Milestone/issues: https://github.com/clintecker/press/milestone/11. Start with command catalog https://github.com/clintecker/press/issues/100, events https://github.com/clintecker/press/issues/102, packaging boundary https://github.com/clintecker/press/issues/104, and test harness https://github.com/clintecker/press/issues/108. Evidence status https://github.com/clintecker/press/issues/101 depends on trust receipts https://github.com/clintecker/press/issues/93. Release gate: https://github.com/clintecker/press/issues/114. Durable plan: https://github.com/clintecker/press/blob/main/docs/TUI-PLAN.md. Architecture: https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md. Textual testing: https://textual.textualize.io/guide/testing/."
     },
     {
       "number": 12,
-      "group": "active-v1",
+      "group": "complete",
       "title": "v1.16 \u2014 Direct print ordering",
-      "state": "open",
+      "state": "closed",
       "description": "Post-v1.15 direct-to-reader print ordering on the seller-of-record model: the provider (Lulu first) is the legal seller and owns payment, tax, fulfillment, and support, so press ships no payment infrastructure. Remaining after the manifest (#118, done): provider qualification and physical sample protocol (#117), a generated accessible storefront CTA with a no-JS fallback (#123) linking to the provider-hosted checkout (#139), a capped golden-copy inspection (#143), documentation (#138), and the release gate (#144). The custom merchant-of-record machinery (broker, Stripe checkout, provider API adapters, state machines, webhooks, outbox, reconciliation) is deferred to the 'Custom MoR (deferred)' milestone. Plan: https://github.com/clintecker/press/blob/main/docs/DIRECT-ORDERING-PLAN.md."
     },
     {
@@ -116,6 +116,20 @@
       "title": "Custom MoR (deferred)",
       "state": "open",
       "description": "The custom merchant-of-record commerce machinery, deferred from v1.16 when the publisher chose a provider seller-of-record model. Built only if the publisher ever becomes merchant of record: the order broker, hosted Stripe checkout, provider API adapters, payment/fulfillment state machines, verified webhooks, exactly-once outbox, reconciliation, artifact delivery, and the privacy/operator/observability infrastructure. Plan: https://github.com/clintecker/press/blob/main/docs/DIRECT-ORDERING-PLAN.md."
+    },
+    {
+      "number": 15,
+      "group": "complete",
+      "title": "v1.18 — Public experience and adoption",
+      "state": "closed",
+      "description": "Completed public-experience release: beginner onboarding, validated configuration UI, conventional CLI discovery, accessible/semantic documentation and reader surfaces, public CI/toolchain consumption, and contributor/discovery governance. Release: https://github.com/clintecker/press/releases/tag/v1.18.0. Closed scope: https://github.com/clintecker/press/milestone/15. Public site: https://clintecker.github.io/press/. Residual reader metadata and gallery render proof moved to https://github.com/clintecker/press/milestone/4 as #158 and #190."
+    },
+    {
+      "number": 16,
+      "group": "complete",
+      "title": "v1.19 — Maintenance and compatibility",
+      "state": "closed",
+      "description": "Completed maintenance/compatibility release: contributor verification, print-safe interiors, registrations and printing guides, security controls, Python 3.14 qualification, warning-clean dependency compatibility, hook isolation, and supported Action pins. Latest patch: https://github.com/clintecker/press/releases/tag/v1.19.1. Closed scope: https://github.com/clintecker/press/milestone/16. Compatibility: https://github.com/clintecker/press/blob/main/docs/COMPATIBILITY.md. Registrations delivery: https://github.com/clintecker/press/issues/191. Optional read-only lookup moved to https://github.com/clintecker/press/issues/203."
     }
   ]
 }

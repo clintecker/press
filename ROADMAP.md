@@ -43,14 +43,6 @@ shadow issue tracker.
 
 <!-- BEGIN GENERATED MILESTONES -->
 
-## Active v1 delivery
-
-The current compatible release train, ordered by intended delivery. Each milestone accumulates proof from the milestones before it.
-
-### [v1.16 — Direct print ordering](https://github.com/clintecker/press/milestone/12) · Open
-
-Post-v1.15 direct-to-reader print ordering on the seller-of-record model: the provider (Lulu first) is the legal seller and owns payment, tax, fulfillment, and support, so press ships no payment infrastructure. Remaining after the manifest (#118, done): provider qualification and physical sample protocol (#117), a generated accessible storefront CTA with a no-JS fallback (#123) linking to the provider-hosted checkout (#139), a capped golden-copy inspection (#143), documentation (#138), and the release gate (#144). The custom merchant-of-record machinery (broker, Stripe checkout, provider API adapters, state machines, webhooks, outbox, reconciliation) is deferred to the 'Custom MoR (deferred)' milestone. Plan: [direct-ordering-plan](https://github.com/clintecker/press/blob/main/docs/DIRECT-ORDERING-PLAN.md).
-
 ## Future and breaking horizons
 
 Work deliberately held beyond the current v1 delivery train because it is breaking, optional, or depends on a mature single-book contract.
@@ -110,6 +102,18 @@ The delivery-trust work deferred from v1.14/v1.15.1, shipped in v1.15.2: the lay
 ### [v1.15 — Operator desk](https://github.com/clintecker/press/milestone/11) · Complete
 
 Post-v1.14 optional operator desk: a single typed command catalog, digest/receipt-backed artifact status (never mtimes), typed doctor findings, a versioned child-event protocol, deterministic single-child control, DESK/target-picker/RUN views, headless active-signal tests, installed-wheel proof, and public documentation. Milestone/issues: [milestone 11](https://github.com/clintecker/press/milestone/11). Start with command catalog [issue 100](https://github.com/clintecker/press/issues/100), events [issue 102](https://github.com/clintecker/press/issues/102), packaging boundary [issue 104](https://github.com/clintecker/press/issues/104), and test harness [issue 108](https://github.com/clintecker/press/issues/108). Evidence status [issue 101](https://github.com/clintecker/press/issues/101) depends on trust receipts [issue 93](https://github.com/clintecker/press/issues/93). Release gate: [issue 114](https://github.com/clintecker/press/issues/114). Durable plan: [the TUI plan](https://github.com/clintecker/press/blob/main/docs/TUI-PLAN.md). Architecture: [the architecture guide](https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md). Textual testing: [textual.textualize.io](https://textual.textualize.io/guide/testing/).
+
+### [v1.16 — Direct print ordering](https://github.com/clintecker/press/milestone/12) · Complete
+
+Post-v1.15 direct-to-reader print ordering on the seller-of-record model: the provider (Lulu first) is the legal seller and owns payment, tax, fulfillment, and support, so press ships no payment infrastructure. Remaining after the manifest (#118, done): provider qualification and physical sample protocol (#117), a generated accessible storefront CTA with a no-JS fallback (#123) linking to the provider-hosted checkout (#139), a capped golden-copy inspection (#143), documentation (#138), and the release gate (#144). The custom merchant-of-record machinery (broker, Stripe checkout, provider API adapters, state machines, webhooks, outbox, reconciliation) is deferred to the 'Custom MoR (deferred)' milestone. Plan: [direct-ordering-plan](https://github.com/clintecker/press/blob/main/docs/DIRECT-ORDERING-PLAN.md).
+
+### [v1.18 — Public experience and adoption](https://github.com/clintecker/press/milestone/15) · Complete
+
+Completed public-experience release: beginner onboarding, validated configuration UI, conventional CLI discovery, accessible/semantic documentation and reader surfaces, public CI/toolchain consumption, and contributor/discovery governance. Release: [the v1.18.0 release](https://github.com/clintecker/press/releases/tag/v1.18.0). Closed scope: [milestone 15](https://github.com/clintecker/press/milestone/15). Public site: [clintecker.github.io](https://clintecker.github.io/press/). Residual reader metadata and gallery render proof moved to [milestone 4](https://github.com/clintecker/press/milestone/4) as #158 and #190.
+
+### [v1.19 — Maintenance and compatibility](https://github.com/clintecker/press/milestone/16) · Complete
+
+Completed maintenance/compatibility release: contributor verification, print-safe interiors, registrations and printing guides, security controls, Python 3.14 qualification, warning-clean dependency compatibility, hook isolation, and supported Action pins. Latest patch: [the v1.19.1 release](https://github.com/clintecker/press/releases/tag/v1.19.1). Closed scope: [milestone 16](https://github.com/clintecker/press/milestone/16). Compatibility: [compatibility](https://github.com/clintecker/press/blob/main/docs/COMPATIBILITY.md). Registrations delivery: [issue 191](https://github.com/clintecker/press/issues/191). Optional read-only lookup moved to [issue 203](https://github.com/clintecker/press/issues/203).
 
 <!-- END GENERATED MILESTONES -->
 
