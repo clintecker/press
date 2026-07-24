@@ -52,6 +52,8 @@ def _sound() -> dict:
         "last_focus": {"onScreen": True, "area": 900.0},
         "lockup": {"x": 22.0, "y": 24.0, "width": 153.0, "height": 48.0},
         "wordmark": {"x": 22.0, "y": 24.0, "width": 153.0, "height": 48.0},
+        "tables": [{"stacked": True, "labelled": True, "scrollW": 350,
+                    "clientW": 350, "clippedCells": 0}],
     }
 
 
@@ -172,6 +174,37 @@ def test_a_page_without_a_lockup_is_exempt():
     m = _sound()
     m["lockup"] = None
     m["wordmark"] = None
+    assert cl.assess_page(m) == []
+
+
+def test_a_stacked_table_that_still_scrolls_sideways_is_rejected():
+    """The phone defect: a four-column table ran its far columns off the edge,
+    so a reader had to scroll a box sideways to learn what a row said. Once
+    rows stack into cards there is one column of content and no reason to
+    scroll; if it still does, a value is hidden."""
+
+    m = _sound()
+    m["tables"] = [{"stacked": True, "labelled": True, "scrollW": 780,
+                    "clientW": 350, "clippedCells": 0}]
+    problems = cl.assess_page(m)
+    assert any("scrolls sideways" in p for p in problems), problems
+
+
+def test_a_stacked_table_with_clipped_cells_is_rejected():
+    m = _sound()
+    m["tables"] = [{"stacked": True, "labelled": True, "scrollW": 350,
+                    "clientW": 350, "clippedCells": 3}]
+    problems = cl.assess_page(m)
+    assert any("clips 3 cell" in p for p in problems), problems
+
+
+def test_an_unstacked_desktop_table_may_scroll_in_its_box():
+    """On a desktop the same table keeps its columns and is allowed to scroll
+    inside its own box -- that is the designed behaviour, not a fault."""
+
+    m = _sound()
+    m["tables"] = [{"stacked": False, "labelled": True, "scrollW": 980,
+                    "clientW": 700, "clippedCells": 2}]
     assert cl.assess_page(m) == []
 
 

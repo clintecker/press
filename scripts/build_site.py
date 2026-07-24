@@ -26,7 +26,7 @@ import shutil
 import subprocess
 import sys
 # `escape` by name, not the module: build_page binds a local named `html`.
-from html import escape
+from html import escape, unescape
 from pathlib import Path
 from typing import NamedTuple
 
@@ -225,6 +225,57 @@ def published_links() -> dict[str, str]:
     """GitHub-blob URL -> local page, for every doc this site publishes."""
 
     return {f"{GITHUB_BLOB}{source}": name for source, name, _ in PAGES + FOOTER_PAGES}
+
+
+_TAGS = re.compile(r"<[^>]+>")
+
+
+def _cell_label(header_html: str) -> str:
+    """The plain text of a header cell, safe to carry in an attribute."""
+
+    return escape(unescape(_TAGS.sub("", header_html)).strip(), quote=True)
+
+
+def label_table_cells(html: str) -> str:
+    """Stamp every body cell with its column's header, as ``data-label``.
+
+    A phone cannot show four columns, so narrow screens stack each row into a
+    card (see press.css) -- but a stacked cell with no header is an orphaned
+    value: "perfect-bound" means nothing once "Binding" has scrolled away.
+    CSS alone cannot reach a cell's header, so the header text is carried onto
+    the cell here, where the built HTML is already being post-processed, and
+    the stylesheet renders it. Tables with no header row are left untouched:
+    they are the reference records, whose first cell IS the label.
+    """
+
+    def one_table(match: re.Match[str]) -> str:
+        table = match.group(0)
+        head = re.search(r"<thead>(.*?)</thead>", table, re.S)
+        if not head:
+            return table
+        headers = [_cell_label(c) for c in
+                   re.findall(r"<th\b[^>]*>(.*?)</th>", head.group(1), re.S)]
+        if not any(headers):
+            return table
+
+        def one_row(row: re.Match[str]) -> str:
+            column = iter(headers)
+
+            def one_cell(_: re.Match[str]) -> str:
+                label = next(column, "")
+                # A row with more cells than headers keeps the extras bare
+                # rather than mislabelling them with a neighbour's header.
+                return f'<td data-label="{label}"' if label else "<td"
+
+            return re.sub(r"<td\b", one_cell, row.group(0))
+
+        body = re.search(r"<tbody>.*?</tbody>", table, re.S)
+        if not body:
+            return table
+        labelled = re.sub(r"<tr>.*?</tr>", one_row, body.group(0), flags=re.S)
+        return table.replace(body.group(0), labelled)
+
+    return re.sub(r"<table\b.*?</table>", one_table, html, flags=re.S)
 
 
 def rewrite_internal_links(html: str) -> str:
@@ -750,6 +801,7 @@ def build_page(source: str, name: str, label: str) -> None:
         r"(<body[^>]*>)",
         r'\1\n<a class="skip-link" href="#main-content">Skip to content</a>',
         html, count=1)
+    html = label_table_cells(html)
     html = rewrite_internal_links(html)
     # The one script: a progressive-enhancement copy button on code blocks.
     # Deferred and optional; the page is complete without it.

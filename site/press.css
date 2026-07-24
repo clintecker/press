@@ -396,6 +396,42 @@ h1 .tag, h2 .tag, h3 .tag{vertical-align:.28em; margin-left:.35rem}
   .prose th, .prose td{padding:8px 10px}
   body.doc-entries td{font-size:.9rem}
   body.doc-entries td:first-child{width:32%; white-space:normal}
+
+  /* A three- or four-column table cannot be read on a phone: the far columns
+     run off the edge and a reader must scroll a box sideways to learn what a
+     row says. Each row becomes a CARD instead -- the same idiom as the part
+     and gallery cards -- and every cell wears its column header, stamped on
+     as data-label at build time (label_table_cells), because CSS cannot
+     reach a cell's header on its own. Only tables that HAVE headers stack;
+     the reference records, whose first cell is already the label, keep their
+     two-column shape. */
+  .prose table:has(td[data-label]){
+    display:block; border-collapse:separate; overflow-x:visible;
+  }
+  .prose table:has(td[data-label]) thead{
+    position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%);
+  }
+  .prose table:has(td[data-label]) tbody,
+  .prose table:has(td[data-label]) tr,
+  .prose table:has(td[data-label]) td{display:block; width:auto}
+  .prose table:has(td[data-label]) tr{
+    background:var(--surface); border:1px solid var(--rule);
+    border-top:3px solid var(--rule-strong); border-radius:9px;
+    padding:var(--s4); margin-bottom:var(--s4);
+  }
+  .prose table:has(td[data-label]) tbody tr:nth-child(even){background:var(--surface)}
+  .prose table:has(td[data-label]) td{
+    padding:0; border-bottom:0; margin-bottom:.7rem; overflow-wrap:anywhere;
+  }
+  .prose table:has(td[data-label]) tr td:last-child{margin-bottom:0}
+  .prose table:has(td[data-label]) td::before{
+    content:attr(data-label); display:block;
+    font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--muted); margin-bottom:.15rem;
+  }
+  /* An empty cell would otherwise render as a lone header with nothing under
+     it; pandoc writes "-" for absent values, so this only catches true gaps. */
+  .prose table:has(td[data-label]) td:empty{display:none}
 }
 
 /* ---- Accessibility ----------------------------------------- */

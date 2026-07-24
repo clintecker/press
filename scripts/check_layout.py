@@ -295,6 +295,21 @@ _GEOMETRY_JS = """
     // height -- so measure the CLIPPING BOX, not the image.
     lockup: rect(document.querySelector('.wm-lockup')),
     wordmark: rect(document.querySelector('.wordmark')),
+    // Tables that stack into cards on a phone. Once a table's rows render as
+    // blocks, its content is laid out in one column and it has no business
+    // scrolling sideways -- if it still does, a cell is being clipped and the
+    // reader cannot see the value, the very defect stacking exists to fix.
+    tables: Array.from(document.querySelectorAll('.prose table')).map(t => {
+      const row = t.querySelector('tbody tr');
+      return {
+        stacked: !!row && getComputedStyle(row).display === 'block',
+        labelled: !!t.querySelector('td[data-label]'),
+        scrollW: t.scrollWidth,
+        clientW: t.clientWidth,
+        clippedCells: Array.from(t.querySelectorAll('td')).filter(
+          c => c.scrollWidth > c.clientWidth + 1).length,
+      };
+    }),
   };
 })()
 """
@@ -390,10 +405,57 @@ def measure(chrome: Chrome, url: str, css_w: int, css_h: int) -> dict:
         "last_focus": last_focus,
         "lockup": geometry.get("lockup"),
         "wordmark": geometry.get("wordmark"),
+        "tables": geometry.get("tables") or [],
     }
 
 
 # --- policy (pure, unit-tested) ---------------------------------------------
+
+
+def _lockup_problems(m: dict) -> list[str]:
+    """The masthead lockup must be shown whole. Its clipping box collapsing
+    under flex shrink pressure -- while the <img> still measures its full
+    height -- sheared the logo to a sliver at every desktop width until
+    `.wordmark` was pinned to flex:0 0 auto. Measure the BOX, not the image:
+    the image reported 48px throughout."""
+
+    lockup, wordmark = m.get("lockup"), m.get("wordmark")
+    if not (lockup and wordmark) or lockup["height"] <= 0:
+        return []
+    problems = []
+    if wordmark["height"] + OVERLAP_EPSILON < lockup["height"]:
+        problems.append(
+            "the masthead lockup is clipped by its own box "
+            f"(box {wordmark['height']:.1f}px high, logo "
+            f"{lockup['height']:.1f}px)")
+    if wordmark["width"] + OVERLAP_EPSILON < lockup["width"]:
+        problems.append(
+            "the masthead lockup is cropped horizontally "
+            f"(box {wordmark['width']:.1f}px wide, logo "
+            f"{lockup['width']:.1f}px)")
+    return problems
+
+
+def _stacked_table_problems(m: dict) -> list[str]:
+    """A table whose rows have stacked into cards lays its content out in one
+    column, so it has no business scrolling sideways or clipping a cell -- that
+    is the phone defect stacking exists to fix. A desktop table that keeps its
+    columns may still scroll inside its own box, by design, so only stacked
+    tables are judged here."""
+
+    problems = []
+    for i, t in enumerate(m.get("tables") or []):
+        if not t.get("stacked"):
+            continue
+        if t["scrollW"] > t["clientW"] + OVERLAP_EPSILON:
+            problems.append(
+                f"stacked table {i} still scrolls sideways "
+                f"(scrollWidth {t['scrollW']} > clientWidth {t['clientW']})")
+        if t.get("clippedCells"):
+            problems.append(
+                f"stacked table {i} clips {t['clippedCells']} cell(s); "
+                "a reader cannot see the value")
+    return problems
 
 
 def assess_page(m: dict) -> list[str]:
@@ -422,22 +484,8 @@ def assess_page(m: dict) -> list[str]:
             f"(nav scrollWidth {m['nav_scroll_w']} > clientWidth "
             f"{m['nav_client_w']})")
 
-    # The masthead lockup must be shown whole. Its clipping box collapsing
-    # under flex shrink pressure -- while the <img> still measures its full
-    # height -- sheared the logo to a sliver at every desktop width until
-    # `.wordmark` was pinned to flex:0 0 auto.
-    lockup, wordmark = m.get("lockup"), m.get("wordmark")
-    if lockup and wordmark and lockup["height"] > 0:
-        if wordmark["height"] + OVERLAP_EPSILON < lockup["height"]:
-            problems.append(
-                "the masthead lockup is clipped by its own box "
-                f"(box {wordmark['height']:.1f}px high, logo "
-                f"{lockup['height']:.1f}px)")
-        if wordmark["width"] + OVERLAP_EPSILON < lockup["width"]:
-            problems.append(
-                "the masthead lockup is cropped horizontally "
-                f"(box {wordmark['width']:.1f}px wide, logo "
-                f"{lockup['width']:.1f}px)")
+    problems += _lockup_problems(m)
+    problems += _stacked_table_problems(m)
 
     cf = m.get("current_focus")
     if m.get("current_id") is None:
