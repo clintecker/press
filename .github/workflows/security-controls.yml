@@ -47,14 +47,33 @@ jobs:
           repo="${{ github.repository }}"
           data=$(gh api "repos/${repo}" --jq '.security_and_analysis')
           fail=0
+          # Controls available on any public repo -- these must stay enabled.
           for key in secret_scanning \
                      secret_scanning_push_protection \
-                     secret_scanning_non_provider_patterns \
-                     secret_scanning_validity_checks \
                      dependabot_security_updates; do
             status=$(echo "$data" | jq -r ".${key}.status // \"absent\"")
             if [ "$status" != "enabled" ]; then
               echo "drift: ${key} is '${status}', expected 'enabled'"; fail=1
+            fi
+          done
+          # Non-provider patterns and validity checks are Advanced Security
+          # sub-features; GHAS is not provisioned on this public repo
+          # (advanced_security is null), so GitHub silently no-ops a PATCH that
+          # tries to enable them. The honest baseline is that they are off
+          # BECAUSE GHAS is unavailable -- a documented limitation (#154,
+          # SECURITY.md), not drift. This branch is also the reevaluation
+          # trigger the acceptance criterion asks for: if GHAS ever becomes
+          # available, an off toggle becomes real drift and fails the run.
+          ghas=$(echo "$data" | jq -r '.advanced_security.status // "unavailable"')
+          for key in secret_scanning_non_provider_patterns \
+                     secret_scanning_validity_checks; do
+            status=$(echo "$data" | jq -r ".${key}.status // \"absent\"")
+            if [ "$status" = "enabled" ]; then
+              echo "${key}: enabled"
+            elif [ "$ghas" = "unavailable" ]; then
+              echo "${key}: unavailable -- needs Advanced Security (documented limitation)"
+            else
+              echo "drift: ${key} is '${status}' but Advanced Security is now '${ghas}' -- enable it"; fail=1
             fi
           done
           if gh api "repos/${repo}/vulnerability-alerts" >/dev/null 2>&1; then
@@ -62,7 +81,7 @@ jobs:
           else
             echo "drift: vulnerability alerts are disabled"; fail=1
           fi
-          [ "$fail" = 0 ] && echo "all platform security controls enabled"
+          [ "$fail" = 0 ] && echo "platform security controls at documented baseline"
           exit "$fail"
 
   # A separate job, so a drift in one control cannot mask a drift in another:

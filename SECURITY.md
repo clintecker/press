@@ -30,9 +30,11 @@ be turned off unnoticed.
 - **Dependency review.** `.github/workflows/dependency-review.yml`
   fails a pull request that adds a high-severity vulnerable dependency
   before it can merge.
-- **Secret hygiene.** Secret scanning, push protection, non-provider
-  patterns, and validity checks are enabled, so a committed credential
-  is rejected at push time where the platform supports it.
+- **Secret hygiene.** Secret scanning and push protection are enabled, so
+  a committed credential is rejected at push time. Non-provider pattern
+  scanning and secret validity checks are Advanced Security sub-features;
+  GHAS is not provisioned on this public repository, so they remain off by
+  platform limitation, not by choice (recorded below).
 - **Protection rulesets.** `main` cannot be force-pushed or deleted, and
   the three-part release tags (`v*.*.*`) are immutable -- they cannot be
   moved or deleted -- so the trust graph a pinned book resolves cannot be
@@ -52,11 +54,22 @@ be turned off unnoticed.
   exposes `security_and_analysis` only to admin credentials; the default
   workflow token cannot read it. That token is repository-scoped and
   read-only.
-- Repository-wide enforcement that every workflow action is pinned to a
-  full-length commit SHA is a ruleset control still tracked in #153. Every
-  action is already SHA-pinned in source and reviewed on change by
-  dependency review; the outstanding item is repository-level
-  *enforcement*, not the current state.
+- Non-provider secret patterns and secret validity checks require GitHub
+  Advanced Security, which is not available on this public repository
+  (`advanced_security` is null, and a PATCH to enable them silently
+  no-ops). They are a platform limitation, not drift: the
+  `security-controls` check treats them as the documented baseline and
+  will demand they be enabled the moment Advanced Security becomes
+  available. Secret scanning and push protection -- the controls that
+  reject a committed credential at push time -- are on.
+- GitHub offers no repository-level control that enforces "every workflow
+  action is pinned to a full commit SHA"; there is no such ruleset rule.
+  Enforcement therefore lives in the tree:
+  `tests/test_ci_posture.py::test_every_action_is_pinned_by_full_commit_sha`
+  fails CI on any action not pinned to a 40-hex commit SHA, across every
+  workflow file. The control is real and enforced -- in-repo rather than
+  platform-side. This is the recorded resolution of the #153/#154 SHA-pin
+  item.
 - Requiring the trust checks to pass on a pull request before a merge to
   `main` (the branch ruleset's merge gate) is deferred by choice: `main` is
   hardened against force-push and deletion, but direct pushes remain allowed
