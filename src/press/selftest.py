@@ -11,24 +11,108 @@ press.
 from __future__ import annotations
 
 import importlib
+import pkgutil
 import re
+import sys
 from pathlib import Path
+from types import ModuleType
 
 from . import invariants
 
-def modules() -> list[str]:
-    """Every module in the package, derived so the list cannot drift."""
 
+# Modules the installed package ships that the import gate deliberately
+# holds out, each with the reason on the record. A name here that no longer
+# resolves to a real module is a stale exception and fails the
+# collection-time gate below, so a rename or deletion cannot leave a silent
+# hole in the inventory.
+IMPORT_EXCEPTIONS: dict[str, str] = {
+    "press.__main__": (
+        "the console entry-point shell; importing it is running the CLI's "
+        "dispatch wiring, proven by check_command_catalog and the cli tests, "
+        "not by this import gate -- surfaces.py holds it out of the "
+        "classified surface for the same reason"
+    ),
+}
+
+
+def _on_walk_error(name: str) -> None:
+    """Discovery walks subpackages by importing them; a package whose
+    __init__ cannot import would otherwise be swallowed by walk_packages and
+    its submodules silently dropped from the inventory. Re-raise instead,
+    naming the package and preserving the original exception, so a broken
+    nested package fails loudly rather than quietly shrinking the count."""
+
+    raise ImportError(
+        f"press module discovery could not import package {name!r}"
+    ) from sys.exc_info()[1]
+
+
+def _discover_package_modules(package: ModuleType) -> list[str]:
+    """Every importable module under an installed package, discovered from
+    the package's own __path__ so the inventory is what the wheel actually
+    ships -- nested runtime modules included -- never a checkout's file
+    layout. Deterministic order, and every dotted name is unique, so two
+    modules that share a filename stem in different subpackages keep
+    distinct identities instead of collapsing to one."""
+
+    prefix = f"{package.__name__}."
     return sorted(
-        f"press.{path.stem}"
-        for path in Path(__file__).resolve().parent.glob("*.py")
-        if path.stem not in {"__init__", "__main__"}
+        info.name
+        for info in pkgutil.walk_packages(package.__path__, prefix, _on_walk_error)
     )
 
 
+def _import_module_names(names: list[str]) -> None:
+    """Import each named module exactly once, in the order given, naming the
+    precise module and preserving the original exception on the first
+    failure -- never a bare traceback that hides which module broke."""
+
+    for name in names:
+        try:
+            importlib.import_module(name)
+        except Exception as exc:
+            raise SystemExit(
+                f"selftest: importing {name} failed: {type(exc).__name__}: {exc}"
+            ) from exc
+
+
+def modules() -> list[str]:
+    """Every distributable runtime module the import gate covers: the
+    installed package's recursive inventory minus the held-out exceptions,
+    in deterministic order."""
+
+    import press
+
+    return [name for name in _discover_package_modules(press)
+            if name not in IMPORT_EXCEPTIONS]
+
+
 def check_imports() -> None:
-    for name in modules():
-        importlib.import_module(name)
+    """Every distributable runtime module imports, discovered recursively
+    from the installed package itself. This proves a wheel's nested runtime
+    modules (adapters, providers, desk) are importable, not only the
+    top-level ones a filename glob would find -- the gap where a nested
+    module could ship unimportable while the selftest stayed green. It
+    proves importability alone: not that a module is wired into any
+    pipeline, nor that its import is free of side effects beyond loading."""
+
+    import press
+
+    discovered = set(_discover_package_modules(press))
+    stale = sorted(name for name in IMPORT_EXCEPTIONS if name not in discovered)
+    if stale:
+        raise SystemExit(
+            "selftest: import exceptions name modules that no longer exist "
+            f"(remove them from IMPORT_EXCEPTIONS): {', '.join(stale)}"
+        )
+    if not any(name.count(".") >= 2 for name in discovered):
+        raise SystemExit(
+            "selftest: module discovery found no nested modules; the "
+            "installed inventory has regressed to top-level only, so a "
+            "broken module under adapters/, providers/, or desk/ could ship "
+            "unimported"
+        )
+    _import_module_names(modules())
 
 
 # The slug invariant's evidence, stated once: the pytest suite

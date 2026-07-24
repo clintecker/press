@@ -367,6 +367,27 @@ invariants:
     ci_tier: quality
     limitations: Only the body below the first line is compared.
 
+  - id: INV-pkg-import-inventory
+    statement: >-
+      Every distributable runtime module in the installed press package
+      imports exactly once in deterministic order, discovered recursively
+      from the package itself so nested adapters, providers, and desk
+      modules are covered, not only top-level files; a held-out module is
+      named with a reason and a stale exception fails the gate.
+    risk: >-
+      A nested runtime module ships unimportable in a wheel while the
+      selftest, inventorying only top-level files, stays green.
+    criticality: critical
+    owner: selftest
+    enforcer: selftest.check_imports
+    layers: [selftest, pytest, integration]
+    negative: [check_imports]
+    ci_tier: quality
+    limitations: >-
+      Proves importability and a single deterministic import, not that a
+      module is wired into a pipeline or that its import has no runtime
+      side effect beyond loading.
+
   - id: INV-release-receipt-chain
     statement: >-
       A release chain refuses a missing, tampered, reordered, or
