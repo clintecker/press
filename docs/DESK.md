@@ -29,9 +29,12 @@ The home screen (DESK) is the read model, rendered:
 - The book's identity: title, authors, trim, and slug, from the typed
   book model.
 - Every artifact the registry declares, each with its evidence state.
-- The toolchain readiness, from `press doctor`'s findings; when a
-  required tool is missing the desk says which and grays out the
-  actions that need it.
+- The toolchain readiness, from `press doctor`'s findings: a one-line
+  summary, and beneath it a panel with one row per examined capability
+  (every tool, the API keys, the Python version, and the dependency
+  check), each stated as a glyph plus word with the purpose the doctor
+  prints. When a required tool is missing the desk says which and grays
+  out the actions that need it.
 
 ## The evidence language
 
@@ -61,7 +64,11 @@ The picker is generated from the one command catalog, so it offers
 exactly the commands the CLI runs. Selecting one opens a RUN view that
 streams the child's output and shows its exact verdict: a nonzero or
 cancelled run reports its precise exit code, because the return code is
-the verdict, never re-derived from the output.
+the verdict, never re-derived from the output. Above the log a stage
+line advances as the build streams its markers -- the `check`,
+`typeset`, and `verify` phases tick off as each completes, and a step
+count climbs with every tool invocation -- parsed from the log text, so
+it can never claim progress the build did not print.
 
 ## The setup wizard
 

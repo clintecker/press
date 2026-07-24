@@ -93,6 +93,35 @@ async def test_run_view_reports_the_exact_failing_exit_code(tmp_path):
 
 
 @pytest.mark.layer("integration")
+async def test_run_view_advances_the_stage_line_from_build_markers(tmp_path):
+    from press.desk.app import DeskApp, RunScreen
+    from textual.widgets import Static
+
+    lines = [
+        "+ pandoc a.md",
+        "  ¶ check      ✓ style, source, jargon",
+        "+ pandoc b.md",
+        "  ¶ typeset    ✓ PDF · EPUB · web",
+        "  ¶ verify     ✓ 6 editions match source",
+    ]
+    handle = factories.minimal().build(tmp_path)
+    with handle.use():
+        app = DeskApp(root=handle.root)
+        async with app.run_test() as pilot:
+            screen = RunScreen(handle.root, "all",
+                               spawn=_spawn_returning(lines, 0))
+            await app.push_screen(screen)
+            await pilot.pause()
+            await _drain(app)
+            await pilot.pause()
+            assert screen.progress.invocations == 2
+            assert screen.progress.phases_done == ("check", "typeset", "verify")
+            stage = str(screen.query_one("#run-progress", Static).render())
+            assert "✓ verify" in stage
+            assert "2 steps" in stage
+
+
+@pytest.mark.layer("integration")
 async def test_picker_offers_the_catalog_targets(tmp_path):
     from press import catalog
     from press.desk.app import DeskApp, PickerScreen

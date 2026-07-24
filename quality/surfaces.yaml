@@ -57,7 +57,7 @@ modules:
   cover: {default: pure, overrides: {main: presenter}}
   idlookup: adapter
   illustrate: {default: pure, overrides: {main: presenter}}
-  desk_model: producer
+  desk_model: {default: producer, overrides: {doctor_rows: pure, progress_event: parser}}
   doctor: {default: presenter, overrides: {tool_runs: adapter, examine: adapter, render_finding: pure}}
   dropcaps: {default: pure, overrides: {settings: parser}}
   edition: {default: verifier, overrides: {build: producer, observe: adapter, interior_path: pure, cover_path: pure, to_json: pure, from_json: pure, is_sellable: pure}}

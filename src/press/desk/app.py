@@ -43,6 +43,7 @@ class DeskApp(App):
     #title { text-style: bold; color: $text; }
     #byline { color: $text-muted; }
     #capabilities { padding: 1 2; }
+    #doctor { padding: 0 2 1 2; }
     DataTable { height: auto; }
     .ok { color: $success; }
     .warn { color: $warning; }
@@ -99,6 +100,12 @@ class DeskApp(App):
             summary = self._capability_summary(model)
             yield Static(summary, id="capabilities",
                          classes="ok" if model.ready else "warn")
+            doctor_table: DataTable = DataTable(id="doctor")
+            doctor_table.add_columns("state", "capability", "purpose")
+            for finding in desk_model.doctor_rows(model.capabilities):
+                doctor_table.add_row(f"{finding.glyph} {finding.state_word}",
+                                     finding.name, finding.purpose)
+            yield doctor_table
         yield Footer()
 
     def _capability_summary(self, model: desk_model.DeskModel) -> str:
@@ -162,11 +169,16 @@ class RunScreen(Screen):
         self._spawn = spawn
         self._controller: process_control.ProcessController | None = None
         self.outcome: process_control.Outcome | None = None
+        # The build-stage tally, folded from the child's log markers so the
+        # stage line advances as phases complete and tools run. Pure data;
+        # the widget only mirrors it.
+        self.progress = desk_model.RunProgress()
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=False)
         shown = " ".join([self._target, *self._args])
         yield Label(f"$ press {shown}", id="run-command")
+        yield Static(self.progress.status_line(), id="run-progress")
         yield RichLog(id="run-log", highlight=False, markup=False)
         yield Label("running... (c to cancel)", id="run-status")
         yield Footer()
@@ -182,6 +194,13 @@ class RunScreen(Screen):
 
         def sink(channel, line: str) -> None:
             self.app.call_from_thread(self.query_one("#run-log", RichLog).write, line)
+            # Fold the line into the stage tally and repaint only when it
+            # actually moved the build forward.
+            if self.progress.observe(desk_model.progress_event(line)):
+                self.app.call_from_thread(
+                    self.query_one("#run-progress", Static).update,
+                    self.progress.status_line(),
+                )
 
         controller.start(invocation)
         while controller.poll(sink):

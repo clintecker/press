@@ -52,6 +52,23 @@ async def test_desk_lists_every_registry_artifact(tmp_path):
 
 
 @pytest.mark.layer("integration")
+async def test_desk_shows_a_doctor_row_for_every_finding(tmp_path):
+    from press import desk_model
+    from press.desk.app import DeskApp
+    from textual.widgets import DataTable
+
+    handle = factories.minimal().build(tmp_path)
+    with handle.use():
+        model = desk_model.build_model(handle.root)
+        app = DeskApp(root=handle.root)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            table = app.query_one("#doctor", DataTable)
+            assert table.row_count == len(model.capabilities.findings)
+            assert table.row_count == len(desk_model.doctor_rows(model.capabilities))
+
+
+@pytest.mark.layer("integration")
 async def test_desk_refuses_outside_a_book(tmp_path):
     from press.desk.app import DeskApp
 
