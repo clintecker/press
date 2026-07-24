@@ -128,7 +128,13 @@ def _fetch_once(transport: object, url: str, accept: str, *,
     attempt = 0
     while True:
         try:
-            response = transport("GET", url, headers=headers, timeout=timeout)  # type: ignore[operator]
+            # The bound travels WITH the request: a size check on the way back
+            # would already have taken an unbounded body into memory, letting a
+            # server that omits or lies about Content-Length decide how much we
+            # spend. One byte over the bound is read so the overrun is visible
+            # to _read, which fails closed rather than truncating silently.
+            response = transport(  # type: ignore[operator]
+                "GET", url, headers=headers, timeout=timeout, max_bytes=MAX_BYTES)
         except TransportTimeout:
             if attempt >= max_retries:
                 return _Fail(Outcome.UNAVAILABLE, f"timed out after {attempt + 1} attempts")

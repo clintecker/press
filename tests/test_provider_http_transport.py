@@ -80,3 +80,83 @@ def test_network_failures_are_translated_to_typed_transport_signals(
     monkeypatch.setattr(http.urllib.request, "urlopen", fail)
     with pytest.raises(translated, match=str(error)):
         http.urlopen_transport("GET", "https://provider.test/jobs")
+
+
+# --- the body bound is applied AT THE READ (#209) -----------------------------
+
+
+class _BoundedReply:
+    """A reply that records the limit the transport asks for, and would hand
+    back far more than the bound if asked for everything -- so a transport
+    that reads unbounded is caught by the size of what it gets, not merely by
+    the absence of an argument."""
+
+    status = 200
+    headers = {"Content-Type": "application/xml"}
+
+    def __init__(self) -> None:
+        self.asked: list[int | None] = []
+
+    def read(self, amount=None):
+        self.asked.append(amount)
+        return b"x" * (amount if amount is not None else 10_000_000)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def _serve(monkeypatch, reply):
+    monkeypatch.setattr(http.urllib.request, "urlopen",
+                        lambda request, *, timeout: reply)
+
+
+def test_max_bytes_bounds_the_read_itself(monkeypatch):
+    reply = _BoundedReply()
+    _serve(monkeypatch, reply)
+    response = http.urlopen_transport(
+        "GET", "https://provider.test/record", max_bytes=1024)
+    # One past the bound, so an overrun is detectable; never the whole body.
+    assert reply.asked == [1025]
+    assert len(response.body) == 1025
+
+
+def test_without_max_bytes_the_read_stays_unbounded(monkeypatch):
+    """The other callers -- a cover image, a provider payload -- legitimately
+    read whatever the server sends; the bound must be opt-in or this would
+    silently truncate them."""
+
+    reply = _BoundedReply()
+    _serve(monkeypatch, reply)
+    http.urlopen_transport("GET", "https://provider.test/image")
+    assert reply.asked == [None]
+
+
+def test_an_error_body_is_bounded_too(monkeypatch):
+    """An HTTP error status is a real response, and its body is as unbounded
+    as a successful one -- a 500 that streams forever must not be a way past
+    the bound."""
+
+    class _Error(urllib.error.HTTPError):
+        def __init__(self):
+            self.asked: list[int | None] = []
+            super().__init__("https://provider.test/x", 500, "boom",
+                             {"Content-Type": "text/plain"}, None)
+
+        def read(self, amount=None):
+            self.asked.append(amount)
+            return b"e" * (amount if amount is not None else 10_000_000)
+
+    error = _Error()
+
+    def raise_error(request, *, timeout):
+        raise error
+
+    monkeypatch.setattr(http.urllib.request, "urlopen", raise_error)
+    response = http.urlopen_transport(
+        "GET", "https://provider.test/x", max_bytes=512)
+    assert error.asked == [513]
+    assert response.status == 500
+    assert len(response.body) == 513

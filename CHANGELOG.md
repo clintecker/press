@@ -11,6 +11,16 @@ audit).
 
 ### Fixed
 
+- **A registration lookup bounds the response body as it reads it** (#209).
+  The size cap was applied to the body the transport had already read, so a
+  server that omitted or lied about `Content-Length` decided how much memory
+  a lookup spent before the cap could refuse it. The bound now travels with
+  the request: `adapters.http.urlopen_transport` takes an optional
+  `max_bytes` and reads one byte past it, so an overrun is visible and fails
+  closed rather than being truncated in silence. It is opt-in and unbounded
+  by default -- a cover image and a provider payload legitimately read
+  whatever the server sends, and a blanket cap would silently truncate them.
+
 - **Wide tables are readable on a phone, on every HTML surface the press
   publishes.** A three- or four-column table used to run its far columns off
   the edge: on the docs site it scrolled sideways inside its own box, and in a

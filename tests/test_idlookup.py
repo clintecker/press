@@ -36,17 +36,20 @@ PRESS_SRC = Path(idlookup.__file__).resolve().parent
 class FakeTransport:
     """A ``Transport`` that records each request and answers from a
     programmed list of ``Response`` values (or raises a programmed
-    exception). Accepts the bounded ``timeout`` the domain passes and
-    records it. Never opens a socket."""
+    exception). Accepts and records the bounds the domain passes with each
+    request -- ``timeout`` and ``max_bytes`` -- so a test can assert they
+    travelled WITH the call rather than being applied afterwards. Never opens
+    a socket."""
 
     def __init__(self, responses):
         self._responses = list(responses)
         self.calls: list[dict] = []
 
-    def __call__(self, method, url, *, headers=None, body=None, timeout=None):
+    def __call__(self, method, url, *, headers=None, body=None, timeout=None,
+                 max_bytes=None):
         self.calls.append(
             {"method": method, "url": url, "headers": dict(headers or {}),
-             "timeout": timeout})
+             "timeout": timeout, "max_bytes": max_bytes})
         outcome = self._responses.pop(0)
         if isinstance(outcome, BaseException):
             raise outcome
@@ -429,3 +432,40 @@ def test_live_lccn_lookup_reaches_the_real_endpoint():
     assert result.outcome in {
         Outcome.FOUND, Outcome.NOT_FOUND, Outcome.MISMATCH, Outcome.UNAVAILABLE}
     assert result.source_url.startswith("https://lccn.loc.gov/")
+
+
+# --- the size bound travels with the request (#209) --------------------------
+
+
+def test_the_size_bound_is_passed_with_the_request():
+    """The bound must reach the transport, not be applied to what it returns.
+    A check on the way back has already taken an unbounded body into memory --
+    the resource is spent by the time the size is known."""
+
+    transport = FakeTransport([xml_response(MODS_FOUND)])
+    idlookup.lookup_lccn(transport, VALID_LCCN)
+    assert transport.calls[0]["max_bytes"] == idlookup.MAX_BYTES
+
+
+def test_a_body_overrunning_the_bound_fails_closed_even_when_length_lies():
+    """The dangerous case: a server that declares a small body (or none) and
+    sends a large one. The declared-length check cannot catch it, so the
+    overrun must still be refused rather than parsed."""
+
+    oversized = MODS_FOUND + "<!--" + "a" * (idlookup.MAX_BYTES + 64) + "-->"
+    lying = xml_response(oversized, headers={"Content-Length": "12"})
+    result = idlookup.lookup_lccn(FakeTransport([lying]), VALID_LCCN)
+    assert result.outcome is idlookup.Outcome.UNAVAILABLE
+    assert "size bound" in (result.detail or "")
+
+
+def test_a_body_exactly_at_the_bound_is_still_accepted():
+    """The bound is inclusive: reading one byte past it is how an overrun is
+    detected, and must not make a body that exactly fills the bound look like
+    one that exceeded it."""
+
+    pad = idlookup.MAX_BYTES - len(MODS_FOUND.encode()) - len("<!---->")
+    body = MODS_FOUND + "<!--" + "a" * pad + "-->"
+    assert len(body.encode("utf-8")) == idlookup.MAX_BYTES
+    result = idlookup.lookup_lccn(FakeTransport([xml_response(body)]), VALID_LCCN)
+    assert result.outcome is not idlookup.Outcome.UNAVAILABLE
