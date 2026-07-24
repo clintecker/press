@@ -10,7 +10,6 @@ press.
 
 from __future__ import annotations
 
-import contextlib
 import importlib
 import pkgutil
 import re
@@ -19,6 +18,7 @@ from pathlib import Path
 from types import ModuleType
 
 from . import invariants
+from .adapters.import_guard import _ForbiddenImportSideEffect, _import_sandbox
 
 
 # Modules the installed package ships that the import gate deliberately
@@ -143,85 +143,6 @@ def check_imports() -> None:
         print(f"selftest: skipped (optional extra not installed): {name}")
 
 
-class _ForbiddenImportSideEffect(Exception):
-    """Raised by the import sandbox the instant a module, while being
-    imported, reaches for the network, spawns a subprocess, or writes a
-    file. Importing a runtime module must load code, not do work."""
-
-
-@contextlib.contextmanager
-def _import_sandbox():
-    """Trap the forbidden import-time side effects for the duration of the
-    block: a network connection, a spawned subprocess, or a filesystem
-    write. Constructing a socket or a Path is fine; *connecting* it,
-    *running* it, or *writing* through it is the side effect, so the guard
-    sits on the acting call, not the object. Bytecode caching writes go
-    through the import system's own low-level path (os.replace), not these
-    Python-level APIs, so a normal import does not trip the guard."""
-
-    import builtins
-    import os
-    import socket
-    import subprocess
-
-    write_modes = ("w", "a", "x", "+")
-    real_open = builtins.open
-    real_connect = socket.socket.connect
-    real_connect_ex = socket.socket.connect_ex
-    real_create_connection = socket.create_connection
-    real_popen_init = subprocess.Popen.__init__
-    real_system = os.system
-    real_write_text = Path.write_text
-    real_write_bytes = Path.write_bytes
-
-    def guard_open(file, mode="r", *args, **kwargs):
-        if isinstance(mode, str) and any(flag in mode for flag in write_modes):
-            raise _ForbiddenImportSideEffect(f"opened {file!r} for writing at import")
-        return real_open(file, mode, *args, **kwargs)
-
-    def guard_connect(self, address, *args, **kwargs):
-        raise _ForbiddenImportSideEffect(f"opened a network connection to {address!r} at import")
-
-    def guard_connect_ex(self, address, *args, **kwargs):
-        raise _ForbiddenImportSideEffect(f"opened a network connection to {address!r} at import")
-
-    def guard_create_connection(address, *args, **kwargs):
-        raise _ForbiddenImportSideEffect(f"opened a network connection to {address!r} at import")
-
-    def guard_popen(self, *args, **kwargs):
-        command = args[0] if args else kwargs.get("args")
-        raise _ForbiddenImportSideEffect(f"spawned a subprocess {command!r} at import")
-
-    def guard_system(command):
-        raise _ForbiddenImportSideEffect(f"ran a shell command {command!r} at import")
-
-    def guard_write_text(self, *args, **kwargs):
-        raise _ForbiddenImportSideEffect(f"wrote a file {str(self)!r} at import")
-
-    def guard_write_bytes(self, *args, **kwargs):
-        raise _ForbiddenImportSideEffect(f"wrote a file {str(self)!r} at import")
-
-    builtins.open = guard_open
-    socket.socket.connect = guard_connect
-    socket.socket.connect_ex = guard_connect_ex
-    socket.create_connection = guard_create_connection
-    subprocess.Popen.__init__ = guard_popen
-    os.system = guard_system
-    Path.write_text = guard_write_text
-    Path.write_bytes = guard_write_bytes
-    try:
-        yield
-    finally:
-        builtins.open = real_open
-        socket.socket.connect = real_connect
-        socket.socket.connect_ex = real_connect_ex
-        socket.create_connection = real_create_connection
-        subprocess.Popen.__init__ = real_popen_init
-        os.system = real_system
-        Path.write_text = real_write_text
-        Path.write_bytes = real_write_bytes
-
-
 def _prove_no_import_side_effects(names: list[str]) -> str | None:
     """Re-execute each named module's body under the import sandbox, in the
     given order, returning the first module that reaches for the network,
@@ -281,17 +202,17 @@ def check_import_side_effects() -> None:
     selftest. Clock reads and environment lookups are not trapped: they
     neither corrupt state nor leak on their own at import time."""
 
-    import subprocess
+    from . import adapters
 
     probe = (
         "import sys; from press import selftest; "
         "sys.exit(selftest._side_effect_probe())"
     )
-    result = subprocess.run(
-        [sys.executable, "-c", probe], capture_output=True, text=True,
+    result = adapters.process_runner.run(
+        [sys.executable, "-c", probe], capture=True,
     )
     if result.returncode != 0:
-        detail = (result.stdout + result.stderr).strip()
+        detail = (result.stdout + result.stderr).decode("utf-8", errors="replace").strip()
         raise SystemExit(
             "selftest: a module has a forbidden import-time side effect "
             f"(network, subprocess, or filesystem write):\n  {detail}"
@@ -336,20 +257,21 @@ def borrow_book(path):
     prior value rather than deleted."""
 
     import contextlib
-    import os
+
+    from . import adapters
 
     @contextlib.contextmanager
     def borrowed():
-        previous = os.environ.get("BOOK_ROOT")
-        os.environ["BOOK_ROOT"] = str(path)
+        previous = adapters.environment.get("BOOK_ROOT")
+        adapters.environment.set("BOOK_ROOT", str(path))
         clear_book_caches()
         try:
             yield
         finally:
             if previous is None:
-                os.environ.pop("BOOK_ROOT", None)
+                adapters.environment.unset("BOOK_ROOT")
             else:
-                os.environ["BOOK_ROOT"] = previous
+                adapters.environment.set("BOOK_ROOT", previous)
             clear_book_caches()
 
     return borrowed()
@@ -399,23 +321,23 @@ def check_source_policy() -> None:
             appended = verify_archives.verify_source_zip(source_zip, "policy-proof")
             assert any("did not admit" in f for f in appended), appended
 
-            import subprocess as sp
+            from . import adapters
 
             # A commit hook exports its in-progress index. A nested git command
             # must not inherit that repository identity or it stages this
             # fixture into the caller's commit and runs the caller's hooks.
-            import os
-
-            nested_git_env = os.environ.copy()
-            for name in ("GIT_DIR", "GIT_INDEX_FILE", "GIT_PREFIX", "GIT_WORK_TREE"):
-                nested_git_env.pop(name, None)
-
-            sp.run(["git", "init", "-q"], cwd=book, env=nested_git_env, check=True)
-            sp.run(["git", "add", "-A"], cwd=book, env=nested_git_env, check=True)
-            sp.run(
+            # Passing NO env is what enforces that: the process runner strips
+            # the GIT_* repository-binding variables for a git command whose
+            # env is None, so this book observes only itself. Handing it an
+            # explicit env would disable that strip.
+            adapters.process_runner.run(
+                ["git", "init", "-q"], cwd=book, check=True)
+            adapters.process_runner.run(
+                ["git", "add", "-A"], cwd=book, check=True)
+            adapters.process_runner.run(
                 ["git", "-c", "user.email=proof@press", "-c", "user.name=Proof",
                  "commit", "-qm", "fixture"],
-                cwd=book, env=nested_git_env, check=True,
+                cwd=book, check=True,
             )
             (book / "private-working-notes.md").write_text("draft", encoding="utf-8")
             package_source.main()
@@ -946,7 +868,7 @@ def check_release_grammar() -> None:
     network: exactly vN.x.y, and the composite action's command
     grammar rejects shell syntax."""
 
-    import subprocess
+    from . import adapters
 
     script = Path(__file__).resolve().parent.parent.parent / "scripts" / "release.sh"
     if not script.is_file():
@@ -954,13 +876,13 @@ def check_release_grammar() -> None:
     good = GOOD_TAGS
     bad = BAD_TAGS
     for tag in good:
-        result = subprocess.run(["bash", str(script), "--check-tag", tag],
-                                capture_output=True)
+        result = adapters.process_runner.run(
+            ["bash", str(script), "--check-tag", tag], capture=True)
         if result.returncode != 0:
             raise SystemExit(f"selftest: release grammar rejected valid {tag!r}")
     for tag in bad:
-        result = subprocess.run(["bash", str(script), "--check-tag", tag],
-                                capture_output=True)
+        result = adapters.process_runner.run(
+            ["bash", str(script), "--check-tag", tag], capture=True)
         if result.returncode == 0:
             raise SystemExit(f"selftest: release grammar accepted invalid {tag!r}")
 

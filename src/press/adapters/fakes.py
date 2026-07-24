@@ -105,6 +105,10 @@ class FakeEnvironment:
         self._present = set(present_tools or [])
         self.reads: list[str] = []
         self.which_calls: list[str] = []
+        # Every mutation, in order: (key, value) for a set, (key, None) for
+        # an unset. A test asserts on the write as an active signal, the way
+        # reads/which_calls record the read side.
+        self.writes: list[tuple[str, str | None]] = []
 
     def get(self, key: str, default: str | None = None) -> str | None:
         self.reads.append(key)
@@ -116,6 +120,14 @@ class FakeEnvironment:
     def which(self, tool: str) -> str | None:
         self.which_calls.append(tool)
         return f"/usr/bin/{tool}" if tool in self._present else None
+
+    def set(self, key: str, value: str) -> None:
+        self._values[key] = value
+        self.writes.append((key, value))
+
+    def unset(self, key: str) -> None:
+        self._values.pop(key, None)
+        self.writes.append((key, None))
 
 
 @dataclass(frozen=True)

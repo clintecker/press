@@ -717,3 +717,144 @@ def test_require_release_witnesses_honors_press_release_from_environment(
             cache.cache_clear()
     assert "PRESS_RELEASE=1" in str(excinfo.value)
     assert "PRESS_RELEASE" in fake.reads
+
+
+# --------------------------------------------------------------------------
+# selftest.borrow_book redirects BOOK_ROOT through the environment adapter
+# (issue #199). booklib.root() reads BOOK_ROOT through the same singleton, so
+# borrow_book must write through it too -- the fake records the writes.
+# --------------------------------------------------------------------------
+
+
+def test_borrow_book_sets_and_unsets_book_root_through_environment(tmp_path, fake_env):
+    from press import selftest
+
+    fake = fake_env(values={})  # BOOK_ROOT absent, so exit unsets it
+    book = tmp_path / "borrowed-book"
+    with selftest.borrow_book(book):
+        # inside the block, the adapter has been written the fixture's root...
+        assert fake.writes[0] == ("BOOK_ROOT", str(book))
+        assert fake.get("BOOK_ROOT") == str(book)
+    # ...and the exit unset it, because there was no prior value to restore.
+    assert fake.writes[-1] == ("BOOK_ROOT", None)
+    assert fake.get("BOOK_ROOT") is None
+
+
+def test_borrow_book_restores_a_prior_book_root_through_environment(tmp_path, fake_env):
+    from press import selftest
+
+    prior = str(tmp_path / "outer-book")
+    fake = fake_env(values={"BOOK_ROOT": prior})
+    book = tmp_path / "inner-book"
+    with selftest.borrow_book(book):
+        assert fake.writes[0] == ("BOOK_ROOT", str(book))
+    # the prior value is restored by a set, not deleted.
+    assert fake.writes[-1] == ("BOOK_ROOT", prior)
+    assert fake.get("BOOK_ROOT") == prior
+
+
+# --------------------------------------------------------------------------
+# selftest.check_import_side_effects spawns the fresh-interpreter probe
+# through the process runner and decodes its bytes on failure (issue #199).
+# --------------------------------------------------------------------------
+
+
+def test_check_import_side_effects_routes_probe_through_runner(fake_runner):
+    from press import selftest
+
+    # The default fake answers ProcessResult(0): a clean probe, no refusal.
+    selftest.check_import_side_effects()
+    assert len(fake_runner.runs) == 1
+    recorded = fake_runner.runs[0]
+    assert recorded.argv[0] == sys.executable
+    assert recorded.argv[1] == "-c"
+    assert "selftest._side_effect_probe" in recorded.argv[2]
+    assert recorded.capture is True
+    # It reads only the returncode/stdout; it must not raise on a nonzero exit
+    # itself, so check stays off.
+    assert recorded.check is False
+
+
+def test_check_import_side_effects_decodes_offender_bytes_on_failure(monkeypatch):
+    from press import selftest
+
+    # The runner returns BYTES (it never sets text=True); the diagnostic must
+    # decode them, not embed a bytes-repr. Fails before the migration, when the
+    # raw subprocess.run used text=True and this path never crossed the fake.
+    fake = fakes.FakeProcessRunner(
+        results=[ProcessResult(1, stdout=b"press.evil: wrote a file \xe2\x9c\x97", stderr=b"")]
+    )
+    monkeypatch.setattr(adapters, "process_runner", fake)
+    with pytest.raises(SystemExit) as excinfo:
+        selftest.check_import_side_effects()
+    message = str(excinfo.value)
+    assert "press.evil: wrote a file ✗" in message
+    assert "b'" not in message  # decoded text, never a bytes-repr
+
+
+# --------------------------------------------------------------------------
+# selftest.check_release_grammar drives the tag-grammar checks through the
+# process runner with bash release.sh --check-tag (issue #199).
+# --------------------------------------------------------------------------
+
+
+def test_check_release_grammar_routes_tag_checks_through_runner(monkeypatch):
+    from press import selftest
+
+    script = Path(selftest.__file__).resolve().parent.parent.parent / "scripts" / "release.sh"
+    if not script.is_file():
+        # release.sh ships with the checkout, not the wheel; check_release_grammar
+        # returns early without touching the runner, so there is nothing to prove.
+        pytest.skip("release.sh not present (installed wheel, not a checkout)")
+
+    # Good tags must exit 0, the trailing bad tags nonzero: program the good
+    # ones and default the rest to a rejection, so the grammar loop is happy
+    # while every run is still observed on the fake.
+    fake = fakes.FakeProcessRunner(
+        results=[ProcessResult(0)] * len(selftest.GOOD_TAGS),
+        default=ProcessResult(1),
+    )
+    monkeypatch.setattr(adapters, "process_runner", fake)
+    selftest.check_release_grammar()
+
+    assert len(fake.runs) == len(selftest.GOOD_TAGS) + len(selftest.BAD_TAGS)
+    first = fake.runs[0]
+    assert first.argv[0] == "bash"
+    assert first.argv[1].endswith("scripts/release.sh")
+    assert first.argv[2] == "--check-tag"
+    assert first.argv[3] in selftest.GOOD_TAGS
+    assert first.capture is True
+    assert first.check is False
+
+
+# --------------------------------------------------------------------------
+# selftest.check_source_policy runs its nested git init/add/commit with NO
+# env, so the runner's GIT_* strip applies (issue #199). A recording runner
+# that delegates to the real one proves both the routing and the env=None.
+# --------------------------------------------------------------------------
+
+
+def test_check_source_policy_runs_nested_git_with_env_none(monkeypatch):
+    from press import selftest
+
+    real = production.SubprocessRunner()
+    recorded: list[tuple[tuple[str, ...], object]] = []
+
+    class RecordingRunner:
+        def run(self, argv, **kwargs):
+            recorded.append((tuple(argv), kwargs.get("env")))
+            return real.run(argv, **kwargs)
+
+    monkeypatch.setattr(adapters, "process_runner", RecordingRunner())
+    selftest.check_source_policy()
+
+    # The nested-repo commands: `git init`, `git add`, and `git -c ... commit`.
+    # (package_source's `git -C <root> ls-files` is a different repo probe and
+    # is excluded by the second-word filter.)
+    nested = [
+        (argv, env) for argv, env in recorded
+        if argv and argv[0] == "git" and len(argv) > 1 and argv[1] in ("init", "add", "-c")
+    ]
+    assert nested, "check_source_policy drove no nested git commands through the runner"
+    for argv, env in nested:
+        assert env is None, (argv, env)
