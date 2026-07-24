@@ -30,7 +30,7 @@ jobs:
       # books; only a change under examples/ or src/press/ does.
       - name: Cache built example PDFs and previews
         id: examples-cache
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/examples
           key: examples-${{ hashFiles('examples/**', 'src/press/**', 'scripts/build_examples.py') }}
