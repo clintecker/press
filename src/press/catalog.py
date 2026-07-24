@@ -60,6 +60,9 @@ COMMANDS: tuple[Command, ...] = (
     Command("onix", "print pack", "Generate an ONIX 3.0 metadata record",
             args="[--forthcoming]"),
     Command("pcn", "print pack", "Assemble Library of Congress PCN fields"),
+    Command("lookup", "print pack",
+            "Look up an already-issued LCCN or ISSN (opt-in, read-only)",
+            args="lccn|issn [<number>]"),
     # utilities
     Command("render", "utilities", "Render the PDF to page PNGs"),
     Command("wordcount", "utilities", "Count the manuscript words"),

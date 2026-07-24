@@ -81,6 +81,7 @@ markers = [
     "invariant: the ledger id this test proves (INV-...)",
     "layer: the test layer (unit, property, selftest, integration)",
     "proof: proof polarity (positive or negative)",
+    "live: reaches a real external endpoint; opt-in, never a release gate",
 ]
 
 [project.scripts]

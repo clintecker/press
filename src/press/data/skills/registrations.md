@@ -14,6 +14,32 @@ get and expensive to get wrong. This skill documents each process so an
 agent can walk an author through it with current steps, and documents
 where each number lives in a press book so it is stated exactly once.
 
+## Three things a program can and cannot do with an identifier
+
+Keep these apart; conflating them is how a press ends up pretending to
+issue numbers it cannot.
+
+- **Issuance** -- minting a *new* identifier. There is no issuance API
+  for any of these. An ISBN comes from a prefix you buy once and then
+  assign offline (`press isbn assign`); an LCCN comes back from the LC
+  PrePub Book Link web form; an ISSN comes from the ISSN National Center.
+  The press never issues a number over the network, and no command here
+  claims to.
+- **Metadata submission** -- sending a title record to a channel *after*
+  you hold the number. This is also human-onboarded: `press onix`
+  produces the ONIX file, and `press pcn` assembles the PCN form values,
+  but you deliver each through the channel the distributor or the LC
+  gives you. The press prepares the submission; it does not transmit it.
+- **Read-only lookup** -- confirming a number you were *already issued*
+  resolves to a real record. This is the one networked command, and it is
+  opt-in: `press lookup lccn <number>` queries the LC LCCN Permalink
+  service and `press lookup issn <number>` queries the ISSN Portal, each
+  read-only, bounded, and fail-closed. It never mints, submits, or
+  changes anything, and an ordinary build never calls it, so builds stay
+  offline and deterministic. With no number it looks up the one in
+  config. Use it to catch a transcription error before print, not as a
+  substitute for the issuing or submission steps above.
+
 ## Where the numbers live
 
 All of them in `config/metadata.yaml`, under `registrations:`. The
@@ -61,6 +87,11 @@ anywhere else; the config is the single stated copy.
   `press config set registrations.lccn <number>`.
 - After publication, send the Library its complimentary copy; the PCN
   obligation is real.
+- To confirm an LCCN you already hold resolves to its catalog record,
+  `press lookup lccn <number>` reads the LCCN Permalink service
+  (<https://lccn.loc.gov/>, MODS), normalizing the number first and
+  verifying the returned record carries it. Read-only; it never applies
+  for or changes anything.
 
 ## ONIX (the metadata distributors ingest)
 
@@ -85,6 +116,11 @@ anywhere else; the config is the single stated copy.
 - In the US, the ISSN National Center at the Library of Congress
   issues them free (loc.gov/issn). The press validates the mod-11
   check digit, X included.
+- To confirm an ISSN you already hold, `press lookup issn <number>`
+  reads the ISSN Portal under content negotiation
+  (<https://portal.issn.org/>, JSON-LD), check-digit-validating the
+  number first and verifying the returned resource carries it.
+  Read-only; the ISSN National Center is still the only issuer.
 
 ## CIP data blocks
 
