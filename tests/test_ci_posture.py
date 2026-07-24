@@ -50,11 +50,14 @@ def test_consumer_docs_do_not_require_a_toolchain_grant(relpath):
 
 
 def test_the_build_pins_a_versioned_toolchain_image():
-    # A public image is only trustworthy if the build pins an exact version;
-    # the release contract additionally proves the pin is immutable.
+    # A public image is only trustworthy if the build pins an *immutable*
+    # identity. A sha- tag is mutable (it can be repushed), so the build must
+    # pin the @sha256 digest; the release contract proves it resolves.
     build = (WORKFLOWS / "build.yml").read_text(encoding="utf-8")
-    assert re.search(r"image:\s*ghcr\.io/clintecker/press-toolchain:sha-[0-9a-f]+", build), \
-        "build.yml does not pin an exact toolchain image"
+    assert re.search(
+        r"image:\s*ghcr\.io/clintecker/press-toolchain:sha-[0-9a-f]+@sha256:[0-9a-f]{64}",
+        build,
+    ), "build.yml does not pin the toolchain by an immutable @sha256 digest"
 
 
 def _all_job_names() -> set[str]:

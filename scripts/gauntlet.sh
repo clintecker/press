@@ -34,9 +34,9 @@ command -v docker >/dev/null 2>&1 || {
 # same way integration.yml's `resolve` job does.
 image="${1:-}"
 if [ -z "$image" ]; then
-  image=$(grep -o 'ghcr.io/clintecker/press-toolchain:sha-[0-9a-f]*' \
+  image=$(grep -oE 'ghcr.io/clintecker/press-toolchain:sha-[0-9a-f]+@sha256:[0-9a-f]{64}' \
             .github/workflows/build.yml | head -1)
-  test -n "$image" || { echo "gauntlet: build.yml pins no toolchain sha"; exit 1; }
+  test -n "$image" || { echo "gauntlet: build.yml pins no toolchain @sha256 digest"; exit 1; }
 fi
 
 # Native platform by default; pass linux/amd64 to reproduce CI byte-for-byte.

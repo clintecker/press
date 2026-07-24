@@ -25,7 +25,7 @@ jobs:
       contents: read
       packages: read
     container:
-      image: ghcr.io/clintecker/press-toolchain:sha-7c1e9231621ab54013c81b4d30bb6b322b07d793
+      image: ghcr.io/clintecker/press-toolchain:sha-7c1e9231621ab54013c81b4d30bb6b322b07d793@sha256:1b4e90c4ceb68668c3d5ee1f39c162a9eb8dff266c2b6cb49d21bb5bc68c38cf
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.github_token }}

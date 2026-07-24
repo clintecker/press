@@ -113,9 +113,12 @@ def test_unknown_layer_is_refused():
 # ---- release receipt (#97) ----
 
 def test_pinned_toolchain_digest_reads_build_yml():
+    import re
+
     from press import receipts
     digest = receipts.pinned_toolchain_digest()
-    assert digest.startswith("sha-") or digest == "unpinned"
+    # The immutable identity is the @sha256 digest, not the mutable sha- tag.
+    assert digest == "unpinned" or re.fullmatch(r"sha256:[0-9a-f]{64}", digest)
 
 
 def test_release_receipt_names_package_and_toolchain(monkeypatch):

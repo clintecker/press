@@ -26,16 +26,16 @@ jobs:
           tag="${GITHUB_REF_NAME}"
           grep -q "uses: clintecker/press@${tag}$" .github/workflows/build.yml \
             || { echo "build.yml does not pin the press action to ${tag}"; exit 1; }
-          image=$(grep -o 'ghcr.io/clintecker/press-toolchain:sha-[0-9a-f]*' .github/workflows/build.yml | head -1)
+          image=$(grep -oE 'ghcr.io/clintecker/press-toolchain:sha-[0-9a-f]+@sha256:[0-9a-f]{64}' .github/workflows/build.yml | head -1)
           test -n "$image" \
-            || { echo "build.yml does not pin an immutable toolchain sha tag"; exit 1; }
+            || { echo "build.yml does not pin the toolchain by an immutable @sha256 digest (a sha- tag is mutable)"; exit 1; }
           echo "action pinned to ${tag}; toolchain pinned to ${image}"
       - name: Pinned toolchain image exists
         run: |
-          image=$(grep -o 'ghcr.io/clintecker/press-toolchain:sha-[0-9a-f]*' .github/workflows/build.yml | head -1)
+          image=$(grep -oE 'ghcr.io/clintecker/press-toolchain:sha-[0-9a-f]+@sha256:[0-9a-f]{64}' .github/workflows/build.yml | head -1)
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           docker manifest inspect "$image" > /dev/null
-          echo "toolchain manifest resolves: $image"
+          echo "toolchain digest resolves: $image"
       - name: Every trust-layer check is green on this commit
         env:
           GH_TOKEN: ${{ github.token }}

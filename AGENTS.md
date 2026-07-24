@@ -31,8 +31,9 @@ book repository that consumes this package.
   <https://clintecker.github.io/press/> on every push to main. The site's
   content is generated from the repo, so it cannot drift.
 - `.github/workflows/build.yml` is the reusable workflow books call. It
-  hardcodes the press action ref and the toolchain image tag; they are part
-  of the pinned contract.
+  hardcodes the press action ref and the toolchain image pinned by
+  `@sha256:` digest (a mutable `sha-` tag alone is refused by the release
+  contract); they are part of the pinned contract.
 - The toolchain image `ghcr.io/clintecker/press-toolchain` is public
   (since 2026-07-20; #161): a book under any account pulls it with no
   package grant and no configured secret. In CI the pull is authenticated
@@ -89,8 +90,9 @@ Books pin a tag (`@v1`). Tags follow the GitHub Actions convention: `vN` is
 a floating major that moves to the latest compatible `vN.x.y`; the
 three-part tags are immutable, and immutability is enforced, not
 promised: a three-part tag's build.yml must pin the press action to
-that exact tag and the toolchain image to an existing immutable
-`sha-` tag (the release-contract workflow turns red otherwise), so a
+that exact tag and the toolchain image to an immutable `@sha256:`
+digest that resolves (the release-contract workflow turns red
+otherwise; a `sha-` tag alone is mutable and is refused), so a
 pinned book resolves the same pipeline, action, and toolchain bytes
 forever, while `vN` floats normally. Design is part of the contract:
 within a major, fixes may correct broken output but must not change

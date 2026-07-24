@@ -202,7 +202,14 @@ def pinned_toolchain_digest() -> str:
         return "unpinned"
     import re
 
-    match = re.search(r"press-toolchain:(sha-[0-9a-f]+)", build_yml.read_text(encoding="utf-8"))
+    # The immutable identity is the @sha256: digest, not the sha- tag (a tag is
+    # mutable -- it can be repushed to different bytes). A pin without a digest
+    # is not immutable, so the receipt records "unpinned" and the release
+    # contract refuses it.
+    match = re.search(
+        r"press-toolchain:sha-[0-9a-f]+@(sha256:[0-9a-f]{64})",
+        build_yml.read_text(encoding="utf-8"),
+    )
     return match.group(1) if match else "unpinned"
 
 

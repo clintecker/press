@@ -39,7 +39,7 @@ jobs:
         env:
           # The toolchain image, pinned to the same immutable bytes build.yml
           # uses, so the site's examples build against the proven toolchain.
-          IMAGE: ghcr.io/clintecker/press-toolchain:sha-202165d97623f02f1920e243952e886a423b7b95
+          IMAGE: ghcr.io/clintecker/press-toolchain:sha-7c1e9231621ab54013c81b4d30bb6b322b07d793@sha256:1b4e90c4ceb68668c3d5ee1f39c162a9eb8dff266c2b6cb49d21bb5bc68c38cf
         run: |
           echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           # The container is root, so anything it writes into build/ lands

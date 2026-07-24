@@ -26,8 +26,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: pin
         run: |
-          image=$(grep -o 'ghcr.io/clintecker/press-toolchain:sha-[0-9a-f]*' .github/workflows/build.yml | head -1)
-          test -n "$image" || { echo "build.yml pins no toolchain sha"; exit 1; }
+          image=$(grep -oE 'ghcr.io/clintecker/press-toolchain:sha-[0-9a-f]+@sha256:[0-9a-f]{64}' .github/workflows/build.yml | head -1)
+          test -n "$image" || { echo "build.yml pins no toolchain @sha256 digest"; exit 1; }
           echo "image=$image" >> "$GITHUB_OUTPUT"
 
   consumer:
