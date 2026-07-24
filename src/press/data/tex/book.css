@@ -39,3 +39,55 @@ pre { overflow-x: auto; background: #efefeb; padding: 1rem; }
   padding: .05em .1em 0 0; color: var(--ink); font-weight: 600;
 }
 .chapter-opening .opening-word-rest { font-variant: small-caps; letter-spacing: .04em; }
+
+/* Tables.
+   The single-file edition styled no tables, so one fell back to browser
+   defaults: no rule, no padding, no header weight. Set in this edition's own
+   tokens, and stacked into cards on a narrow screen where a multi-column
+   table cannot be read across -- each cell wearing its column's header,
+   carried onto it as data-label when the page is built. A table with no
+   header row is a two-column definition list; it reads fine and is left be. */
+table {
+  width: 100%; border-collapse: collapse; margin: 1.5rem 0;
+  font-size: .95em; line-height: 1.5;
+}
+thead th {
+  text-align: left; font-weight: 700; font-size: .78em;
+  text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+  padding: .5rem .7rem; border-bottom: 2px solid var(--rule);
+}
+tbody td {
+  padding: .55rem .7rem; border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+tbody tr:last-child td { border-bottom: none; }
+caption {
+  caption-side: bottom; font-size: .85em; color: var(--muted);
+  text-align: left; padding-top: .5rem;
+}
+
+@media (max-width: 34rem) {
+  table:has(td[data-label]) { display: block; }
+  table:has(td[data-label]) thead {
+    position: absolute; width: 1px; height: 1px;
+    overflow: hidden; clip-path: inset(50%);
+  }
+  table:has(td[data-label]) tbody,
+  table:has(td[data-label]) tr,
+  table:has(td[data-label]) td { display: block; width: auto; }
+  table:has(td[data-label]) tr {
+    background: var(--panel); border: 1px solid var(--rule);
+    border-radius: 6px; padding: .9rem 1rem; margin-bottom: .9rem;
+  }
+  table:has(td[data-label]) td {
+    padding: 0; border-bottom: none; margin-bottom: .6rem;
+    overflow-wrap: anywhere;
+  }
+  table:has(td[data-label]) tr td:last-child { margin-bottom: 0; }
+  table:has(td[data-label]) td::before {
+    content: attr(data-label); display: block;
+    font-size: .7em; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--muted); margin-bottom: .1rem;
+  }
+  table:has(td[data-label]) td:empty { display: none; }
+}

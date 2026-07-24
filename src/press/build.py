@@ -398,8 +398,15 @@ def inject_reader_metadata(site_dir: Path, book) -> None:
             image_alt=f"Cover of {book.title}" if has_cover else "",
             jsonld=node,
         )
+        original = text
         if fragment:
             text = text.replace("</head>", fragment + "\n</head>", 1)
+        # Independent of the metadata: a table in a chapter needs its column
+        # headers carried onto its cells so narrow screens can stack it into
+        # readable cards. An offline book emits no metadata fragment at all,
+        # and its tables must still be legible on a phone.
+        text = webmeta.label_table_cells(text)
+        if text != original:
             page.write_text(text, encoding="utf-8")
 
 
@@ -584,6 +591,8 @@ def pages_build(output_dir: str) -> None:
 
     import html as html_mod
 
+    from . import webmeta
+
     root = booklib.root()
     out = root / output_dir
     if out.exists():
@@ -676,7 +685,7 @@ def pages_build(output_dir: str) -> None:
             + "\n</style>\n</head>"
         )
         page = page.replace("</head>", overrides, 1)
-    (out / "index.html").write_text(page, encoding="utf-8")
+    (out / "index.html").write_text(webmeta.label_table_cells(page), encoding="utf-8")
 
     # Generate the support/privacy/returns pages the CTA links to but the
     # publisher did not host themselves (#151), so every policy link
@@ -802,6 +811,14 @@ def build_target(target: str) -> None:
         pandoc_build("epub", f"dist/{slug}.epub", extra=extra)
     elif target == "html":
         pandoc_build("html", f"dist/{slug}.html")
+        # The single-file edition is read in a browser too, so its tables owe
+        # their cells the same column headers the reader pages carry.
+        from . import webmeta
+
+        edition = booklib.root() / "dist" / f"{slug}.html"
+        edition.write_text(
+            webmeta.label_table_cells(edition.read_text(encoding="utf-8")),
+            encoding="utf-8")
     elif target == "markdown":
         markdown_build(f"dist/{slug}.md")
     elif target == "site":

@@ -9,6 +9,29 @@ audit).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Wide tables are readable on a phone, on every HTML surface the press
+  publishes.** A three- or four-column table used to run its far columns off
+  the edge: on the docs site it scrolled sideways inside its own box, and in a
+  book it fell back to browser defaults, which styled it not at all. Narrow
+  screens now stack each row into a card, and every cell wears its column's
+  header -- carried onto the cell as `data-label` by
+  `webmeta.label_table_cells` when the page is built, because CSS cannot reach
+  a cell's header on its own. One implementation serves the docs site, the
+  book's reader pages, the landing page, and the single-file HTML edition; the
+  reader and single-file stylesheets, which styled tables not at all, gain a
+  table treatment in their own voice. Tables with no header row -- the
+  reference records, a book's downloads list -- already read in two columns
+  and are deliberately left untouched.
+- **The masthead lockup no longer collapses on the documentation site.** The
+  desktop sidebar is a column flex container capped at the viewport height, and
+  the lockup's `overflow:hidden` zeroed its automatic minimum size, so under
+  shrink pressure the box collapsed to nothing and sheared the logo to a sliver
+  at every desktop width. The browser layout check now measures the clipping
+  box against the image -- the image reported its full height throughout -- and
+  refuses a stacked table that still scrolls sideways or clips a cell.
+
 ## [2.2.0] - 2026-07-24
 
 Composability and proof. The typed adapter boundary closes over the whole

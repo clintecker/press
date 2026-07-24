@@ -72,3 +72,79 @@ def test_values_are_html_escaped():
         base="", title='A & "B"', description="x <y>")
     assert 'content="A &amp; &quot;B&quot;"' in head
     assert 'content="x &lt;y&gt;"' in head
+
+
+# --- narrow-screen table labelling -------------------------------------------
+#
+# The contract: every body cell of a HEADED table carries its column's header,
+# so a stacked card on a phone can show "Binding / perfect-bound" instead of an
+# orphaned "perfect-bound". A table with no header row is left exactly as it
+# was, because its first cell already is the label.
+
+
+def _headed(rows: str, heads: str = "<th>Stage</th><th>What it does</th>") -> str:
+    return f"<table><thead><tr>{heads}</tr></thead><tbody>{rows}</tbody></table>"
+
+
+def test_each_cell_takes_its_own_column_header():
+    out = webmeta.label_table_cells(
+        _headed("<tr><td>Detect</td><td>turns RF into audio</td></tr>"))
+    assert '<td data-label="Stage">Detect</td>' in out
+    assert '<td data-label="What it does">turns RF into audio</td>' in out
+
+
+def test_every_row_restarts_at_the_first_column():
+    out = webmeta.label_table_cells(
+        _headed("<tr><td>A</td><td>a</td></tr><tr><td>B</td><td>b</td></tr>"))
+    assert out.count('data-label="Stage"') == 2
+    assert out.count('data-label="What it does"') == 2
+
+
+def test_a_table_without_a_header_row_is_untouched():
+    # The reference records and the downloads table: the first cell IS the
+    # label, so stacking them would invent a header that does not exist.
+    plain = "<table><tbody><tr><td>pdf</td><td>the print edition</td></tr></tbody></table>"
+    assert webmeta.label_table_cells(plain) == plain
+
+
+def test_markup_inside_a_header_becomes_plain_text():
+    out = webmeta.label_table_cells(
+        _headed("<tr><td>x</td></tr>", heads="<th><code>print.profile</code></th>"))
+    assert 'data-label="print.profile"' in out
+
+
+def test_a_quote_in_a_header_cannot_break_out_of_the_attribute():
+    out = webmeta.label_table_cells(
+        _headed("<tr><td>x</td></tr>", heads='<th>The "big" one</th>'))
+    assert 'data-label="The &quot;big&quot; one"' in out
+    assert '"><' not in out.split("<tbody>")[1]
+
+
+def test_an_entity_in_a_header_survives_one_round_trip():
+    # "Trim &amp; interior" must label as "Trim &amp; interior", not
+    # "Trim & interior" (which would be invalid) nor double-escaped.
+    out = webmeta.label_table_cells(
+        _headed("<tr><td>x</td></tr>", heads="<th>Trim &amp; interior</th>"))
+    assert 'data-label="Trim &amp; interior"' in out
+
+
+def test_extra_cells_beyond_the_headers_stay_bare():
+    # Mislabelling a stray cell with a neighbour's header would be worse than
+    # leaving it unlabelled.
+    out = webmeta.label_table_cells(
+        _headed("<tr><td>A</td><td>b</td><td>surplus</td></tr>"))
+    assert "<td>surplus</td>" in out
+
+
+def test_cells_outside_a_table_are_not_touched():
+    prose = "<p>A paragraph mentioning &lt;td&gt; in text.</p>"
+    assert webmeta.label_table_cells(prose) == prose
+
+
+def test_two_tables_on_one_page_get_their_own_headers():
+    first = _headed("<tr><td>A</td><td>a</td></tr>")
+    second = _headed("<tr><td>B</td><td>b</td></tr>",
+                     heads="<th>Reading</th><th>Instrument</th>")
+    out = webmeta.label_table_cells(first + second)
+    assert 'data-label="Stage">A' in out
+    assert 'data-label="Reading">B' in out

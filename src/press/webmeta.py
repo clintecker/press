@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import html as _html
 import json as _json
+import re as _re
 from typing import Any
 
 
@@ -150,3 +151,65 @@ def head_fragment(
         lines.append(jsonld_script(jsonld, indent_prefix=indent))
 
     return "\n".join(lines)
+
+
+# --- narrow-screen tables ----------------------------------------------------
+#
+# A three- or four-column table cannot be read on a phone: the far columns run
+# off the edge, and the reader must scroll a box sideways to learn what a row
+# says. Both stylesheets stack each row into a card at narrow widths -- but a
+# stacked cell with no header is an orphaned value ("perfect-bound" means
+# nothing once "Binding" has scrolled away), and CSS cannot reach a cell's
+# header on its own. So the header text is carried onto each cell here, as a
+# data-label attribute, and the stylesheet renders it above the value.
+#
+# It lives in this module because both web surfaces owe it: the docs site
+# (scripts/build_site.py) and the book's own pages and HTML edition
+# (press.build). One implementation, one behaviour.
+
+_TAGS = _re.compile(r"<[^>]+>")
+
+
+def _cell_label(header_html: str) -> str:
+    """The plain text of a header cell, safe to carry in an attribute."""
+
+    return _html.escape(
+        _html.unescape(_TAGS.sub("", header_html)).strip(), quote=True)
+
+
+def label_table_cells(markup: str) -> str:
+    """Stamp every body cell of every headed table with its column's header.
+
+    Tables with no header row are left untouched: those are the reference
+    records and definition tables whose first cell IS the label, and they
+    already read in two columns on a phone.
+    """
+
+    def one_table(match: "_re.Match[str]") -> str:
+        table = match.group(0)
+        head = _re.search(r"<thead>(.*?)</thead>", table, _re.S)
+        if not head:
+            return table
+        headers = [_cell_label(c) for c in
+                   _re.findall(r"<th\b[^>]*>(.*?)</th>", head.group(1), _re.S)]
+        if not any(headers):
+            return table
+
+        def one_row(row: "_re.Match[str]") -> str:
+            column = iter(headers)
+
+            def one_cell(_: "_re.Match[str]") -> str:
+                label = next(column, "")
+                # A row with more cells than headers keeps the extras bare
+                # rather than mislabelling them with a neighbour's header.
+                return f'<td data-label="{label}"' if label else "<td"
+
+            return _re.sub(r"<td\b", one_cell, row.group(0))
+
+        body = _re.search(r"<tbody>.*?</tbody>", table, _re.S)
+        if not body:
+            return table
+        labelled = _re.sub(r"<tr>.*?</tr>", one_row, body.group(0), flags=_re.S)
+        return table.replace(body.group(0), labelled)
+
+    return _re.sub(r"<table\b.*?</table>", one_table, markup, flags=_re.S)
