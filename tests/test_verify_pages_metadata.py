@@ -131,6 +131,38 @@ def test_catches_a_credential_marker(tmp_path):
     assert any("private build data or a secret" in f for f in fails)
 
 
+def test_catches_a_real_credential_in_a_url(tmp_path):
+    # A real credential-shaped value in a URL field is still rejected: the
+    # shape-based marker did not weaken the protection.
+    head = _head(extra='<meta property="og:url" '
+                       'content="https://me.test/b/?apikey=sk_live_51H8xYzAbCdEf">')
+    pages = _site(tmp_path, index_head=head)
+    fails = verify_pages.check_metadata(pages, TITLE, SITE, DOWNLOADS)
+    assert any("private build data or a secret" in f for f in fails)
+
+
+# --- The false positive the shape-based marker fixes. ------------------------
+
+def test_a_book_titled_secrets_with_secret_prose_is_accepted(tmp_path):
+    # The exact false-positive (#158): a book whose own title and description
+    # legitimately carry 'secret'/'password' is not a leak. Only credential
+    # SHAPE -- a key prefix, a bearer token, a query param, a key=value pair --
+    # is. The bare English words in the title-and-prose the head carries pass.
+    title = "Secrets of the Trade"
+    desc = "A tale in which the secretary kept the password to herself."
+    node = {"@context": "https://schema.org", "@type": "Book", "name": title,
+            "url": BASE, "description": desc}
+    head = "\n".join([
+        f'<link rel="canonical" href="{BASE}">',
+        f'<meta property="og:title" content="{title}">',
+        f'<meta property="og:description" content="{desc}">',
+        '<meta name="twitter:card" content="summary_large_image">',
+        _jsonld_script(node),
+    ])
+    pages = _site(tmp_path, index_head=head)
+    assert verify_pages.check_metadata(pages, title, SITE, DOWNLOADS) == []
+
+
 def test_catches_an_unresolvable_sitemap_url(tmp_path):
     pages = _site(tmp_path)
     _sitemap(pages, [BASE, BASE + "read/ghost.html"])

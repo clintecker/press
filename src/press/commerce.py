@@ -24,11 +24,25 @@ import html
 import re
 from dataclasses import dataclass, field
 
-# Values that must never appear in a book's commerce config: the block
-# holds URLs and a seller name, never a credential.
+# A credential that must never reach a book's commerce config or a rendered
+# page. Matches on credential SHAPE -- a provider key prefix, a bearer token,
+# a credential-bearing query parameter, or a key=value assignment whose value
+# looks like a token -- never a bare English word. A book titled "Secrets of
+# the Trade", or prose in which "the secretary kept the password to herself",
+# carries no shape and is not a leak (#158); a real key, token, or
+# `?apikey=sk_live_...` still is.
 _SECRET_MARKERS = re.compile(
-    r"(sk_live|sk_test|rk_live|bearer\s|api[_-]?key|secret|password|"
-    r"[?&](token|key|apikey|password|secret)=)", re.IGNORECASE)
+    r"""
+    (?:sk|rk)_(?:live|test)_[A-Za-z0-9]{4,}       # a Stripe-style secret key
+  | bearer\s+[A-Za-z0-9._~+/-]{16,}=*             # an Authorization bearer token
+  | [?&](?:access_token|token|apikey|api_key|key|password|secret)=[^&\s"'#<>]+  # a credential in a query string
+  | \b(?:api[_-]?key|access[_-]?token|auth[_-]?token|client[_-]?secret|password|passwd|secret|token)\b
+        \s*[:=]\s*
+        (?:['"][^'"\s]{6,}                        # a quoted value
+         | (?=[A-Za-z0-9._+/=-]*[0-9])[A-Za-z0-9._+/=-]{6,}  # an unquoted token bearing a digit
+         | [A-Za-z0-9._+/=-]{16,})                # a long unquoted token
+    """,
+    re.IGNORECASE | re.VERBOSE)
 
 # The three policy pages an ordering-enabled book must link. Each maps to
 # its config-url field, a heading, and the page filename press generates
