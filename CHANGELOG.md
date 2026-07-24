@@ -31,6 +31,15 @@ audit).
 
 ### Changed
 
+- **The typed adapter boundary is now complete** (#199). The last nine
+  legacy modules -- `__main__`, `booklib`, `scaffold`, `selftest`, and the
+  `verify_*` / `gen_coverwrap` family -- route every process, environment,
+  and tool-probe call through the typed adapters. The boundary gate's legacy
+  allowlist is deleted, so a direct `subprocess` / `os.environ` /
+  `shutil.which` call is now refused anywhere outside `press.adapters`, and
+  the import-side-effect sandbox moved to `adapters/import_guard.py`. Every
+  migrated site is proven to drive its injected adapter under a recording
+  fake; deterministic composition, no behavior change.
 - **The packaged provider ledger is now a generated artifact, not a
   maintained duplicate** (#200). `quality/providers.yaml` is the one
   canonical source; `src/press/data/providers.yaml` is a deterministic
