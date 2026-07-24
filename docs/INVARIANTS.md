@@ -450,6 +450,19 @@ Every rendered page carries ink and keeps it off the edge.
 | **Tested by** | `integration` |
 | **Known limit** | Tolerates one structural blank verso in the print profile. |
 
+## Installed modules all import
+
+`INV-pkg-import-inventory` · critical
+
+Every distributable runtime module in the installed press package imports exactly once in deterministic order, discovered recursively from the package itself so nested adapters, providers, and desk modules are covered, not only top-level files; a held-out module is named with a reason and a stale exception fails the gate; and each module's import runs free of forbidden side effects -- no network connection, no spawned subprocess, no filesystem write while the body executes.
+
+| | |
+|---|---|
+| **If it breaks** | A nested runtime module ships unimportable in a wheel while the selftest, inventorying only top-level files, stays green; or a module quietly phones home or writes to disk at import, making the pipeline non-deterministic and unsafe to run in a sandbox. |
+| **Enforced by** | `selftest.check_imports` |
+| **Tested by** | `check_imports`, `check_import_side_effects` |
+| **Known limit** | Proves importability, a single deterministic import, and freedom from network, subprocess, and filesystem-write side effects at import; it does not prove a module is wired into a pipeline, and it does not trap clock reads or environment lookups, which neither corrupt state nor leak on their own at import. |
+
 ## Profiles render at their trim
 
 `INV-profile-geometry` · standard
