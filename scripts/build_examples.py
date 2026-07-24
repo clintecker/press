@@ -73,6 +73,16 @@ def build_example(book: Path) -> bool:
         print(f"FAIL {slug}:\n  " + "\n  ".join(tail))
         return False
 
+    # Structurally verify the real book, so the eight examples are as protected
+    # as any consuming book's `press all` -- a cover dropped or clipped, a font
+    # unembedded, an edge-clipped page turns the gallery build red instead of
+    # shipping a broken PDF that only looked right in the card image.
+    verified = _run([sys.executable, "-m", "press", "verify"], cwd=book)
+    if verified.returncode != 0:
+        tail = (verified.stdout + verified.stderr).strip().splitlines()[-6:]
+        print(f"FAIL {slug} (verify):\n  " + "\n  ".join(tail))
+        return False
+
     dest = OUT / slug
     dest.mkdir(parents=True, exist_ok=True)
     shutil.copy(pdf, dest / f"{slug}.pdf")
