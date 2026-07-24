@@ -56,7 +56,7 @@
    rem-based reading measure) grows with the viewport. Mobile stays ~17px;
    a wide desktop reaches ~34px, about twice the mobile size, so desktop
    reads large and comfortable. */
-html{-webkit-text-size-adjust:100%; font-size:clamp(17px, 1.3vw + 9px, 34px)}
+html{-webkit-text-size-adjust:100%; font-size:clamp(16px, 1vw + 8px, 28px)}
 body{
   margin:0; background:var(--paper); color:var(--ink);
   font-family:var(--serif); font-size:1.0625rem; line-height:1.62;
@@ -122,9 +122,13 @@ code{font-family:var(--mono); font-size:.85em; color:var(--code-ink);
 pre{
   font-family:var(--mono); font-size:0.84rem; line-height:1.6; color:var(--code-ink);
   background:var(--surface); border:1px solid var(--rule); border-radius:9px;
-  padding:16px 18px; overflow-x:auto; margin:1.2rem auto; tab-size:2;
+  padding:16px 18px; overflow-x:auto; max-width:100%; margin:1.2rem auto; tab-size:2;
 }
 pre > code{background:none; border:0; padding:0; font-size:inherit; color:inherit}
+/* pandoc wraps highlighted blocks in <div class="sourceCode"><pre>...; the
+   div must scroll too, or a long unbroken command line widens the whole page
+   and (via the sticky top bar) pushes the mobile menu button off-screen. */
+div.sourceCode{overflow-x:auto; max-width:100%}
 
 /* ---- Syntax highlighting (theme-aware; pandoc/skylighting classes) --- */
 /* Restrained and calm: comments recede, strings/keywords/numbers carry one
@@ -243,15 +247,15 @@ body.home > p:first-of-type{font-size:1.24rem; line-height:1.5; color:var(--ink)
 /* The wordmark is the designed lockup (badge + serif press.), swapped by
    theme: the ink badge / dark serif reads on light, the transparent
    vermilion-badge / paper serif reads on dark. */
-.wordmark{display:inline-flex; align-items:center; text-decoration:none}
-.wm-lockup{height:62px; width:auto; display:block}
+.wordmark{display:inline-flex; align-items:center; text-decoration:none; min-width:0; overflow:hidden}
+.wm-lockup{height:48px; width:auto; max-width:100%; display:block}
 .wm-dark{display:none}
 @media (prefers-color-scheme:dark){.wm-light{display:none} .wm-dark{display:block}}
 :root[data-theme="light"] .wm-light{display:block} :root[data-theme="light"] .wm-dark{display:none}
 :root[data-theme="dark"] .wm-light{display:none} :root[data-theme="dark"] .wm-dark{display:block}
 .nav-toggle{position:absolute; width:1px; height:1px; opacity:0; pointer-events:none}
 .nav-burger{display:flex; flex-direction:column; justify-content:center; gap:4px;
-  margin-left:auto; width:42px; height:38px; padding:9px; cursor:pointer;
+  margin-left:auto; flex:0 0 auto; width:42px; height:38px; padding:9px; cursor:pointer;
   border:1px solid var(--rule-strong); border-radius:9px}
 .nav-burger span{display:block; height:2px; background:var(--ink); border-radius:2px}
 
@@ -274,7 +278,7 @@ nav[aria-label="Site"] a[aria-current="page"]::before{
 .repo:hover{color:var(--ink)}
 
 /* -- desktop: the sidebar -- */
-@media (min-width:980px){
+@media (min-width:900px){
   body{display:flex; flex-wrap:wrap; align-items:flex-start}
   .toolbar{
     flex-direction:column; align-items:flex-start; gap:26px;
