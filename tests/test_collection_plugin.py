@@ -15,6 +15,7 @@ very markers they police.
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 
 import pytest
@@ -45,9 +46,32 @@ def pytest_configure(config):
 
 
 def _run(pytester: pytest.Pytester, body: str):
+    """Run one nested collection-policy session and prove it is warning-clean.
+
+    The nested session tests collection behaviour only -- nothing here is
+    async -- so pytest-asyncio is irrelevant to it. Left active, the plugin
+    emits its "asyncio_default_fixture_loop_scope is unset" deprecation once
+    per nested run (the nested tmp session inherits none of the repository's
+    ``asyncio_*`` ini settings), and warning cleanliness would then rest on
+    that noise being ignored -- where a future plugin-default change (#169)
+    could hide. So block the plugin for these runs (``-p no:asyncio``): the
+    nested session cannot depend on, nor drift with, an evolving asyncio
+    default, and any warning it *does* emit is a real one.
+
+    ``runpytest`` runs in-process, so the nested session's configure-time
+    warnings surface in this outer process; capture them here and assert the
+    nested invocation is silent, failing at the narrowest useful layer with
+    the offending warning visible if a new one ever appears (#202).
+    """
     pytester.makeconftest(_CONFTEST)
     pytester.makepyfile(body)
-    return pytester.runpytest()
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        result = pytester.runpytest("-p", "no:asyncio")
+    assert not caught, "nested session emitted unexpected warnings: " + "; ".join(
+        f"{type(w.message).__name__}: {w.message}" for w in caught
+    )
+    return result
 
 
 def _combined(result) -> str:
