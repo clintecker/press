@@ -29,6 +29,20 @@ audit).
   live GitHub milestones after a merge to `main` (and weekly), so the
   registry cannot silently drift from the issues it tracks.
 
+### Added
+
+- **One metadata contract across every press-built web surface** (#158).
+  Canonical URLs, Open Graph, Twitter cards, and JSON-LD now cover the docs
+  site, the book landing page, the reader index, and every chapter page,
+  generated from the book model rather than duplicated in templates.
+  `src/press/webmeta.py` is the single emitter, so the rule that an offline
+  or preview build omits everything URL-shaped -- canonical, `og:url`,
+  `og:image`, and the URL fields inside the JSON-LD node -- lives in exactly
+  one place: a book with no `site-url` ships no falsely-canonical output.
+  The book site also gains a `sitemap.xml` and `robots.txt`, emitted only
+  when a `site-url` is configured. `verify_pages` gains `check_metadata` and
+  `check_book_sitemap`, with eleven damage fixtures they must reject.
+
 ### Changed
 
 - **The typed adapter boundary is now complete** (#199). The last nine
