@@ -22,5 +22,5 @@ chapter-opening:
   lines: 3
 verify-sentinels:
   - "A naturalist is just someone who looks twice"
-  - "Winter is not empty; it is busy being quiet"
+  - "Fresh snow is the best notebook in the world"
 verify-min-pages: 1
