@@ -160,6 +160,26 @@ def test_find_upscaler_prefers_path_then_known_locations(monkeypatch, tmp_path):
     assert "realesrgan-ncnn-vulkan" in found.binary
 
 
+def test_enhance_preserves_a_plate_masters_alpha(tmp_path, monkeypatch):
+    # #226: a plate master carries alpha so it composites onto any surface;
+    # finishing (upscale, quantize, compress) must keep the mask, never re-bake
+    # it onto white.
+    monkeypatch.setattr(art_enhance, "find_upscaler", lambda: None)
+    src = tmp_path / "plate.png"
+    art = Image.new("RGBA", (80, 80), (0, 0, 0, 0))
+    ink = Image.new("RGBA", (60, 30), (0, 0, 0, 255))  # a solid ink block
+    art.paste(ink, (10, 25))  # on a clear ground, wide enough to survive resample
+    art.save(src)
+    dst = tmp_path / "out.png"
+
+    art_enhance.enhance(src, dst, colors=8, max_edge=60)
+
+    finished = Image.open(dst)
+    assert "A" in finished.getbands(), "the finish dropped the alpha channel"
+    low, high = finished.getchannel("A").getextrema()
+    assert low == 0 and high == 255, "the transparent ground must survive finishing"
+
+
 def test_cli_enhance_one_file(tmp_path, monkeypatch):
     """`press art enhance <file>` reads the plate medium, finishes the one
     file, and writes a PNG beside it -- with no upscaler installed, via the

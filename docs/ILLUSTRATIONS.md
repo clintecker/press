@@ -24,8 +24,10 @@ press illustrate --list
 `press illustrate` writes the art to `build/illustrations/` and prints the one
 command that installs it — `press art accept build/illustrations/<name>.png --as
 plate:<name>` — the same intake every plate passes through, which **greys it to
-the single interior ink** and records it. Then reference it in your manuscript
-like any figure. A book's default style comes from `config/aesthetic.yaml`
+the single interior ink**, **keys its light ground out to transparency** (so the
+graphic composites onto any surface, not a baked-white box), and records it.
+Then reference it in your manuscript like any figure. A book's default style
+comes from `config/aesthetic.yaml`
 (`plates: {style: wood-engraving}`); `--style` overrides. With no image-model
 key set, `press illustrate` prints the prompt instead, so the press stays
 offline by default.
@@ -84,7 +86,7 @@ three stages matched to the art's own grain:
 
 ```sh
 press art enhance                         # finish every plate under assets/woodcuts/
-press art enhance assets/woodcuts/shop.jpg  # or just one
+press art enhance assets/woodcuts/shop.png  # or just one
 ```
 
 1. **Upscale** through a Real-ESRGAN model chosen for the medium in
@@ -103,3 +105,23 @@ press art enhance assets/woodcuts/shop.jpg  # or just one
    write a lossless PNG. An engraving is a few grays, so this is visually
    lossless and turns a multi-megabyte truecolor image into a small one -- small
    enough that a plate ships as a lossless PNG rather than a lossy JPEG.
+
+Finishing keeps a master's alpha, so the mask survives to the reader edition.
+
+## One master, every surface
+
+A plate is kept as an **alpha PNG master** — the ink on transparency, the light
+ground keyed out — so one graphic composites onto any surface instead of
+carrying a white box around it. `press art accept` does the keying: ink-on-white
+line art is trivially separable by a luminance key, and a plate that arrives
+already on transparency keeps its mask. From that one master:
+
+- the **print interior** flattens it onto white at build time (no transparency
+  and no over-resolution reach the vendor's preflight);
+- a **cloth cover** would flatten it onto the field colour, so the ink sits on
+  the cloth with no box (this is how the imprint logo already lands);
+- the **reader edition** serves the transparent PNG, so a plate reads cleanly on
+  a white or a dark page.
+
+You never hand-ship a baked-white master; if you do, the intake segments it
+rather than shipping it opaque.

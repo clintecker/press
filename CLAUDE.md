@@ -68,8 +68,10 @@ book repository that consumes this package.
   the manuscript, applies the design skills, writes `art/commissions.md`
   with paste-ready image-model prompts; results come back in through
   `press art accept <file> --as cover|plate:<name>|logomark|portrait`,
-  which converts to house format (plates gray to single ink when the
-  aesthetic states it; an opaque logomark gets its ink extracted onto
+  which converts to house format (a plate is kept as an alpha PNG master --
+  ink on transparency, its light ground keyed out with a luminance key, and
+  greyed to single ink when the aesthetic states it -- so one graphic
+  composites onto any surface; an opaque logomark gets its ink extracted onto
   transparency), enforces the geometry scars, and updates the
   commission record). An author photograph supplied at
   `art/author-photo.jpg` makes the portrait commission engrave the
@@ -158,8 +160,9 @@ YAML remains available for experts.
   not render.
 - `tex/title-page.tex` (optional): cover plate, title page, colophon,
   overriding the generated front matter entirely.
-- `assets/cover.jpg`, `assets/press-logo.png`, `assets/woodcuts/*.jpg`
-  (all optional; every consumer degrades gracefully when absent).
+- `assets/cover.jpg`, `assets/press-logo.png`, `assets/woodcuts/*.png`
+  (all optional; every consumer degrades gracefully when absent; plates
+  are alpha PNG masters composited per surface).
 - `assets/web/reader.css` (optional) replaces the house reader
   stylesheet outright; `assets/web/extra.css` (optional) appends after
   it, winning the cascade, and is also injected into the pages landing
@@ -192,8 +195,11 @@ YAML remains available for experts.
   When touching PDF links, verify destinations with pypdf.
 - pandoc's chunked writer copies referenced media itself; site assembly
   must tolerate existing directories.
-- PNG barely compresses engraving grain; woodcut plates are JPEG q88 on
-  purpose.
+- Truecolor PNG barely compresses engraving grain, which is why plates were
+  once baked JPEGs; `press art enhance` quantizes the grain to a few grays so
+  a plate ships as a small lossless PNG, and intake keeps plates as alpha PNG
+  masters (ink on transparency) so one graphic composites onto any surface.
+  Do not reintroduce a baked-white JPEG master.
 - Verifying `dist/` without rebuilding blesses stale artifacts; the CLI's
   dependency edges exist so that cannot happen. Keep them.
 - The verify scripts render with `pdftoppm` when the authoring sandbox's

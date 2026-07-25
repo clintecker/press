@@ -15,13 +15,29 @@ import argparse
 import re
 from datetime import date
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from . import booklib
+
+if TYPE_CHECKING:
+    from PIL import Image as _Image
 
 JPEG_QUALITY = 88
 COVER_ASPECT_TOLERANCE = 0.03
 RECORD_HEADING = "## Acceptance record"
+
+# The house imprint ink: a near-black that reads as ink on paper and on a
+# dark ground both. Shared by the logomark extraction and the coloured-cloth
+# composite in print_safe.
+_INK = (23, 23, 23)
+
+
+def _is_opaque(rgba: _Image.Image) -> bool:
+    """True when an RGBA image's alpha is essentially solid everywhere -- a
+    baked delivery to segment, not a mask to keep."""
+
+    low, _ = cast("tuple[int, int]", rgba.getchannel("A").getextrema())
+    return low >= 250
 
 
 def _single_ink_plates() -> bool:
@@ -33,6 +49,76 @@ def _single_ink_plates() -> bool:
         return False
     medium = str((aesthetic.effective().get("plates") or {}).get("medium", "")).lower()
     return "single" in medium and "ink" in medium
+
+
+def _segment_line_art(image: _Image.Image) -> _Image.Image:
+    """Key ink-on-light line art to alpha with a luminance key: the light
+    ground turns transparent and the ink's tone moves into the alpha, so one
+    master composites onto white paper, coloured cloth, or a transparent web
+    panel. Ink-on-white is trivially separable this way, and compositing the
+    result back onto white reproduces the delivered grayscale exactly (black
+    ink, alpha = 255 - luminance)."""
+
+    from PIL import Image
+
+    rgb = image.convert("RGB")
+    alpha = rgb.convert("L").point(lambda v: 255 - v)
+    master = Image.new("RGBA", rgb.size, (0, 0, 0, 0))
+    master.putalpha(alpha)
+    return master
+
+
+def _plate_master(image: _Image.Image, *, single_ink: bool) -> _Image.Image:
+    """A plate's surface-agnostic master.
+
+    A single-ink plate (the house default) is high-contrast line art: a
+    baked-white delivery is keyed to alpha by luminance so its ground is
+    transparent -- never shipped as an opaque box -- and a delivery that
+    already carries alpha keeps its mask, its ink greyed. print_safe then
+    composites the alpha master onto the interior white or the cover field at
+    use time, and the web edition serves it transparent.
+
+    A colour interior (#214) is not line art; the right separator for
+    photographic/colour art is a matting model (BiRefNet/rembg), not a
+    luminance key that would shift its hues. Until that lands a colour plate
+    keeps exact colour: its delivered mask if it has one, else an opaque
+    flatten onto white, unchanged from the baked delivery."""
+
+    from PIL import Image
+
+    rgba = image.convert("RGBA")
+    delivered_alpha = not _is_opaque(rgba)
+    if single_ink:
+        if delivered_alpha:
+            greyed = rgba.convert("L").convert("RGBA")
+            greyed.putalpha(rgba.getchannel("A"))
+            return greyed
+        return _segment_line_art(image)
+    if delivered_alpha:
+        return rgba
+    flat = Image.new("RGB", rgba.size, (255, 255, 255))
+    flat.paste(rgba, mask=rgba.getchannel("A"))
+    return flat
+
+
+def _logomark_master(image: _Image.Image) -> _Image.Image:
+    """The imprint device as ink on transparency. An opaque delivery gets its
+    ink extracted with a hard luminance threshold (a device is solid, not
+    tonal); a delivery already on transparency is kept as-is."""
+
+    from PIL import Image
+
+    rgba = image.convert("RGBA")
+    if _is_opaque(rgba):
+        # An imprint device sits on paper and dark grounds both; an opaque
+        # delivery gets its ink extracted onto transparency, the house format
+        # the intake exists to enforce.
+        mask = image.convert("L").point(lambda v: 255 if v < 96 else 0)
+        extracted = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        extracted.paste(Image.new("RGBA", image.size, (*_INK, 255)), mask=mask)
+        print("logomark arrived opaque; ink extracted to transparency")
+        return extracted
+    return rgba
 
 
 def trim_aspect() -> float:
@@ -68,7 +154,7 @@ def accept(source: Path, target: str) -> Path:
                 "plate names are kebab-case ([a-z0-9-]): --as plate:<name>; "
                 "the filename is the reference chapters use"
             )
-        destination = root / "assets" / "woodcuts" / f"{name}.jpg"
+        destination = root / "assets" / "woodcuts" / f"{name}.png"
     elif target == "logomark":
         destination = root / "assets" / "press-logo.png"
     elif target == "portrait":
@@ -79,30 +165,20 @@ def accept(source: Path, target: str) -> Path:
         )
 
     destination.parent.mkdir(parents=True, exist_ok=True)
-    if destination.suffix == ".png":
-        rgba = image.convert("RGBA")
-        alpha_extrema = cast("tuple[int, int]", rgba.getchannel("A").getextrema())
-        if target == "logomark" and alpha_extrema[0] >= 250:
-            # An imprint device sits on paper and dark grounds both; an
-            # opaque delivery gets its ink extracted onto transparency,
-            # which is the house format the intake exists to enforce.
-            mask = image.convert("L").point(lambda v: 255 if v < 96 else 0)
-            extracted = Image.new("RGBA", image.size, (0, 0, 0, 0))
-            extracted.paste(Image.new("RGBA", image.size, (23, 23, 23, 255)), mask=mask)
-            rgba = extracted
-            print("logomark arrived opaque; ink extracted to transparency")
-        rgba.save(destination, optimize=True)
+    if target == "logomark":
+        _logomark_master(image).save(destination, optimize=True)
+    elif target.startswith("plate:"):
+        # A plate is kept as an alpha master, not a baked-white JPEG, so one
+        # graphic composites onto any surface. Single ink greys the ink here;
+        # the print verifier proves the interior is one ink from the pages.
+        _plate_master(image, single_ink=_single_ink_plates()).save(
+            destination, optimize=True)
     else:
-        # Alpha flattens to paper white, never to the default black: line
-        # art on transparency is the common shape of engraving output.
+        # Cover and portrait are opaque rasters: alpha flattens to paper
+        # white, never to the default black.
         flat = Image.new("RGB", image.size, (255, 255, 255))
         rgba = image.convert("RGBA")
         flat.paste(rgba, mask=rgba.getchannel("A"))
-        if target.startswith("plate:") and _single_ink_plates():
-            # The print interior is black ink only and the verifier
-            # proves it from the rendered pages; a tinted delivery is
-            # grayed at intake when the aesthetic states single ink.
-            flat = flat.convert("L")
         flat.save(destination, quality=JPEG_QUALITY, optimize=True)
 
     record_acceptance(root, target, source, image, destination)

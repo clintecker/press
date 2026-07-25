@@ -483,10 +483,14 @@ figure taller than the text block ships empty pages forever.
   cover block cleanly.
 - `assets/press-logo.png`: the imprint device on the colophon and
   the landing page. Absent, omitted.
-- `assets/woodcuts/*.jpg`: interior plates (JPEG on purpose; PNG
-  barely compresses engraving grain). Any plate on disk never
-  referenced by the manuscript fails `check`. The List of Plates
-  appears only when at least one exists.
+- `assets/woodcuts/*.png` (or `.jpg`): interior plates. A plate taken
+  through `press art accept` is kept as an **alpha PNG master** -- the ink
+  on transparency, the ground keyed out -- so one graphic composites onto
+  any surface: the white interior, a coloured cloth cover, a transparent
+  web panel. The print target flattens it onto white at build time; the
+  reader edition serves it transparent. Any plate on disk never referenced
+  by the manuscript fails `check`. The List of Plates appears only when at
+  least one exists.
 - `art/author-photo.jpg`: makes the portrait commission engrave the
   actual author instead of an invented one. Not a build input.
 - `assets/web/reader.css`: replaces the house reader stylesheet

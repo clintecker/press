@@ -40,12 +40,19 @@ files, and the placement rules the pipeline enforces.
 
 ## File preparation
 
-- `assets/woodcuts/*.jpg`, descriptive kebab-case names; the filename is
+- `assets/woodcuts/*.png`, descriptive kebab-case names; the filename is
   forever once referenced from a chapter.
-- JPEG quality ~88. PNG barely compresses engraving grain; the q88 JPEG is
-  visually identical at print resolution and an order of magnitude smaller.
-  The reader site recompresses to q70 on its own.
-- Grayscale or near-grayscale; a colorful woodcut breaks the plate section.
+- Take every plate through `press art accept <file> --as plate:<name>`. The
+  intake keeps it as an **alpha PNG master** -- ink on transparency, the
+  light ground keyed out with a luminance key -- so one graphic composites
+  onto any surface: the white interior, a coloured cloth cover, a
+  transparent web panel. Never hand-ship a baked-white JPEG; the intake
+  segments a baked delivery for you. A plate that arrives already on
+  transparency keeps its mask.
+- Grayscale or near-grayscale; a colorful woodcut breaks the plate section
+  (a colour interior, #214, is the exception and keeps its hues).
+- `press art enhance` finishes a master (upscale, quantize, compress) while
+  keeping its alpha, so the mask survives to the reader edition.
 
 ## Placement
 
