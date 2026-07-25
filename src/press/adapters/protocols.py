@@ -16,7 +16,8 @@ translation depends on seeing them.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping, Protocol, Sequence
+from enum import Enum
+from typing import Any, Mapping, Optional, Protocol, Sequence
 
 
 @dataclass(frozen=True)
@@ -79,6 +80,55 @@ class HttpImageClient(Protocol):
     def post_multipart(
         self, url: str, body: bytes, headers: Mapping[str, str]
     ) -> dict: ...
+
+
+class OutputChannel(str, Enum):
+    """Which of a spawned child's streams a line came from. Channel identity
+    is part of the record: it is retained across arbitrary chunk boundaries
+    and never collapsed into one undifferentiated stream."""
+
+    STDOUT = "stdout"
+    STDERR = "stderr"
+
+
+class SpawnedProcess(Protocol):
+    """A launched child, seen through the only four operations a streaming
+    controller needs. The production implementation wraps ``subprocess.Popen``
+    (see ``adapters.streaming``); a test scripts the same four. All
+    process/OS access lives behind this seam, so the controller's own logic
+    never touches a real subprocess."""
+
+    def read_line(self) -> Optional[tuple[OutputChannel, str]]:
+        """Block until the next output line is available and return it with
+        its channel, or ``None`` once both streams have closed (the
+        end-of-output completion signal). Never times out on a wall clock."""
+        ...
+
+    def interrupt(self) -> None:
+        """Send SIGINT to the child's process group (the polite cancel)."""
+        ...
+
+    def terminate(self) -> None:
+        """Send SIGTERM to the child's process group (the escalation)."""
+        ...
+
+    def wait(self) -> int:
+        """Return the child's final exit status once it has ended."""
+        ...
+
+
+class Spawn(Protocol):
+    """A launcher: given the argv, the explicit working directory (the book
+    root), and an optional environment, it returns a started
+    ``SpawnedProcess``. Production supplies ``adapters.streaming.default_spawn``
+    (the one real ``subprocess`` touch); every test injects a fake."""
+
+    def __call__(
+        self,
+        argv: Sequence[str],
+        cwd: str,
+        env: Optional[Mapping[str, str]] = None,
+    ) -> SpawnedProcess: ...
 
 
 class RetrySource(Protocol):

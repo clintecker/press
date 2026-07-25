@@ -11,12 +11,14 @@ The return code is copied verbatim; it is never re-derived from output text,
 and a cancelled run can never be reported as success.
 
 The launch is injectable. The controller depends only on a ``Spawn`` callable
-that yields a ``SpawnedProcess``; production supplies :func:`default_spawn`
-(the one place a real ``subprocess`` is touched, since a process controller is
-its rightful home), while every test injects a scripted fake process -- never
-a real child, never a sleep, never a wall clock. All correctness comes from
-completion signals (the stream's end-of-output sentinel and the child's exit
-code), so the tests are fully deterministic.
+that yields a ``SpawnedProcess`` (both defined in ``press.adapters``, and
+re-exported here for callers); production supplies
+``adapters.streaming.default_spawn``, the one real ``subprocess`` touch, which
+lives in the adapters package because that is the single approved home for a
+boundary call. Every test injects a scripted fake process in its place --
+never a real child, never a sleep, never a wall clock. All correctness comes
+from completion signals (the stream's end-of-output sentinel and the child's
+exit code), so the tests are fully deterministic.
 
 The controller imports no UI framework. A Textual worker (issue #109) may
 drive it, but the dependency runs one way.
@@ -25,15 +27,12 @@ drive it, but the dependency runs one way.
 from __future__ import annotations
 
 import os
-import queue
-import signal
 import sys
-import threading
 from dataclasses import dataclass
 from enum import Enum
-from subprocess import PIPE, Popen
-from typing import Callable, Mapping, Optional, Protocol, Sequence
+from typing import Callable, Mapping, Optional
 
+from .adapters import OutputChannel, Spawn, SpawnedProcess, default_spawn
 from .catalog import canonical_targets
 from .results import ConfigError, PolicyError, ToolError
 
@@ -52,15 +51,6 @@ __all__ = [
     "ProcessController",
     "default_spawn",
 ]
-
-
-class OutputChannel(str, Enum):
-    """Which of the child's streams a line came from. Channel identity is
-    part of the record: it is retained across arbitrary chunk boundaries and
-    never collapsed into one undifferentiated stream."""
-
-    STDOUT = "stdout"
-    STDERR = "stderr"
 
 
 class RunState(str, Enum):
@@ -166,42 +156,6 @@ class Outcome:
         The verdict is still the raw return code; this only names it."""
 
         return self.returncode < 0
-
-
-class SpawnedProcess(Protocol):
-    """A launched child, seen through the only four operations the controller
-    needs. The real implementation wraps ``subprocess.Popen``; a test's fake
-    scripts the same four. All process/OS access lives behind this seam, so
-    the controller's own logic never touches a real subprocess."""
-
-    def read_line(self) -> Optional[tuple[OutputChannel, str]]:
-        """Block until the next output line is available and return it with
-        its channel, or ``None`` once both streams have closed (the
-        end-of-output completion signal). Never times out on a wall clock."""
-        ...
-
-    def interrupt(self) -> None:
-        """Send SIGINT to the child's process group (the polite cancel)."""
-        ...
-
-    def terminate(self) -> None:
-        """Send SIGTERM to the child's process group (the escalation)."""
-        ...
-
-    def wait(self) -> int:
-        """Return the child's final exit status once it has ended."""
-        ...
-
-
-# A launcher: given the argv, the explicit working directory (the book root),
-# and an optional environment, it returns a started ``SpawnedProcess``.
-class Spawn(Protocol):
-    def __call__(
-        self,
-        argv: Sequence[str],
-        cwd: str,
-        env: Optional[Mapping[str, str]] = None,
-    ) -> SpawnedProcess: ...
 
 
 # The sink an output line is streamed to as it arrives.
@@ -346,93 +300,3 @@ class ProcessController:
         while self.poll(sink):
             pass
         return self.finish()
-
-
-# --------------------------------------------------------------------------
-# The one production launcher. A process controller is the rightful home of a
-# real subprocess, so this is where -- and the only place -- one is touched.
-# The controller above depends only on the ``Spawn``/``SpawnedProcess`` seam,
-# so it stays subprocess-free and every test injects a fake in this function's
-# place.
-# --------------------------------------------------------------------------
-
-
-class _PopenProcess:
-    """Wraps a live ``Popen`` as a :class:`SpawnedProcess`.
-
-    Two reader threads drain stdout and stderr independently and push each
-    tagged line onto one queue, so channel identity survives arbitrary chunk
-    boundaries and the two streams interleave in arrival order. When both
-    readers reach EOF a single ``None`` sentinel is queued -- the completion
-    signal :meth:`read_line` returns. Signals go to the child's own process
-    group (it is launched in a new session) so an interrupt reaches the whole
-    tree, not just the interpreter."""
-
-    def __init__(self, popen: "Popen[str]") -> None:
-        assert popen.stdout is not None and popen.stderr is not None
-        self._popen = popen
-        self._queue: queue.Queue[Optional[tuple[OutputChannel, str]]] = queue.Queue()
-        self._lock = threading.Lock()
-        self._open_streams = 2
-        self._threads = [
-            threading.Thread(
-                target=self._drain, args=(popen.stdout, OutputChannel.STDOUT), daemon=True
-            ),
-            threading.Thread(
-                target=self._drain, args=(popen.stderr, OutputChannel.STDERR), daemon=True
-            ),
-        ]
-        for thread in self._threads:
-            thread.start()
-
-    def _drain(self, pipe: object, channel: OutputChannel) -> None:
-        readline = getattr(pipe, "readline")
-        try:
-            for raw in iter(readline, ""):
-                self._queue.put((channel, raw.rstrip("\n")))
-        finally:
-            with self._lock:
-                self._open_streams -= 1
-                if self._open_streams == 0:
-                    self._queue.put(None)
-
-    def read_line(self) -> Optional[tuple[OutputChannel, str]]:
-        return self._queue.get()
-
-    def _signal_group(self, sig: int) -> None:
-        os.killpg(os.getpgid(self._popen.pid), sig)
-
-    def interrupt(self) -> None:
-        self._signal_group(signal.SIGINT)
-
-    def terminate(self) -> None:
-        self._signal_group(signal.SIGTERM)
-
-    def wait(self) -> int:
-        return self._popen.wait()
-
-
-def default_spawn(
-    argv: Sequence[str],
-    cwd: str,
-    env: Optional[Mapping[str, str]] = None,
-) -> SpawnedProcess:
-    """Launch ``argv`` as a real child in ``cwd`` with its own session.
-
-    ``env`` of ``None`` inherits the parent environment; a supplied mapping
-    replaces it wholesale. The child gets a new session (its own process
-    group) so cancellation can signal the whole tree. A launch failure raises
-    ``OSError``, which :meth:`ProcessController.start` translates into a
-    :class:`SpawnError`."""
-
-    popen = Popen(
-        list(argv),
-        cwd=cwd,
-        env=dict(env) if env is not None else None,
-        stdout=PIPE,
-        stderr=PIPE,
-        text=True,
-        bufsize=1,
-        start_new_session=True,
-    )
-    return _PopenProcess(popen)

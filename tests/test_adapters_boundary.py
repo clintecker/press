@@ -45,33 +45,39 @@ class _BoundaryVisitor(ast.NodeVisitor):
 
     def __init__(self) -> None:
         self.findings: list[tuple[int, str]] = []
+        # Local names bound to a boundary module by an aliased import
+        # (``import subprocess as sp``): ``sp`` -> ``subprocess``. So a call
+        # under the alias resolves to the real module and cannot slip past
+        # ``visit_Attribute`` the way ``from subprocess import Popen`` once did.
+        self._module_aliases: dict[str, str] = {}
 
     def _flag(self, node: ast.AST, what: str) -> None:
         self.findings.append((getattr(node, "lineno", 0), what))
 
     def visit_Attribute(self, node: ast.Attribute) -> None:
         value = node.value
+        # Resolve an aliased module name (``sp`` -> ``subprocess``) back to
+        # the canonical module before matching.
+        base = None
+        if isinstance(value, ast.Name):
+            base = self._module_aliases.get(value.id, value.id)
         # os.environ (read or subscripted)
-        if isinstance(value, ast.Name) and value.id == "os" and node.attr == "environ":
+        if base == "os" and node.attr == "environ":
             self._flag(node, "os.environ")
         # subprocess.<executor>
-        elif (isinstance(value, ast.Name) and value.id == "subprocess"
-              and node.attr in _SUBPROCESS_EXEC):
+        elif base == "subprocess" and node.attr in _SUBPROCESS_EXEC:
             self._flag(node, f"subprocess.{node.attr}")
         # os.getenv / os.putenv / os.unsetenv
-        elif (isinstance(value, ast.Name) and value.id == "os"
-              and node.attr in _OS_ENV_FUNCS):
+        elif base == "os" and node.attr in _OS_ENV_FUNCS:
             self._flag(node, f"os.{node.attr}")
         # shutil.which
-        elif (isinstance(value, ast.Name) and value.id == "shutil"
-              and node.attr == "which"):
+        elif base == "shutil" and node.attr == "which":
             self._flag(node, "shutil.which")
         # urllib.request / urllib.error (network), but not urllib.parse
-        elif (isinstance(value, ast.Name) and value.id == "urllib"
-              and node.attr in {"request", "error"}):
+        elif base == "urllib" and node.attr in {"request", "error"}:
             self._flag(node, f"urllib.{node.attr}")
         # requests.<anything>
-        elif isinstance(value, ast.Name) and value.id == "requests":
+        elif base == "requests":
             self._flag(node, f"requests.{node.attr}")
         self.generic_visit(node)
 
@@ -79,6 +85,10 @@ class _BoundaryVisitor(ast.NodeVisitor):
         for alias in node.names:
             if alias.name == "requests" or alias.name.startswith("requests."):
                 self._flag(node, f"import {alias.name}")
+            # Record an aliased boundary-module import so a call under the
+            # alias is resolved in ``visit_Attribute``.
+            if alias.asname and alias.name in {"os", "subprocess", "shutil", "urllib"}:
+                self._module_aliases[alias.asname] = alias.name
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
@@ -91,6 +101,22 @@ class _BoundaryVisitor(ast.NodeVisitor):
             for alias in node.names:
                 if alias.name in {"request", "error"}:
                     self._flag(node, f"from urllib import {alias.name}")
+        # ``from subprocess import Popen`` binds an executor name directly,
+        # so no ``subprocess.`` attribute ever appears for visit_Attribute to
+        # catch -- flag the executor (and os-env / shutil.which) at the import.
+        # The alias in ``... import Popen as P`` is still ``Popen`` here.
+        if module == "subprocess":
+            for alias in node.names:
+                if alias.name in _SUBPROCESS_EXEC:
+                    self._flag(node, f"from subprocess import {alias.name}")
+        if module == "os":
+            for alias in node.names:
+                if alias.name == "environ" or alias.name in _OS_ENV_FUNCS:
+                    self._flag(node, f"from os import {alias.name}")
+        if module == "shutil":
+            for alias in node.names:
+                if alias.name == "which":
+                    self._flag(node, "from shutil import which")
         self.generic_visit(node)
 
 

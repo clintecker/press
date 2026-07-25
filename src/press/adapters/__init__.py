@@ -30,11 +30,15 @@ from .production import (
 from .protocols import (
     Environment,
     HttpImageClient,
+    OutputChannel,
     ProcessResult,
     ProcessRunner,
     RetrySource,
+    Spawn,
+    SpawnedProcess,
 )
 from .retry import RetryBudget, resolve
+from .streaming import default_spawn
 
 __all__ = [
     # protocols
@@ -43,6 +47,9 @@ __all__ = [
     "Environment",
     "HttpImageClient",
     "RetrySource",
+    "OutputChannel",
+    "SpawnedProcess",
+    "Spawn",
     # production adapters + singletons
     "SubprocessRunner",
     "OsEnvironment",
@@ -51,6 +58,7 @@ __all__ = [
     "process_runner",
     "environment",
     "image_client",
+    "default_spawn",
     # retry
     "RetryBudget",
     "resolve",

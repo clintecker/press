@@ -80,7 +80,7 @@ modules:
   print_safe: producer
   profiles: {default: pure, overrides: {load: parser, active: parser, write_geometry_tex: producer}}
   provider_specs: {default: pure, overrides: {load: parser, active: parser}}
-  process_control: {default: orchestrator, overrides: {default_spawn: adapter}}
+  process_control: {default: orchestrator, overrides: {}}
   publish: {default: orchestrator, overrides: {}}
   qualification: {default: verifier, overrides: {load: parser, providers: parser, render: producer, render_packaged: producer}}
   receipts: {default: verifier, overrides: {emit: producer, current_inputs: adapter, to_json: pure, from_json: pure}}
