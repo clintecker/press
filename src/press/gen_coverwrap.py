@@ -35,7 +35,7 @@ def spine_width(pages: int, binding: str = "perfect-bound") -> float:
     spec reproduces the v1 value exactly; a real provider spec carries that
     vendor's calipers and, for hardcover, its own spine model."""
 
-    from . import provider_specs
+    from . import profiles, provider_specs
 
     conf = booklib.metadata().get("print") or {}
     override = conf.get("page-thickness")
@@ -44,6 +44,8 @@ def spine_width(pages: int, binding: str = "perfect-bound") -> float:
         conf.get("paper"),
         binding,
         override=float(override) if override is not None else None,
+        ink=profiles.active().ink,
+        color_grade=conf.get("color-grade"),
     )
 
 
@@ -152,8 +154,11 @@ def layout(pages: int) -> WrapLayout:
     binding = print_cfg.get("binding", "perfect-bound")
     material = print_cfg.get("material", "paperback")
 
+    from . import profiles
+
     spec = provider_specs.active()
-    problems = spec.check_selection(trim_w, trim_h, binding, pages)
+    problems = spec.check_selection(
+        trim_w, trim_h, binding, pages, ink=profiles.active().ink)
     if problems:
         raise SystemExit("; ".join(problems))
     has_spine, margin, inner, width_delta, height_delta = _binding_geometry(spec, binding)

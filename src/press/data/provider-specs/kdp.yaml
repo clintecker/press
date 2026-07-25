@@ -16,6 +16,9 @@ spine:
     premium-color: 0.002347
   paperback-allowance: 0.06
   default-paper: cream
+  # A color interior (profile ink: color, #213) uses standard color stock by
+  # default; a book may pick premium via print.color-grade. [PBCOVER]
+  color-default: standard-color
   # Hardcover (case laminate): KDP publishes no caliper or +0.06 on the help
   # page; the spine model falls back to the same calipers with no allowance,
   # flagged UNCONFIRMED. Verify against the KDP cover calculator.

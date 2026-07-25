@@ -32,6 +32,44 @@ def test_page_thickness_override_wins():
 
 
 @pytest.mark.layer("unit")
+def test_a_color_interior_uses_the_declared_color_stock():
+    # KDP is the one provider whose spec carries sourced color calipers, so a
+    # color interior (#213) resolves the spine from its color stock, not the
+    # white/cream caliper. Default color grade is standard; a book may pick
+    # premium via print.color-grade.
+    kdp = provider_specs.load("kdp")
+    assert kdp.spine(100, ink="color") == pytest.approx(100 * 0.002252 + 0.06)
+    assert kdp.spine(100, ink="color", color_grade="premium-color") == \
+        pytest.approx(100 * 0.002347 + 0.06)
+    # The single-ink spine is unchanged, and the new ink default is single.
+    assert kdp.spine(100, "cream") == kdp.spine(100, "cream", ink="single")
+
+
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
+def test_color_is_refused_without_a_color_caliper():
+    # A provider that declares no color caliper does not print a color interior;
+    # the spine math refuses it rather than fabricating a thickness. The house
+    # spec (and any single-ink vendor spec) is such a provider.
+    house = provider_specs.load()
+    with pytest.raises(SystemExit, match="no color-interior caliper"):
+        house.spine(100, ink="color")
+
+
+@pytest.mark.layer("unit")
+def test_color_support_gates_the_selection():
+    kdp = provider_specs.load("kdp")
+    house = provider_specs.load()
+    assert kdp.supports_color() is True
+    assert house.supports_color() is False
+    # A color interior passes selection on a color provider and is refused,
+    # before any render, on one that does not print color.
+    assert kdp.check_selection(6.0, 9.0, "perfect-bound", 100, ink="color") == []
+    refusal = house.check_selection(6.0, 9.0, "perfect-bound", 100, ink="color")
+    assert any("does not print a color interior" in p for p in refusal)
+
+
+@pytest.mark.layer("unit")
 def test_constant_shape_applies_the_allowance():
     spec = _spec({
         "shape": "constant", "calipers": {"white": 0.002252},

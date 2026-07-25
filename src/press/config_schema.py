@@ -97,6 +97,9 @@ REGISTRY: tuple[Field, ...] = (
        choices=("paperback", "casewrap", "linen")),
     _w("print.paper", METADATA, help="interior stock", choices=("white", "cream")),
     _w("print.page-thickness", METADATA, "float", help="inches per page; overrides paper"),
+    _w("print.color-grade", METADATA,
+       help="color-interior stock grade for the provider (e.g. standard-color, "
+            "premium-color); used only by a color design profile"),
     # config/metadata.yaml — chapter-opening override (the design profile sets
     # the default; a book may override it for its own chapters)
     _w("chapter-opening.style", METADATA, help="chapter-opening initial",
