@@ -9,6 +9,57 @@ audit).
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-07-24
+
+A hardening release. Two output bugs are corrected -- a retail barcode that
+crowded its quiet zone, and a cover commission that invented generic motifs
+when the book named its subject only in prose -- and a latent hole in the
+adapters boundary gate is closed, so the "one approved home for a subprocess"
+invariant is now enforced by construction rather than held by luck. Three
+verifier guards gain the known-bad fixtures that prove them, and the landing
+page features Make Ready as the flagship book built end to end through the
+press. Compatible within v2; no build changes a valid book's typography or
+layout.
+
+### Changed
+
+- **The landing page features Make Ready as the flagship showcase** -- a book
+  taken end to end through the built-in facilities: a commissioned clothbound
+  cover and fourteen engraved plates finished by `press art enhance`, the
+  reader dressed in the book's own cloth, a subject index, registered ISBNs,
+  and a table of authorities. It stands beside Mostly Done. as proof the
+  pipeline makes real books, not just demos.
+
+### Fixed
+
+- **The retail cover barcode no longer crowds its quiet zone (#210).** The
+  EAN-13 symbol was drawn in a TikZ node whose default padding shifted it
+  left, so the first guard bar read as ink inside the left quiet zone and
+  `verify-print` refused an otherwise-correct wrap. The barcode node now sets
+  `inner sep=0` (matching the front-cover-art node), so the symbol sits exactly
+  where the verifier's pixel model expects it. The integration cover-wrap
+  fixture now carries a real print ISBN, so the quiet-zone check runs in CI.
+- **A cover commission draws the book's own subject instead of inventing
+  one.** When a book stated its subject only in `description` (or as a
+  `cover.emblem`) and not as an explicit `cover.subject`, `press cover` fell
+  back to the literal phrase "the book's subject" and the image model invented
+  generic motifs. It now draws the subject from `--subject`, then
+  `cover.subject`, then the book's `description`, then `cover.emblem`, and only
+  then the literal -- so a book that says what it is about gets that on its
+  cover.
+- **The adapters boundary gate no longer has a from-import blind spot.** The
+  gate that proves nothing outside `press.adapters` holds a direct subprocess
+  or environment call matched only the `subprocess.Popen` attribute form; `from
+  subprocess import Popen` and `import subprocess as sp` slipped past it, and
+  the process controller's launcher did exactly that -- a real subprocess the
+  gate reported as clean. The gate now flags the from-import binding of an
+  executor and resolves aliased module imports, and the one production launcher
+  has moved into `press.adapters` (its streaming sibling of `SubprocessRunner`)
+  where a boundary call belongs, so the single-home invariant is enforced, not
+  merely intended. Three verifier guards -- plate-link resolution, cover-wrap
+  transparency, and barcode readability -- also gained the known-bad fixtures
+  that give them teeth.
+
 ## [2.3.0] - 2026-07-24
 
 The art department grows a finisher, and a book becomes its showcase. The press
