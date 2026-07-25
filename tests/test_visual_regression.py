@@ -33,6 +33,15 @@ SAMPLE_PAGES = [1, 2]
 REQUIRED_TOOLS = ("pandoc", "lualatex", "latexmk", "pdftoppm", "pdffonts", "pdfinfo")
 
 
+def _shipped_profile_ids() -> list[str]:
+    from press import profiles
+
+    return sorted(p.stem for p in profiles.profiles_dir().glob("*.yaml"))
+
+
+_SHIPPED_PROFILE_IDS = _shipped_profile_ids()
+
+
 def _fixture_book(root: Path):
     """A fixed house-design book: no aesthetic override, so the house
     typography and layout are what render. Content is constant so the
@@ -110,15 +119,15 @@ def test_house_pdf_layout_matches_baseline(tmp_path):
     any(shutil.which(t) is None for t in ("pandoc", "lualatex", "latexmk", "pdfinfo")),
     reason="requires capability: pandoc, lualatex, latexmk, pdfinfo",
 )
-@pytest.mark.parametrize("profile_id", [
-    "house-6x9", "novella-5x8",
-    "large-print-7x10", "digest-5.5x8.5", "mass-market-4.25x6.87",
-])
+@pytest.mark.parametrize("profile_id", _SHIPPED_PROFILE_IDS)
 def test_profile_renders_at_its_declared_trim(tmp_path, profile_id):
     """Selecting a profile renders the interior at that profile's trim -- the
-    geometry proof #172 owes for every profile, self-contained (the profile's
-    own numbers are the oracle, so it needs no committed image baseline) and
-    running in the toolchain wherever the tools are present."""
+    golden-copy geometry proof #172 owes for every profile, self-contained
+    (the profile's own numbers are the oracle, so it needs no committed image
+    baseline) and running in the toolchain wherever the tools are present.
+    Parametrized over every *shipped* profile, so a profile scaffolded through
+    the lifecycle (#221) is proven at its declared trim the moment it exists,
+    before it can be sealed."""
 
     from pypdf import PdfReader
 
