@@ -61,13 +61,33 @@
 \RedeclareSectionCommand[beforeskip=1.6\baselineskip,afterskip=0.55\baselineskip]{section}
 \RedeclareSectionCommand[beforeskip=1.2\baselineskip,afterskip=0.35\baselineskip]{subsection}
 
-% The figure list prints as a Victorian "List of Plates". The book's
-% contents show chapters only (tocdepth 0), which would also suppress the
-% depth-1 figure lines, so the list file raises the depth for itself.
+% The illustrations split into two lists. Unnumbered plates (the literary
+% woodcut idiom) keep the Victorian "List of Plates" that KOMA's
+% \listoffigures prints; the numbered informative figures
+% (.figure/.chart/.map/.photo/.diagram) collect into a separate "List of
+% Figures", written to a private .lof2 file by the figure-numbering Lua
+% filter (\addcontentsline{lof2}) and printed here by \PressListOfFigures.
+% The book's contents show chapters only (tocdepth 0), which would also
+% suppress the depth-1 illustration lines, so each list raises the depth
+% for itself (the toc-depth/List of Plates scar).
 \AddToHook{begindocument/end}{%
   \renewcommand*{\listfigurename}{List of plates}%
   \addtocontents{lof}{\protect\setcounter{tocdepth}{1}}%
 }
+% \PressListOfFigures is emitted (as the first body block) only when the
+% manuscript declares numbered figures; a book with none never calls it and
+% is unchanged. It reads the .lof2 the filter wrote, raising tocdepth for
+% itself so the depth-1 lines survive the chapters-only contents.
+\makeatletter
+\newcommand*{\PressListOfFigures}{%
+  \begingroup
+    \setcounter{tocdepth}{1}%
+    \chapter*{List of Figures}%
+    \@mkboth{}{}%
+    \@starttoc{lof2}%
+  \endgroup
+}
+\makeatother
 
 % Woodcut figures: no "Figure N" labels, quiet small italic captions,
 % pinned where the source places them rather than floated.
@@ -77,6 +97,13 @@
 \setcapindent{0pt}
 \usepackage{graphicx}
 \usepackage{float}
+% wrapfig runs text around a placed figure; the figure-numbering filter uses
+% its parity-aware inner/outer sides (i/o) for place=wrap-inner/wrap-outer.
+% The toolchain image ships it (texlive-latex-extra); where it is absent a
+% wrap degrades to an ordinary figure so the book still builds.
+\IfFileExists{wrapfig.sty}{\usepackage{wrapfig}}{%
+  \newenvironment{wrapfigure}[2]{\begin{figure}[H]\centering}{\end{figure}}%
+}
 \floatplacement{figure}{H}
 % A figure taller than the text block makes LuaLaTeX ship empty pages
 % forever, silently. Rebind pandoc's image bounding with caption headroom:

@@ -1,6 +1,6 @@
 ---
 name: plates-and-woodcuts
-version: 1.0.0
+version: 1.1.0
 description: Commission, prepare, caption, and place interior illustration plates (the house woodcut idiom) so they survive every output format, appear in the List of Plates with working links, and never trigger the empty-page LuaLaTeX failure.
 compatibility: any-agent
 ---
@@ -58,15 +58,21 @@ files, and the placement rules the pipeline enforces.
 
 - Place plates in chapter Markdown with a standard image line and a caption
   that reads as a Victorian plate legend: quiet, italic, slightly formal.
-- The caption is the alt text and the List of Plates entry; write it to
-  stand alone there.
+- The caption is the List of Plates entry; write it to stand alone there.
+  For accessible alt text distinct from the caption, add `fig-alt="…"` on
+  the image; a bare image's caption doubles as its alt as before.
+- A plate stays **unnumbered** — that is the woodcut idiom, and a bare image
+  is a plate too. Declare an explicit informative kind (`.figure`, `.chart`,
+  `.map`, `.photo`, `.diagram`) only when you want a numbered "Figure N"
+  collected in the separate **List of Figures** and referenced with `@id`
+  (see `docs/ILLUSTRATIONS.md`). Do not put a `.figure` on a woodcut.
 - Keep any plate's rendered height at or under 7.1in on a 9in trim. Taller
   images plus a baseline exceed the text block and LuaLaTeX ships empty
   pages forever, silently.
 - The List of Plates generates itself when woodcuts exist; never hand-list
-  plates. Plate links are verified against the pages that actually hold
-  images on every PDF verify (the hypcap scar), so a broken destination
-  fails the build rather than shipping.
+  plates. Both lists' links are verified against the pages that actually
+  hold images on every PDF verify (the hypcap scar), so a broken
+  destination fails the build rather than shipping.
 - Plates land in every image-capable format automatically (PDF, EPUB, HTML,
   DOCX, reader site, Pages). The DOCX and site verifiers count embedded
   images against `assets/woodcuts/`; removing a plate from prose without

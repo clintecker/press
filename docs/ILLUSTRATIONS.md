@@ -78,6 +78,47 @@ drew from it — the composition kept, the medium and the ink the book's:
 
 <!--FROM-DEMO-->
 
+## Numbered figures, cross-references, and the two lists
+
+A **plate** is the literary woodcut idiom: unnumbered, quiet, and collected in
+the **List of Plates**. A bare `![…](…)` image is a plate too, so a book that
+declares nothing new typesets exactly as before.
+
+An **informative** figure is different. Declare an explicit kind —
+`.figure`, `.chart`, `.map`, `.photo`, or `.diagram` — and the press numbers it
+**by chapter** ("Figure 3.2"), collects it in a separate **List of Figures**,
+and gives it a cross-reference target. Give it an `#id` and refer to it from
+anywhere with `@id`; the reference resolves to a linked "Figure 3.2", the same
+number in every format:
+
+```markdown
+As @fig:press shows, the platen does the pressing.
+
+![The hand press at work](assets/fig/press.jpg){#fig:press .figure
+    width=half-measure fig-alt="A hand press, the platen raised over a sheet"}
+```
+
+A mixed book prints both lists; a book with only plates prints only the List of
+Plates, byte-for-byte as before. Plates are **never** numbered.
+
+## Placing a figure: relative and parity-aware
+
+Where and how a figure sits rides on its image attributes, in a vocabulary that
+is **relative, never absolute**, so one manuscript typesets on any trim:
+
+| attribute | values | meaning |
+|---|---|---|
+| `width` | `full-measure`, `half-measure`, `third-measure` | width against the line (in-flow figures only) |
+| `place` | `inline`, `wrap-inner`, `wrap-outer`, `plate`, `frontispiece`, `full-bleed`, `margin` | where it sits; wrap runs text around the **parity-aware** side (never left/right) |
+| `outset` | a length in em (default `1em`) | the runaround gap — the book-trade term, not "standoff" |
+| `fig-alt` | text | the **accessible alt text** — a fourth field, distinct from the visible caption, the `art:` prompt, and any credit line |
+| `decorative` | `true` | an ornament: empty alt, never numbered |
+
+`press check` refuses a malformed placement before any render: an absolute
+width where a measure belongs, a `left`/`right` side (use `wrap-inner` /
+`wrap-outer`), an out-of-vocabulary `place`, a non-em `outset`, a measure on a
+plate, or a `decorative` image that still carries `fig-alt`.
+
 ## What does *not* belong here
 
 **Data figures — bar charts, line graphs — are not illustrations.** An image

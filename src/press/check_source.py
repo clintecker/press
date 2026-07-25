@@ -106,6 +106,25 @@ def _plate_failures(root: Path, seen: set[Path]) -> list[str]:
     ]
 
 
+def _figure_failures(root: Path, seen: set[Path]) -> list[str]:
+    """Refuse a malformed figure-placement vocabulary before pandoc or TeX
+    runs (#225 kin). The grammar is relative and parity-aware by law -- an
+    absolute width, a left/right side, an out-of-vocabulary place, a non-em
+    outset, a measure on a plate, or a decorative image that still carries alt
+    text is a mistake located here, not a silent mis-typeset later."""
+
+    from . import figures
+
+    problems: list[str] = []
+    for path in sorted(seen):
+        if not path.is_file():
+            continue
+        figs = figures.parse(path.read_text(encoding="utf-8"))
+        rel = path.relative_to(root)
+        problems.extend(f"{rel}: {problem}" for problem in figures.validate(figs))
+    return problems
+
+
 def _print_format_failures() -> list[str]:
     """Refuse a trim + ink + provider combination the chosen printer will not
     make, at ``press check`` time rather than deep in the cover renderer
@@ -141,6 +160,7 @@ def main() -> int:
     failures.extend(commerce.failures())
     failures.extend(_sentinel_failures(seen))
     failures.extend(_plate_failures(root, seen))
+    failures.extend(_figure_failures(root, seen))
     failures.extend(_config_shape_failures(root))
     failures.extend(_print_format_failures())
 

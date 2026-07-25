@@ -85,7 +85,85 @@ def test_as_dict_carries_the_art_direction_for_a_workflow():
         "src": "assets/fig/x.jpg", "caption": "A label", "kind": "plate",
         "style": "wood-engraving", "directive": "art",
         "description": "the described scene", "generatable": True,
+        "identifier": None, "width": None, "place": None, "outset": None,
+        "alt": None, "decorative": False, "numbered": False,
     }
+
+
+@pytest.mark.layer("unit")
+def test_placement_vocabulary_rides_on_the_image_attributes():
+    (fig,) = figures.parse(
+        "![The press at work](assets/fig/press.jpg){#fig:press .figure "
+        'width=half-measure place=wrap-outer outset=1em '
+        'fig-alt="A hand press, the platen raised"}\n'
+    )
+    assert fig.identifier == "fig:press"
+    assert fig.kind == "figure" and fig.kind_declared is True
+    assert fig.width == "half-measure"
+    assert fig.place == "wrap-outer"
+    assert fig.outset == "1em"
+    assert fig.alt == "A hand press, the platen raised"
+    assert fig.decorative is False
+    assert fig.numbered is True   # an explicit informative kind is numbered
+
+
+@pytest.mark.layer("unit")
+def test_a_bare_image_and_a_plate_are_never_numbered():
+    # Byte-identity's guarantee: a book that declares no numbered figure gets
+    # none. A bare image defaults to kind "figure" but is not DECLARED, and a
+    # plate is the unnumbered woodcut idiom.
+    bare, plate = figures.parse(
+        "![One](a.png)\n\n![Two](b.png){.plate}\n"
+    )
+    assert bare.kind == "figure" and bare.kind_declared is False
+    assert bare.numbered is False
+    assert plate.kind == "plate" and plate.numbered is False
+
+
+@pytest.mark.layer("unit")
+def test_a_decorative_image_is_not_numbered():
+    (fig,) = figures.parse("![orn](o.png){.figure decorative=true}\n")
+    assert fig.decorative is True
+    assert fig.numbered is False
+
+
+@pytest.mark.layer("unit")
+@pytest.mark.proof("positive")
+def test_a_house_placement_vocabulary_validates_clean():
+    figs = figures.parse(
+        "![A](a.png){.figure width=full-measure place=inline}\n\n"
+        "![B](b.png){.map place=wrap-inner outset=1.5em}\n\n"
+        "![C](c.png){.plate place=frontispiece}\n"
+    )
+    assert figures.validate(figs) == []
+
+
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
+def test_validate_refuses_left_right_absolute_and_bad_outset():
+    # Every clause of the relative, parity-aware law has a refusal.
+    left = figures.validate(figures.parse("![A](a.png){.figure place=left}\n"))
+    assert left and "parity-aware" in left[0]
+
+    unknown = figures.validate(
+        figures.parse("![A](a.png){.figure place=floating}\n"))
+    assert unknown and "unknown place" in unknown[0]
+
+    absolute = figures.validate(
+        figures.parse("![A](a.png){.figure place=inline width=2.4in}\n"))
+    assert absolute and "absolute" in absolute[0]
+
+    measure_on_plate = figures.validate(
+        figures.parse("![A](a.png){.plate place=plate width=half-measure}\n"))
+    assert measure_on_plate and "in-flow" in measure_on_plate[0]
+
+    bad_outset = figures.validate(
+        figures.parse("![A](a.png){.figure place=wrap-outer outset=12pt}\n"))
+    assert bad_outset and "runaround gap" in bad_outset[0]
+
+    contradiction = figures.validate(
+        figures.parse('![A](a.png){.plate decorative=true fig-alt="x"}\n'))
+    assert contradiction and "empty alt" in contradiction[0]
 
 
 @pytest.mark.layer("integration")
