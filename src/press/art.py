@@ -25,8 +25,12 @@ RECORD_HEADING = "## Acceptance record"
 
 
 def _single_ink_plates() -> bool:
-    from . import aesthetic
+    from . import aesthetic, profiles
 
+    # The design profile's ink is the authority (#214): a colour interior keeps
+    # its plates in colour even when the aesthetic names a single-ink medium.
+    if profiles.active().ink == "color":
+        return False
     medium = str((aesthetic.effective().get("plates") or {}).get("medium", "")).lower()
     return "single" in medium and "ink" in medium
 
@@ -174,13 +178,16 @@ def _enhance(args) -> int:
     The book's plate medium (config/aesthetic.yaml) picks the upscale model and
     the palette, so an engraving finishes in engraving grain."""
 
-    from . import aesthetic, art_enhance, booklib
+    from . import aesthetic, art_enhance, booklib, profiles
 
     plates = aesthetic.effective().get("plates") or {}
     medium = str(plates.get("medium", "") if isinstance(plates, dict) else "")
     default_model, default_colors = art_enhance.profile_for(medium)
     colors = args.colors if args.colors is not None else default_colors
     max_edge = args.max_edge if args.max_edge is not None else art_enhance._DEFAULT_MAX_EDGE
+    # A colour design profile keeps the plate in colour; single-ink (the
+    # default) finishes to grayscale, the honest space for an engraving (#214).
+    grayscale = profiles.active().ink != "color"
 
     if art_enhance.find_upscaler() is None:
         print("no Real-ESRGAN upscaler found (Upscayl or realesrgan-ncnn-vulkan); "
@@ -199,8 +206,9 @@ def _enhance(args) -> int:
             raise SystemExit(f"no such file: {src}")
         dst = src.with_suffix(".png")
         result = art_enhance.enhance(src, dst, model=default_model, colors=colors,
-                                     max_edge=max_edge)
+                                     max_edge=max_edge, grayscale=grayscale)
         how = "upscaled" if result.upscaled else "resampled"
+        tone = "grays" if grayscale else "colors"
         print(f"enhanced {src.name} -> {dst.name}: {result.width}x{result.height}, "
-              f"{result.colors} grays, {how}")
+              f"{result.colors} {tone}, {how}")
     return 0

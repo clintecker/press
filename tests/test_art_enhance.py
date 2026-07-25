@@ -42,6 +42,41 @@ def test_quantize_refuses_a_degenerate_palette():
         art_enhance.quantize(_noisy(8, 8), 1)
 
 
+def test_color_profile_overrides_the_single_ink_plate_law(monkeypatch):
+    # The accept-time gate: a single-ink aesthetic medium grays plates, but the
+    # design profile's ink is the authority (#214) -- a colour profile keeps
+    # them in colour even so.
+    from press import aesthetic, art, profiles
+
+    monkeypatch.setattr(aesthetic, "effective",
+                        lambda: {"plates": {"medium": "single-ink wood engraving"}})
+    monkeypatch.setattr(profiles, "active", lambda: profiles.Profile("s", {}))
+    assert art._single_ink_plates() is True
+    monkeypatch.setattr(profiles, "active",
+                        lambda: profiles.Profile("c", {"ink": "color"}))
+    assert art._single_ink_plates() is False
+
+
+def _has_color(image: Image.Image) -> bool:
+    """True if any pixel departs from gray (r == g == b)."""
+    rgb = image.convert("RGB")
+    return any(r != g or g != b for r, g, b in rgb.getdata())
+
+
+def test_quantize_grays_by_default():
+    # The single-ink honest space: a colourful plate finishes to grayscale.
+    q = art_enhance.quantize(_noisy(48, 48), 16)
+    assert not _has_color(q), "default quantize should leave no colour"
+
+
+def test_quantize_keeps_colour_when_asked():
+    # A colour interior (#214) keeps its hues, quantized to a colour palette.
+    q = art_enhance.quantize(_noisy(48, 48), 16, grayscale=False)
+    assert _has_color(q), "grayscale=False should preserve colour"
+    distinct = len(q.convert("RGB").getcolors(maxcolors=100000) or [])
+    assert distinct <= 16, f"colour quantize left {distinct} colours, wanted <= 16"
+
+
 @pytest.mark.parametrize("medium, model, colors", [
     ("wood engraving on cream", "remacri-4x", 16),
     ("a fine woodcut", "remacri-4x", 16),
@@ -130,10 +165,11 @@ def test_cli_enhance_one_file(tmp_path, monkeypatch):
     file, and writes a PNG beside it -- with no upscaler installed, via the
     pure fallback so the test needs no external binary."""
 
-    from press import aesthetic, art
+    from press import aesthetic, art, profiles
 
     monkeypatch.setattr(aesthetic, "effective",
                         lambda: {"plate": {"medium": "wood engraving"}})
+    monkeypatch.setattr(profiles, "active", lambda: profiles.Profile("t", {}))
     monkeypatch.setattr(art_enhance, "find_upscaler", lambda: None)
     src = tmp_path / "plate.jpg"
     _noisy(160, 100).convert("RGB").save(src)
@@ -148,9 +184,10 @@ def test_cli_enhance_one_file(tmp_path, monkeypatch):
 
 
 def test_cli_enhance_all_plates_needs_a_woodcuts_dir(tmp_path, monkeypatch):
-    from press import aesthetic, art, booklib
+    from press import aesthetic, art, booklib, profiles
 
     monkeypatch.setattr(aesthetic, "effective", lambda: {})
+    monkeypatch.setattr(profiles, "active", lambda: profiles.Profile("t", {}))
     monkeypatch.setattr(art_enhance, "find_upscaler", lambda: None)
     monkeypatch.setattr(booklib, "root", lambda: tmp_path)
 

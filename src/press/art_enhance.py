@@ -133,20 +133,22 @@ def upscale(src: Path, dst: Path, *, model: str, scale: int,
     )
 
 
-def quantize(image, colors: int):
-    """Collapse an image to a grayscale palette of ``colors`` shades.
+def quantize(image, colors: int, *, grayscale: bool = True):
+    """Collapse an image to a small palette of ``colors`` shades.
 
-    Engravings are a single ink, so grayscale is the honest space; median-cut
-    keeps the tones the hatching actually uses. Returns a paletted image whose
-    distinct colors are at most ``colors``.
+    A single-ink interior is honestly grayscale -- an engraving is one ink --
+    so the default converts to gray first; a colour interior (profile ink:
+    color, #214) keeps its hues, quantized to a colour palette that still
+    compresses hard. Median-cut keeps the tones the art actually uses. Returns
+    a paletted image whose distinct colors are at most ``colors``.
     """
 
     from PIL import Image
 
     if colors < 2:
         raise ValueError("a palette needs at least 2 colors")
-    gray = image.convert("L")
-    return gray.quantize(colors=colors, method=Image.Quantize.MEDIANCUT)
+    source = image.convert("L") if grayscale else image.convert("RGB")
+    return source.quantize(colors=colors, method=Image.Quantize.MEDIANCUT)
 
 
 def _write_lossless_png(image, dst: Path) -> None:
@@ -184,12 +186,13 @@ _DEFAULT_MAX_EDGE = 2400
 
 def enhance(src: Path, dst: Path, *, model: str | None = None,
             colors: int = 16, scale: int = 4, medium: str = "",
-            max_edge: int = _DEFAULT_MAX_EDGE) -> Result:
+            max_edge: int = _DEFAULT_MAX_EDGE, grayscale: bool = True) -> Result:
     """Finish one image: upscale (if a model is installed), resample to a
     print-grade target long edge, quantize, and write a lossless PNG. With no
     upscaler present the image is resampled with a plain high-quality filter
     instead, so the quantize/compress win still lands and the call never fails
-    for want of the external tool.
+    for want of the external tool. ``grayscale`` false keeps a colour interior's
+    plates in colour (#214); it defaults true, the single-ink honest space.
     """
 
     from PIL import Image
@@ -220,13 +223,14 @@ def enhance(src: Path, dst: Path, *, model: str | None = None,
         big = big.resize((round(big.width * ratio), round(big.height * ratio)),
                          Image.Resampling.LANCZOS)
 
-    paletted = quantize(big, colors)
+    paletted = quantize(big, colors, grayscale=grayscale)
     dst.parent.mkdir(parents=True, exist_ok=True)
     _write_lossless_png(paletted, dst)
     if tmp.exists():
         tmp.unlink()
 
     final = Image.open(dst)
-    distinct = len(final.convert("L").getcolors(maxcolors=colors * 4) or [])
+    counted = final.convert("L") if grayscale else final.convert("RGB")
+    distinct = len(counted.getcolors(maxcolors=colors * 4) or [])
     return Result(path=dst, width=final.width, height=final.height,
                   colors=distinct, upscaled=upscaled)
