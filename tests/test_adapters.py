@@ -10,6 +10,7 @@ a fixed map, and the HTTP and retry tests never leave memory.
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -40,6 +41,57 @@ def test_subprocess_runner_leaves_streams_empty_when_not_capturing():
     assert result.returncode == 0
     assert result.stdout == b""
     assert result.stderr == b""
+
+
+def _drain_to_end(proc):
+    """Pump every tagged line from a SpawnedProcess until the end-of-output
+    sentinel, returning the lines in arrival order."""
+    lines = []
+    while True:
+        item = proc.read_line()
+        if item is None:  # both streams closed: the completion signal
+            return lines
+        lines.append(item)
+
+
+def test_default_spawn_streams_both_channels_and_reports_exit_code(tmp_path):
+    # The production streaming launcher against a real, trivial child -- the
+    # streaming sibling of SubprocessRunner above. Both channels arrive tagged,
+    # and completion comes from the stream's EOF sentinel plus the child's exit
+    # code, never a clock.
+    proc = adapters.default_spawn(
+        [sys.executable, "-c",
+         "import sys; print('out line'); "
+         "sys.stderr.write('err line\\n'); sys.exit(0)"],
+        str(tmp_path),
+    )
+    lines = _drain_to_end(proc)
+    assert (adapters.OutputChannel.STDOUT, "out line") in lines
+    assert (adapters.OutputChannel.STDERR, "err line") in lines
+    assert proc.wait() == 0
+
+
+def test_default_spawn_wait_returns_the_child_exit_code(tmp_path):
+    proc = adapters.default_spawn(
+        [sys.executable, "-c", "import sys; sys.exit(3)"],
+        str(tmp_path),
+    )
+    assert _drain_to_end(proc) == []  # no output, just the completion sentinel
+    assert proc.wait() == 3
+
+
+def test_default_spawn_replaces_the_environment_when_one_is_given(tmp_path):
+    # A supplied env replaces the parent's wholesale (not merged), so the child
+    # sees exactly what was passed.
+    proc = adapters.default_spawn(
+        [sys.executable, "-c",
+         "import os; print(os.environ.get('PRESS_MARK', 'unset'))"],
+        str(tmp_path),
+        {"PRESS_MARK": "seen", "PATH": os.environ.get("PATH", "")},
+    )
+    lines = _drain_to_end(proc)
+    assert (adapters.OutputChannel.STDOUT, "seen") in lines
+    assert proc.wait() == 0
 
 
 def test_subprocess_runner_raises_calledprocesserror_on_check():
