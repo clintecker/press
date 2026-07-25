@@ -33,6 +33,13 @@ audit).
   generator. The page-count bounds stay a build-time check, where the real page
   count is known. A book that names no provider keeps the house spec, which
   declares no catalog and refuses nothing, so every existing book is unchanged.
+- A public-domain illustrated classic joins the gallery: the first three
+  chapters of *Alice's Adventures in Wonderland*, set in the house single-ink
+  idiom with John Tenniel's original 1865 wood engravings. It is the gallery's
+  first example to exercise the interior-plate (engraving) path on real
+  public-domain art, imported from a plain-text source the way a live book
+  would be. Nothing about it is generated; the plates are attributed as public
+  domain in the colophon (#227).
 
 ### Changed
 

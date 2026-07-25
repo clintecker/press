@@ -44,6 +44,7 @@ pipeline was touched, and no example is a special case.
 | Binding | `print: binding:` in `config/metadata.yaml` | the saddle-stitched almanac |
 | Dedication, epigraph, acknowledgements | `config/front-matter.yaml` | the cookbook, monograph, chapbook, essays, novella |
 | A subject index | `config/index-terms.yaml` | the cookbook and the manual |
+| Interior illustration plates | plate files in `assets/woodcuts/`, referenced from the chapter text | the Alice example, which sets Tenniel's wood engravings into the text |
 | The reading measure and web styling | `assets/web/extra.css` | the chapbook, which opens the line spacing for verse |
 | An about-the-author, an also-by | files in `book/appendices/` | every book (an also-by in the essays and the novella) |
 | Citations | Markdown footnotes in the chapter text | the monograph, the manual, the essays, the field guide |
@@ -70,6 +71,11 @@ the full set of knobs is in [configuration](configuration.html).
 ## About the art
 
 Covers, plates, and author portraits are commissioned per book through the art
-workflows and the aesthetic each example declares. The examples build and
+workflows and the aesthetic each example declares. Most examples build and
 validate without generated images, and degrade gracefully where art is absent
-— which is why the cards above are typographic rather than photographic.
+— which is why the cards above are typographic rather than photographic. The
+one exception is the Alice example, which carries real, public-domain art:
+John Tenniel's 1865 wood engravings, set into the text in a single ink to
+exercise the engraving path end to end. Nothing in the gallery is generated
+art passed off as a real book's — a commission is committed as a fixed asset,
+and a public-domain plate is attributed as such in the colophon.

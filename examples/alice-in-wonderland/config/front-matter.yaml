@@ -1,0 +1,26 @@
+# Front matter for the Alice gallery example. Its presence asks the press
+# to generate the PDF title page, epigraph, and colophon from config. The
+# colophon carries the public-domain attribution for both text and plates.
+
+edition-note: "Gallery edition -- first three chapters, 2026"
+
+epigraph:
+  quote: >-
+    Would you tell me, please, which way I ought to go from here? That
+    depends a good deal on where you want to get to.
+  attribution: "Alice, and the Cheshire Cat"
+
+rights-notice: >-
+  The text and illustrations are in the public domain. This gallery
+  edition may be copied, printed, and shared without restriction.
+
+manufacture: >-
+  Set in Libertinus and printed in a single black ink, after the
+  Victorian trade editions this book imitates.
+
+colophon-note: >-
+  Text: Lewis Carroll, Alice's Adventures in Wonderland (Macmillan,
+  1865), now in the public domain; this setting follows the Project
+  Gutenberg transcription. Illustrations: John Tenniel (1820-1914),
+  wood-engraved for the 1865 first edition and long in the public
+  domain, sourced from Wikimedia Commons and set here in a single ink.

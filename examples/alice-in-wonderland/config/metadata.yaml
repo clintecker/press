@@ -1,0 +1,32 @@
+title: "Alice's Adventures in Wonderland"
+subtitle: "The opening chapters, in the house engraving idiom"
+author:
+  - "Lewis Carroll"
+date: "Gallery edition, 2026"
+lang: en-GB
+copyright: "The text and illustrations are in the public domain."
+publisher: "The Press (gallery example)"
+publisher-place: "Oxford"
+description: >-
+  A public-domain gallery example: the first three chapters of Lewis
+  Carroll's 1865 classic, set in the house single-ink idiom with John
+  Tenniel's original wood-engraved plates. It exercises the engraving
+  path end to end on real public-domain art -- nothing generated.
+keywords:
+  - children's classics
+  - public domain
+slug: "alice-in-wonderland"
+verify-sentinels:
+  - "burning with curiosity, she ran across the field after it"
+  - "I shall be punished for it now, I suppose, by being drowned in my own tears"
+verify-min-pages: 1
+
+print:
+  profile: house-6x9
+
+# The house drop cap opens each chapter, an override of the profile default,
+# in keeping with the Victorian trade-edition look the plates come from.
+chapter-opening:
+  style: drop-cap
+  lines: 3
+  small-caps-remainder: true
