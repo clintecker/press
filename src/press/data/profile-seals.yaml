@@ -9,6 +9,11 @@
 # after proving a new or changed profile. See docs/PROFILE-LIFECYCLE.md.
 schema-version: 1
 seals:
+  digest-5.5x8.5:
+    design-major: 1
+    digest: cdaa82a294fa2862
+    qualified-on: '2026-07-25'
+    note: ''
   house-6x9:
     design-major: 1
     digest: c524978840a0af4e
@@ -19,6 +24,16 @@ seals:
     digest: a280760e423612e8
     qualified-on: '2026-07-25'
     note: The house 6x9 geometry printed in colour rather than a single black ink (#211).
+  large-print-7x10:
+    design-major: 1
+    digest: 2165d6840d062455
+    qualified-on: '2026-07-25'
+    note: ''
+  mass-market-4.25x6.87:
+    design-major: 1
+    digest: c37446c8ab4dbfcc
+    qualified-on: '2026-07-25'
+    note: ''
   novella-5x8:
     design-major: 1
     digest: ae1fb2ce3e139411
