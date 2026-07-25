@@ -44,7 +44,7 @@
       "number": 4,
       "group": "future",
       "title": "v2 — Composable press",
-      "state": "open",
+      "state": "closed",
       "description": "Reserved for breaking design/extension work that cannot ship under the v1 rendering contract: configurable geometry/themes, vendor-neutral operator boundaries, and other explicitly breaking changes. Milestone: https://github.com/clintecker/press/milestone/4. Breaking-change issues: https://github.com/clintecker/press/issues?q=is%3Aissue+is%3Aopen+label%3Abreaking-change. Versioning contract: https://github.com/clintecker/press/blob/main/docs/ARCHITECTURE.md. Roadmap: https://github.com/clintecker/press/blob/main/ROADMAP.md."
     },
     {
@@ -101,7 +101,7 @@
       "group": "complete",
       "title": "v1.16 — Direct print ordering",
       "state": "closed",
-      "description": "Post-v1.15 direct-to-reader print ordering on the seller-of-record model: the provider (Lulu first) is the legal seller and owns payment, tax, fulfillment, and support, so press ships no payment infrastructure. Remaining after the manifest (#118, done): provider qualification and physical sample protocol (#117), a generated accessible storefront CTA with a no-JS fallback (#123) linking to the provider-hosted checkout (#139), a capped golden-copy inspection (#143), documentation (#138), and the release gate (#144). The custom merchant-of-record machinery (broker, Stripe checkout, provider API adapters, state machines, webhooks, outbox, reconciliation) is deferred to the 'Custom MoR (deferred)' milestone. Plan: https://github.com/clintecker/press/blob/main/docs/DIRECT-ORDERING-PLAN.md."
+      "description": "Post-v1.15 direct-to-reader print ordering on the seller-of-record model: the provider (Lulu first) is the legal seller and owns payment, tax, fulfillment, and support, so press ships no payment infrastructure. Remaining after the manifest (#118, done): provider qualification and physical sample protocol (#117), a generated accessible storefront CTA with a no-JS fallback (#123) linking to the provider-hosted checkout (#139), a capped golden-copy inspection (#143), documentation (#138), and the release gate (#144). The custom merchant-of-record machinery (broker, Stripe checkout, provider API adapters, state machines, webhooks, outbox, reconciliation) is deferred indefinitely to the Icebox milestone. Plan: https://github.com/clintecker/press/blob/main/docs/DIRECT-ORDERING-PLAN.md."
     },
     {
       "number": 13,
@@ -111,18 +111,11 @@
       "description": "The delivery-trust work that cannot be finished from a single identity or a single CI run: the live second-party proofs (#87, human-run, needs a second GitHub account/org), and assembling the release trust chain from receipts the individual CI jobs emit and upload (#150), rather than synthesizing the chain inside the release-contract job."
     },
     {
-      "number": 14,
-      "group": "future",
-      "title": "Custom MoR (deferred)",
-      "state": "open",
-      "description": "The custom merchant-of-record commerce machinery, deferred from v1.16 when the publisher chose a provider seller-of-record model. Built only if the publisher ever becomes merchant of record: the order broker, hosted Stripe checkout, provider API adapters, payment/fulfillment state machines, verified webhooks, exactly-once outbox, reconciliation, artifact delivery, and the privacy/operator/observability infrastructure. Plan: https://github.com/clintecker/press/blob/main/docs/DIRECT-ORDERING-PLAN.md."
-    },
-    {
       "number": 17,
       "group": "future",
       "title": "Icebox",
       "state": "open",
-      "description": "Deferred indefinitely: worthwhile work with a finished design or plan, held out of the active train until it is prioritized. Not blocked on anything external -- a deliberate scheduling choice. Holds #173 (third-party extension registration), whose design is ratified in docs/THIRD-PARTY-EXTENSIONS-PLAN.md and whose implementation is a future major."
+      "description": "Deferred indefinitely: worthwhile work with a finished design or plan, held out of the active train until it is prioritized. Not blocked on anything external -- a deliberate scheduling choice. Holds #173 (third-party extension registration), whose design is ratified in docs/THIRD-PARTY-EXTENSIONS-PLAN.md and whose implementation is a future major; and the custom merchant-of-record commerce stack (the order broker, hosted checkout, provider adapters, payment/fulfillment state machines, webhooks, outbox, reconciliation, and privacy/observability infrastructure), set aside because self-fulfilled or provider-seller-of-record selling is not what the press is about. Plan of record: docs/DIRECT-ORDERING-PLAN.md."
     },
     {
       "number": 15,
