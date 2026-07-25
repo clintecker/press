@@ -82,6 +82,10 @@ The delivery-trust work that cannot be finished from a single identity or a sing
 
 Deferred indefinitely: worthwhile work with a finished design or plan, held out of the active train until it is prioritized. Not blocked on anything external -- a deliberate scheduling choice. Holds #173 (third-party extension registration), whose design is ratified in docs/THIRD-PARTY-EXTENSIONS-PLAN.md and whose implementation is a future major; and the custom merchant-of-record commerce stack (the order broker, hosted checkout, provider adapters, payment/fulfillment state machines, webhooks, outbox, reconciliation, and privacy/observability infrastructure), set aside because self-fulfilled or provider-seller-of-record selling is not what the press is about. Plan of record: docs/DIRECT-ORDERING-PLAN.md.
 
+### [Book breadth](https://github.com/clintecker/press/milestone/18) · Open
+
+Broaden the kinds of books press can make. Profile axis first -- color interiors, more trims, large-print -- each an additive, v2-minor-compatible sealed profile proven by a golden-copy inspection; then a finisher source mode that publishes, registers, and print-packs an externally-designed interior press did not typeset. The heuristic: a new profile of the prose engine is core press work, a new engine is not. Non-Latin and right-to-left scripts stay in the Icebox as a major per script family.
+
 ## Completed foundations
 
 Closed milestones retained as the historical foundation for the active work and as links to their shipped issue records.
