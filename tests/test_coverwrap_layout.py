@@ -91,6 +91,51 @@ def test_unsupported_binding_is_refused():
 
 
 @pytest.mark.layer("unit")
+def test_scanline_rejects_a_near_uniform_barcode_smear():
+    # A near-uniform dark smear where the barcode belongs -- a white card
+    # with a solid dark block instead of resolved bars -- is unscannable:
+    # scanline must reject it as not structurally readable. This is the
+    # known-bad fixture for the transitions floor (verify_coverwrap ~L92);
+    # regressing that guard to 'transitions < 0' turns this test red.
+    from PIL import Image, ImageDraw
+
+    from press import verify_coverwrap
+
+    # The v1 perfect-bound geometry, so the passed args match a real wrap.
+    wrap_w = 12.365
+    image_w = 1855
+    image_h = 1388
+    margin = 0.125
+    back_right = 6.125  # back panel right edge: bleed(0.125) + trim(6.0)
+    isbn = "9781234567897"
+
+    # Replicate scanline's crop/anchor math to place the smear exactly on
+    # the sampled bar row, within the symbol window, and clear of the quiet
+    # zones -- so the ONLY thing that trips is the readability floor.
+    dpi = image_w / wrap_w
+    anchor_y = margin + 0.5
+    x0 = max(0, int((back_right - 0.5 - 2.4) * dpi))
+    row_y = image_h - int((anchor_y + 0.32 + 0.45) * dpi)  # image-space bar row
+    module = 0.0130
+    symbol_right = int((2.4 - 0.15) * dpi)  # region-local
+    symbol_left = symbol_right - int(95 * module * dpi)
+
+    image = Image.new("L", (image_w, image_h), 255)  # white card everywhere
+    draw = ImageDraw.Draw(image)
+    # A solid dark block spanning the symbol window (region-local
+    # symbol_left..symbol_right), a band tall enough to cover the sampled
+    # row. It leaves the quiet zones white, so no transitions AND no quiet
+    # zone ink: only the transitions floor can fire.
+    draw.rectangle(
+        (x0 + symbol_left, row_y - 12, x0 + symbol_right, row_y + 12),
+        fill=0,
+    )
+
+    with pytest.raises(SystemExit, match="not structurally readable"):
+        verify_coverwrap.scanline(image, back_right, margin, wrap_w, isbn)
+
+
+@pytest.mark.layer("unit")
 def test_check_print_safe_accepts_a_clean_wrap(tmp_path):
     # A wrap with no raster images carries no transparency and nothing over
     # 600 PPI, so the print-safety check passes. (The rejection paths are
