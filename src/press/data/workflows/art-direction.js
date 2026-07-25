@@ -1,9 +1,9 @@
 export const meta = {
   name: 'art-direction',
-  description: 'Read the manuscript, apply the design skills, and write art/commissions.md: finished paste-ready image-model prompts for cover, chapter plates, logomark, and author portrait',
+  description: 'Read the manuscript (including each figure\'s declared art: description), apply the design skills, and write art/commissions.md: finished paste-ready image-model prompts for cover, plates, logomark, and author portrait',
   whenToUse: 'args: {root: absolute path to the book repository}. Run once the manuscript is stable enough to know its imagery. args: {maxPlates?: number (default 8)}',
   phases: [
-    { title: 'Scout', detail: 'manuscript shape, metadata, design skills' },
+    { title: 'Scout', detail: 'manuscript shape, declared figures, metadata, design skills' },
     { title: 'Commission', detail: 'cover, plates per chapter, logomark, portrait' },
     { title: 'Curate', detail: 'select plates, audit every prompt against the skills' },
     { title: 'Write', detail: 'art/commissions.md' },
@@ -22,10 +22,16 @@ const scout = await agent(
 2. Read ${ROOT}/config/metadata.yaml and report: title, subtitle, author, publisher, publisher-place, date, description, and trim if set.
 3. Run \`press skills\` (or \`python3 -m press skills\`) from ${ROOT} and report the absolute paths of cover-design, plates-and-woodcuts, and press-logomark. If the press is not installed, look under a press checkout's src/press/data/skills.
 4. Run \`press aesthetic\` (or \`python3 -m press aesthetic\`) from ${ROOT} and report its complete output verbatim: the book's effective visual identity.
-5. List existing art: ${ROOT}/assets/cover.jpg, ${ROOT}/assets/press-logo.png, ${ROOT}/assets/author.jpg, ${ROOT}/assets/woodcuts/*.jpg, and ${ROOT}/art/commissions.md if present.`,
+5. Run \`press figures\` (or \`python3 -m press figures\`) from ${ROOT} and report its JSON output PARSED into the figures array: every figure the author declared, with file, src, caption, kind, style, directive, description (the author's art: direction), and generatable. This is the authoritative reading of what the author asked to be drawn; do NOT re-parse the markdown by eye. If the command is unavailable (an older press), return an empty figures array.
+6. List existing art: ${ROOT}/assets/cover.jpg, ${ROOT}/assets/press-logo.png, ${ROOT}/assets/author.jpg, ${ROOT}/assets/woodcuts/*.jpg, and ${ROOT}/art/commissions.md if present.`,
   { label: 'scout', phase: 'Scout', schema: { type: 'object', properties: {
       chapters: { type: 'array', items: { type: 'object', properties: {
         file: { type: 'string' }, summary: { type: 'string' } }, required: ['file', 'summary'] } },
+      figures: { type: 'array', items: { type: 'object', properties: {
+        file: { type: 'string' }, src: { type: 'string' }, caption: { type: 'string' },
+        kind: { type: 'string' }, style: { type: ['string', 'null'] },
+        directive: { type: 'string' }, description: { type: ['string', 'null'] },
+        generatable: { type: 'boolean' } }, required: ['src', 'kind', 'generatable'] } },
       metadata: { type: 'object' },
       skills: { type: 'object', properties: {
         cover: { type: 'string' }, plates: { type: 'string' }, logomark: { type: 'string' } },
@@ -34,12 +40,43 @@ const scout = await agent(
       existingArt: { type: 'array', items: { type: 'string' } },
     }, required: ['chapters', 'metadata', 'skills', 'aesthetic'] } }
 )
-log(`${scout.chapters.length} chapters, skills found, aesthetic loaded, ${(scout.existingArt || []).length} existing art files`)
+const stem = (p) => (p.split('/').pop() || p).replace(/\.[^.]+$/, '')
+// The author's declared figures are the authoritative plate list: a generatable
+// kind (plate/figure/map/photo) that carries an explicit art: description. Their
+// description is the subject -- never the caption (#225). Only when the book
+// declares none do we fall back to guessing one plate per chapter.
+const declaredPlates = (scout.figures || []).filter((f) => f.generatable && f.description)
+log(`${scout.chapters.length} chapters, ${(scout.figures || []).length} declared figures (${declaredPlates.length} with art: descriptions), skills found, aesthetic loaded, ${(scout.existingArt || []).length} existing art files`)
 
 const BRIEF = `Book metadata (name every visible word from these facts VERBATIM in any prompt that shows text; text a prompt leaves implicit will be misspelled or invented): ${JSON.stringify(scout.metadata)}.`
 const AESTHETIC = `THE BOOK'S AESTHETIC (this defines the look; where the skill describes a house idiom, this configuration overrides it; the skill still governs craft: how to direct an image model, what to name verbatim, the scars):\n${scout.aesthetic}`
 
 phase('Commission')
+// One plate task per author-declared figure: render the author's art: direction
+// faithfully (never the caption). Absent declared figures, fall back to proposing
+// one candidate per chapter from the manuscript.
+const plateTasks = declaredPlates.length
+  ? declaredPlates.map(fig => () => agent(
+`Turn ONE author-declared figure into a finished, paste-ready image-model prompt. The AUTHOR wrote the art direction; render exactly what it describes -- do NOT invent a different subject, and do NOT put the caption's words into the picture. First read in full the plates-and-woodcuts skill at ${scout.skills.plates} for the craft (name the medium concretely, one idea per plate, no lettering).
+${AESTHETIC}
+${BRIEF}
+Figure image file: ${fig.src} (declared in ${fig.file || 'the manuscript'}); kind ${fig.kind}${fig.style ? `, requested style ${fig.style}` : ''}.
+Reader CAPTION (a label only; its words must NOT appear in the image): ${JSON.stringify(fig.caption || '')}
+The author's ART DIRECTION (this is the subject; build the whole prompt from it): ${JSON.stringify(fig.description)}
+Produce the finished prompt in the aesthetic's plate medium (honour the requested style if given), keeping the caption unchanged.`,
+      { label: `commission:${stem(fig.src)}`, phase: 'Commission', schema: { type: 'object', properties: {
+          prompt: { type: 'string' }, rationale: { type: 'string' } }, required: ['prompt'] } }
+    ).then(r => ({ ...r, file: fig.file || '', filename: stem(fig.src), caption: fig.caption || '' })))
+  : scout.chapters.map(ch => () => agent(
+`Commission ONE interior PLATE candidate for a single chapter. First read in full the plates-and-woodcuts skill at ${scout.skills.plates} and follow its commissioning craft (one idea per plate, deliberate composition).
+${AESTHETIC}
+${BRIEF}
+The chapter: ${ch.file} — ${ch.summary}
+Read the chapter at ${ROOT}/${ch.file} in full. Propose the single strongest plate: a period engraver's brief as a finished paste-ready prompt, a kebab-case filename (no extension), and a one-line caption in the book's voice. If the chapter genuinely offers no image worth engraving, say so and return an empty prompt.`,
+      { label: `commission:${ch.file.split('/').pop()}`, phase: 'Commission', schema: { type: 'object', properties: {
+          file: { type: 'string' }, prompt: { type: 'string' }, filename: { type: 'string' },
+          caption: { type: 'string' }, rationale: { type: 'string' } }, required: ['file', 'prompt'] } }
+    ).then(r => ({ ...r, file: ch.file })))
 const commissions = await parallel([
   () => agent(
 `Commission the COVER for this book. First read in full the cover-design skill at ${scout.skills.cover} for the craft of directing a cover (verbatim text, flat plate, the scars).
@@ -64,16 +101,7 @@ ${BRIEF}
 Produce ONE finished, paste-ready image-model prompt for a small author portrait in the aesthetic's portrait style, suitable for back matter or the landing page. No text in the image.`,
     { label: 'commission:portrait', phase: 'Commission', schema: { type: 'object', properties: {
         prompt: { type: 'string' }, rationale: { type: 'string' } }, required: ['prompt'] } }),
-  ...scout.chapters.map(ch => () => agent(
-`Commission ONE interior PLATE candidate for a single chapter. First read in full the plates-and-woodcuts skill at ${scout.skills.plates} and follow its commissioning craft (one idea per plate, deliberate composition).
-${AESTHETIC}
-${BRIEF}
-The chapter: ${ch.file} — ${ch.summary}
-Read the chapter at ${ROOT}/${ch.file} in full. Propose the single strongest plate: a period engraver's brief as a finished paste-ready prompt, a kebab-case filename (no extension), and a one-line caption in the book's voice. If the chapter genuinely offers no image worth engraving, say so and return an empty prompt.`,
-    { label: `commission:${ch.file.split('/').pop()}`, phase: 'Commission', schema: { type: 'object', properties: {
-        file: { type: 'string' }, prompt: { type: 'string' }, filename: { type: 'string' },
-        caption: { type: 'string' }, rationale: { type: 'string' } }, required: ['file', 'prompt'] } }
-  ).then(r => ({ ...r, file: ch.file }))),
+  ...plateTasks,
 ])
 const [cover, logomark, portrait, ...plateCandidates] = commissions
 if (!cover || !logomark || !portrait) throw new Error('a core commission failed; rerun')
