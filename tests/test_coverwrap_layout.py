@@ -105,3 +105,55 @@ def test_check_print_safe_accepts_a_clean_wrap(tmp_path):
     with open(wrap, "wb") as handle:
         writer.write(handle)
     assert verify_coverwrap.check_print_safe(wrap) is None   # clean: no raise
+
+
+@pytest.mark.layer("unit")
+def test_check_print_safe_rejects_a_transparent_image(tmp_path):
+    # A cover that embeds a transparent image -- an image XObject carrying an
+    # /SMask soft mask -- must be refused before it ships: a print-on-demand
+    # preflight (KDP, IngramSpark) flags transparency on the cover. The clean
+    # path above proves the check passes valid wraps; this proves the guard has
+    # teeth, so regressing the /SMask arm cannot ship a transparent PNG cover
+    # under a green suite. (The >600 PPI arm is proven separately in
+    # test_adapters_routing.py.)
+    from pypdf import PdfWriter
+    from pypdf.generic import (
+        DecodedStreamObject,
+        DictionaryObject,
+        NameObject,
+        NumberObject,
+    )
+
+    from press import verify_coverwrap
+
+    def _image_xobject() -> DecodedStreamObject:
+        stream = DecodedStreamObject()
+        stream.set_data(b"\x00" * 4)
+        stream[NameObject("/Type")] = NameObject("/XObject")
+        stream[NameObject("/Subtype")] = NameObject("/Image")
+        stream[NameObject("/Width")] = NumberObject(2)
+        stream[NameObject("/Height")] = NumberObject(2)
+        stream[NameObject("/ColorSpace")] = NameObject("/DeviceGray")
+        stream[NameObject("/BitsPerComponent")] = NumberObject(8)
+        return stream
+
+    writer = PdfWriter()
+    writer.add_blank_page(width=72, height=72)
+
+    smask_ref = writer._add_object(_image_xobject())
+    image = _image_xobject()
+    image[NameObject("/SMask")] = smask_ref        # the soft mask == transparency
+    image_ref = writer._add_object(image)
+
+    resources = DictionaryObject()
+    xobjects = DictionaryObject()
+    xobjects[NameObject("/Im0")] = image_ref
+    resources[NameObject("/XObject")] = xobjects
+    writer.pages[0][NameObject("/Resources")] = resources
+
+    wrap = tmp_path / "wrap.pdf"
+    with open(wrap, "wb") as handle:
+        writer.write(handle)
+
+    with pytest.raises(SystemExit, match="transparency"):
+        verify_coverwrap.check_print_safe(wrap)
