@@ -1,0 +1,29 @@
+# A digest design profile: 5.5x8.5, the standard trade-paperback trim for
+# genre fiction that wants more page than a novella but less heft than US
+# Trade (#217). Same interior structure as the house design, laid out for the
+# 5.5in measure -- margins tighter than 6x9, more open than the 5x8 novella. A
+# design profile carries the interior LOOK only (trim, margins, figure cap,
+# typography); manufacturing numbers live in a provider spec, so this design
+# prints at any vendor that cuts 5.5x8.5 (Lulu, KDP, IngramSpark all do). See
+# docs/PRINT-PROFILES-PLAN.md.
+#
+# Sealed and versioned by design-major: do not change a number without a
+# design-major bump.
+id: digest-5.5x8.5
+design-major: 1
+trim: {width: 5.5, height: 8.5}
+
+interior:
+  # Margins scaled for the 5.5in page: the text block is ~4.14in, between the
+  # novella's 5in trim and the house 6in. Inner deeper than outer for binding.
+  margins: {inner: 0.74, outer: 0.62, top: 0.66, bottom: 0.72, headsep: 0.19, footskip: 0.36}
+  # Figure-height cap (the LuaLaTeX empty-page scar). Text block ~7.12in tall,
+  # so 6.0in leaves over an inch of clearance -- never near \textheight.
+  figure-cap: 6.0
+  # A type treatment for the digest: a slightly reduced indent and modestly
+  # open leading suit the narrower measure -- a genuinely distinct design from
+  # both the house and the novella, not a resized house.
+  typography: {indent: 1.05em, leading: 1.06}
+
+# A web measure between the house and the novella, matching the 5.5in page.
+web: {measure: 44rem, base-size: 1.2rem, line-height: 1.64}

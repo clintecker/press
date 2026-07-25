@@ -41,11 +41,35 @@ the trim can never disagree with the interior it was laid out for. The house
 profile is 6×9; other profiles carry their own trim and margins.
 
 ```sh
-press config set print.profile novella-5x8   # a 5x8 Digest/Novella
+press config set print.profile novella-5x8   # a 5x8 novella
 ```
 
 Selecting a profile changes the page for both the reading PDF and the print
 interior. Adding a new trim is adding a profile, not editing the pipeline.
+
+### The shipped profiles
+
+| Profile | Trim | For | Cut by |
+| --- | --- | --- | --- |
+| `house-6x9` | 6×9 | the sealed house default | lulu, kdp, ingramspark |
+| `house-6x9-color` | 6×9 | a colour interior on the house geometry | kdp |
+| `novella-5x8` | 5×8 | a short novel / novella | lulu, kdp, ingramspark |
+| `digest-5.5x8.5` | 5.5×8.5 | trade-paperback genre fiction | lulu, kdp, ingramspark |
+| `mass-market-4.25x6.87` | 4.25×6.87 | rack-sized genre paperback | lulu |
+| `large-print-7x10` | 7×10 | large-print / accessibility | lulu, kdp, ingramspark |
+
+Each carries its own margins, figure cap, structural typography, and web
+reading measure — the design, sealed by its major. The **large-print**
+profile keeps the house structure but sets a larger base face and markedly
+more open leading, the single change that most helps a low-vision reader; the
+**digest** profile sits between the novella and the house; the **mass-market**
+profile is the densest, with the tightest leading and narrowest measure so a
+long novel fits a pocketable spine.
+
+A trim is only usable at a vendor that cuts it, so the design and the provider
+must agree. Every vendor cuts 7×10 and 5.5×8.5, but the 4.25×6.87 pocketbook
+is a **Lulu** trim only — selecting `mass-market-4.25x6.87` with `kdp` or
+`ingramspark` is refused before rendering, naming the trim they do not offer.
 
 A profile carries more than trim. It also seals the interior's **structural
 typography** — the paragraph indent and leading — and the **web reading
