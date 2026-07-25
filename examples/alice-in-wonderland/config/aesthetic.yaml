@@ -1,0 +1,49 @@
+# Alice's Adventures in Wonderland: the house Victorian engraving idiom,
+# tuned warm. Single black ink on cream, Tenniel's wood-engraved plates
+# set into the text -- the look of the 1865 trade edition the plates are
+# drawn from. Values are prose where the art workflow reads them and
+# tokens where the builders substitute them.
+
+name: "Wonderland engraving"
+
+register: >-
+  A Victorian children's trade edition played dead straight: the
+  nonsense lives in the story, the page stays sober and finely cut.
+
+plates:
+  style: wood-engraving
+  medium: >-
+    Wood engraving with dense hatching and crosshatching, single black
+    ink, no gray washes, after John Tenniel's original blocks.
+  composition: >-
+    One scene per plate, set portrait or landscape as the moment wants;
+    the figures fill the rule to the edge.
+
+typography:
+  web-family: '"Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif'
+  pdf-family: "Libertinus Serif"
+
+web-palette:
+  cloth: "#7a2f2f"
+  cloth-deep: "#5e2323"
+  foil: "#b8963f"
+  foil-bright: "#c9a961"
+  foil-deep: "#8f7226"
+  paper: "#f3ead7"
+  paper-warm: "#e8dcc3"
+  ink: "#211c17"
+  ink-soft: "#4d463a"
+
+web-palette-dark:
+  cloth: "#1a0f0f"
+  paper: "#1d1a15"
+  paper-warm: "#26221b"
+  ink: "#e9e0cc"
+  ink-soft: "#b7ac93"
+
+# Single black ink: the interior print law for an engraving showcase.
+book-colors:
+  ink: "171717"
+  muted: "5C5C5C"
+  accent: "7A2F2F"
+  link: "5E2323"
