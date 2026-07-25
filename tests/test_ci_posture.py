@@ -164,6 +164,47 @@ def test_no_pull_request_target_anywhere():
     assert not offenders, f"pull_request_target present in {offenders}"
 
 
+def test_pages_deploys_only_from_main_via_the_pages_environment():
+    """The documentation site is the sole Pages deployment, and its source is
+    pinned in the tree: docs-site.yml triggers only on a push to main and its
+    deploy job binds the ``github-pages`` environment -- and no other workflow
+    does. This is the source-versioned half of the Pages protection (#153);
+    the platform deployment-branch-policy that also confines the environment
+    to main is drift-checked in security-controls.yml."""
+
+    from press import yamlio
+
+    docs = yamlio.loads((WORKFLOWS / "docs-site.yml").read_text(encoding="utf-8"))
+    push = (docs.get("on") or {}).get("push") or {}
+    assert list(push.get("branches") or []) == ["main"], (
+        "docs-site.yml must deploy only on a push to main; "
+        f"got branches={push.get('branches')!r}"
+    )
+
+    # No second, less-guarded path may deploy the press's OWN Pages. The only
+    # job that binds github-pages and is directly triggerable in this repo is
+    # docs-site.yml:deploy; the reusable build.yml also has a Pages deploy job,
+    # but it is workflow_call-only -- it runs in a consuming book's repo to
+    # deploy that book's site, never the press's -- so a stray press-repo
+    # deploy path would still be caught here.
+    for f in _workflow_files():
+        data = yamlio.loads(f.read_text(encoding="utf-8"))
+        triggers = set((data.get("on") or {}).keys())
+        reusable_only = triggers == {"workflow_call"}
+        for key, job in (data.get("jobs") or {}).items():
+            if not isinstance(job, dict):
+                continue
+            env = job.get("environment")
+            name = env.get("name") if isinstance(env, dict) else env
+            if name != "github-pages":
+                continue
+            assert f"{f.name}:{key}" == "docs-site.yml:deploy" or reusable_only, (
+                f"{f.name}:{key} binds the github-pages environment but is "
+                "neither docs-site.yml:deploy nor a workflow_call-only reusable "
+                "workflow; the press's own Pages must deploy only via docs-site"
+            )
+
+
 @pytest.mark.parametrize("workflow", _workflow_files(), ids=lambda p: p.name)
 def test_workflow_declares_permissions(workflow):
     """Every workflow declares an explicit permissions block, so a fork

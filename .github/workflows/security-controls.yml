@@ -120,3 +120,32 @@ jobs:
           done
           [ "$fail" = 0 ] && echo "protection rulesets present and enforcing"
           exit "$fail"
+
+      - name: Pages deploys only from main (#153)
+        env:
+          GH_TOKEN: ${{ secrets.SECURITY_AUDIT_TOKEN }}
+        run: |
+          set -euo pipefail
+          repo="${{ github.repository }}"
+          # The github-pages environment must confine deployments to main: a
+          # custom branch policy allowing exactly the `main` branch and no
+          # protected-branch shortcut. The source half (docs-site.yml deploys
+          # only on a push to main) is proven in tests/test_ci_posture.py; this
+          # is the platform half, so a loosened policy cannot pass unnoticed.
+          # Reading an environment's branch policy needs the token's
+          # Environments: read scope in addition to Administration: read.
+          env_json=$(gh api "repos/${repo}/environments/github-pages")
+          custom=$(echo "$env_json" | jq -r '.deployment_branch_policy.custom_branch_policies')
+          protected=$(echo "$env_json" | jq -r '.deployment_branch_policy.protected_branches')
+          if [ "$custom" != "true" ] || [ "$protected" != "false" ]; then
+            echo "drift: github-pages must use a custom branch policy, not" \
+                 "protected_branches (custom=${custom}, protected=${protected})"
+            exit 1
+          fi
+          branches=$(gh api "repos/${repo}/environments/github-pages/deployment-branch-policies" \
+            --jq '[.branch_policies[] | select(.type=="branch") | .name] | sort | join(",")')
+          if [ "$branches" != "main" ]; then
+            echo "drift: github-pages deploys from '${branches}', expected only 'main'"
+            exit 1
+          fi
+          echo "github-pages confined to main-only deployments"

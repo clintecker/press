@@ -38,15 +38,37 @@ be turned off unnoticed.
 - **Protection rulesets.** `main` cannot be force-pushed or deleted, and
   the three-part release tags (`v*.*.*`) are immutable -- they cannot be
   moved or deleted -- so the trust graph a pinned book resolves cannot be
-  rewritten under it. Pages deploys only from `main`, through the
-  documentation workflow. These are repository rulesets, applied on the
-  platform rather than in the tree.
+  rewritten under it. The floating major (`v2`) stays movable, but only
+  through the documented release path (`scripts/release.sh` floats it, and
+  only after the immutable tag's release contract is green). Pages deploys
+  only from `main`: the `github-pages` environment carries a custom branch
+  policy that admits the `main` branch alone, and the documentation workflow
+  is its only press-repo deployer. These are repository rulesets and an
+  environment policy, applied on the platform rather than in the tree.
+- **`main` is direct-push by design (#153).** The candidate-commit check
+  graph is enforced at the *release boundary*, not on every push to `main`:
+  `scripts/release.sh` refuses to cut a release until the integration
+  (`consumer`) check is green on the exact commit, the immutable tag's
+  `contract` check must prove before the major floats, and
+  `release-contract.yml` gates the whole chain. `main` therefore takes
+  fast-forward pushes (from the maintainer and from `release.sh` itself)
+  while the trust a pinned book resolves is enforced where it matters -- the
+  tag. Requiring per-push checks on `main` would block that release path;
+  this is a deliberate posture, not a gap. There is no standing bypass
+  actor: an emergency change means disabling the ruleset (an audit-logged
+  action) and re-enabling it, never a quiet exception.
 - **Drift detection.** `.github/workflows/security-controls.yml` runs
   weekly and on demand: it asserts the source-versioned controls are
   present, reads the admin-only `security_and_analysis` toggles back
   through a repository-scoped fine-grained token (`SECURITY_AUDIT_TOKEN`,
-  Administration: read), and reads the branch and tag protection rulesets
-  back, failing loudly if either is removed or weakened.
+  Administration: read, plus Environments: read for the Pages policy), and
+  reads the branch and tag protection rulesets and the `github-pages` branch
+  policy back, failing loudly if any is removed or weakened. The rejections
+  these enforce -- a force-push or delete of `main`, a rewrite of a
+  three-part tag, a Pages deploy from a branch other than `main` -- are the
+  platform's to make; the drift-check proves the settings that make them,
+  and `tests/test_ci_posture.py` proves the source-versioned half (the
+  documentation workflow deploys only on a push to `main`).
 
 ### Canaries
 
