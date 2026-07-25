@@ -16,7 +16,7 @@ from typing import cast
 
 from PIL import Image, ImageDraw, ImageStat
 
-from . import adapters, booklib
+from . import adapters, booklib, profiles
 
 RENDER_SCRIPT = Path("/home/oai/skills/pdfs/scripts/render_pdf.py")
 
@@ -176,9 +176,16 @@ def verify_mirrored_margins(images: list[Path]) -> None:
         )
 
 
-def verify_black_ink(images: list[Path]) -> None:
-    """No colored ink in a print interior: links print black, plates are
-    engravings. JPEG chroma noise is tolerated; a colored region is not."""
+def verify_black_ink(images: list[Path], ink: str = "single") -> None:
+    """No colored ink in a *single-ink* print interior: links print black,
+    plates are engravings. A profile that declares ``ink: color`` prints its
+    interior in colour by design, so this prohibition does not apply and the
+    check returns at once; a ``single`` profile -- the default, and any
+    context-less run -- is held to black ink. JPEG chroma noise is tolerated; a
+    colored region is not."""
+
+    if ink == "color":
+        return
 
     from PIL import ImageChops
 
@@ -396,8 +403,13 @@ def main(argv: list[str] | None = None) -> int:
     profile_note = ""
     if args.profile == "print":
         verify_mirrored_margins(images)
-        verify_black_ink(images)
-        profile_note = ", mirrored margins, black ink only"
+        # The interior's ink comes from the selected design profile (#211):
+        # a single-ink profile is held to black ink; a colour profile prints
+        # in colour and this check does not apply.
+        ink = profiles.active().ink
+        verify_black_ink(images, ink)
+        profile_note = ", mirrored margins, " + (
+            "black ink only" if ink == "single" else "colour interior")
     else:
         # The reading PDF leads with the cover; the print interior drops it
         # (the cover lives on the wrap), so this is a reading-profile check.

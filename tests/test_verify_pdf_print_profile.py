@@ -109,3 +109,17 @@ def test_a_colored_region_is_rejected(tmp_path):
     colored.save(tinted)
     with pytest.raises(SystemExit, match="colored ink"):
         verify_pdf.verify_black_ink([clean, tinted])
+
+
+@pytest.mark.layer("unit")
+def test_a_colored_region_passes_under_a_color_profile(tmp_path):
+    # The very block a single-ink interior refuses is allowed once the design
+    # profile declares ink: color -- a colour interior prints in colour by
+    # design (#212). The single-ink prohibition is unchanged (the negative
+    # above still fires); this only lifts it for a colour profile.
+    clean = _write(tmp_path, 1, 40, 200, fill=(20, 20, 20))
+    colored = Image.new("RGB", (_W, _H), (255, 255, 255))
+    ImageDraw.Draw(colored).rectangle([40, 40, 200, _H - 40], fill=(200, 20, 20))
+    tinted = tmp_path / "page-02.png"
+    colored.save(tinted)
+    assert verify_pdf.verify_black_ink([clean, tinted], "color") is None
