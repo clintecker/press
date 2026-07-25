@@ -49,7 +49,15 @@ def _book(root):
             "first witness of the coverwrap runner",
             "second witness of the coverwrap runner",
         )
-        .with_metadata(publisher="Integration Press", **{"publisher-place": "Nowhere"})
+        # A real print ISBN, so the wrap draws a real EAN-13 (not the
+        # placeholder) and verify_coverwrap runs the quiet-zone check -- the
+        # guard for the node-padding regression that let the first guard bar
+        # read as ink in the left quiet zone (#210).
+        .with_metadata(
+            publisher="Integration Press",
+            **{"publisher-place": "Nowhere"},
+            registrations={"isbn": {"print": "9781960780010"}},
+        )
         .with_chapter(
             "00-intro.md",
             "# Intro\n\nHere the first witness of the coverwrap runner stands "

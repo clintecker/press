@@ -315,8 +315,12 @@ def generate(interior: Path, output: Path) -> Path:
   {logo_block}
   {{\\footnotesize\\scshape {esc(meta['publisher'])}, {esc(meta['publisher-place'])}\\par}}
 }};
-% barcode, back cover lower right with quiet margin
-\\node[anchor=south east] at ({barcode_x:.4f}in,{barcode_y:.4f}in) {{
+% barcode, back cover lower right with quiet margin. inner sep=0 is
+% load-bearing: without it the node's default padding (~0.05in) shifts the
+% whole symbol left of where verify_coverwrap expects it, and the first guard
+% bar reads as ink in the left quiet zone. The symbol's own inches carry the
+% required quiet zones; the node must add none of its own.
+\\node[anchor=south east,inner sep=0] at ({barcode_x:.4f}in,{barcode_y:.4f}in) {{
 {barcode_tex(isbn_for_print())}
 }};
 \\end{{tikzpicture}}%
