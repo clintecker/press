@@ -9,6 +9,20 @@ audit).
 
 ## [Unreleased]
 
+### Changed
+
+- **Plates are kept as alpha PNG masters, composited per surface** (#226).
+  `press art accept --as plate:<name>` no longer bakes a white background into
+  a JPEG: it keeps the plate as an alpha PNG master -- ink on transparency,
+  the light ground keyed out with a luminance key (ink-on-white is trivially
+  separable), greyed to the single interior ink when the aesthetic states it.
+  One master then composites onto any surface: the print interior flattens it
+  onto white, a cloth cover onto the field colour (as the imprint logo already
+  does through `print_safe`), and the reader edition serves it transparent so
+  a plate reads on a white or a dark page. A baked-white delivery is segmented
+  at intake, never shipped opaque; a delivery already on transparency keeps
+  its mask. `press art enhance` preserves a master's alpha through finishing.
+
 ## [2.3.1] - 2026-07-24
 
 A hardening release. Two output bugs are corrected -- a retail barcode that

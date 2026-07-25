@@ -126,3 +126,27 @@ def test_prepare_rebuilds_from_scratch(tmp_path):
 def test_prepare_returns_none_without_rasters(tmp_path):
     (tmp_path / "assets").mkdir()
     assert print_safe.prepare(tmp_path) is None
+
+
+@pytest.mark.layer("unit")
+def test_one_alpha_plate_master_composites_per_surface(tmp_path):
+    # #226: one alpha plate master serves every surface. The interior print
+    # gets it flattened onto white; a coloured cover field gets it flattened
+    # onto that field; the web edition keeps the transparent master untouched.
+    master = tmp_path / "plate.png"
+    ink, ground = (0, 0, 0, 255), (0, 0, 0, 0)
+    img = Image.new("RGBA", (4, 4), ground)
+    img.putpixel((0, 0), ink)
+    img.save(master)
+
+    on_white, on_cloth = tmp_path / "white.png", tmp_path / "cloth.png"
+    print_safe.sanitize(master, on_white, 1000)
+    print_safe.sanitize(master, on_cloth, 1000, background=(150, 40, 40))
+
+    white, cloth = Image.open(on_white), Image.open(on_cloth)
+    assert white.mode == "RGB" and cloth.mode == "RGB"
+    # Ink is opaque on every surface; the ground takes each surface's colour.
+    assert white.getpixel((0, 0)) == (0, 0, 0) and white.getpixel((3, 3)) == (255, 255, 255)
+    assert cloth.getpixel((0, 0)) == (0, 0, 0) and cloth.getpixel((3, 3)) == (150, 40, 40)
+    # The master on disk is untouched, so the web edition still serves alpha.
+    assert Image.open(master).getchannel("A").getextrema() == (0, 255)

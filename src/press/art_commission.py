@@ -266,12 +266,16 @@ def style_references(root: Path, target: str) -> list[tuple[bytes, str]]:
 
     if not target.startswith("plate:"):
         return []
-    own = target.split(":", 1)[1] + ".jpg"
+    own = target.split(":", 1)[1]
     plates = [
-        p for p in sorted((root / "assets" / "woodcuts").glob("*.jpg"))
-        if p.name != own
+        p for p in booklib.plate_files(root / "assets" / "woodcuts")
+        if p.stem != own
     ][:2]
-    return [(normalize_reference(p.read_bytes(), p), "image/jpeg") for p in plates]
+    mime = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}
+    return [
+        (normalize_reference(p.read_bytes(), p), mime.get(p.suffix.lower(), "image/png"))
+        for p in plates
+    ]
 
 
 LIKENESS_PREAMBLE = (

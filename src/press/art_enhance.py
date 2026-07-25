@@ -192,7 +192,9 @@ def enhance(src: Path, dst: Path, *, model: str | None = None,
     upscaler present the image is resampled with a plain high-quality filter
     instead, so the quantize/compress win still lands and the call never fails
     for want of the external tool. ``grayscale`` false keeps a colour interior's
-    plates in colour (#214); it defaults true, the single-ink honest space.
+    plates in colour (#214); it defaults true, the single-ink honest space. A
+    master that carries alpha (a segmented or transparent plate) keeps its mask
+    through the finish, so one graphic still composites onto any surface.
     """
 
     from PIL import Image
@@ -223,9 +225,19 @@ def enhance(src: Path, dst: Path, *, model: str | None = None,
         big = big.resize((round(big.width * ratio), round(big.height * ratio)),
                          Image.Resampling.LANCZOS)
 
+    # A plate master carries alpha (segmented from baked white, or generated
+    # transparent) so it composites onto any surface; finishing must not
+    # re-bake it. Keep the mask, quantize only the ink, and reattach.
+    alpha = big.getchannel("A") if "A" in big.getbands() else None
     paletted = quantize(big, colors, grayscale=grayscale)
+    finished: Image.Image = paletted
+    if alpha is not None:
+        if alpha.size != paletted.size:
+            alpha = alpha.resize(paletted.size, Image.Resampling.LANCZOS)
+        finished = paletted.convert("RGBA")
+        finished.putalpha(alpha)
     dst.parent.mkdir(parents=True, exist_ok=True)
-    _write_lossless_png(paletted, dst)
+    _write_lossless_png(finished, dst)
     if tmp.exists():
         tmp.unlink()
 
