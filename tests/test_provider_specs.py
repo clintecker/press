@@ -70,6 +70,36 @@ def test_color_support_gates_the_selection():
 
 
 @pytest.mark.layer("unit")
+def test_supported_inks_reports_the_ink_axis():
+    # Every provider prints single (black); color appears only when a color
+    # caliper is declared for the binding's spine shape (#222).
+    kdp = provider_specs.load("kdp")
+    house = provider_specs.load()
+    lulu = provider_specs.load("lulu")
+    assert kdp.supported_inks("perfect-bound") == ("single", "color")
+    assert house.supported_inks("perfect-bound") == ("single",)
+    # Lulu declares no color caliper on either the paperback (divisor) or
+    # the hardcover (lookup) shape, so it prints single ink throughout.
+    assert lulu.supported_inks("perfect-bound") == ("single",)
+    assert lulu.supported_inks("casewrap") == ("single",)
+
+
+@pytest.mark.layer("unit")
+def test_support_matrix_is_the_trim_ink_view():
+    # The matrix is one row per offered trim, naming its bindings and the inks
+    # it can be printed in; the house spec (no trims) declares no catalog.
+    assert provider_specs.load().support_matrix() == []
+    kdp = provider_specs.load("kdp").support_matrix()
+    row = next(r for r in kdp if (r["width"], r["height"]) == (6.0, 9.0))
+    assert "perfect-bound" in row["bindings"] and "casewrap" in row["bindings"]
+    # 6x9 offers perfect-bound (color-capable), so color is in the union.
+    assert row["inks"] == ["color", "single"]
+    # A KDP trim offered only in casewrap (single-ink) shows single alone.
+    lulu = provider_specs.load("lulu").support_matrix()
+    assert all(r["inks"] == ["single"] for r in lulu), "lulu prints no color yet"
+
+
+@pytest.mark.layer("unit")
 def test_constant_shape_applies_the_allowance():
     spec = _spec({
         "shape": "constant", "calipers": {"white": 0.002252},

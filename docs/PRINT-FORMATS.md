@@ -30,8 +30,11 @@ press config set print.material casewrap
 ```
 
 An unsupported combination — a trim a vendor does not cut, a dust jacket at a
-vendor that offers none, a page count out of range — is **refused before
-rendering**, naming what went wrong.
+vendor that offers none, a colour interior at a vendor that prints none — is
+**refused by `press check`**, before any render, naming what went wrong. (The
+page-count bounds are checked at build time, where the real page count is
+known.) The trims and inks each vendor supports are captured as data in its
+provider spec, so the gate is one reviewed matrix, not scattered rules.
 
 ## Trim comes from a design profile
 
@@ -84,8 +87,9 @@ deliberate, sealed design decision.
 Colour stock is a different, heavier paper, so the spine is computed from the
 provider's **colour caliper**, not the white/cream one. Only a provider whose
 colour stock is documented can be trusted with that number, so a colour
-interior is **refused before rendering** at a provider that does not specify
-one — the press will not guess a thickness. Today that provider is **KDP**;
+interior is **refused by `press check`**, before any render, at a provider
+that does not specify one — the press will not guess a thickness. Today that
+provider is **KDP**;
 Lulu and IngramSpark refuse a colour interior until their colour stock is
 researched and sourced.
 
@@ -144,8 +148,10 @@ What each vendor offers (from their sourced specs):
 | `ingramspark` | perfect-bound, casewrap, dust-jacket | its white 50# is genuinely thinner (512 PPI) |
 | `house` | perfect-bound, saddle-stitch, coil | the default; reproduces the v1 spine exactly |
 
-The full trim × binding matrix and page-count bounds live in each provider's
-spec; `press coverwrap` refuses a combination the vendor does not offer.
+The full trim × binding × ink matrix and page-count bounds live in each
+provider's spec; `press check` refuses a trim, binding, or ink the vendor does
+not offer before any render, and `press coverwrap` enforces it again at the
+cover geometry.
 
 Which providers exist and what each can actually do is one reviewed ledger,
 `quality/providers.yaml`; the copy shipped in the wheel is generated from it,

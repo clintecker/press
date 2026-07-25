@@ -106,6 +106,30 @@ def _plate_failures(root: Path, seen: set[Path]) -> list[str]:
     ]
 
 
+def _print_format_failures() -> list[str]:
+    """Refuse a trim + ink + provider combination the chosen printer will not
+    make, at ``press check`` time rather than deep in the cover renderer
+    (#222). The trim and ink come from the selected design profile, the
+    binding from ``print.binding``; the page-count bounds are left to the
+    build, where the real page count is known. The house provider declares no
+    catalog and passes everything, so a book that names no provider is
+    unaffected. An unknown or invalid profile or provider id is reported with a
+    fuller message by the config checks, so it is not double-reported here."""
+
+    from . import profiles, provider_specs
+
+    print_cfg = booklib.metadata().get("print") or {}
+    binding = print_cfg.get("binding", "perfect-bound")
+    try:
+        profile = profiles.active()
+        spec = provider_specs.active()
+        trim_w, trim_h = profile.trim
+        ink = profile.ink
+    except SystemExit:
+        return []
+    return spec.check_selection(trim_w, trim_h, binding, ink=ink)
+
+
 def main() -> int:
     root = booklib.root()
     failures, seen = _source_failures(root)
@@ -118,6 +142,7 @@ def main() -> int:
     failures.extend(_sentinel_failures(seen))
     failures.extend(_plate_failures(root, seen))
     failures.extend(_config_shape_failures(root))
+    failures.extend(_print_format_failures())
 
     if failures:
         print("Source checks failed:")
