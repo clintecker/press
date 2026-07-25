@@ -1,0 +1,21 @@
+# A colour interior on the v1 6x9 geometry: the trim, margins, figure cap, and
+# typography are house-6x9's exact numbers, but the interior prints in colour
+# rather than a single black ink (#211). Use it for an illustrated book -- a
+# cookbook, an early reader, a photo-essay -- whose interior wants colour, and
+# pair it with a provider that prints a colour interior (print.provider: kdp).
+#
+# The geometry is house-6x9's, byte-for-byte, so a text-only page renders
+# identically; only the ink discipline differs, which lifts the print verifier's
+# single-ink prohibition and keeps commissioned plates in colour. Do not change a
+# geometry value without a design-major bump.
+id: house-6x9-color
+design-major: 1
+ink: color
+trim: {width: 6.0, height: 9.0}
+
+interior:
+  margins: {inner: 0.78, outer: 0.68, top: 0.72, bottom: 0.78, headsep: 0.20, footskip: 0.38}
+  figure-cap: 6.3
+  typography: {indent: 1.1em, leading: 1.045}
+
+web: {measure: 48rem, base-size: 1.25rem, line-height: 1.62}

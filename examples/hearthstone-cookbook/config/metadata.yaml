@@ -19,3 +19,12 @@ verify-sentinels:
   - "a good soup forgives a distracted cook"
   - "bread wants a warm corner and your patience"
 verify-min-pages: 1
+
+# A cookbook is the canonical colour-interior book (#215): the color design
+# profile lifts the single-ink rule so photographs and tinted plates print in
+# colour, and KDP is the provider whose colour stock is documented, so the
+# spine is computed from its color caliper.
+print:
+  profile: house-6x9-color
+  provider: kdp
+  paper: white

@@ -58,6 +58,52 @@ identity — the font family and the colour palette — which stay with the
 and override the profile. So choosing a profile changes the design's
 proportions; choosing an aesthetic changes its voice.
 
+## Colour interiors
+
+The interior prints in a single black ink by default — the cheapest, sealed
+house discipline, and the honest space for an engraving. A book whose interior
+wants **colour** — a cookbook of food photographs, an early reader, a
+photo-essay — selects a colour design profile:
+
+```sh
+press config set print.profile house-6x9-color && \
+press config set print.provider kdp
+```
+
+`house-6x9-color` is the 6×9 house geometry, byte-for-byte, with one difference:
+the interior prints in colour. A text-only page renders identically to
+`house-6x9`; the change lifts the print verifier's single-ink rule and keeps
+your commissioned plates in colour instead of graying them at intake.
+
+Colour is a **profile** choice, not an aesthetic one: the aesthetic still cannot
+tint the interior, so the single-ink craft law is intact — colour is a
+deliberate, sealed design decision.
+
+### It must be paired with a provider that prints colour
+
+Colour stock is a different, heavier paper, so the spine is computed from the
+provider's **colour caliper**, not the white/cream one. Only a provider whose
+colour stock is documented can be trusted with that number, so a colour
+interior is **refused before rendering** at a provider that does not specify
+one — the press will not guess a thickness. Today that provider is **KDP**;
+Lulu and IngramSpark refuse a colour interior until their colour stock is
+researched and sourced.
+
+Colour costs more to print, and the page is thicker: KDP offers a
+**standard** and a **premium** colour grade, and `print.color-grade` picks
+between them (standard by default).
+
+```sh
+press config set print.color-grade premium-color   # optional; standard otherwise
+```
+
+When you order a golden copy of a colour edition (see
+[print ordering](https://github.com/clintecker/press/blob/main/docs/PRINT-ORDERING.md)),
+the inspection's **colour** checklist point is where you confirm the ink
+reproduces on the physical copy as it does on screen. The
+[Hearthstone Table](https://github.com/clintecker/press/tree/main/examples/hearthstone-cookbook)
+example is a colour cookbook built this way.
+
 ## Binding sets the cover's shape
 
 The binding decides the cover topology, independent of the vendor:
