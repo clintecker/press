@@ -74,12 +74,25 @@ def context(meta: dict, aes: dict, subject: str = "") -> dict[str, str]:
     imprint = str(meta.get("publisher") or "")
     palette = aes.get("web-palette") or aes
     cover = aes.get("cover") or {}
+    # The cover imagery is drawn from the book's subject. Prefer an explicit
+    # --subject, then a cover.subject the aesthetic states, then the book's own
+    # description (its subject in the author's words) or the cover.emblem it
+    # describes -- so a book that says what it is about gets that on its cover,
+    # instead of the literal "the book's subject" that made the model invent
+    # generic motifs. The literal remains only when a book states nothing.
+    resolved_subject = (
+        subject
+        or str(cover.get("subject") or "").strip()
+        or str(meta.get("description") or "").strip()
+        or str(cover.get("emblem") or "").strip()
+        or "the book's subject"
+    )
     return {
         "title": str(meta.get("title") or ""),
         "author": str(authors[0] if authors else ""),
         "imprint": imprint,
         "initials": _initials(imprint),
-        "subject": subject or str(cover.get("subject") or "the book's subject"),
+        "subject": resolved_subject,
         "accent": str(palette.get("accent") or "#7a2325"),
         "paper": str(palette.get("paper") or "#f4f1e6"),
     }

@@ -72,3 +72,20 @@ def test_a_book_can_define_and_use_its_own_style(tmp_path):
     prompt = cover.build_prompt(styles["my-house"], cover.context(META, AES))
     assert 'Between the Tides' in prompt and "#2f8f7f" in prompt
     assert "EXACT TEXT" in prompt         # baked by default, so text is guarded
+
+
+def test_subject_falls_back_to_the_book_description():
+    """When the aesthetic states no cover.subject, the cover imagery is drawn
+    from the book's own description (its subject in the author's words), and
+    only from the literal placeholder when a book states nothing -- so a
+    printer's manual gets printing motifs, not the generic scene the model
+    invents from 'the book's subject'."""
+
+    meta = {"title": "T", "description": "a printer's manual of letterpress work"}
+    assert "letterpress" in cover.context(meta, {})["subject"]
+    # cover.subject wins over description; an explicit --subject wins over both
+    aes = {"cover": {"subject": "a stated cover subject"}}
+    assert cover.context(meta, aes)["subject"] == "a stated cover subject"
+    assert cover.context(meta, aes, subject="explicit")["subject"] == "explicit"
+    # nothing stated -> the honest literal, never an empty string
+    assert cover.context({}, {})["subject"] == "the book's subject"
