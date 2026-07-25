@@ -101,3 +101,37 @@ def parse(markdown: str) -> list[Figure]:
             description=" ".join(body.split()) if body else None,
         ))
     return figures
+
+
+def as_dict(fig: Figure) -> dict[str, object]:
+    """One figure as a plain mapping, for JSON hand-off to a workflow that reads
+    the author's ``art:`` descriptions instead of re-parsing markdown by eye."""
+
+    return {
+        "src": fig.src,
+        "caption": fig.caption,
+        "kind": fig.kind,
+        "style": fig.style,
+        "directive": fig.directive,
+        "description": fig.description,
+        "generatable": fig.generatable,
+    }
+
+
+def main(argv: list[str]) -> int:
+    """Print every figure declared across the manuscript as JSON: the one
+    authoritative reading of what the author asked to be drawn (kind, style, and
+    ``art:`` description), so a tool never has to guess it from a caption (#225)."""
+
+    import json
+
+    from . import booklib
+
+    root = booklib.root()
+    records: list[dict[str, object]] = []
+    for path in booklib.chapter_files():
+        rel = str(path.relative_to(root))
+        for fig in parse(path.read_text(encoding="utf-8")):
+            records.append({"file": rel, **as_dict(fig)})
+    print(json.dumps(records, indent=2))
+    return 0

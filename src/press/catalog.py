@@ -66,6 +66,8 @@ COMMANDS: tuple[Command, ...] = (
     # utilities
     Command("render", "utilities", "Render the PDF to page PNGs"),
     Command("wordcount", "utilities", "Count the manuscript words"),
+    Command("figures", "utilities",
+            "List declared figures (kind, style, art: description) as JSON"),
     Command("clean", "utilities", "Remove build and dist"),
     Command("new", "utilities", "Scaffold a new book", args="<directory>"),
     Command("add", "utilities", "Add a chapter, appendix, or front-matter part",

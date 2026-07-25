@@ -4,8 +4,11 @@ the caption's own words never leak into the picture (#225)."""
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
+from tests import factories
 from press import figures
 
 
@@ -70,3 +73,35 @@ def test_figures_are_returned_in_source_order():
     one, two = figures.parse(md)
     assert (one.src, one.kind) == ("a.jpg", "figure")
     assert (two.src, two.kind, two.generatable) == ("b.jpg", "plate", True)
+
+
+@pytest.mark.layer("unit")
+def test_as_dict_carries_the_art_direction_for_a_workflow():
+    (fig,) = figures.parse(
+        "![A label](assets/fig/x.jpg){.plate style=wood-engraving}\n"
+        "<!-- art: the described scene -->\n")
+    d = figures.as_dict(fig)
+    assert d == {
+        "src": "assets/fig/x.jpg", "caption": "A label", "kind": "plate",
+        "style": "wood-engraving", "directive": "art",
+        "description": "the described scene", "generatable": True,
+    }
+
+
+@pytest.mark.layer("integration")
+def test_press_figures_prints_declared_figures_as_json(tmp_path, capsys):
+    handle = factories.minimal().with_chapter(
+        "01-fig.md",
+        "# Fig\n\n![A compositor](assets/fig/compositor.jpg){.plate}\n"
+        "<!-- art: a compositor's hand on a composing stick -->\n\n"
+        "![Yields](assets/fig/yields.svg){.chart}\n<!-- data: from t.csv -->\n",
+    ).build(tmp_path)
+    with handle.use():
+        assert figures.main([]) == 0
+    records = json.loads(capsys.readouterr().out)
+    plate = next(r for r in records if r["src"] == "assets/fig/compositor.jpg")
+    assert plate["file"] == "book/chapters/01-fig.md"
+    assert plate["description"] == "a compositor's hand on a composing stick"
+    assert plate["generatable"] is True
+    chart = next(r for r in records if r["kind"] == "chart")
+    assert chart["directive"] == "data" and chart["generatable"] is False
