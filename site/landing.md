@@ -32,7 +32,12 @@ produced:
   Finished.* press was extracted from its production, so the tool inherits
   the scars of making it.
 - [**Make Ready**](https://clintecker.github.io/make-ready/) — *A Printer's
-  Manual for the Age of Mechanical Compositors,* by Clint Ecker.
+  Manual for the Age of Mechanical Compositors,* by Clint Ecker. The pipeline
+  end to end: a commissioned clothbound cover and fourteen engraved plates,
+  each drawn by `press illustrate` and finished by `press art enhance`; the
+  reader dressed in the book's own Giants-orange cloth; a subject index,
+  registered ISBNs, and a table of authorities — every surface press offers,
+  exercised in one book.
 
 ## Start a book
 
