@@ -115,6 +115,34 @@ class ProviderSpec:
         return (shape.get("shape") in {"constant", "ppi-table"}
                 and shape.get("color-default") is not None)
 
+    def supported_inks(self, binding: str = "perfect-bound") -> tuple[str, ...]:
+        """The interior inks this provider prints for this binding: always
+        ``single`` (black), plus ``color`` when it declares a color caliper
+        for the spine shape the binding uses (#222). This is the ink axis of
+        the trim/ink support matrix; the trim axis is ``trims``."""
+
+        return ("single", "color") if self.supports_color(binding) else ("single",)
+
+    def support_matrix(self) -> list[dict[str, Any]]:
+        """The trim/ink support view: one row per offered trim, each naming
+        the bindings the provider cuts it in and the inks it prints across
+        those bindings (#222). A spec with no ``trims`` table (the house spec)
+        declares no catalog and returns an empty view, imposing no limits."""
+
+        rows: list[dict[str, Any]] = []
+        for trim in self.data.get("trims") or []:
+            bindings = list(trim.get("bindings") or [])
+            inks = sorted({
+                ink for binding in bindings for ink in self.supported_inks(binding)
+            })
+            rows.append({
+                "width": float(trim["width"]),
+                "height": float(trim["height"]),
+                "bindings": bindings,
+                "inks": inks,
+            })
+        return rows
+
     def check_selection(
         self, trim_w: float, trim_h: float, binding: str, pages: int | None = None,
         *, ink: str = "single",

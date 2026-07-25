@@ -22,6 +22,17 @@ audit).
   then turns red if a profile's geometry ever drifts from its sealed digest,
   making the design contract mechanical. Documented in
   `docs/PROFILE-LIFECYCLE.md` and the `profile-lifecycle` skill.
+- **`press check` refuses an unsupported trim + ink + provider combination
+  (#222).** Which trims and inks each provider (KDP, IngramSpark, Lulu, and
+  the house baseline) prints is captured as data in its provider spec, exposed
+  as a queryable trim/ink support matrix (`ProviderSpec.support_matrix`,
+  `ProviderSpec.supported_inks`). A book whose selected design profile asks for
+  a trim its printer does not cut, a binding it does not offer at that trim, or
+  a colour interior it does not print now fails `press check` with a clear
+  message, before any Pandoc or TeX render rather than deep in the cover
+  generator. The page-count bounds stay a build-time check, where the real page
+  count is known. A book that names no provider keeps the house spec, which
+  declares no catalog and refuses nothing, so every existing book is unchanged.
 
 ### Changed
 
