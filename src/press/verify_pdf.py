@@ -31,26 +31,22 @@ def sentinels() -> list[str]:
     return list(booklib.sentinels())
 
 
-def verify_plate_links(pdf: Path) -> None:
-    """Every List of Plates link must land on a page that holds an image."""
+def _list_links_land_on_images(reader, label: str) -> None:
+    """Every link on the illustration-list page named *label* must land on a
+    page that holds an image. Both lists -- the unnumbered List of Plates and
+    the numbered List of Figures -- are held to it; a list whose page is not
+    present is simply skipped (a book may carry only one)."""
 
-    try:
-        from pypdf import PdfReader
-    except ImportError:
-        print("pypdf unavailable; plate-link destinations not verified")
-        return
-
-    reader = PdfReader(str(pdf))
-    lof_index = next(
+    index = next(
         (i for i, page in enumerate(reader.pages)
-         if "List of plates" in (page.extract_text() or "")),
+         if label in (page.extract_text() or "")),
         None,
     )
-    if lof_index is None:
+    if index is None:
         return
     bad: list[int] = []
     checked = 0
-    for annotation in reader.pages[lof_index].get("/Annots") or []:
+    for annotation in reader.pages[index].get("/Annots") or []:
         obj = annotation.get_object()
         dest = obj.get("/Dest") or (obj.get("/A") or {}).get("/D")
         if dest is None:
@@ -64,15 +60,31 @@ def verify_plate_links(pdf: Path) -> None:
         else:
             target = reader.get_page_number(dest[0].get_object())
         if target is None:
-            raise SystemExit(f"plate link {dest!r} resolves to no page")
+            raise SystemExit(f"{label} link {dest!r} resolves to no page")
         checked += 1
         resources = reader.pages[target].get("/Resources") or {}
         if "/XObject" not in resources:
             bad.append(target + 1)
     if bad:
-        raise SystemExit(f"plate links point at imageless pages: {bad}")
+        raise SystemExit(f"{label} links point at imageless pages: {bad}")
     if checked == 0:
-        raise SystemExit("List of plates present but contains no links")
+        raise SystemExit(f"{label} present but contains no links")
+
+
+def verify_plate_links(pdf: Path) -> None:
+    """Every illustration-list link must land on a page that holds an image.
+    Covers both the Victorian List of Plates (unnumbered woodcuts) and the
+    List of Figures (numbered informative figures)."""
+
+    try:
+        from pypdf import PdfReader
+    except ImportError:
+        print("pypdf unavailable; illustration-list destinations not verified")
+        return
+
+    reader = PdfReader(str(pdf))
+    _list_links_land_on_images(reader, "List of plates")
+    _list_links_land_on_images(reader, "List of Figures")
 
 
 def run_capture(command: list[str]) -> str:

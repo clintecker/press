@@ -10,6 +10,7 @@ pdf-engine-opts:
 metadata-file: "@book/config/metadata.yaml"
 filters:
   - "@press/lua/chapter-dropcap.lua"
+  - "@press/lua/figure-numbering.lua"
 include-in-header:
   - "@press/tex/book-header.tex"
   - "@book/build/profile-geometry.tex?optional"

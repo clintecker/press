@@ -11,6 +11,30 @@ audit).
 
 ### Added
 
+- **Numbered figures, cross-references, and a split illustration list.** A
+  figure that declares an explicit informative kind (`.figure`, `.chart`,
+  `.map`, `.photo`, `.diagram`) now earns a by-chapter number ("Figure 3.2"),
+  a place in a new **List of Figures** kept apart from the Victorian **List of
+  Plates**, and a cross-reference target: give it an `#id` and refer to it
+  anywhere with `@id`, which resolves to a linked "Figure 3.2" — the same
+  number in every format, computed once by a Lua filter with no
+  pandoc-crossref dependency. A **plate** stays unnumbered (the woodcut
+  idiom), and a bare `![…](…)` image is a plate too, so a book that declares
+  no numbered figure typesets **byte-for-byte as before**. The PDF verifier
+  checks both lists' links land on real image pages.
+- **A hardened, relative, parity-aware figure-placement vocabulary** on the
+  image attributes: `width` as a measure (`full-`/`half-`/`third-measure`,
+  never inches), `place` (`inline`, `wrap-inner`, `wrap-outer`, `plate`,
+  `frontispiece`, `full-bleed`, `margin` — parity-aware inner/outer, never
+  left/right), `outset` (the runaround gap, in em), `fig-alt` (accessible alt
+  text, a fourth field distinct from the caption, the `art:` prompt, and any
+  credit line), and `decorative` (an empty-alt ornament). `press check`
+  refuses a malformed placement — an absolute width, a left/right side, an
+  out-of-vocabulary place, a non-em outset, a measure on a plate, or a
+  decorative image that still carries alt text — before any render. Parsed
+  and validated in `press.figures`; documented in `docs/ILLUSTRATIONS.md` and
+  the `plates-and-woodcuts` skill. (A new major: the design contract's figure
+  treatment changes.)
 - **A repeatable print-profile lifecycle: scaffold, prove, seal (#221).**
   Adding a trim or an ink is now one documented path rather than an ad hoc
   edit. `python3 -m press.profile_lifecycle scaffold <id> --trim WxH

@@ -4,3 +4,5 @@ toc: true
 toc-depth: 1
 number-sections: true
 metadata-file: "@book/config/metadata.yaml"
+filters:
+  - "@press/lua/figure-numbering.lua"
