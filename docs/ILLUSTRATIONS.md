@@ -11,24 +11,50 @@ all of its plates in its own single ink.
 
 <!--ILLUSTRATION-STYLES-->
 
-## Commissioning one
+## The subject comes from the manuscript, not the caption
 
-Name the plate and, if you like, a style and a subject:
+A caption is a reader-facing **label**; it is not art direction. So the picture
+is drawn from a separate **`art:` description** you write beside the figure in
+the manuscript — the *kind* on the image, the direction in the comment that
+follows it:
+
+```markdown
+![A compositor at the case](assets/fig/compositor.jpg){.plate style=wood-engraving}
+<!-- art: a compositor's left hand holding a brass composing stick, thumb setting
+     the measure; type in the case behind; 19th-c workshop, high contrast line,
+     no lettering -->
+```
+
+Then name the figure — the image file's stem — and the press reads that
+description as the prompt and the `style=` as the style:
+
+```sh
+press illustrate compositor            # reads the manuscript's art: for it
+press illustrate --list
+```
+
+A figure with **no `art:` description is not drawn** — the press refuses rather
+than fall back to the caption's own words (which is exactly what produced
+literal, silly plates). A `.chart` or `.diagram` is **routed away** from the
+image model: those render from a data file. Run `press figures` to see every
+declared figure as JSON — its kind, style, `art:` description, and whether it is
+generatable — the same authoritative reading the art-direction workflow uses.
+
+You can still direct one straight from the command line with `--subject` (that
+is your art direction, not a caption), and redraw source material with `--from`:
 
 ```sh
 press illustrate limpet --style wood-engraving --subject "a limpet on a wet rock"
 press illustrate coast-map --style engraved-map --from maps/rough-sketch.png
-press illustrate --list
 ```
 
 `press illustrate` writes the art to `build/illustrations/` and prints the one
 command that installs it — `press art accept build/illustrations/<name>.png --as
 plate:<name>` — the same intake every plate passes through, which **greys it to
-the single interior ink** and records it. Then reference it in your manuscript
-like any figure. A book's default style comes from `config/aesthetic.yaml`
-(`plates: {style: wood-engraving}`); `--style` overrides. With no image-model
-key set, `press illustrate` prints the prompt instead, so the press stays
-offline by default.
+the single interior ink** and records it. A book's default style comes from
+`config/aesthetic.yaml` (`plates: {style: wood-engraving}`); the figure's
+`style=` and `--style` override it. With no image-model key set, `press
+illustrate` prints the prompt instead, so the press stays offline by default.
 
 ## Source material
 

@@ -517,6 +517,12 @@ def _run_wordcount(args: list[str]) -> int:
     return wordcount.main()
 
 
+def _run_figures(args: list[str]) -> int:
+    from . import figures
+
+    return figures.main(args[1:])
+
+
 def _run_clean(args: list[str]) -> int:
     for name in ["build", "dist"]:
         directory = booklib.root() / name
@@ -558,6 +564,7 @@ ROUTES: dict[str, Callable[[list[str]], int]] = {
     "all": _run_all,
     "render": _run_render,
     "wordcount": _run_wordcount,
+    "figures": _run_figures,
     "clean": _run_clean,
 }
 

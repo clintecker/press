@@ -1,14 +1,24 @@
 """Commission an in-book illustration -- a plate, map, diagram, or ornament.
 
 An illustration is a cover style pointed inward: it prints in a single ink (the
-interior print law), carries no lettering, and lands as a plate/figure. It is
-drawn from a subject, and optionally from SOURCE MATERIAL an author supplies --
-a photograph, a rough map, a sketch -- redrawn into the book's style::
+interior print law), carries no lettering, and lands as a plate/figure. Its
+subject is the ``art:`` description the author wrote beside the figure in the
+manuscript -- never the caption, which is a reader-facing label, not art
+direction (#225). Name the figure and the press reads that description; or pass
+``--subject`` to direct one straight from the command line. Source material an
+author supplies -- a photograph, a rough map, a sketch -- is redrawn into the
+book's style with ``--from``::
 
+    press illustrate compositor            # reads the manuscript's art: for it
     press illustrate harbour --style wood-engraving --from photos/harbour.jpg
-    press illustrate coast-map --style engraved-map --from maps/rough.png
     press illustrate cell --style line-diagram --subject "a plant cell, labelled"
     press illustrate --list
+
+The name matches a declared figure on its image-file stem -- the same token
+``press art accept ... --as plate:<name>`` records. A figure with no ``art:``
+description is deliberately not drawn (the press must never fall back to the
+caption's own words), and a ``chart``/``diagram`` is routed away from the image
+model entirely: those render from a data file.
 
 Styles come from ``data/illustration-styles.yaml``; a book adds its own in
 ``config/illustration-styles.yaml``, merged over the house set. The request goes
@@ -28,7 +38,7 @@ from __future__ import annotations
 import mimetypes
 from pathlib import Path
 
-from . import adapters, aesthetic, art_commission, booklib, yamlio
+from . import adapters, aesthetic, art_commission, booklib, figures, yamlio
 
 STYLES_DATA = booklib.DATA / "illustration-styles.yaml"
 
@@ -87,6 +97,46 @@ def _resolve_style(styles: dict[str, dict], chosen: str | None, aes: dict) -> st
     return style_id
 
 
+def find_figure(name: str) -> figures.Figure | None:
+    """The manuscript figure whose image file is named ``<name>`` (matched on the
+    filename stem, the same token ``--as plate:<name>`` records), or None when no
+    figure by that name is declared. Its ``art:`` description -- never its caption
+    -- is what press illustrate draws (#225)."""
+
+    try:
+        paths = booklib.chapter_files()
+    except FileNotFoundError:
+        return None
+    for path in paths:
+        for fig in figures.parse(path.read_text(encoding="utf-8")):
+            if Path(fig.src).stem == name:
+                return fig
+    return None
+
+
+def subject_from_figure(fig: figures.Figure | None, name: str) -> str:
+    """The art-direction subject for a named figure: its ``art:`` description.
+    Refuses -- never silently draws the caption (#225) -- when the figure is
+    undeclared, is a chart/diagram that renders from data, or carries no ``art:``
+    description at all."""
+
+    if fig is None:
+        raise SystemExit(
+            f"press illustrate: no figure named {name!r} in the manuscript, and no "
+            f"--subject given. Declare it (e.g. ![caption](assets/fig/{name}.jpg)"
+            "{.plate}) with an <!-- art: … --> description, or pass --subject.")
+    if fig.kind in figures.DATA_KINDS:
+        raise SystemExit(
+            f"press illustrate: figure {name!r} is a {fig.kind}; it renders from its "
+            f"{fig.directive or 'data'} file, not an image model. It is not illustrated.")
+    if not fig.generatable or not fig.description:
+        raise SystemExit(
+            f"press illustrate: figure {name!r} carries no <!-- art: … --> description. "
+            "A caption is a label, not art direction (#225): add an art: comment after "
+            "the image in the manuscript, or pass --subject.")
+    return fig.description
+
+
 class _Args:
     def __init__(self) -> None:
         self.name: str | None = None
@@ -131,11 +181,20 @@ def main(argv: list[str]) -> int:
     root = booklib.root()
     styles = load_styles(root)
     aes = aesthetic.effective()
+
+    # No --subject on the command line means the subject is the figure's own
+    # art: description from the manuscript; the figure may also name the style.
+    if not subject:
+        fig = find_figure(name)
+        subject = subject_from_figure(fig, name)
+        if style_arg is None and fig is not None:
+            style_arg = fig.style
+
     style_id = _resolve_style(styles, style_arg, aes)
     style = styles[style_id]
     if style.get("source") == "required" and not source:
         raise SystemExit(f"the {style_id} style needs source material: --from <image>")
-    prompt = build_prompt(style, context(aes), subject or "the figure described in the caption")
+    prompt = build_prompt(style, context(aes), subject)
 
     references = None
     if source:
