@@ -110,7 +110,10 @@ def test_house_pdf_layout_matches_baseline(tmp_path):
     any(shutil.which(t) is None for t in ("pandoc", "lualatex", "latexmk", "pdfinfo")),
     reason="requires capability: pandoc, lualatex, latexmk, pdfinfo",
 )
-@pytest.mark.parametrize("profile_id", ["house-6x9", "novella-5x8"])
+@pytest.mark.parametrize("profile_id", [
+    "house-6x9", "novella-5x8",
+    "large-print-7x10", "digest-5.5x8.5", "mass-market-4.25x6.87",
+])
 def test_profile_renders_at_its_declared_trim(tmp_path, profile_id):
     """Selecting a profile renders the interior at that profile's trim -- the
     geometry proof #172 owes for every profile, self-contained (the profile's

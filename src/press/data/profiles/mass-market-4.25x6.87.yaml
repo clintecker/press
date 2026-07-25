@@ -1,0 +1,31 @@
+# A mass-market design profile: 4.25x6.87, the rack-sized paperback of genre
+# fiction -- the smallest, densest trade trim (#217). Same interior structure
+# as the house design, laid out compact: tight margins and a dense type
+# treatment so a long novel still fits a pocketable spine. A design profile
+# carries the interior LOOK only (trim, margins, figure cap, typography);
+# manufacturing numbers live in a provider spec, so this design prints at any
+# vendor that cuts a 4.25x6.87 pocketbook. Today that is Lulu (its Pocketbook
+# trim); KDP and IngramSpark do not cut this size, so a book on this profile
+# is refused there before rendering. See docs/PRINT-PROFILES-PLAN.md.
+#
+# Sealed and versioned by design-major: do not change a number without a
+# design-major bump.
+id: mass-market-4.25x6.87
+design-major: 1
+trim: {width: 4.25, height: 6.87}
+
+interior:
+  # Tight margins for the pocket page: the text block is ~3.17in, the compact
+  # measure the mass-market rack demands. Inner still runs deeper than outer to
+  # clear the binding on the small trim.
+  margins: {inner: 0.62, outer: 0.46, top: 0.56, bottom: 0.62, headsep: 0.16, footskip: 0.32}
+  # Figure-height cap (the LuaLaTeX empty-page scar). Text block ~5.69in tall,
+  # so 4.8in stays clear of \textheight -- illustration is rare at this trim.
+  figure-cap: 4.8
+  # The mass-market discipline: a small indent and tight leading, the densest
+  # type treatment of the house profiles -- what lets a long novel fit the
+  # rack-sized spine. A genuinely distinct design, not a shrunk house.
+  typography: {indent: 0.9em, leading: 1.02}
+
+# The narrowest web measure, matching the pocket page.
+web: {measure: 34rem, base-size: 1.15rem, line-height: 1.6}

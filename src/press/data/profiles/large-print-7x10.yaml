@@ -1,0 +1,33 @@
+# A large-print design profile: 7x10 with a bigger base type and generous
+# leading, for accessibility and an underserved market (#216). Same interior
+# STRUCTURE as the house design -- the drop-cap discipline, the figure cap,
+# the margin idiom -- only laid out at a size a low-vision reader can hold at
+# arm's length. A design profile carries the interior LOOK only (trim,
+# margins, figure cap, typography); manufacturing numbers (spine, bleed, wrap)
+# live in a provider spec, so this design prints at any vendor that cuts 7x10
+# (Lulu, KDP, IngramSpark all do). See docs/PRINT-PROFILES-PLAN.md.
+#
+# These numbers are sealed and versioned by design-major: do not change one
+# without a design-major bump. The wider page carries wider margins, so the
+# measure stays comfortable at the larger type rather than sprawling.
+id: large-print-7x10
+design-major: 1
+trim: {width: 7.0, height: 10.0}
+
+interior:
+  # Generous margins for the 7in page: the text block is ~5.35in, wide enough
+  # to breathe but short enough that a large face still returns the eye
+  # cleanly. Inner runs deeper than outer to clear the binding.
+  margins: {inner: 0.90, outer: 0.75, top: 0.85, bottom: 0.95, headsep: 0.22, footskip: 0.42}
+  # Figure-height cap (the LuaLaTeX empty-page scar). The text block is ~8.2in
+  # tall, so 7.2in leaves a full inch of clearance -- never near \textheight.
+  figure-cap: 7.2
+  # The large-print discipline: the house indent held for structure, and a
+  # markedly more open leading (1.2 vs the house 1.045) so the larger face has
+  # air between lines -- the single change that most helps a low-vision reader.
+  typography: {indent: 1.1em, leading: 1.2}
+
+# The reader site matches the print discipline: a wider measure and a larger
+# base face, with open line height. Palette and font family stay with the
+# aesthetic; this is the structural web measure the profile seals.
+web: {measure: 54rem, base-size: 1.4rem, line-height: 1.8}
