@@ -75,6 +75,22 @@ class Profile:
 
         return self.data.get("chapter-opening") or {"style": "none"}
 
+    @property
+    def ink(self) -> str:
+        """Whether the interior prints in a single ink (black -- the sealed v1
+        default) or in ``color``. A profile that does not declare it is
+        ``single``, so every existing book is unchanged; only a profile that
+        opts into ``color`` carries colour through the print pack, the plates,
+        and interior verification. The value is validated here so a typo fails
+        the build early rather than silently printing the wrong thing."""
+
+        value = str(self.data.get("ink", "single"))
+        if value not in {"single", "color"}:
+            raise SystemExit(
+                f"print profile {self.id!r}: ink must be 'single' or 'color', "
+                f"not {value!r}")
+        return value
+
 
 def profiles_dir() -> Path:
     return booklib.DATA / "profiles"
@@ -159,6 +175,12 @@ def digest(profile: Profile) -> str:
         "interior": profile.data.get("interior"),
         "web": profile.data.get("web"),
     }
+    # Ink is design-affecting -- a colour interior is a different physical
+    # object -- so it keys the visual baseline. But it contributes only when it
+    # departs from the sealed ``single`` default, so every existing single-ink
+    # profile keeps the exact digest its baseline was minted under.
+    if profile.ink != "single":
+        payload["ink"] = profile.ink
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
 

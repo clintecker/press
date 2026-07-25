@@ -110,6 +110,36 @@ def test_digest_is_stable_and_sensitive():
 
 
 @pytest.mark.layer("unit")
+def test_profile_ink_defaults_to_single_and_stays_byte_identical():
+    # A profile that does not declare ink is single-ink, and declaring it
+    # single explicitly changes neither the value nor the digest -- so every
+    # existing book, whose profile omits ink, is unchanged and its visual
+    # baseline still holds.
+    house = profiles.load("house-6x9")
+    assert house.ink == "single"
+    explicit = profiles.Profile("house-6x9", {**house.data, "ink": "single"})
+    assert explicit.ink == "single"
+    assert profiles.digest(explicit) == profiles.digest(house)
+
+
+@pytest.mark.layer("unit")
+def test_a_color_profile_declares_color_and_keys_a_distinct_baseline():
+    base = _synthetic()
+    color = profiles.Profile(base.id, {**base.data, "ink": "color"})
+    assert color.ink == "color"
+    # A colour interior is a different physical object, so it must not share a
+    # single-ink profile's visual baseline.
+    assert profiles.digest(color) != profiles.digest(base)
+
+
+@pytest.mark.layer("unit")
+def test_an_unknown_ink_is_refused():
+    bad = profiles.Profile("bad", {**_synthetic().data, "ink": "duotone"})
+    with pytest.raises(SystemExit, match="ink must be 'single' or 'color'"):
+        _ = bad.ink
+
+
+@pytest.mark.layer("unit")
 def test_unknown_profile_is_refused_before_rendering():
     with pytest.raises(SystemExit) as exc:
         profiles.load("no-such-profile")
