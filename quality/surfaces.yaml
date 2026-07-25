@@ -80,6 +80,7 @@ modules:
   pcn: pure
   print_safe: producer
   profiles: {default: pure, overrides: {load: parser, active: parser, write_geometry_tex: producer}}
+  profile_lifecycle: {default: producer, overrides: {load_seals: parser, validate: verifier, main: presenter}}
   provider_specs: {default: pure, overrides: {load: parser, active: parser}}
   process_control: {default: orchestrator, overrides: {}}
   publish: {default: orchestrator, overrides: {}}

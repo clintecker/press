@@ -9,6 +9,20 @@ audit).
 
 ## [Unreleased]
 
+### Added
+
+- **A repeatable print-profile lifecycle: scaffold, prove, seal (#221).**
+  Adding a trim or an ink is now one documented path rather than an ad hoc
+  edit. `python3 -m press.profile_lifecycle scaffold <id> --trim WxH
+  [--ink color]` derives a new profile from proven geometry; the golden-copy
+  geometry test renders every shipped profile at its declared trim, so a new
+  profile is covered the moment it exists; and `... seal <id>` records the
+  profile's design-affecting digest in a shipped ledger
+  (`data/profile-seals.yaml`). A new selftest gate (`check_profile_seals`)
+  then turns red if a profile's geometry ever drifts from its sealed digest,
+  making the design contract mechanical. Documented in
+  `docs/PROFILE-LIFECYCLE.md` and the `profile-lifecycle` skill.
+
 ## [2.3.1] - 2026-07-24
 
 A hardening release. Two output bugs are corrected -- a retail barcode that

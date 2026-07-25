@@ -1,0 +1,26 @@
+# The print-profile seal ledger: the design-contract record that each
+# shipped profile's interior geometry was proven and sealed under a
+# design major. A seal binds a profile id to the design-affecting digest
+# (press.profiles.digest) it was qualified at; the selftest
+# (check_profile_seals) fails when a profile's geometry drifts from its
+# sealed digest, so appearance cannot change without a deliberate
+# re-seal. Maintain it through the lifecycle, never by hand: run
+#   python3 -m press.profile_lifecycle seal <profile-id>
+# after proving a new or changed profile. See docs/PROFILE-LIFECYCLE.md.
+schema-version: 1
+seals:
+  house-6x9:
+    design-major: 1
+    digest: c524978840a0af4e
+    qualified-on: '2026-07-25'
+    note: The v1 house 6x9 interior, sealed byte-for-byte from the v1 TeX header; the baseline every profile is diffed against.
+  house-6x9-color:
+    design-major: 1
+    digest: a280760e423612e8
+    qualified-on: '2026-07-25'
+    note: The house 6x9 geometry printed in colour rather than a single black ink (#211).
+  novella-5x8:
+    design-major: 1
+    digest: ae1fb2ce3e139411
+    qualified-on: '2026-07-25'
+    note: 'The 5x8 Digest/Novella trim: a genuinely different qualified design, not a resized house (#172).'

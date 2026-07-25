@@ -790,6 +790,35 @@ def check_provider_qualification() -> None:
         raise SystemExit("selftest: qualification honored a stale inspection")
 
 
+def check_profile_seals() -> None:
+    """Every shipped print profile is sealed under the design contract, and
+    the seal gate bites: a profile whose geometry drifts from its sealed
+    digest is refused, so appearance cannot change without a deliberate
+    re-seal (the design-major law)."""
+
+    from . import profile_lifecycle as pl
+
+    problems = pl.validate()
+    if problems:
+        raise SystemExit(f"selftest: profile seal ledger does not hold: {problems[:2]}")
+    # The gate is real: a seal recording a digest the profile no longer has is
+    # drift, and must be refused.
+    seals = pl.load_seals()
+    if not seals:
+        raise SystemExit("selftest: no profile seal ledger shipped")
+    victim = next(iter(seals))
+    drifted = dict(seals)
+    drifted[victim] = pl.Seal(
+        profile_id=victim, design_major=seals[victim].design_major,
+        digest="deadbeefdeadbeef", qualified_on=seals[victim].qualified_on)
+    if not any("drifted from its seal" in p for p in pl.validate(drifted)):
+        raise SystemExit("selftest: profile seal gate did not catch a digest drift")
+    # An unsealed shipped profile is refused too.
+    without = {k: v for k, v in seals.items() if k != victim}
+    if not any("is not sealed" in p for p in pl.validate(without)):
+        raise SystemExit("selftest: profile seal gate did not catch an unsealed profile")
+
+
 def check_commerce_config() -> None:
     """The print-order config verifier refuses an insecure origin, an
     unnamed seller, and an embedded secret; a policy page may be linked out
@@ -1375,6 +1404,7 @@ PRODUCER_REJECTION_PROOFS = {
     "gen_index": "a build rejects a zero-hit index term",
     "package_source": "check_source_policy rejects a leaked secret or a stray file",
     "print_safe": "test_print_safe and this selftest reject a backslash reaching TeX",
+    "profile_lifecycle": "check_profile_seals rejects an unsealed profile or a seal whose digest drifted from the profile's geometry",
     "scaffold": "check_scaffold_neutrality rejects a non-neutral scaffold",
 }
 
@@ -1540,6 +1570,7 @@ CHECKS = [
     check_receipt_chain,
     check_edition_manifest,
     check_provider_qualification,
+    check_profile_seals,
     check_commerce_config,
     check_commerce_release_gate,
     check_provider_contract,

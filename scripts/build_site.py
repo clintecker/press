@@ -116,6 +116,9 @@ NOT_PUBLISHED = {
     "docs/PROVIDER-DATA.md": "contributor workflow for regenerating the packaged "
                              "provider ledger; lives in the repo for maintainers, "
                              "not on a site written for authors",
+    "docs/PROFILE-LIFECYCLE.md": "contributor workflow for adding, proving, and "
+                                 "sealing a print profile; lives in the repo for "
+                                 "maintainers, not on a site written for authors",
     "docs/EXTENSION-CONTRACT.md": "implementer-facing spec for extending the press "
                                   "itself; lives in the repo for the few who write an "
                                   "extension, not on a site written for authors",
