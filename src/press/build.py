@@ -485,6 +485,19 @@ EDITION_DESCRIPTIONS = [
 ]
 
 
+def _edition_row(name: str, slug: str, trim_text: str) -> tuple[str, str] | None:
+    """The (label, description) for a download by its exact ``{slug}{suffix}``
+    name, or None when it is not a listed edition. Matched exactly, never by
+    ``endswith``: the sources companion ``{slug}-sources.md`` also ends in
+    ``.md`` and would otherwise be labelled a second "Manuscript edition"
+    beside the real ``{slug}.md``."""
+
+    for suffix, label, desc in EDITION_DESCRIPTIONS:
+        if name == f"{slug}{suffix}":
+            return label, desc.format(trim=trim_text)
+    return None
+
+
 def subtitle_stack_html(subtitle: str) -> str:
     """The landing page's OR stack, mirroring the title page's seams."""
 
@@ -608,16 +621,17 @@ def pages_build(output_dir: str) -> None:
         '    <tr><td><a href="read/index.html">Chapter edition</a></td>\n'
         '        <td class="desc">the book as a small website, one chapter per page</td></tr>'
     ]
+    slug = booklib.slug()
     for name in download_names():
-        for suffix, label, desc in EDITION_DESCRIPTIONS:
-            if name.endswith(suffix):
-                description = desc.format(trim=trim_text)
-                rows.append(
-                    f'    <tr><td><a href="downloads/{html_mod.escape(name)}">'
-                    f"{label}</a></td>\n"
-                    f'        <td class="desc">{html_mod.escape(description)}</td></tr>'
-                )
-                break
+        match = _edition_row(name, slug, trim_text)
+        if match is None:
+            continue
+        label, description = match
+        rows.append(
+            f'    <tr><td><a href="downloads/{html_mod.escape(name)}">'
+            f"{label}</a></td>\n"
+            f'        <td class="desc">{html_mod.escape(description)}</td></tr>'
+        )
 
     cover_block = ""
     if (root / "assets" / "cover.jpg").is_file():

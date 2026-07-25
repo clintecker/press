@@ -115,3 +115,20 @@ def test_verifier_refuses_a_page_without_jsonld(tmp_path):
     (pages / "index.html").write_text("<html><body>no metadata</body></html>", encoding="utf-8")
     assert verify_pages.check_landing_metadata(pages, "A Book", "") == [
         "landing page carries no JSON-LD structured metadata"]
+
+
+def test_sources_companion_is_not_a_second_manuscript_edition():
+    """The Table-of-Authorities companion is ``{slug}-sources.md`` -- it also
+    ends in ``.md``, so an endswith match once labelled it a second "Manuscript
+    edition" beside the real ``{slug}.md`` on the landing (make-ready showed the
+    duplicate). The exact ``{slug}{suffix}`` match gives each its own label."""
+
+    slug = "make-ready"
+    assert build._edition_row(f"{slug}.md", slug, "6 by 9 inches")[0] == "Manuscript edition"
+    assert build._edition_row(f"{slug}-sources.md", slug, "6 by 9 inches")[0] == "Table of authorities"
+    # And the neighbouring collisions stay distinct.
+    assert build._edition_row(f"{slug}-source.zip", slug, "x")[0] == "Source edition"
+    assert build._edition_row(f"{slug}-site.zip", slug, "x")[0] == "Chapter edition, boxed"
+    assert build._edition_row(f"{slug}.pdf", slug, "6 by 9 inches")[0] == "Print edition"
+    # A name that is not a listed edition gets no row.
+    assert build._edition_row(f"{slug}-interior.pdf", slug, "x") is None
