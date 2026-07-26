@@ -25,7 +25,7 @@ layers (design, binding, material, provider).
 Derive a new profile from an existing one, so it starts from proven geometry
 instead of a blank file:
 
-```
+```sh
 python3 -m press.profile_lifecycle scaffold trade-5-5x8-5 --trim 5.5x8.5
 python3 -m press.profile_lifecycle scaffold photo-8x10 --trim 8x10 --ink color
 ```
@@ -45,13 +45,13 @@ shipped profile** through the real toolchain and asserts the interior comes
 out at the declared trim — a new profile is covered the moment its YAML
 exists:
 
-```
+```sh
 python3 -m pytest tests/test_visual_regression.py::test_profile_renders_at_its_declared_trim -q
 ```
 
 Render it and read the page, too:
 
-```
+```sh
 press config set print.profile trade-5-5x8-5 && press print
 ```
 
@@ -63,7 +63,7 @@ and its design-major in the ledger
 (`src/press/data/profile-seals.yaml`). The digest is read from the profile —
 you can never seal a geometry the profile does not actually have:
 
-```
+```sh
 python3 -m press.profile_lifecycle seal trade-5-5x8-5 --note "5.5x8.5 US trade paperback"
 ```
 
@@ -75,7 +75,7 @@ act on the record.
 
 ## Verify the whole ledger holds
 
-```
+```sh
 python3 -m press.profile_lifecycle validate   # every shipped profile sealed and current
 python3 -m press selftest                      # the gate among all the others
 ```

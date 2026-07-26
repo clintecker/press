@@ -35,7 +35,7 @@ is `docs/PROFILE-LIFECYCLE.md`; the machinery is `press.profile_lifecycle`.
 
 Derive a new profile from an existing one so it starts from proven geometry:
 
-```
+```sh
 python3 -m press.profile_lifecycle scaffold trade-5-5x8-5 --trim 5.5x8.5
 python3 -m press.profile_lifecycle scaffold photo-8x10 --trim 8x10 --ink color
 ```
@@ -52,14 +52,14 @@ The profile's own declared numbers are the oracle. The golden-copy geometry
 test renders **every shipped profile** through the real toolchain and asserts
 the interior comes out at the declared trim:
 
-```
+```sh
 python3 -m pytest tests/test_visual_regression.py::test_profile_renders_at_its_declared_trim -q
 ```
 
 Your new profile is covered the moment its YAML exists — no separate baseline
 to hand-mint. Also render it and look at the page:
 
-```
+```sh
 press config set print.profile trade-5-5x8-5 && press print
 ```
 
@@ -69,7 +69,7 @@ Sealing records the profile's design-affecting digest and its design-major in
 the ledger (`src/press/data/profile-seals.yaml`). The digest is read from the
 profile — you cannot seal a geometry the profile does not have:
 
-```
+```sh
 python3 -m press.profile_lifecycle seal trade-5-5x8-5 --note "5.5x8.5 US trade paperback"
 ```
 
@@ -80,7 +80,7 @@ re-seal, which is a design-major decision.
 
 ## Verify the whole thing holds
 
-```
+```sh
 python3 -m press.profile_lifecycle validate   # every shipped profile is sealed and current
 python3 -m press selftest                      # the gate, among all the others
 ```
