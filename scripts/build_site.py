@@ -443,6 +443,27 @@ PLACEMENT_DEMO = [
      "A frontispiece plate on its own leaf, facing the next chapter."),
 ]
 
+# How the width measure changes each placement, shown as labelled rows of shots
+# (also cropped from the signal-and-noise build; images share site/placement-demo/).
+# Each group is (heading, [(image, width label, alt), ...]).
+PLACEMENT_MEASURES_MARKER = "<!--PLACEMENT-MEASURES-->"
+PLACEMENT_MEASURES = [
+    ("<code>place=inline</code> (and <code>plate</code>): the figure sits at the "
+     "measure, centred in the column.",
+     [("measure-inline-full.png", "width=full-measure",
+       "A figure filling the full column width."),
+      ("measure-inline-half.png", "width=half-measure",
+       "The same figure at half the measure, centred."),
+      ("measure-inline-third.png", "width=third-measure",
+       "The same figure at a third of the measure, centred.")]),
+    ("<code>place=wrap-inner</code> / <code>wrap-outer</code>: the measure sizes "
+     "the figure column, so the text column widens as the figure shrinks.",
+     [("measure-wrap-half.png", "width=half-measure",
+       "A half-measure figure with text wrapping in a narrow column beside it."),
+      ("measure-wrap-third.png", "width=third-measure",
+       "A third-measure figure with text wrapping in a wider column beside it.")]),
+]
+
 # The card shows the physical trim size, not the internal profile name.
 PROFILE_LABELS = {"novella-5x8": "5×8", "house-6x9": "6×9"}
 
@@ -751,6 +772,31 @@ def placement_demo_html() -> str:
     return f'<section class="place-demo">{"".join(cards)}\n</section>'
 
 
+def placement_measures_html() -> str:
+    """How the width measure changes each placement: labelled rows of shots.
+    Shares the site/placement-demo/ images; a row whose image is missing is
+    skipped."""
+    groups = []
+    for heading, shots in PLACEMENT_MEASURES:
+        figs = []
+        for img, label, alt in shots:
+            if not (PLACEMENT_DEMO_IMAGES / img).is_file():
+                continue
+            figs.append(f"""
+    <figure class="measure-shot">
+      <img src="placement-demo/{escape(img)}" loading="lazy" alt="{escape(alt)}">
+      <figcaption><code>{escape(label)}</code></figcaption>
+    </figure>""")
+        if figs:
+            groups.append(
+                f'\n  <div class="measure-group">\n    <p class="measure-head">'
+                f'{heading}</p>\n    <div class="measure-row">{"".join(figs)}\n'
+                f'    </div>\n  </div>')
+    if not groups:
+        raise SystemExit(f"placement-measures: no images under {PLACEMENT_DEMO_IMAGES}")
+    return f'<section class="measure-demo">{"".join(groups)}\n</section>'
+
+
 def build_page(source: str, name: str, label: str) -> None:
     title = "press" if name == "index.html" else f"press: {label}"
     nav_file = OUT / f".nav-{name}"
@@ -813,6 +859,9 @@ def build_page(source: str, name: str, label: str) -> None:
         if PLACEMENT_DEMO_MARKER not in html:
             raise SystemExit(f"illustrations: {source} lost its {PLACEMENT_DEMO_MARKER} marker")
         html = html.replace(PLACEMENT_DEMO_MARKER, placement_demo_html(), 1)
+        if PLACEMENT_MEASURES_MARKER not in html:
+            raise SystemExit(f"illustrations: {source} lost its {PLACEMENT_MEASURES_MARKER} marker")
+        html = html.replace(PLACEMENT_MEASURES_MARKER, placement_measures_html(), 1)
     # Wrap the pandoc content in one <main class="prose"> between the
     # toolbar and the colophon, so the whole column is a single centered
     # container and no element can detach from it. The toolbar and footer

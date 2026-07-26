@@ -142,6 +142,18 @@ Placement is a **print** concern. On the reflowable web — EPUB and the reader 
 a placed figure becomes a clean in-flow figure, and the markdown and plain-text
 editions keep it in flow too; none of the placement scaffolding leaks into them.
 
+### How the measure changes each placement
+
+`width` is relative — `full-measure`, `half-measure`, `third-measure`, never
+inches — so one manuscript holds on any trim. An `inline` figure (and a `plate`)
+sits at that width, centred in the column. A **wrap** spends the width on the
+figure's own column, so what visibly changes is the *text* column beside it: the
+narrower the figure, the wider — and shorter — the runaround. A `full-bleed` or
+`frontispiece` ignores `width` (it fills its leaf), and a `full-measure` wrap
+leaves no room for text beside it, so a wrap takes a half or a third.
+
+<!--PLACEMENT-MEASURES-->
+
 ## What does *not* belong here
 
 **Data figures — bar charts, line graphs — are not illustrations.** An image

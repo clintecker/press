@@ -77,9 +77,12 @@ audit).
   single caption authority -- small italic, no automatic label, centred, its
   list anchor carried by `hypcap=true` -- so a placed figure's unnumbered
   caption is clean where the float package had `\caption*` print a stray
-  asterisk above it; ordinary plate captions are unchanged. markdown, plain
-  text, and docx keep a clean in-flow figure. (A new major: the design
-  contract's figure treatment changes.)
+  asterisk above it; ordinary plate captions are unchanged. A numbered figure's
+  "Figure C.N." label is boxed so a narrow column (a third-measure wrap) can
+  never hyphenate it into "Fig-ure". markdown, plain text, and docx keep a clean
+  in-flow figure. The illustrations page shows every placement, and every width
+  measure against each placement, as source beside a shot. (A new major: the
+  design contract's figure treatment changes.)
 - **A repeatable print-profile lifecycle: scaffold, prove, seal (#221).**
   Adding a trim or an ink is now one documented path rather than an ad hoc
   edit. `python3 -m press.profile_lifecycle scaffold <id> --trim WxH

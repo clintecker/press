@@ -203,7 +203,10 @@ function Pandoc(doc)
     if latex then
       local label = fig.identifier ~= "" and
         ("\\phantomsection\\label{" .. fig.identifier .. "}") or ""
-      local caption_latex = "\\textbf{Figure~" .. numstr .. ".}\\enspace " .. cap
+      -- \mbox the label so a narrow column (a third-measure wrap) can never
+      -- hyphenate "Figure" into "Fig-ure"; the caption text after it still wraps.
+      local caption_latex =
+        "\\mbox{\\textbf{Figure~" .. numstr .. ".}}\\enspace " .. cap
       local lof2 = "\\addcontentsline{lof2}{figure}{\\protect\\numberline{"
         .. numstr .. "}" .. cap .. "}"
       -- A numbered figure honours its placement too (wrap, full page); only
