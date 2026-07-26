@@ -372,6 +372,19 @@ Each chapter's witness appears exactly once across the reader site.
 | **Tested by** | `check_site_identity` |
 | **Known limit** | A chapter with no qualifying line contributes no witness. |
 
+## Editions keep their structural shape
+
+`INV-format-structure` · standard
+
+A valid v1 book's non-PDF editions keep their committed structural shape: the EPUB's chapter-document count exactly, its spine and nav and the reader site's pages and links no smaller than the reviewed baseline, and the DOCX still declaring every house style.
+
+| | |
+|---|---|
+| **If it breaks** | An edition silently loses its structure -- a chapter document dropped from the EPUB spine, a nav entry gone, a house DOCX style removed -- and ships, because only the PDF's shape was ever pinned. |
+| **Enforced by** | `build.build_target` |
+| **Tested by** | `integration` |
+| **Known limit** | Toolchain-gated: the rendered comparison runs only where pandoc is present, and the reviewed baseline is regenerated deliberately, never silently. Book-determined counts are matched exactly; version-sensitive shapes are matched in the regression direction only, so a benign pandoc upgrade that adds a spine item or a token style is not caught, by design. |
+
 ## A witness in every format
 
 `INV-format-witness` · critical
