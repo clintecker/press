@@ -220,7 +220,7 @@ Usage and README name every target, REFERENCE.md and INVARIANTS.md equal their g
 
 `INV-dropcap-opening` · standard
 
-When a design enables a chapter-opening drop cap, the initial is placed on the first eligible prose paragraph after each chapter heading and nowhere else: an epigraph or other non-prose opener is skipped to the real opening paragraph, only the first paragraph is capped, and the manuscript carries no renderer markup. When the style is off, the filter changes nothing, so a book that does not opt in renders unchanged.
+When a design enables a chapter-opening drop cap, the initial is placed on the first eligible prose paragraph after each chapter heading and nowhere else: an epigraph or other non-prose opener is skipped to the real opening paragraph, only the first paragraph is capped, and the manuscript carries no renderer markup. Any leading punctuation a chapter opening on dialogue carries -- an opening quote or a dash -- is set beside the initial at its size (through lettrine's ante, or its own floated span on the web), never scaled up into the initial and stranded above it. When the style is off, the filter changes nothing, so a book that does not opt in renders unchanged; and a book whose chapters open on ordinary words compiles to the same lettrine call whatever style it uses.
 
 | | |
 |---|---|

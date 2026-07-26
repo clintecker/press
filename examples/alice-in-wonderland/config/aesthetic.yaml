@@ -10,6 +10,11 @@ register: >-
   A Victorian children's trade edition played dead straight: the
   nonsense lives in the story, the page stays sober and finely cut.
 
+# Alice's shrink-and-grow moments are scene breaks, not chapter rules: set them
+# as a centered asterism (the Project Gutenberg source spells them as rows of
+# asterisks), the light literary mark a bare rule reads too heavily for.
+scene-break: asterism
+
 plates:
   style: wood-engraving
   medium: >-

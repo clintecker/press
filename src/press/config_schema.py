@@ -103,7 +103,7 @@ REGISTRY: tuple[Field, ...] = (
     # config/metadata.yaml — chapter-opening override (the design profile sets
     # the default; a book may override it for its own chapters)
     _w("chapter-opening.style", METADATA, help="chapter-opening initial",
-       choices=("none", "drop-cap", "raised-cap")),
+       choices=("none", "drop-cap", "raised-cap", "ornate")),
     _w("chapter-opening.lines", METADATA, "int", help="text lines the initial spans"),
     _w("chapter-opening.small-caps-remainder", METADATA, "bool",
        help="set the rest of the first word in small caps"),
@@ -175,6 +175,8 @@ REGISTRY: tuple[Field, ...] = (
     _w("plates.composition", AESTHETIC, help="interior plate composition"),
     _w("logomark.tradition", AESTHETIC, help="logomark tradition"),
     _w("portrait.style", AESTHETIC, help="author portrait style"),
+    _w("scene-break", AESTHETIC, help="thematic-break ornament (rule or asterism)",
+       choices=("rule", "asterism")),
     _w("typography.web-family", AESTHETIC, help="CSS font stack for the web reader"),
     _w("typography.pdf-family", AESTHETIC, help="LaTeX main font ('' keeps Libertinus)"),
     _w("web-palette", AESTHETIC, "mapping", help="light-theme token -> #hex"),

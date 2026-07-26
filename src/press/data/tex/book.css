@@ -38,7 +38,27 @@ pre { overflow-x: auto; background: #efefeb; padding: 1rem; }
   float: left; font-size: 3.1em; line-height: .82;
   padding: .05em .1em 0 0; color: var(--ink); font-weight: 600;
 }
+/* An opening quote or dash floats beside the initial at its size, never inside
+   the big .drop-cap span (absent on an ordinary opener). */
+.chapter-opening .drop-cap-lead {
+  float: left; font-size: 3.1em; line-height: .82;
+  padding: .05em .05em 0 0; color: var(--ink); font-weight: 600;
+}
+/* Ornate opening: the print initial's decorated foliate font is print-only, so
+   the web book degrades to a display-face initial in the accent ink. */
+.chapter-opening.ornate .drop-cap {
+  font-family: "Luminari", "Trattatello", "Apple Chancery", "URW Chancery L",
+               Zapfino, cursive, serif;
+  font-size: 3.6em; line-height: .78; color: var(--accent); padding-right: .12em;
+}
 .chapter-opening .opening-word-rest { font-variant: small-caps; letter-spacing: .04em; }
+
+/* Scene break as an asterism (scene-break: asterism); absent, a book's rules
+   are unchanged. */
+.asterism {
+  text-align: center; letter-spacing: .6em; margin: 2em 0;
+  color: var(--accent); font-size: 1.1em;
+}
 
 /* Tables, on a narrow screen only.
    A multi-column table cannot be read across on a phone, so each row becomes

@@ -666,8 +666,13 @@ invariants:
       on the first eligible prose paragraph after each chapter heading and
       nowhere else: an epigraph or other non-prose opener is skipped to the
       real opening paragraph, only the first paragraph is capped, and the
-      manuscript carries no renderer markup. When the style is off, the filter
-      changes nothing, so a book that does not opt in renders unchanged.
+      manuscript carries no renderer markup. Any leading punctuation a chapter
+      opening on dialogue carries -- an opening quote or a dash -- is set beside
+      the initial at its size (through lettrine's ante, or its own floated span
+      on the web), never scaled up into the initial and stranded above it. When
+      the style is off, the filter changes nothing, so a book that does not opt
+      in renders unchanged; and a book whose chapters open on ordinary words
+      compiles to the same lettrine call whatever style it uses.
     risk: >-
       A drop cap lands on the wrong block (an epigraph, a second paragraph),
       leaks LaTeX or CSS into the manuscript, or a book that never asked for

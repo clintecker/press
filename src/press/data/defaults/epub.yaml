@@ -7,6 +7,7 @@ top-level-division: chapter
 metadata-file: "@book/config/metadata.yaml"
 filters:
   - "@press/lua/chapter-dropcap.lua"
+  - "@press/lua/scene-break.lua"
   - "@press/lua/figure-numbering.lua"
 css:
   - "@press/tex/epub.css"

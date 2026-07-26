@@ -53,6 +53,38 @@ def test_tex_setup_without_small_caps():
 
 
 @pytest.mark.layer("unit")
+def test_tex_setup_routes_the_lead_through_ante_only_when_present():
+    # The macro takes the lead as its own first argument and passes it to
+    # lettrine's `ante`; an empty lead takes the branch with no `ante` at all,
+    # so an ordinary opener compiles to the exact lettrine call it did before.
+    tex = dropcaps.tex_setup(dropcaps.Settings(style="drop-cap", lines=3))
+    assert "\\newcommand{\\PressDropCap}[3]" in tex
+    assert "\\ifx\\PressDropLead\\empty" in tex
+    assert "ante={#1}" in tex
+    # The empty-lead branch is byte-identical to the pre-fix lettrine call.
+    assert ("\\lettrine[lines=3,depth=0,findent=2pt,nindent=0pt]{#2}"
+            "{\\scshape #3}") in tex
+
+
+@pytest.mark.layer("unit")
+def test_ornate_is_accepted_and_loads_the_decorated_initial_font():
+    s = dropcaps.settings({"style": "ornate"}, None)
+    assert s.style == "ornate" and s.enabled
+    tex = dropcaps.tex_setup(s)
+    # yfonts supplies the yinit decorated capitals; the initial is set in it.
+    assert "\\usepackage{yfonts}" in tex
+    assert "\\usefont{U}{yinit}{m}{n}" in tex
+    assert "\\PressOrnateInitial #2" in tex
+
+
+@pytest.mark.layer("unit")
+def test_non_ornate_styles_carry_no_decorated_font():
+    for style in ("drop-cap", "raised-cap"):
+        tex = dropcaps.tex_setup(dropcaps.Settings(style=style))
+        assert "yfonts" not in tex and "yinit" not in tex
+
+
+@pytest.mark.layer("unit")
 def test_plain_opening():
     o = dropcaps.split_initial("The machinery supplies everything else.")
     assert (o.lead, o.initial, o.word_remainder) == ("", "T", "he")

@@ -17,6 +17,7 @@ top-level-division: chapter
 filters:
   - "@press/lua/print-safe-images.lua"
   - "@press/lua/chapter-dropcap.lua"
+  - "@press/lua/scene-break.lua"
   - "@press/lua/figure-numbering.lua"
 pdf-engine: latexmk
 pdf-engine-opts:

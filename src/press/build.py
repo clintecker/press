@@ -117,6 +117,19 @@ def _chapter_opening_settings():
     return dropcaps.settings(profiles.active().chapter_opening, override)
 
 
+def _scene_break_ornament() -> str:
+    """The scene-break ornament the book's aesthetic asks for: ``asterism`` to
+    set a Markdown thematic break as a centered asterism, or ``rule`` (the
+    default) to leave it a plain horizontal rule. Anything unrecognized falls
+    back to ``rule``, so a typo degrades to the unchanged behavior rather than
+    breaking a build."""
+
+    from . import aesthetic
+
+    value = str((aesthetic.effective() or {}).get("scene-break", "rule"))
+    return value if value in ("rule", "asterism") else "rule"
+
+
 def render_defaults(name: str) -> Path:
     """Materialize a press defaults template for this book into build/."""
 
@@ -133,6 +146,12 @@ def render_defaults(name: str) -> Path:
     meta["chapter-opening-style"] = opening.style
     meta["chapter-opening-lines"] = opening.lines
     meta["chapter-opening-smallcaps"] = "true" if opening.small_caps_remainder else "false"
+
+    # Scene-break ornament: the aesthetic may turn a Markdown thematic break
+    # (`* * *`) into a centered asterism. Default `rule` leaves the horizontal
+    # rule untouched, so a book that does not opt in renders byte-for-byte as
+    # before; the scene-break.lua filter reads this in every edition.
+    meta["scene-break-ornament"] = _scene_break_ornament()
     if name in ("pdf", "print"):
         from . import dropcaps as _dropcaps
 

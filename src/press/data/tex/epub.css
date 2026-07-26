@@ -5,5 +5,19 @@ code, pre { font-family: monospace; }
 .chapter-opening .drop-cap {
   float: left; font-size: 3em; line-height: 0.8; padding: 0.05em 0.1em 0 0;
 }
+/* An opening quote or dash floats beside the initial at its size (absent on an
+   ordinary opener, so an existing EPUB is unchanged). */
+.chapter-opening .drop-cap-lead {
+  float: left; font-size: 3em; line-height: 0.8; padding: 0.05em 0.05em 0 0;
+}
+/* Ornate opening: the print foliate initial font cannot travel into an EPUB,
+   so the initial degrades to a display-face capital. */
+.chapter-opening.ornate .drop-cap {
+  font-family: "Luminari", "Trattatello", "Apple Chancery", cursive, serif;
+  font-size: 3.4em; line-height: 0.78;
+}
 .chapter-opening .opening-word-rest { font-variant: small-caps; }
 .chapter-opening { display: block; }
+/* Scene break as an asterism (scene-break: asterism); absent, rules are
+   unchanged. */
+.asterism { text-align: center; letter-spacing: 0.6em; margin: 2em 0; }

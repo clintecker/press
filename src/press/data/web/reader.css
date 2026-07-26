@@ -87,7 +87,33 @@ h1 + figure + p::first-line { font-variant: small-caps; letter-spacing: .05em; }
   float: left; font-size: 3.1em; line-height: .82;
   padding: .05em .1em 0 0; color: var(--ink); font-weight: 600;
 }
+/* A chapter that opens on dialogue keeps its opening quote (or dash) beside
+   the initial, at the initial's size -- floated just before it, never inside
+   the big .drop-cap span where it would strand above the letter. Absent (an
+   ordinary opener), no such span is emitted and the reader is unchanged. */
+.chapter-opening .drop-cap-lead {
+  float: left; font-size: 3.1em; line-height: .82;
+  padding: .05em .05em 0 0; color: var(--ink); font-weight: 600;
+}
+/* An ornate opening (chapter-opening-style: ornate) sets the print initial in
+   a decorated foliate font (yinit), which cannot cross to the browser. The
+   reader degrades honestly: the initial keeps the decorative register through
+   a display face and the ornament ink, larger, rather than faking the engraved
+   capital. Only an ornate book carries this class, so others are unchanged. */
+.chapter-opening.ornate .drop-cap {
+  font-family: "Luminari", "Trattatello", "Apple Chancery", "URW Chancery L",
+               Zapfino, cursive, serif;
+  font-size: 3.6em; line-height: .78; color: var(--ornament); padding-right: .12em;
+}
 .chapter-opening .opening-word-rest { font-variant: small-caps; letter-spacing: .04em; }
+
+/* Scene break as an asterism (scene-break: asterism). A thematic break becomes
+   a centered row of asterisks rather than a rule; present only when the book's
+   aesthetic asks for it, so an ordinary book's rules are unchanged. */
+.asterism {
+  text-align: center; letter-spacing: .6em; margin: 2em 0;
+  color: var(--ornament); font-size: 1.1em;
+}
 ol, ul { padding-left: 1.6rem; }
 li { margin: .3em 0; }
 li::marker { color: var(--ornament); font-weight: 600; }
