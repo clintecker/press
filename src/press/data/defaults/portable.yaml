@@ -5,4 +5,5 @@ toc-depth: 1
 number-sections: true
 metadata-file: "@book/config/metadata.yaml"
 filters:
+  - "@press/lua/typographic-spacing.lua"
   - "@press/lua/figure-numbering.lua"

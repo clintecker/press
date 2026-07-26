@@ -20,6 +20,29 @@
 \usepackage{titlesec}
 \usepackage{etoolbox}
 
+% --- House microtypography: the craft a fine book is always set with. --------
+% Even colour and optical margins: protrusion hangs punctuation past the text
+% edge, expansion varies glyph widths a hair to avoid rivers. (Both default on
+% under LuaLaTeX; stated here so the intent is legible and final.)
+\microtypesetup{protrusion=true,expansion=true,final=true}
+
+% Ligatures follow the word, not the type case: suppress fi/ff/fl and kin across
+% a morpheme seam (shelf|ful, not shelfful welded by an ff-ligature).
+\usepackage{selnolig}
+
+% No widows, no orphans; no paragraph ending on a hyphen; no two hyphenated
+% lines stacked; no hyphen carried across a page turn.
+\clubpenalty=10000
+\widowpenalty=10000
+\displaywidowpenalty=10000
+\brokenpenalty=10000
+\finalhyphendemerits=10000
+\doublehyphendemerits=10000
+% At least three letters either side of a break, and hyphenate a shade less
+% eagerly than the default.
+\lefthyphenmin=3 \righthyphenmin=3
+\hyphenpenalty=150
+
 % Pandoc's hypersetup partial wraps pdfkeywords in \xmpquote, which only some
 % hyperref/hyperxmp combinations define. Provide it if hyperref does not.
 \AddToHook{package/hyperref/after}{%

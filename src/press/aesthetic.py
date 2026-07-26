@@ -91,7 +91,11 @@ def write_tex_overrides() -> None:
             value = str(colors[key]).lstrip("#").upper()
             lines.append(f"\\definecolor{{{tex_name}}}{{HTML}}{{{value}}}")
     if family:
-        lines.append(f"\\setmainfont{{{family}}}")
+        # House craft: oldstyle (text) figures, so digits sit in the line like
+        # a fine book instead of standing up like a spreadsheet. A font without
+        # an oldstyle set ignores the feature; tabular/lining contexts (index,
+        # tables) are switched back locally where they need to align.
+        lines.append(f"\\setmainfont{{{family}}}[Numbers=OldStyle]")
     if len(lines) == 1:
         if out.exists():
             out.unlink()

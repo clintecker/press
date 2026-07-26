@@ -6,6 +6,7 @@ number-sections: true
 top-level-division: chapter
 metadata-file: "@book/config/metadata.yaml"
 filters:
+  - "@press/lua/typographic-spacing.lua"
   - "@press/lua/chapter-dropcap.lua"
   - "@press/lua/scene-break.lua"
   - "@press/lua/figure-numbering.lua"

@@ -115,6 +115,24 @@ audit).
   at intake, never shipped opaque; a delivery already on transparency keeps
   its mask. `press art enhance` preserves a master's alpha through finishing.
 
+- **A fine-press craft pass on the house typography** (a new major: the design
+  contract seals typography, and this moves it). The interior is now set with
+  the microtypography a careful setter always applies: optical margins and even
+  colour (microtype protrusion and expansion); oldstyle text figures for the
+  aesthetic's PDF font, so digits sit in the line instead of standing up;
+  ligatures suppressed across a morpheme seam (selnolig -- `shelf|ful`, not an
+  `ff` welded across the join); and a widow/orphan/hyphenation discipline (no
+  widows or orphans, no paragraph ending on a hyphen, no two hyphenated lines
+  stacked, no hyphen carried across a page turn). A new
+  `typographic-spacing.lua` filter binds a curated set of abbreviations to what
+  follows with a non-breaking space in every edition -- a title before a name
+  (`Mr. Smith`), a reference before a number (`p. 42`, `Fig. 3`), a person's
+  initials (`C. L. Dodgson`) -- so a line never breaks in the wrong place. The
+  manuscript stays plain prose; the house does the fine work, and ordinary
+  sentences (every full stop included) are left exactly as typed. Because it
+  moves glyph positions and line breaks by design, the visual and structural
+  regression baselines are re-recorded with a reason.
+
 ## [2.3.1] - 2026-07-24
 
 A hardening release. Two output bugs are corrected -- a retail barcode that
