@@ -138,7 +138,7 @@ it must be a walrus or hippopotamus, but then she remembered how small
 she was now, and she soon made out that it was only a mouse that had
 slipped in like herself.
 
-![Alice and the Mouse adrift in the pool of her own tears.](assets/woodcuts/the-pool-of-tears.jpg)
+![Alice and the Mouse adrift in the pool of her own tears.](assets/woodcuts/the-pool-of-tears.png)
 
 "Would it be of any use, now," thought Alice, "to speak to this mouse?
 Everything is so out-of-the-way down here, that I should think very

@@ -24,7 +24,7 @@ watch to take out of it, and burning with curiosity, she ran across the
 field after it, and fortunately was just in time to see it pop down a
 large rabbit-hole under the hedge.
 
-![The White Rabbit, waistcoated and in haste, consults his watch.](assets/woodcuts/the-white-rabbit.jpg)
+![The White Rabbit, waistcoated and in haste, consults his watch.](assets/woodcuts/the-white-rabbit.png)
 
 In another moment down went Alice after it, never once considering how
 in the world she was to get out again.

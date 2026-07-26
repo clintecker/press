@@ -115,7 +115,7 @@ presented the thimble, saying "We beg your acceptance of this elegant
 thimble;" and, when it had finished this short speech, they all
 cheered.
 
-![The Dodo presents Alice with her prize, a thimble of her own.](assets/woodcuts/the-dodo-and-the-thimble.jpg)
+![The Dodo presents Alice with her prize, a thimble of her own.](assets/woodcuts/the-dodo-and-the-thimble.png)
 
 Alice thought the whole thing very absurd, but they all looked so grave
 that she did not dare to laugh; and, as she could not think of anything

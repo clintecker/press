@@ -51,18 +51,42 @@ def _single_ink_plates() -> bool:
     return "single" in medium and "ink" in medium
 
 
+# Luminance cut-offs for the line-art key. A tone at or above _KEY_WHITE is
+# ground (keyed fully transparent); at or below _KEY_BLACK is ink (fully
+# opaque). _KEY_WHITE sits below a generated plate's light-grey ground (~241)
+# so the ground vanishes rather than leaving a faint box; the window between
+# keeps the ink's anti-aliased edges smooth.
+_KEY_WHITE = 225
+_KEY_BLACK = 45
+
+
 def _segment_line_art(image: _Image.Image) -> _Image.Image:
-    """Key ink-on-light line art to alpha with a luminance key: the light
-    ground turns transparent and the ink's tone moves into the alpha, so one
-    master composites onto white paper, coloured cloth, or a transparent web
-    panel. Ink-on-white is trivially separable this way, and compositing the
-    result back onto white reproduces the delivered grayscale exactly (black
-    ink, alpha = 255 - luminance)."""
+    """Key ink-on-light line art to alpha with a luminance key: the light ground
+    turns transparent and the ink's tone moves into the alpha, so one master
+    composites onto white paper, coloured cloth, or a transparent web panel.
+
+    The key has a white cut-off, not a bare ``255 - luminance``. A generated
+    plate's ground is rarely pure white -- gpt-image lays it on a light grey
+    near ``#f1f2f3`` -- and a bare inversion leaves that ground at alpha ~14,
+    a five-percent box that is glaring on cream paper. Here any tone at or above
+    ``_KEY_WHITE`` goes fully transparent and any tone at or below ``_KEY_BLACK``
+    goes fully opaque, with the ink's anti-aliased edges ramping smoothly
+    between -- so the ground vanishes cleanly and the line stays crisp.
+    Compositing the result back onto white still reproduces the line art."""
 
     from PIL import Image
 
+    span = _KEY_WHITE - _KEY_BLACK
+
+    def key(v: int) -> int:
+        if v >= _KEY_WHITE:
+            return 0
+        if v <= _KEY_BLACK:
+            return 255
+        return round(255 * (_KEY_WHITE - v) / span)
+
     rgb = image.convert("RGB")
-    alpha = rgb.convert("L").point(lambda v: 255 - v)
+    alpha = rgb.convert("L").point(key)
     master = Image.new("RGBA", rgb.size, (0, 0, 0, 0))
     master.putalpha(alpha)
     return master
