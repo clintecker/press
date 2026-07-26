@@ -119,6 +119,15 @@ width where a measure belongs, a `left`/`right` side (use `wrap-inner` /
 `wrap-outer`), an out-of-vocabulary `place`, a non-em `outset`, a measure on a
 plate, or a `decorative` image that still carries `fig-alt`.
 
+### On a real page
+
+Before the pieces in isolation, here is the vocabulary at work on real pages from
+a build — dense running prose with figures worked in the way a manual actually
+sets them, several to a spread. This is the scale to judge a placement at; the
+sections that follow take each behaviour apart on its own.
+
+<!--REAL-PAGES-->
+
 ### What each placement produces
 
 Each card shows the exact attributes you write and the leaf the press typeset

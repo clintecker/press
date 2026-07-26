@@ -503,6 +503,21 @@ WRAP_BEHAVIOURS = [
      "little quiet space; the reader never sees a broken runaround."),
 ]
 
+# The whole vocabulary at work on real, dense pages from a build (same
+# site/placement-demo/ images). Each is (image, what it shows).
+REAL_PAGES_MARKER = "<!--REAL-PAGES-->"
+REAL_PAGES = [
+    ("realpage-open.png",
+     "A chapter opens with a half-measure inner wrap worked into the running "
+     "text — the figure earns its place in the column instead of interrupting it."),
+    ("realpage-thick.png",
+     "Figures come thick: an outer-side wrap and a third-measure inner wrap on "
+     "one full page, the prose flowing around both."),
+    ("realpage-inline.png",
+     "A full-measure inline figure between paragraphs, the page dense with prose "
+     "above and below it."),
+]
+
 # The card shows the physical trim size, not the internal profile name.
 PROFILE_LABELS = {"novella-5x8": "5×8", "house-6x9": "6×9"}
 
@@ -868,6 +883,23 @@ def wrap_behaviours_html() -> str:
     return f'<section class="behav-demo">{"".join(cards)}\n</section>'
 
 
+def real_pages_html() -> str:
+    """The whole vocabulary at work on real, dense pages from a build. Shares the
+    site/placement-demo/ images; a page whose image is missing is skipped."""
+    figs = []
+    for img, note in REAL_PAGES:
+        if not (PLACEMENT_DEMO_IMAGES / img).is_file():
+            continue
+        figs.append(f"""
+  <figure class="realpage">
+    <img src="placement-demo/{escape(img)}" loading="lazy" alt="{escape(note)}">
+    <figcaption>{escape(note)}</figcaption>
+  </figure>""")
+    if not figs:
+        raise SystemExit(f"real-pages: no images under {PLACEMENT_DEMO_IMAGES}")
+    return f'<section class="realpage-demo">{"".join(figs)}\n</section>'
+
+
 def build_page(source: str, name: str, label: str) -> None:
     title = "press" if name == "index.html" else f"press: {label}"
     nav_file = OUT / f".nav-{name}"
@@ -936,6 +968,9 @@ def build_page(source: str, name: str, label: str) -> None:
         if WRAP_BEHAVIOURS_MARKER not in html:
             raise SystemExit(f"illustrations: {source} lost its {WRAP_BEHAVIOURS_MARKER} marker")
         html = html.replace(WRAP_BEHAVIOURS_MARKER, wrap_behaviours_html(), 1)
+        if REAL_PAGES_MARKER not in html:
+            raise SystemExit(f"illustrations: {source} lost its {REAL_PAGES_MARKER} marker")
+        html = html.replace(REAL_PAGES_MARKER, real_pages_html(), 1)
     # Wrap the pandoc content in one <main class="prose"> between the
     # toolbar and the colophon, so the whole column is a single centered
     # container and no element can detach from it. The toolbar and footer

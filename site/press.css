@@ -664,3 +664,17 @@ h1 .tag, h2 .tag, h3 .tag{vertical-align:.28em; margin-left:.35rem}
 .behav-name{margin:0; font-family:var(--sans); font-weight:700; color:var(--ink)}
 .behav-note{margin:0; font-family:var(--sans); font-size:.9rem; color:var(--ink); max-width:46rem}
 @media (max-width:560px){ .behav-pair img{max-width:100%} .behav-arrow{transform:rotate(90deg)} }
+
+/* The whole vocabulary at work on real, dense pages: a row of full-page shots,
+   sized so the layout and the figures-in-text read even if the type does not. */
+.prose > .realpage-demo{
+  max-width:var(--measure-wide); margin:1.4rem auto 2.4rem; padding:0;
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:1.4rem; align-items:start;
+}
+.realpage{margin:0; display:flex; flex-direction:column; gap:.6rem}
+.realpage img{
+  width:100%; height:auto; border-radius:4px; border:1px solid var(--rule);
+  background:#fff; box-shadow:0 3px 14px rgb(0 0 0 / .16);
+}
+.realpage figcaption{font-family:var(--sans); font-size:.82rem; color:var(--muted)}
