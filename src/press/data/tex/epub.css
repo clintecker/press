@@ -21,3 +21,7 @@ code, pre { font-family: monospace; }
 /* Scene break as an asterism (scene-break: asterism); absent, rules are
    unchanged. */
 .asterism { text-align: center; letter-spacing: 0.6em; margin: 2em 0; }
+/* Fairy dust: the staggered three-row array (four / three / four); centring an
+   odd row against an even one drops its stars into the gaps. */
+.fairy-dust { text-align: center; margin: 2.4em 0; line-height: 1.25; }
+.fairy-dust span { display: block; letter-spacing: 1em; }

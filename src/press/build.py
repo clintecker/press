@@ -127,7 +127,7 @@ def _scene_break_ornament() -> str:
     from . import aesthetic
 
     value = str((aesthetic.effective() or {}).get("scene-break", "rule"))
-    return value if value in ("rule", "asterism") else "rule"
+    return value if value in ("rule", "asterism", "fairy-dust") else "rule"
 
 
 def render_defaults(name: str) -> Path:

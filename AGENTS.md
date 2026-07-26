@@ -215,3 +215,12 @@ The press has no book of its own, so prove changes against a real one:
 clone a consuming book, `pip install -e` this checkout into it, run
 `press all`, and confirm every verifier passes before tagging. A green
 `pip install` is not a working pipeline.
+
+To look at output while tuning a template, filter, or aesthetic,
+`scripts/dev-render.sh` builds one book in the pinned toolchain image and
+drops the artifacts (and, with `--preview`, JPEG page previews) on the host:
+it mounts this checkout read-only and runs `python -m press` from `src/`, so
+edits take effect with no reinstall, and it reads the toolchain image from
+`build.yml` so it cannot drift from CI. Defaults to the Alice example; pass
+`--book DIR` for another. It is the edit–render–look loop, not the proof —
+`scripts/verify.sh --full` is still the gate before tagging.

@@ -18,7 +18,11 @@ audit).
   degrade it honestly to a styled display capital. Separately, a book whose
   aesthetic declares `scene-break: asterism` renders every Markdown thematic
   break (`* * *`) as a centered asterism in every edition, the light literary
-  mark a bare rule reads too heavily for. Both are opt-in: a book that chooses
+  mark a bare rule reads too heavily for; `scene-break: fairy-dust` renders it
+  instead as the staggered three-row array of asterisks — four, three nested
+  into the gaps, four — that Tenniel's 1866 *Alice* set at each shrink and
+  grow, rebuilt from one thematic break by a print macro and matching CSS.
+  Both are opt-in: a book that chooses
   neither (style `none`/`drop-cap`/`raised-cap`, scene break `rule`) typesets
   **byte-for-byte as before**. Choosing `ornate` changes a book's rendered
   openings, so it is a design decision, not a fix. Documented in

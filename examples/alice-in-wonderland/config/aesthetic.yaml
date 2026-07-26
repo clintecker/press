@@ -10,10 +10,11 @@ register: >-
   A Victorian children's trade edition played dead straight: the
   nonsense lives in the story, the page stays sober and finely cut.
 
-# Alice's shrink-and-grow moments are scene breaks, not chapter rules: set them
-# as a centered asterism (the Project Gutenberg source spells them as rows of
-# asterisks), the light literary mark a bare rule reads too heavily for.
-scene-break: asterism
+# Alice's shrink-and-grow moments are scene breaks, not chapter rules. Tenniel's
+# 1866 edition set each one as a staggered three-row array of asterisks -- four,
+# three nested into the gaps, four -- the scattered "fairy dust" the Gutenberg
+# source flattens to a row. The press rebuilds the array in print and web alike.
+scene-break: fairy-dust
 
 plates:
   style: wood-engraving

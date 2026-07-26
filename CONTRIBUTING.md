@@ -50,6 +50,27 @@ book in another org) stay CI/human-only. Do not run
 `scripts/coverage_ratchet.py --update`: it re-measures on your machine and
 can push the committed baselines above the floor CI enforces.
 
+## Iterating on a render
+
+`scripts/verify.sh --full` runs the whole gauntlet; when you are tuning one
+thing — a template, a Lua filter, an aesthetic — and want to *look* at the
+output, `scripts/dev-render.sh` builds a single book in the same pinned
+toolchain image and hands the artifacts back on the host:
+
+```sh
+scripts/dev-render.sh                          # build Alice's PDF (the default book)
+scripts/dev-render.sh pdf --preview            # + JPEG page previews to open
+scripts/dev-render.sh all --book ~/code/make-ready
+scripts/dev-render.sh --shell                  # a shell inside the toolchain
+```
+
+It mounts your checkout read-only and runs `python -m press` from `src/`, so a
+source edit takes effect on the next run with no reinstall, and it reads the
+toolchain image straight from `build.yml` so it can never drift from CI.
+Artifacts land in `build/dev-render/dist`, previews in `build/dev-render/preview`.
+This is a convenience for the edit–render–look loop, not a substitute for the
+gauntlet: prove with `verify.sh --full` before you push.
+
 ## What a proof has to prove
 
 Coverage measures that a line *ran*, not that its output was *right*. A branch

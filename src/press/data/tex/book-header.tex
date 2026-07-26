@@ -129,6 +129,27 @@
   \fi}
 \makeatother
 
+% Scene break: the staggered three-row asterisk array (Alice's "fairy dust"),
+% emitted by the scene-break Lua filter when the aesthetic sets
+% scene-break: fairy-dust. Four asterisks, three offset into the gaps, four --
+% the outer rows share one grid (each star centred in a \PressFDStep box) and
+% the middle row is kerned half a step so it lands between them. Defined but
+% never called for any other book, so their output is byte-identical.
+\providecommand{\textasteriskcentered}{\ensuremath{\ast}}
+\newlength{\PressFDStep}\setlength{\PressFDStep}{1.9em}
+\newcommand{\PressFDStar}{\makebox[\PressFDStep]{\textasteriskcentered}}
+\newcommand{\PressFairyDust}{%
+  \par\addvspace{1.5\baselineskip}%
+  \centerline{\vbox{\offinterlineskip
+    \hbox{\PressFDStar\PressFDStar\PressFDStar\PressFDStar}%
+    \vskip0.35em
+    \hbox{\kern0.5\PressFDStep\PressFDStar\PressFDStar\PressFDStar}%
+    \vskip0.35em
+    \hbox{\PressFDStar\PressFDStar\PressFDStar\PressFDStar}%
+  }}%
+  \par\addvspace{1.5\baselineskip}%
+}
+
 % Render Markdown blockquotes as quiet, book-like callouts.
 \renewenvironment{quote}
   {\begin{mdframed}[

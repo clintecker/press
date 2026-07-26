@@ -1,5 +1,6 @@
 """The scene-break ornament: a Markdown thematic break becomes a centered
-asterism when the book's aesthetic asks for it (``scene-break: asterism``), and
+asterism (``scene-break: asterism``) or the staggered three-row fairy-dust
+array (``scene-break: fairy-dust``) when the book's aesthetic asks for it, and
 is left an unchanged horizontal rule otherwise. The unit test covers the
 aesthetic reading; the filter tests run pandoc directly (no LaTeX) to prove the
 emitted markup in each format.
@@ -29,6 +30,8 @@ def test_scene_break_ornament_reads_the_aesthetic(monkeypatch):
 
     monkeypatch.setattr(aesthetic, "effective", lambda: {"scene-break": "asterism"})
     assert build._scene_break_ornament() == "asterism"
+    monkeypatch.setattr(aesthetic, "effective", lambda: {"scene-break": "fairy-dust"})
+    assert build._scene_break_ornament() == "fairy-dust"
     # The default, and any typo, is the unchanged rule -- a bad value degrades,
     # it does not break a build.
     monkeypatch.setattr(aesthetic, "effective", lambda: {})
@@ -60,6 +63,25 @@ def test_asterism_replaces_the_rule_in_latex():
 def test_asterism_in_html():
     out = _render(_MD, to="html", ornament="asterism")
     assert 'class="asterism"' in out
+    assert "<hr" not in out
+
+
+@_needs_pandoc
+@pytest.mark.layer("integration")
+def test_fairy_dust_replaces_the_rule_in_latex():
+    out = _render(_MD, ornament="fairy-dust")
+    # the staggered-array macro, and the bare rule is gone
+    assert "\\PressFairyDust" in out
+    assert "\\rule" not in out
+
+
+@_needs_pandoc
+@pytest.mark.layer("integration")
+def test_fairy_dust_in_html():
+    out = _render(_MD, to="html", ornament="fairy-dust")
+    # a three-row block (four / three / four asterisks), no rule
+    assert 'class="fairy-dust"' in out
+    assert out.count("<span>") == 3
     assert "<hr" not in out
 
 
