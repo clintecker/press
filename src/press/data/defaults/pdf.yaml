@@ -10,6 +10,7 @@ pdf-engine-opts:
 metadata-file: "@book/config/metadata.yaml"
 filters:
   - "@press/lua/typographic-spacing.lua"
+  - "@press/lua/set-pieces.lua"
   - "@press/lua/chapter-dropcap.lua"
   - "@press/lua/scene-break.lua"
   - "@press/lua/figure-numbering.lua"

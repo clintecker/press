@@ -16,6 +16,7 @@ top-level-division: chapter
 # before this run. The reading PDF has no such filter and embeds the originals.
 filters:
   - "@press/lua/typographic-spacing.lua"
+  - "@press/lua/set-pieces.lua"
   - "@press/lua/print-safe-images.lua"
   - "@press/lua/chapter-dropcap.lua"
   - "@press/lua/scene-break.lua"

@@ -11,6 +11,20 @@ audit).
 
 ### Added
 
+- **Set-piece typographic constructs: `::: cascade`, `::: verse`, `::: tail`.**
+  Some passages are neither prose nor a plain figure -- a staggered address, a
+  stanza, a poem shaped like a mouse's tail -- and Markdown cannot express their
+  geometry. The author writes plain lines in a fenced div (an ordinary line
+  block) and the house lays the form, projecting it into every edition:
+  `cascade` steps each line one indent further (an address, an inscription);
+  `verse` sets the house stanza measure (`\PressVerse`), opening quotes hanging
+  by protrusion; `tail` computes a serpentine calligram from the lines
+  themselves -- a sine-driven offset with the size tapering head to tip. The
+  words stay live, searchable, and accessible, and the plain-text edition shows
+  them as verse; a book that uses none renders byte-for-byte as before. Handled
+  by `set-pieces.lua` and the `.cascade`/`.verse`/`.tail` stylesheet rules. The
+  Alice gallery example now sets its crocodile poem, the "Alice's Right Foot"
+  address, and the Mouse's Tale with them.
 - **An `ornate` chapter-opening style and an aesthetic-driven scene break.**
   `chapter-opening.style: ornate` sets the chapter initial in a decorated
   foliate font (yinit, from the toolchain's `texlive-fonts-extra`) for print;

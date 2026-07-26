@@ -173,6 +173,14 @@
   \par\addvspace{1.5\baselineskip}%
 }
 
+% Verse set-piece (::: verse via set-pieces.lua): the house stanza measure --
+% inset from the text block, ragged right, upright (the poem is not emphasis),
+% a stanza space above and below. Line breaks arrive as \\ from the filter.
+\newenvironment{PressVerse}{%
+  \par\addvspace{0.7em}\begingroup
+  \leftskip=3em\rightskip=0pt plus 2em\parindent=0pt\noindent}%
+  {\par\endgroup\addvspace{0.7em}}
+
 % Render Markdown blockquotes as quiet, book-like callouts.
 \renewenvironment{quote}
   {\begin{mdframed}[
