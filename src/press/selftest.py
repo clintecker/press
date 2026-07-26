@@ -381,6 +381,42 @@ def check_format_witnesses() -> None:
     assert normalized("The \u201cWitness\u201d") == 'the "witness"'
 
 
+def check_editions_agree() -> None:
+    """Cross-edition content agreement: editions that all carry every
+    chapter's witness pass, and an edition that silently drops a chapter is
+    named and refused. Pure and toolchain-free -- synthetic edition texts,
+    no build. Proves INV-format-agreement closes INV-format-witness's
+    one-line-per-document limit."""
+
+    from . import verify_formats
+
+    witnesses = {
+        "01-one.md": "the first chapter carries this exact distinctive sentence about the shop",
+        "02-two.md": "the second chapter speaks of the devil and the hell box in plain words",
+    }
+    everything = " ".join(witnesses.values())
+    editions = {
+        "HTML": f"front matter {everything} back matter",
+        # The EPUB witness lines are split by furniture and reordered padding,
+        # but each chapter's distinctive fragment still survives intact.
+        "EPUB": (f"chapter one {witnesses['01-one.md']} PAGE 5 make ready "
+                 f"chapter two {witnesses['02-two.md']} colophon"),
+    }
+    verify_formats.verify_editions_agree(editions, witnesses)  # agreement: no raise
+
+    broken = dict(editions)
+    broken["EPUB"] = witnesses["01-one.md"] + " but everything after is gone"
+    try:
+        verify_formats.verify_editions_agree(broken, witnesses)
+    except SystemExit as exc:
+        assert "02-two.md" in str(exc), exc
+        assert "EPUB" in str(exc), exc
+    else:
+        raise AssertionError(
+            "an edition that dropped a chapter passed cross-edition agreement"
+        )
+
+
 def check_site_identity() -> None:
     """The audit's damage case for site identity: a duplicated chapter
     page must fail on its witness appearing twice, and a removed
@@ -1563,6 +1599,7 @@ CHECKS = [
     check_book_model,
     check_registry,
     check_format_witnesses,
+    check_editions_agree,
     check_site_identity,
     check_authorities_ledger,
     check_honest_refusals,

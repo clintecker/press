@@ -346,6 +346,19 @@ An extension may depend on the mandatory verification, path containment, artifac
 | **Tested by** | `check_extension_conformance` |
 | **Known limit** | The seal is a fixed set of capability tokens and the rule that every declared invariant names a proof; it governs what a manifest may claim, not the runtime behavior of a code extension, which the contract does not admit. |
 
+## Editions agree on every chapter
+
+`INV-format-agreement` · standard
+
+Every chapter's content appears in every built edition; an edition that silently drops a chapter (or most of it) disagrees with the editions that kept it and is refused, not passed.
+
+| | |
+|---|---|
+| **If it breaks** | A single format loses a chapter -- a broken pandoc filter, a truncated export -- and ships, because each edition was only ever checked for one witness line and the formats were never cross-checked against each other. |
+| **Enforced by** | `verify_formats.verify_editions_agree` |
+| **Tested by** | `check_editions_agree` |
+| **Known limit** | Presence of a distinctive multi-word fragment per chapter, not a full diff: an edition that keeps each chapter's witness fragment but scrambles or truncates the surrounding prose is not caught. The PDF joins the agreement set only where pdftotext is present (the toolchain tier); the other editions are checked with no external tool. |
+
 ## One witness per chapter
 
 `INV-format-site-identity` · standard
@@ -370,7 +383,7 @@ Title and a derived manuscript witness appear in every format; a book yielding n
 | **If it breaks** | A format silently drops the manuscript and still verifies. |
 | **Enforced by** | `verify_formats.require_witnesses` |
 | **Tested by** | `check_format_witnesses` |
-| **Known limit** | One longest line per document; a format dropping every other line still passes. |
+| **Known limit** | One longest line per document; a format dropping every other line is not caught here -- INV-format-agreement holds the full per-chapter witness set against every edition to close that gap. |
 
 ## Acyclic artifact graph
 

@@ -212,7 +212,31 @@ invariants:
     layers: [selftest, pytest]
     negative: [check_format_witnesses]
     ci_tier: quality
-    limitations: One longest line per document; a format dropping every other line still passes.
+    limitations: One longest line per document; a format dropping every other
+      line is not caught here -- INV-format-agreement holds the full
+      per-chapter witness set against every edition to close that gap.
+
+  - id: INV-format-agreement
+    statement: >-
+      Every chapter's content appears in every built edition; an edition that
+      silently drops a chapter (or most of it) disagrees with the editions
+      that kept it and is refused, not passed.
+    risk: >-
+      A single format loses a chapter -- a broken pandoc filter, a truncated
+      export -- and ships, because each edition was only ever checked for one
+      witness line and the formats were never cross-checked against each other.
+    criticality: standard
+    owner: verify_formats
+    enforcer: verify_formats.verify_editions_agree
+    layers: [selftest, pytest, integration]
+    negative: [check_editions_agree]
+    ci_tier: quality
+    limitations: >-
+      Presence of a distinctive multi-word fragment per chapter, not a full
+      diff: an edition that keeps each chapter's witness fragment but scrambles
+      or truncates the surrounding prose is not caught. The PDF joins the
+      agreement set only where pdftotext is present (the toolchain tier); the
+      other editions are checked with no external tool.
 
   - id: INV-format-site-identity
     statement: Each chapter's witness appears exactly once across the reader site.

@@ -80,6 +80,7 @@ def verify_formats_built() -> int:
         str(dist / f"{slug}.html"), str(dist / f"{slug}.epub"),
         "--markdown", str(dist / f"{slug}.md"), "--text", str(dist / f"{slug}.txt"),
         "--docx", str(dist / f"{slug}.docx"), "--site", str(dist / "site"),
+        "--pdf", str(dist / f"{slug}.pdf"),
     ])
 
 

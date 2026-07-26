@@ -79,6 +79,7 @@ TITLES = {
     "INV-pdf-detector": "Proven blank-page detector",
     "INV-pdf-ink": "Every page carries ink",
     "INV-format-witness": "A witness in every format",
+    "INV-format-agreement": "Editions agree on every chapter",
     "INV-format-site-identity": "One witness per chapter",
     "INV-pages-refs": "Every reference resolves",
     "INV-archive-site-bytes": "Reader archive matches the site",
