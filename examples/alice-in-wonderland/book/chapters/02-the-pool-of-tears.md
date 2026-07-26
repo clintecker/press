@@ -16,8 +16,12 @@ And she went on planning to herself how she would manage it. "They must
 go by the carrier," she thought; "and how funny it'll seem, sending
 presents to one's own feet! And how odd the directions will look!
 
-_Alice's Right Foot, Esq., Hearthrug, near the Fender,_ (_with
-Alice's love_).
+::: cascade
+| _Alice's Right Foot, Esq.,_
+| _Hearthrug,_
+| _near the Fender,_
+| (_with Alice's love_).
+:::
 
 Oh dear, what nonsense I'm talking!"
 
@@ -71,6 +75,7 @@ crossed her hands on her lap as if she were saying lessons, and began
 to repeat it, but her voice sounded hoarse and strange, and the words
 did not come the same as they used to do: --
 
+::: verse
 | "How doth the little crocodile
 |     Improve his shining tail,
 | And pour the waters of the Nile
@@ -80,6 +85,7 @@ did not come the same as they used to do: --
 |     How neatly spread his claws,
 | And welcome little fishes in
 |     With gently smiling jaws!"
+:::
 
 "I'm sure those are not the right words," said poor Alice, and her eyes
 filled with tears again as she went on, "I must be Mabel after all, and

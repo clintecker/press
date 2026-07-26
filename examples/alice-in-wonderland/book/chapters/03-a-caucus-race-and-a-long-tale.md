@@ -140,22 +140,37 @@ at the Mouse's tail; "but why do you call it sad?" And she kept on
 puzzling about it while the Mouse was speaking, so that her idea of the
 tale was something like this: --
 
-| "Fury said to a mouse,
-| That he met in the house,
-| 'Let us both go to law:
-|     _I_ will prosecute _you_.
-| Come, I'll take no denial;
-| We must have a trial:
-| For really this morning I've
-|     nothing to do.'
-| Said the mouse to the cur,
-| 'Such a trial, dear sir,
-| With no jury or judge,
-|     would be wasting our breath.'
-| 'I'll be judge, I'll be jury,'
-| Said cunning old Fury:
-| 'I'll try the whole cause,
-|     and condemn you to death.'"
+::: tail
+| "Fury said to a
+| mouse, That he
+| met in the house,
+| 'Let us both go
+| to law: _I_ will
+| prosecute _you_.--
+| Come, I'll take
+| no denial; We
+| must have a
+| trial: For
+| really this
+| morning I've
+| nothing to do.'
+| Said the mouse
+| to the cur,
+| 'Such a trial,
+| dear sir, With
+| no jury or
+| judge, would
+| be wasting
+| our breath.'
+| 'I'll be judge,
+| I'll be jury,'
+| Said cunning
+| old Fury: 'I'll
+| try the whole
+| cause, and
+| condemn you
+| to death.'"
+:::
 
 "You are not attending!" said the Mouse to Alice severely. "What are
 you thinking of?"

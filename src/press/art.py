@@ -210,6 +210,10 @@ def record_acceptance(root: Path, target: str, source: Path, image, destination:
         if not (kept.startswith("- Accepted ") and f"`{target}`" in kept)
     ]
     heading_at = lines.index(RECORD_HEADING)
+    # A blank line must separate the heading from the list beneath it, or the
+    # generated record fails a markdown linter (MD022/MD032).
+    if heading_at + 1 >= len(lines) or lines[heading_at + 1].strip():
+        lines.insert(heading_at + 1, "")
     tail = heading_at + 1
     while tail < len(lines) and (lines[tail].startswith("- Accepted ") or not lines[tail].strip()):
         tail += 1
