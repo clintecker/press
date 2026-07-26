@@ -18,11 +18,14 @@ src="$(cd "${1:-.}" && pwd)"
 echo "-- build and install the wheel"
 python3 -m pip install --break-system-packages --no-cache-dir -q build
 # Build from a copy that excludes .git (its fsmonitor sockets are uncopyable)
-# and the heavy local-only dirs. The version is hardcoded in pyproject, so the
-# build needs no git metadata.
+# and the heavy local-only dirs. .claude holds agent worktrees that may be
+# written concurrently -- tarring one mid-write once aborted the gauntlet with
+# "file changed as we read it" -- and is never press source in any case. The
+# version is hardcoded in pyproject, so the build needs no git metadata.
 rm -rf /tmp/press-src && mkdir -p /tmp/press-src
 tar -C "$src" --exclude=.git --exclude=.venv --exclude=build --exclude=dist \
-    --exclude=.pytest_cache --exclude=.mypy_cache -cf - . | tar -C /tmp/press-src -xf -
+    --exclude=.pytest_cache --exclude=.mypy_cache --exclude=.claude \
+    -cf - . | tar -C /tmp/press-src -xf -
 python3 -m build --wheel --outdir /tmp/wheels /tmp/press-src >/dev/null
 # Runtime dependencies from the hash-pinned lock (#194: immutable identities),
 # then press itself with --no-deps so nothing is resolved fresh from PyPI.
