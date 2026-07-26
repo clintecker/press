@@ -318,10 +318,12 @@ invariants:
     criticality: standard
     owner: build
     enforcer: build.cover_fragment_html
-    layers: [selftest]
+    layers: [selftest, property]
     negative: [check_honest_refusals]
     ci_tier: quality
-    limitations: The proof covers the cover fragment; sibling sites share the pattern unproven.
+    limitations: The HTML cover fragment and the front-matter TeX escaper
+      (gen_front_matter.escape) are proven; other sibling sites share the
+      pattern unproven.
 
   - id: INV-cli-exit-code
     statement: A failing tool's exit code passes through the console, never a traceback.

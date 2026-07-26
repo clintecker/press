@@ -383,7 +383,7 @@ Metadata interpolated into HTML and TeX is escaped.
 | **If it breaks** | A title with markup corrupts the single-file HTML or injects TeX. |
 | **Enforced by** | `build.cover_fragment_html` |
 | **Tested by** | `check_honest_refusals` |
-| **Known limit** | The proof covers the cover fragment; sibling sites share the pattern unproven. |
+| **Known limit** | The HTML cover fragment and the front-matter TeX escaper (gen_front_matter.escape) are proven; other sibling sites share the pattern unproven. |
 
 ## No stale artifact is blessed
 
