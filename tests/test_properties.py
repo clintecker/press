@@ -18,7 +18,15 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from press import aesthetic, barcode, booklib, registrations, verify_formats
+from press import (
+    aesthetic,
+    barcode,
+    booklib,
+    gen_authorities,
+    gen_front_matter,
+    registrations,
+    verify_formats,
+)
 from press.verify_pages import CSS_URL
 
 DETERMINISTIC = settings(derandomize=True, deadline=None, max_examples=200)
@@ -291,6 +299,110 @@ def test_css_url_extracts_every_reference_in_order(tokens):
 
     blob = " ".join(f"url({token})" for token in tokens)
     assert CSS_URL.findall(blob) == tokens
+
+
+# --------------------------------------------------------------------------
+# gen_front_matter.escape  (INV-graph-escaping)
+# --------------------------------------------------------------------------
+
+# The active TeX characters the escaper must neutralize. Each is either a
+# command introducer (\), a group delimiter ({ }), or a character with a
+# special catcode (& % $ # _ ~ ^). Any of these reaching LuaLaTeX raw is an
+# injection or a compile break.
+_TEX_SPECIALS = set("\\&%$#_{}~^")
+
+# Every escape output begins with a backslash, and a character the table
+# passes through is never itself special. So in escape()'s output a
+# backslash can only begin one of these known sequences, which makes a
+# longest-match strip unambiguous: whatever remains is the passed-through
+# text, and it must carry no special at all.
+_ESCAPE_OUTPUTS = sorted(gen_front_matter.ESCAPES.values(), key=len, reverse=True)
+
+
+def _strip_escape_sequences(rendered: str) -> str:
+    """Remove every known escape-sequence output, longest first. What is
+    left is exactly the characters the table passed through unchanged."""
+
+    i = 0
+    kept: list[str] = []
+    while i < len(rendered):
+        for seq in _ESCAPE_OUTPUTS:
+            if rendered.startswith(seq, i):
+                i += len(seq)
+                break
+        else:
+            kept.append(rendered[i])
+            i += 1
+    return "".join(kept)
+
+
+@pytest.mark.invariant("INV-graph-escaping")
+@pytest.mark.layer("property")
+@pytest.mark.proof("positive")
+@DETERMINISTIC
+@given(text=st.text(max_size=200))
+def test_escape_leaves_no_unescaped_tex_special(text):
+    """For arbitrary text, every TeX special in the output belongs to one
+    of the table's escape sequences: strip the known sequences and nothing
+    special survives, so no raw backslash, brace, or catcode-active
+    character can reach the engine."""
+
+    residue = _strip_escape_sequences(gen_front_matter.escape(text))
+    assert not (_TEX_SPECIALS & set(residue))
+
+
+@pytest.mark.invariant("INV-graph-escaping")
+@pytest.mark.layer("property")
+@pytest.mark.proof("positive")
+@DETERMINISTIC
+@given(text=st.text(alphabet=_URL_ALPHABET + " abcdefghijklmnopqrstuvwxyz", max_size=120))
+def test_escape_is_a_fixed_point_on_already_safe_text(text):
+    """Text carrying none of the active characters is returned byte-for-byte,
+    so escaping is a no-op on ordinary prose (a book that predates the
+    generator renders identically)."""
+
+    if _TEX_SPECIALS & set(text):
+        return
+    assert gen_front_matter.escape(text) == text
+
+
+# --------------------------------------------------------------------------
+# gen_authorities.print_safe  (INV-authorities-printsafe)
+# --------------------------------------------------------------------------
+
+# The glyphs a print-safe source string must never carry: the backslash
+# (its only guard against a citation reaching LuaLaTeX as a command), the
+# em/en/figure dashes the house bans, and the curly quotation marks.
+_PRINT_UNSAFE = set("\\") | set("—–‒") | set("‘’“”")
+
+
+@pytest.mark.invariant("INV-authorities-printsafe")
+@pytest.mark.layer("property")
+@pytest.mark.proof("positive")
+@DETERMINISTIC
+@given(text=st.text(max_size=200))
+def test_print_safe_strips_every_backslash_dash_and_curly_quote(text):
+    """For arbitrary source text -- a citation carrying control sequences,
+    dashes, and smart quotes from the web -- print_safe leaves no backslash
+    (so nothing reaches TeX as a command), no em or en dash, and no curly
+    quotation mark."""
+
+    out = gen_authorities.print_safe(text)
+    assert not (_PRINT_UNSAFE & set(out))
+
+
+@pytest.mark.invariant("INV-authorities-printsafe")
+@pytest.mark.layer("property")
+@pytest.mark.proof("positive")
+@DETERMINISTIC
+@given(text=st.text(max_size=200))
+def test_print_safe_output_is_whitespace_normalized(text):
+    """The result carries no run of internal whitespace and no leading or
+    trailing space: print_safe normalizes as it sanitizes, so a stripped
+    control sequence cannot leave a double space behind."""
+
+    out = gen_authorities.print_safe(text)
+    assert out == " ".join(out.split())
 
 
 # --------------------------------------------------------------------------

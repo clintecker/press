@@ -12,6 +12,16 @@
         "52:48:intconst:7",
         "54:57:intconst:13"
       ]
+    },
+    "dropcaps": {
+      "total": 35,
+      "killed": 35,
+      "survivors": []
+    },
+    "figures": {
+      "total": 43,
+      "killed": 43,
+      "survivors": []
     }
   }
 }

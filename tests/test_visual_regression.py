@@ -67,7 +67,7 @@ def _fixture_book(root: Path):
     )
 
 
-@pytest.mark.invariant("INV-docs-no-drift")
+@pytest.mark.invariant("INV-design-layout-stable")
 @pytest.mark.layer("integration")
 @pytest.mark.proof("negative")
 @pytest.mark.skipif(
@@ -189,6 +189,9 @@ def _as_features(data: dict) -> visual_harness.PdfFeatures:
     )
 
 
+@pytest.mark.invariant("INV-design-layout-stable")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
 def test_font_swap_is_drift():
     base = _baseline_features()
     swapped = _as_features(base)
@@ -196,6 +199,9 @@ def test_font_swap_is_drift():
     assert any(d.field == "fonts" for d in visual_harness.compare_pdf(base, swapped))
 
 
+@pytest.mark.invariant("INV-design-layout-stable")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
 def test_margin_shift_is_drift():
     base = _baseline_features()
     shifted = _as_features(base)
@@ -205,6 +211,9 @@ def test_margin_shift_is_drift():
     assert any("ink_left" in d.field for d in visual_harness.compare_pdf(base, shifted))
 
 
+@pytest.mark.invariant("INV-design-layout-stable")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
 def test_page_count_change_is_drift():
     base = _baseline_features()
     grown = _as_features(base)
@@ -212,6 +221,9 @@ def test_page_count_change_is_drift():
     assert any(d.field == "page_count" for d in visual_harness.compare_pdf(base, grown))
 
 
+@pytest.mark.invariant("INV-design-layout-stable")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("positive")
 def test_unchanged_features_are_clean():
     base = _baseline_features()
     assert visual_harness.compare_pdf(base, _as_features(base)) == []

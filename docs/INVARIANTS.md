@@ -203,6 +203,19 @@ The wrap is one page at exactly trim plus bleed plus spine, the spine recomputed
 | **Tested by** | `integration` |
 | **Known limit** | Spine trusts the declared paper stock; a wrong stock yields a self-consistent wrong spine. |
 
+## House layout holds within a major
+
+`INV-design-layout-stable` · standard
+
+A valid v1 book renders at the committed house geometry -- page count, embedded fonts, and per-page trim and ink bounds within tolerance -- so the house typography and layout cannot change within a major without a deliberate, reasoned baseline decision.
+
+| | |
+|---|---|
+| **If it breaks** | The house design drifts silently -- a margin shifts, a font is swapped, a plate is displaced -- changing a valid book's typography or layout without the major-version decision the contract requires. |
+| **Enforced by** | `build.build_target` |
+| **Tested by** | `integration` |
+| **Known limit** | Toolchain-gated: the rendered comparison runs only where pandoc, LuaLaTeX, and the poppler tools are present, and the reviewed baseline is regenerated in the pinned toolchain, never silently. The comparison's bite (a font swap, a margin shift, a page-count change are each drift) is proven against the committed baseline without the toolchain. Two chapters and pages one and two are sampled; geometry is toolchain-stable only to the declared tolerance, so a sub-tolerance shift is not caught. |
+
 ## Docs never drift
 
 `INV-docs-no-drift` · standard
@@ -265,7 +278,7 @@ The universal prose battery refuses dashes, curly quotes, out-of-font glyphs, th
 |---|---|
 | **If it breaks** | Synthetic or print-unsafe prose reaches a published book. |
 | **Enforced by** | `style_audit` |
-| **Tested by** | `fixture:em-dash.md`, `fixture:curly-quotes.md`, `fixture:emoji.md`, `fixture:title-case.md`, `fixture:numbered-heading.md`, `fixture:long-paragraph.md` |
+| **Tested by** | `fixture:em-dash.md`, `fixture:en-dash.md`, `fixture:curly-quotes.md`, `fixture:emoji.md`, `fixture:title-case.md`, `fixture:numbered-heading.md`, `fixture:long-paragraph.md`, `fixture:trailing-whitespace.md`, `fixture:in-conclusion.md`, `fixture:throat-clearing-important.md`, `fixture:throat-clearing-worth.md`, `fixture:at-its-core.md`, `fixture:real-question.md`, `fixture:lets-dive.md`, `fixture:without-further-ado.md`, `fixture:testament.md`, `fixture:vibrant-tapestry.md`, `fixture:negative-parallelism.md` |
 | **Known limit** | The glyph law flags legitimate Greek or math; short title-case headings slip. |
 
 ## Checkers proven by fixtures
@@ -278,7 +291,7 @@ Every known-bad fixture trips its declared rule; known-good passes clean.
 |---|---|
 | **If it breaks** | A checker silently stops catching what it was built to catch. |
 | **Enforced by** | `check_the_checkers` |
-| **Tested by** | `integration` |
+| **Tested by** | `check_editorial_checkers`, `integration` |
 | **Known limit** | A book fixture with no expect comment falls back to any-rejection. |
 
 ## Jargon watchlist
@@ -333,6 +346,19 @@ An extension may depend on the mandatory verification, path containment, artifac
 | **Tested by** | `check_extension_conformance` |
 | **Known limit** | The seal is a fixed set of capability tokens and the rule that every declared invariant names a proof; it governs what a manifest may claim, not the runtime behavior of a code extension, which the contract does not admit. |
 
+## Editions agree on every chapter
+
+`INV-format-agreement` · standard
+
+Every chapter's content appears in every built edition; an edition that silently drops a chapter (or most of it) disagrees with the editions that kept it and is refused, not passed.
+
+| | |
+|---|---|
+| **If it breaks** | A single format loses a chapter -- a broken pandoc filter, a truncated export -- and ships, because each edition was only ever checked for one witness line and the formats were never cross-checked against each other. |
+| **Enforced by** | `verify_formats.verify_editions_agree` |
+| **Tested by** | `check_editions_agree` |
+| **Known limit** | Presence of a distinctive multi-word fragment per chapter, not a full diff: an edition that keeps each chapter's witness fragment but scrambles or truncates the surrounding prose is not caught. The PDF joins the agreement set only where pdftotext is present (the toolchain tier); the other editions are checked with no external tool. |
+
 ## One witness per chapter
 
 `INV-format-site-identity` · standard
@@ -346,6 +372,19 @@ Each chapter's witness appears exactly once across the reader site.
 | **Tested by** | `check_site_identity` |
 | **Known limit** | A chapter with no qualifying line contributes no witness. |
 
+## Editions keep their structural shape
+
+`INV-format-structure` · standard
+
+A valid v1 book's non-PDF editions keep their committed structural shape: the EPUB's chapter-document count exactly, its spine and nav and the reader site's pages and links no smaller than the reviewed baseline, and the DOCX still declaring every house style.
+
+| | |
+|---|---|
+| **If it breaks** | An edition silently loses its structure -- a chapter document dropped from the EPUB spine, a nav entry gone, a house DOCX style removed -- and ships, because only the PDF's shape was ever pinned. |
+| **Enforced by** | `build.build_target` |
+| **Tested by** | `integration` |
+| **Known limit** | Toolchain-gated: the rendered comparison runs only where pandoc is present, and the reviewed baseline is regenerated deliberately, never silently. Book-determined counts are matched exactly; version-sensitive shapes are matched in the regression direction only, so a benign pandoc upgrade that adds a spine item or a token style is not caught, by design. |
+
 ## A witness in every format
 
 `INV-format-witness` · critical
@@ -357,7 +396,7 @@ Title and a derived manuscript witness appear in every format; a book yielding n
 | **If it breaks** | A format silently drops the manuscript and still verifies. |
 | **Enforced by** | `verify_formats.require_witnesses` |
 | **Tested by** | `check_format_witnesses` |
-| **Known limit** | One longest line per document; a format dropping every other line still passes. |
+| **Known limit** | One longest line per document; a format dropping every other line is not caught here -- INV-format-agreement holds the full per-chapter witness set against every edition to close that gap. |
 
 ## Acyclic artifact graph
 
@@ -383,7 +422,7 @@ Metadata interpolated into HTML and TeX is escaped.
 | **If it breaks** | A title with markup corrupts the single-file HTML or injects TeX. |
 | **Enforced by** | `build.cover_fragment_html` |
 | **Tested by** | `check_honest_refusals` |
-| **Known limit** | The proof covers the cover fragment; sibling sites share the pattern unproven. |
+| **Known limit** | The HTML cover fragment and the front-matter TeX escaper (gen_front_matter.escape) are proven; other sibling sites share the pattern unproven. |
 
 ## No stale artifact is blessed
 
@@ -525,7 +564,7 @@ A three-part tag pins its own action ref and an existing immutable toolchain ima
 |---|---|
 | **If it breaks** | A pinned book resolves a different pipeline than the tag promises. |
 | **Enforced by** | `selftest.check_release_grammar` |
-| **Tested by** | `none` |
+| **Tested by** | `integration` |
 | **Known limit** | The pin grep is an exact string; it does not prove the tag's tree. |
 
 ## Complete release chain

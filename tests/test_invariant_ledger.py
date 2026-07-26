@@ -99,3 +99,74 @@ def test_validator_rejects_duplicate_id():
     }
     with pytest.raises(SystemExit, match="duplicate id"):
         invariants.validate([entry, dict(entry)])
+
+
+# ---- the ledger-completeness gate (selftest.check_ledger_completeness) ----
+
+def _critical(negative):
+    return {
+        "id": "INV-x", "statement": "s", "risk": "r", "criticality": "critical",
+        "owner": "booklib", "enforcer": "booklib",
+        "layers": ["integration"], "negative": negative, "ci_tier": "integration",
+        "limitations": "l",
+    }
+
+
+def test_completeness_gate_holds_on_the_shipped_ledger():
+    """Every critical invariant in the real ledger has a fast-tier proof and
+    no invariant declares zero proofs -- the shipped tree passes the gate."""
+
+    from press import selftest
+
+    selftest.check_ledger_completeness()  # does not raise
+
+
+def test_completeness_gate_flags_a_critical_invariant_with_no_fast_proof(monkeypatch):
+    """A critical invariant whose only proof is 'integration' -- no runnable
+    selftest check, no collected pytest test -- is caught, the exact case
+    invariants.validate (which only resolves references) lets through."""
+
+    from press import selftest
+
+    monkeypatch.setattr(selftest.invariants, "load", lambda: [_critical(["integration"])])
+    monkeypatch.setattr(selftest, "_invariants_with_pytest_proof", set)
+    with pytest.raises(SystemExit, match="no fast-tier proof"):
+        selftest.check_ledger_completeness()
+
+
+def test_completeness_gate_accepts_a_collected_pytest_proof(monkeypatch):
+    """The same integration-only critical invariant passes once a pytest test
+    is collected for it: the collected signal is a valid fast proof."""
+
+    from press import selftest
+
+    monkeypatch.setattr(selftest.invariants, "load", lambda: [_critical(["integration"])])
+    monkeypatch.setattr(selftest, "_invariants_with_pytest_proof", lambda: {"INV-x"})
+    selftest.check_ledger_completeness()  # does not raise
+
+
+def test_completeness_gate_accepts_a_runnable_selftest_check(monkeypatch):
+    """A runnable selftest check named in the proofs is a fast proof even with
+    no collected pytest test."""
+
+    from press import selftest
+
+    monkeypatch.setattr(
+        selftest.invariants, "load",
+        lambda: [_critical(["check_imports"])])  # a real selftest check
+    monkeypatch.setattr(selftest, "_invariants_with_pytest_proof", set)
+    selftest.check_ledger_completeness()  # does not raise
+
+
+def test_completeness_gate_flags_an_invariant_with_only_none(monkeypatch):
+    """An invariant declaring only the 'none' placeholder, with nothing
+    collected, is a guard on paper and is refused."""
+
+    from press import selftest
+
+    standard = _critical(["none"])
+    standard["criticality"] = "standard"
+    monkeypatch.setattr(selftest.invariants, "load", lambda: [standard])
+    monkeypatch.setattr(selftest, "_invariants_with_pytest_proof", set)
+    with pytest.raises(SystemExit, match="declares no proof"):
+        selftest.check_ledger_completeness()

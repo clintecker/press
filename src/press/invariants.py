@@ -79,6 +79,8 @@ TITLES = {
     "INV-pdf-detector": "Proven blank-page detector",
     "INV-pdf-ink": "Every page carries ink",
     "INV-format-witness": "A witness in every format",
+    "INV-format-agreement": "Editions agree on every chapter",
+    "INV-format-structure": "Editions keep their structural shape",
     "INV-format-site-identity": "One witness per chapter",
     "INV-pages-refs": "Every reference resolves",
     "INV-archive-site-bytes": "Reader archive matches the site",
@@ -106,6 +108,7 @@ TITLES = {
     "INV-migration-safe": "Migration moves only the pin",
     "INV-migration-preview": "Migration previews before it mutates",
     "INV-profile-geometry": "Profiles render at their trim",
+    "INV-design-layout-stable": "House layout holds within a major",
     "INV-dropcap-opening": "Drop caps only on the opening",
 }
 

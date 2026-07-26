@@ -381,6 +381,74 @@ def check_format_witnesses() -> None:
     assert normalized("The \u201cWitness\u201d") == 'the "witness"'
 
 
+def check_editorial_checkers() -> None:
+    """The checker self-test in the fast tier: run check_the_checkers over
+    the packaged known-bad fixtures inside a clean scaffolded book (no book
+    fixtures of its own), proving every declared rule still fires and the
+    known-good fixture is accepted. INV-editorial-checkers had only an
+    integration proof; this gives it a runnable fast-tier one."""
+
+    import contextlib
+    import io
+    import tempfile
+
+    from . import check_the_checkers, scaffold
+
+    with tempfile.TemporaryDirectory() as tmp:
+        book = Path(tmp) / "checker-proof"
+        scaffold.main([str(book), "--author", "Checker Prover"])
+        with borrow_book(book):
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                code = check_the_checkers.main()
+            if code != 0:
+                raise SystemExit(
+                    "selftest: check_the_checkers rejected the packaged "
+                    f"fixtures:\n{buffer.getvalue()}"
+                )
+            if "each" not in buffer.getvalue():
+                raise SystemExit(
+                    "selftest: check_the_checkers produced no pass line; "
+                    f"got:\n{buffer.getvalue()}"
+                )
+
+
+def check_editions_agree() -> None:
+    """Cross-edition content agreement: editions that all carry every
+    chapter's witness pass, and an edition that silently drops a chapter is
+    named and refused. Pure and toolchain-free -- synthetic edition texts,
+    no build. Proves INV-format-agreement closes INV-format-witness's
+    one-line-per-document limit."""
+
+    from . import verify_formats
+
+    witnesses = {
+        "01-one.md": "the first chapter carries this exact distinctive sentence about the shop",
+        "02-two.md": "the second chapter speaks of the devil and the hell box in plain words",
+    }
+    everything = " ".join(witnesses.values())
+    editions = {
+        "HTML": f"front matter {everything} back matter",
+        # The EPUB witness lines are split by furniture and reordered padding,
+        # but each chapter's distinctive fragment still survives intact.
+        "EPUB": (f"chapter one {witnesses['01-one.md']} PAGE 5 make ready "
+                 f"chapter two {witnesses['02-two.md']} colophon"),
+    }
+    verify_formats.verify_editions_agree(editions, witnesses)  # agreement: no raise
+
+    broken = dict(editions)
+    broken["EPUB"] = witnesses["01-one.md"] + " but everything after is gone"
+    try:
+        verify_formats.verify_editions_agree(broken, witnesses)
+    except SystemExit as exc:
+        assert "02-two.md" in str(exc), exc
+        assert "EPUB" in str(exc), exc
+    else:
+        raise AssertionError(
+            "an edition that dropped a chapter passed cross-edition agreement"
+        )
+
+
 def check_site_identity() -> None:
     """The audit's damage case for site identity: a duplicated chapter
     page must fail on its witness appearing twice, and a removed
@@ -1272,6 +1340,103 @@ def check_invariant_ledger() -> None:
     invariants.validate(invariants.load())
 
 
+def _invariants_with_pytest_proof() -> set[str]:
+    """The set of invariants that carry at least one pytest proof in the tree.
+
+    Two signals, unioned so the result is robust to which tests a given
+    session collected. The pytest collection plugin writes an invariant ->
+    tests index (tests/_collection-index.json), but a *subset* pytest run
+    rewrites it with only that subset's invariants, so its absence of an id
+    is not proof the id has no test. The authoritative signal is therefore a
+    static scan of the test sources for the ``invariant("INV-...")`` marker,
+    which is immune to collection state; the index is unioned in as a
+    convenience. An installed wheel has no tests/ tree and contributes
+    nothing here."""
+
+    ids: set[str] = set()
+    tests_dir = invariants.LEDGER.parent.parent / "tests"
+    if not tests_dir.is_dir():
+        return ids
+
+    index = tests_dir / "_collection-index.json"
+    if index.is_file():
+        import json
+
+        try:
+            mapping = json.loads(index.read_text(encoding="utf-8")).get("invariant_to_tests")
+            if isinstance(mapping, dict):
+                ids |= {k for k, v in mapping.items() if v}
+        except (ValueError, OSError):
+            pass
+
+    marker = re.compile(r"""invariant\(\s*["'](INV-[A-Za-z0-9-]+)["']""")
+    for source in tests_dir.rglob("*.py"):
+        try:
+            ids |= set(marker.findall(source.read_text(encoding="utf-8")))
+        except OSError:
+            continue
+    return ids
+
+
+def check_ledger_completeness() -> None:
+    """Every invariant carries a real proof, and every *critical* invariant
+    keeps a fast-tier one -- a runnable selftest check or a collected pytest
+    test. invariants.validate only checks that a proof reference *resolves*;
+    an invariant can therefore pass it while its last fast proof is a marker
+    on a test that has been deleted (the integration proof still standing).
+    This closes that: a critical invariant with no fast proof, or any
+    invariant declaring no proof at all, fails the ledger.
+
+    The fast-tier pytest signal is robust to collection state (see
+    _invariants_with_pytest_proof). Repo-only: an installed wheel has no
+    ledger to check and returns early."""
+
+    import sys as _sys
+
+    if not invariants.LEDGER.is_file():
+        return
+    pytest_proven = _invariants_with_pytest_proof()
+    this = _sys.modules[__name__]
+
+    problems: list[str] = []
+    for inv in invariants.load():
+        if not isinstance(inv, dict) or "id" not in inv:
+            continue
+        iid = inv["id"]
+        proofs = list(inv.get("negative") or []) + list(inv.get("positive") or [])
+        real = [p for p in proofs if p != "none"]
+        runnable = [
+            p for p in proofs
+            if p.startswith("check_") and callable(getattr(this, p, None))
+        ]
+        has_collected = iid in pytest_proven
+
+        # No invariant may declare zero proofs: an empty list (schema already
+        # forbids it) or only the placeholder 'none' with nothing collected is
+        # a guard on paper. 'integration' and a fixture both count as real.
+        if not real and not has_collected:
+            problems.append(
+                f"{iid}: declares no proof (only 'none') and no pytest test is "
+                "collected for it"
+            )
+
+        # A critical invariant must keep a fast proof so it cannot lose its
+        # last fast guard while the integration proof still validates the
+        # reference.
+        if inv.get("criticality") == "critical" and not (runnable or has_collected):
+            problems.append(
+                f"{iid}: critical invariant has no fast-tier proof -- no "
+                "runnable selftest check and no pytest test carries its "
+                "invariant marker; it would lose its guard if the integration "
+                "tier were skipped"
+            )
+    if problems:
+        raise SystemExit(
+            "invariant ledger completeness failed:\n"
+            + "\n".join(f"  - {p}" for p in problems)
+        )
+
+
 def check_fixture_provenance() -> None:
     """Every checked-in regression fixture carries a provenance manifest
     entry, and no entry names a fixture that has left the tree."""
@@ -1563,6 +1728,8 @@ CHECKS = [
     check_book_model,
     check_registry,
     check_format_witnesses,
+    check_editions_agree,
+    check_editorial_checkers,
     check_site_identity,
     check_authorities_ledger,
     check_honest_refusals,
@@ -1578,6 +1745,7 @@ CHECKS = [
     check_aesthetic_schema,
     check_contract_mirror,
     check_invariant_ledger,
+    check_ledger_completeness,
     check_fixture_provenance,
     check_migration,
     check_extension_conformance,

@@ -166,6 +166,35 @@ def test_validate_refuses_left_right_absolute_and_bad_outset():
     assert contradiction and "empty alt" in contradiction[0]
 
 
+@pytest.mark.layer("unit")
+def test_figure_is_a_frozen_value_object_with_off_by_default_flags():
+    # A parsed figure is immutable, and its two boolean flags default to off:
+    # a bare image is not decorative and not kind-declared until the manuscript
+    # says so. These pin the dataclass defaults the parser leans on.
+    fig = figures.Figure(
+        src="a.png", caption="A", kind="figure", style=None,
+        directive="", description=None,
+    )
+    assert fig.decorative is False
+    assert fig.kind_declared is False
+    with pytest.raises(Exception):
+        fig.decorative = True  # type: ignore[misc]
+
+
+@pytest.mark.layer("unit")
+def test_a_decorative_image_without_alt_validates_clean():
+    # The contradiction check fires only when a decorative image ALSO carries
+    # fig-alt; a decorative image with no alt (the correct spelling) is clean,
+    # and a captioned image with alt and no decorative flag is clean too. This
+    # pins the `decorative and alt` conjunction: neither half alone is a fault.
+    decorative_only = figures.validate(
+        figures.parse("![orn](o.png){.figure decorative=true}\n"))
+    assert decorative_only == []
+    alt_only = figures.validate(
+        figures.parse('![A](a.png){.figure fig-alt="a hand on a stick"}\n'))
+    assert alt_only == []
+
+
 @pytest.mark.layer("integration")
 def test_press_figures_prints_declared_figures_as_json(tmp_path, capsys):
     handle = factories.minimal().with_chapter(
@@ -176,7 +205,11 @@ def test_press_figures_prints_declared_figures_as_json(tmp_path, capsys):
     ).build(tmp_path)
     with handle.use():
         assert figures.main([]) == 0
-    records = json.loads(capsys.readouterr().out)
+    raw = capsys.readouterr().out
+    # The record dump is pretty-printed at two-space indent (list items open
+    # with exactly two leading spaces), not a single dense line.
+    assert "\n  {" in raw
+    records = json.loads(raw)
     plate = next(r for r in records if r["src"] == "assets/fig/compositor.jpg")
     assert plate["file"] == "book/chapters/01-fig.md"
     assert plate["description"] == "a compositor's hand on a composing stick"
