@@ -63,8 +63,10 @@ audit).
   refuses a malformed placement — an absolute width, a left/right side, an
   out-of-vocabulary place, a non-em outset, a measure on a plate, or a
   decorative image that still carries alt text — before any render. Parsed
-  and validated in `press.figures`; documented in `docs/ILLUSTRATIONS.md` and
-  the `plates-and-woodcuts` skill. In the PDF each placement is now laid, not
+  and validated in `press.figures`; documented -- with a source-and-shot
+  showcase of every placement on the illustrations page -- in
+  `docs/ILLUSTRATIONS.md` and the `plates-and-woodcuts` skill. In the PDF each
+  placement is now laid, not
   merely accepted: a wrap fuses to the head of the following paragraph so the
   running text closes around it on the binding-aware side -- a standalone
   wrapfigure wraps nothing -- with a `\Needspace` guard that keeps a wrap off

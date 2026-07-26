@@ -398,6 +398,51 @@ FROM_DEMO = [
      'Gravely tractor and plough attachment, U.S. National Archives — public domain'),
 ]
 
+# The figure-placement showcase: for each `place=` value, the exact source that
+# declares it beside a shot of what the press typeset from it. The images are
+# committed under site/placement-demo/ (cropped from the signal-and-noise
+# gallery build); a row whose image is missing is skipped. Each row is
+# (image, place label, source markdown, what it produces, alt text).
+PLACEMENT_DEMO_IMAGES = ROOT / "site" / "placement-demo"
+PLACEMENT_DEMO_MARKER = "<!--PLACEMENT-DEMO-->"
+PLACEMENT_DEMO = [
+    ("inline.png", "place=inline",
+     "![Inline, at the full measure.](crystal-set.png){.figure\n"
+     "    width=full-measure place=inline}",
+     "Runs the figure in the text column at the chosen measure, its caption "
+     "beneath — what a bare image already does, made explicit.",
+     "A full-measure figure centred in the column, caption below."),
+    ("wrap-inner.png", "place=wrap-inner",
+     "![Wrapped, inner side.](crystal-set.png){.figure\n"
+     "    width=half-measure place=wrap-inner outset=1em}",
+     "Sets the figure on the binding-aware inner side and runs the text around "
+     "it; <code>outset</code> is the runaround gap. On a recto the figure sits "
+     "left; on a verso, right — the press works it out from the page parity.",
+     "A half-measure figure on the left, text wrapping around it on the right."),
+    ("wrap-outer.png", "place=wrap-outer",
+     "![Wrapped, outer side.](crystal-set.png){.figure\n"
+     "    width=half-measure place=wrap-outer outset=1em}",
+     "The mirror of wrap-inner: the figure hangs toward the outer edge, the "
+     "running text filling the binding side.",
+     "A half-measure figure on the right, text wrapping around it on the left."),
+    ("plate.png", "place=plate",
+     "![A plate: unnumbered, pinned in place.](crystal-set.png){.plate place=plate}",
+     "The literary woodcut idiom: an unnumbered figure with a quiet italic "
+     "caption and no “Figure N.”. A bare <code>![…](…)</code> with no declared "
+     "kind is a plate too, so this is the house default.",
+     "An unnumbered plate centred in the column with an italic caption."),
+    ("full-bleed.png", "place=full-bleed",
+     "![Full bleed: the figure takes its own page.](crystal-set.png){.figure place=full-bleed}",
+     "Gives the figure its own cleared leaf and fills it — never a floating "
+     "figure that defers a page late — with the caption on the same leaf.",
+     "A figure filling its own page, caption beneath, no running head."),
+    ("frontispiece.png", "place=frontispiece",
+     "![Frontispiece, facing the next chapter.](crystal-set.png){.figure place=frontispiece}",
+     "Like full-bleed, but clears to the verso so the plate faces the next "
+     "chapter's opening recto across the gutter.",
+     "A frontispiece plate on its own leaf, facing the next chapter."),
+]
+
 # The card shows the physical trim size, not the internal profile name.
 PROFILE_LABELS = {"novella-5x8": "5×8", "house-6x9": "6×9"}
 
@@ -681,6 +726,31 @@ def from_demo_html() -> str:
     return f'<section class="from-demo">{"".join(cards)}\n</section>'
 
 
+def placement_demo_html() -> str:
+    """The figure-placement showcase: each `place=` value's source beside a shot
+    of what the press typeset from it. Generated from PLACEMENT_DEMO and the
+    committed site/placement-demo/ images; a row whose image is missing is
+    skipped so a pandoc-only local run still builds."""
+    cards = []
+    for img, name, source, note, alt in PLACEMENT_DEMO:
+        if not (PLACEMENT_DEMO_IMAGES / img).is_file():
+            continue
+        cards.append(f"""
+<figure class="place-card">
+  <div class="place-shot">
+    <img src="placement-demo/{escape(img)}" loading="lazy" alt="{escape(alt)}">
+  </div>
+  <div class="place-src">
+    <p class="place-name"><code>{escape(name)}</code></p>
+    <pre class="place-code"><code>{escape(source)}</code></pre>
+    <p class="place-note">{note}</p>
+  </div>
+</figure>""")
+    if not cards:
+        raise SystemExit(f"placement-demo: no images under {PLACEMENT_DEMO_IMAGES}")
+    return f'<section class="place-demo">{"".join(cards)}\n</section>'
+
+
 def build_page(source: str, name: str, label: str) -> None:
     title = "press" if name == "index.html" else f"press: {label}"
     nav_file = OUT / f".nav-{name}"
@@ -740,6 +810,9 @@ def build_page(source: str, name: str, label: str) -> None:
         if FROM_DEMO_MARKER not in html:
             raise SystemExit(f"illustrations: {source} lost its {FROM_DEMO_MARKER} marker")
         html = html.replace(FROM_DEMO_MARKER, from_demo_html(), 1)
+        if PLACEMENT_DEMO_MARKER not in html:
+            raise SystemExit(f"illustrations: {source} lost its {PLACEMENT_DEMO_MARKER} marker")
+        html = html.replace(PLACEMENT_DEMO_MARKER, placement_demo_html(), 1)
     # Wrap the pandoc content in one <main class="prose"> between the
     # toolbar and the colophon, so the whole column is a single centered
     # container and no element can detach from it. The toolbar and footer
@@ -884,6 +957,8 @@ def main() -> int:
         shutil.copytree(ILLUSTRATION_STYLES_IMAGES, OUT / "illustration-styles")
     if FROM_DEMO_IMAGES.is_dir():
         shutil.copytree(FROM_DEMO_IMAGES, OUT / "from-demo")
+    if PLACEMENT_DEMO_IMAGES.is_dir():
+        shutil.copytree(PLACEMENT_DEMO_IMAGES, OUT / "placement-demo")
     for source, name, label in PAGES + FOOTER_PAGES:
         build_page(source, name, label)
     write_sitemap_and_robots()

@@ -119,6 +119,29 @@ width where a measure belongs, a `left`/`right` side (use `wrap-inner` /
 `wrap-outer`), an out-of-vocabulary `place`, a non-em `outset`, a measure on a
 plate, or a `decorative` image that still carries `fig-alt`.
 
+### What each placement produces
+
+Each card shows the exact attributes you write and the leaf the press typeset
+from them, drawn from the [signal-and-noise example](gallery.html). (Give every
+real figure a `fig-alt` as well; it is elided here to keep the placement
+attributes in view.)
+
+<!--PLACEMENT-DEMO-->
+
+The press will not let a placement strand your text. A **wrap** that would begin
+too low on a page — with too few lines left to close beneath the figure — moves
+whole to the next page rather than hang off the foot; the guard is sized to the
+figure, so a taller figure reserves more room. A **full-bleed** or
+**frontispiece** takes a *cleared* leaf, not a floating figure that LaTeX would
+defer a page late and leave a blank behind, and its caption sits on the same
+leaf. A **numbered** figure carries its own bold “Figure C.N.” set by the house,
+so no stray label — or the asterisk a bare `\caption*` once leaked — reaches the
+caption.
+
+Placement is a **print** concern. On the reflowable web — EPUB and the reader —
+a placed figure becomes a clean in-flow figure, and the markdown and plain-text
+editions keep it in flow too; none of the placement scaffolding leaks into them.
+
 ## What does *not* belong here
 
 **Data figures — bar charts, line graphs — are not illustrations.** An image
