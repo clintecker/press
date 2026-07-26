@@ -158,7 +158,11 @@ audit).
   ligatures suppressed across a morpheme seam (selnolig -- `shelf|ful`, not an
   `ff` welded across the join); and a widow/orphan/hyphenation discipline (no
   widows or orphans, no paragraph ending on a hyphen, no two hyphenated lines
-  stacked, no hyphen carried across a page turn). A new
+  stacked, no hyphen carried across a page turn, and no lone word left on a
+  paragraph's last line -- a *runt*, which the page-edge widow and orphan
+  penalties cannot catch because it is a break inside the paragraph; a finite
+  `\parfillskip` makes a near-empty last line underfull, so the breaker draws
+  the word up instead). A new
   `typographic-spacing.lua` filter binds a curated set of abbreviations to what
   follows with a non-breaking space in every edition -- a title before a name
   (`Mr. Smith`), a reference before a number (`p. 42`, `Fig. 3`), a person's

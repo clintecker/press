@@ -38,6 +38,15 @@
 \brokenpenalty=10000
 \finalhyphendemerits=10000
 \doublehyphendemerits=10000
+% No lone word on a paragraph's last line (a "runt") -- the widow and orphan
+% penalties above cannot catch it, because it is a break INSIDE the paragraph,
+% not at a page edge, and the default \parfillskip (0pt plus 1fil) lets the last
+% line stretch infinitely, so a one-word last line costs nothing. A finite
+% \parfillskip makes a very short last line underfull instead, so the line
+% breaker re-sets the paragraph to draw the word up. The threshold is low (the
+% last line need only reach about a fifth of the measure), so an ordinary
+% paragraph whose last line is already a few words is untouched.
+\parfillskip=0pt plus 0.8\hsize
 % At least three letters either side of a break, and hyphenate a shade less
 % eagerly than the default.
 \lefthyphenmin=3 \righthyphenmin=3
