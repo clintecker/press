@@ -694,7 +694,7 @@ invariants:
     criticality: standard
     owner: dropcaps
     enforcer: dropcaps.split_initial
-    layers: [unit, integration]
+    layers: [unit, property, integration]
     negative: [integration]
     ci_tier: quality
     limitations: >-

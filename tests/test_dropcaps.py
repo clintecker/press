@@ -8,8 +8,12 @@ from __future__ import annotations
 import unicodedata
 
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from press import dropcaps
+
+_DETERMINISTIC = settings(derandomize=True, deadline=None, max_examples=400)
 
 
 @pytest.mark.layer("unit")
@@ -158,3 +162,42 @@ def test_reassembly_is_lossless_after_the_stripped_prefix():
     text = '"Quietly," she said.'
     o = dropcaps.split_initial(text)
     assert o.lead + o.initial + o.word_remainder + o.rest == text.lstrip()
+
+
+@pytest.mark.invariant("INV-dropcap-opening")
+@pytest.mark.layer("property")
+@pytest.mark.proof("positive")
+@_DETERMINISTIC
+@given(text=st.text())
+def test_split_initial_is_lossless_over_arbitrary_unicode(text):
+    """The reassembly contract holds for every string -- arbitrary Unicode,
+    combining marks, leading punctuation, whitespace, or nothing at all --
+    so the drop cap never adds, drops, or reorders a character of the
+    opening. The contract is exact and has two branches, which the code
+    draws deliberately:
+
+      * when there is no letter to cap, the split is a no-op that returns
+        the *original* text as `rest` (leading whitespace and all), so a
+        caller rendering an epigraph or an ellipsis opener changes nothing;
+      * otherwise the four pieces concatenate to `text.lstrip()`, the only
+        loss being the leading whitespace the split intentionally drops.
+
+    And the initial is always one grapheme: a base character followed only
+    by combining marks, never a bare code point that would strand an accent.
+    """
+
+    o = dropcaps.split_initial(text)
+    if o.is_empty:
+        assert o.lead == "" and o.initial == "" and o.word_remainder == ""
+        assert o.rest == text
+    else:
+        assert o.lead + o.initial + o.word_remainder + o.rest == text.lstrip()
+        assert o.initial != ""
+        # Every character after the base is a combining mark: one grapheme.
+        assert all(unicodedata.combining(ch) for ch in o.initial[1:])
+        # Leading punctuation kept with the cap is drawn only from the
+        # documented lead set, never swept-in arbitrary symbols.
+        assert all(ch in dropcaps._LEAD for ch in o.lead)
+        # The word remainder carries no whitespace: it is the rest of the
+        # first word, and the flow of the paragraph lives in `rest`.
+        assert not any(ch.isspace() for ch in o.word_remainder)
