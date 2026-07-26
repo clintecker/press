@@ -139,7 +139,7 @@ invariants:
     owner: check_the_checkers
     enforcer: check_the_checkers
     layers: [selftest, integration]
-    negative: [integration]
+    negative: [check_editorial_checkers, integration]
     ci_tier: quality
     limitations: A book fixture with no expect comment falls back to any-rejection.
 
@@ -406,7 +406,7 @@ invariants:
     owner: selftest
     enforcer: selftest.check_release_grammar
     layers: [integration]
-    negative: [none]
+    negative: [integration]
     ci_tier: integration
     limitations: The pin grep is an exact string; it does not prove the tag's tree.
 

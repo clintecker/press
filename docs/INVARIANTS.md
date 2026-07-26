@@ -291,7 +291,7 @@ Every known-bad fixture trips its declared rule; known-good passes clean.
 |---|---|
 | **If it breaks** | A checker silently stops catching what it was built to catch. |
 | **Enforced by** | `check_the_checkers` |
-| **Tested by** | `integration` |
+| **Tested by** | `check_editorial_checkers`, `integration` |
 | **Known limit** | A book fixture with no expect comment falls back to any-rejection. |
 
 ## Jargon watchlist
@@ -564,7 +564,7 @@ A three-part tag pins its own action ref and an existing immutable toolchain ima
 |---|---|
 | **If it breaks** | A pinned book resolves a different pipeline than the tag promises. |
 | **Enforced by** | `selftest.check_release_grammar` |
-| **Tested by** | `none` |
+| **Tested by** | `integration` |
 | **Known limit** | The pin grep is an exact string; it does not prove the tag's tree. |
 
 ## Complete release chain
