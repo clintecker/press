@@ -84,14 +84,22 @@ audit).
 
 ### Fixed
 
-- **A chapter that opens on dialogue no longer strands its opening quote above
-  the dropped initial.** The leading quote (or dash) now rides beside the
-  initial at its own size -- through lettrine's `ante` option in print, and its
-  own floated span on the web -- instead of being scaled up into the initial or
-  left hanging at text size beside it. A chapter that opens on an ordinary word
-  compiles to the exact same `\lettrine` call as before, so a drop-cap book is
-  otherwise unchanged. The Alice gallery example, whose chapter 2 opens on
-  "Curiouser and curiouser!", demonstrates the fix.
+- **A chapter that opens on dialogue hangs its opening quote in the margin.**
+  The leading quotation mark now hangs into the left margin at body size, so the
+  dropped initial stays flush to the text block -- the same optical margin every
+  other chapter opening keeps (Bringhurst's rule: keep the quotation mark, and
+  hang the punctuation). In print `\PressDropCap` hangs it through lettrine's
+  `ante` with `\smash{\llap{...}}`; on the web and in EPUB the `.drop-cap-lead`
+  span is pulled into the margin by a negative margin. A chapter that opens on
+  an ordinary word compiles to the exact same `\lettrine` call as before, so a
+  drop-cap book is otherwise unchanged. The Alice gallery example, whose
+  chapter 2 opens on "Curiouser and curiouser!", demonstrates it.
+- **A generated title page with no subtitle shows one rule, not two.** The
+  title page brackets a subtitle between two ornamental rules; a book with no
+  subtitle rendered both rules with nothing between them. The second rule (and
+  the subtitle's spacing) is now conditional on a subtitle existing, so a
+  subtitle-less book gets a single rule under the title. A book that does carry
+  a subtitle is unchanged.
 
 ### Changed
 

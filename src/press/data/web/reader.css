@@ -87,13 +87,14 @@ h1 + figure + p::first-line { font-variant: small-caps; letter-spacing: .05em; }
   float: left; font-size: 3.1em; line-height: .82;
   padding: .05em .1em 0 0; color: var(--ink); font-weight: 600;
 }
-/* A chapter that opens on dialogue keeps its opening quote (or dash) beside
-   the initial, at the initial's size -- floated just before it, never inside
-   the big .drop-cap span where it would strand above the letter. Absent (an
-   ordinary opener), no such span is emitted and the reader is unchanged. */
+/* A chapter that opens on dialogue keeps its opening quote, but hung into the
+   left margin at body size so the big initial stays flush to the text block --
+   the web echo of the print \llap treatment (Bringhurst: keep the mark, hang
+   the punctuation). A negative left margin laps it past the initial; absent (an
+   ordinary opener) no such span is emitted and the reader is unchanged. */
 .chapter-opening .drop-cap-lead {
-  float: left; font-size: 3.1em; line-height: .82;
-  padding: .05em .05em 0 0; color: var(--ink); font-weight: 600;
+  float: left; font-size: 1.15em; line-height: 1; font-weight: 400;
+  margin: .1em .02em 0 -.52em; color: var(--ink);
 }
 /* An ornate opening (chapter-opening-style: ornate) sets the print initial in
    a decorated foliate font (yinit), which cannot cross to the browser. The

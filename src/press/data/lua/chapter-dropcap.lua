@@ -106,13 +106,13 @@ local function first_text(inlines)
 end
 
 local function drop_inlines(parts)
-  -- The lead (an opening quote or dash), the initial, and the word remainder,
-  -- as format-specific inlines. The lead is kept OUT of the initial: in LaTeX
-  -- it rides lettrine's `ante` option as \PressDropCap's own first argument, so
-  -- it is set at the initial's size, not scaled up into it and stranded above;
-  -- in HTML/EPUB it hangs in its own span beside the big initial, never inside
-  -- the .drop-cap span. When there is no lead nothing extra is emitted, so an
-  -- ordinary opener renders exactly as before.
+  -- The lead (an opening quote), the initial, and the word remainder, as
+  -- format-specific inlines. The lead is kept OUT of the initial and hung into
+  -- the left margin so the initial stays flush to the text block: in LaTeX
+  -- \PressDropCap hangs it through lettrine's `ante` (\smash\llap at body size);
+  -- in HTML/EPUB it is a .drop-cap-lead span the stylesheet pulls into the
+  -- margin. When there is no lead nothing extra is emitted, so an ordinary
+  -- opener renders exactly as before.
   if FORMAT:match("latex") then
     return { pandoc.RawInline("latex",
       "\\PressDropCap{" .. parts.lead .. "}{" .. parts.initial .. "}{"

@@ -5,10 +5,11 @@ code, pre { font-family: monospace; }
 .chapter-opening .drop-cap {
   float: left; font-size: 3em; line-height: 0.8; padding: 0.05em 0.1em 0 0;
 }
-/* An opening quote or dash floats beside the initial at its size (absent on an
-   ordinary opener, so an existing EPUB is unchanged). */
+/* An opening quote hung into the left margin at body size, so the initial stays
+   flush (absent on an ordinary opener, so an existing EPUB is unchanged). */
 .chapter-opening .drop-cap-lead {
-  float: left; font-size: 3em; line-height: 0.8; padding: 0.05em 0.05em 0 0;
+  float: left; font-size: 1.15em; line-height: 1;
+  margin: 0.1em 0.02em 0 -0.52em;
 }
 /* Ornate opening: the print foliate initial font cannot travel into an EPUB,
    so the initial degrades to a display-face capital. */

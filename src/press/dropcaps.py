@@ -84,13 +84,15 @@ def tex_setup(settings: Settings) -> str:
     descender depth, the small-cap remainder, and a needspace guard so a chapter
     opening is never stranded at the foot of a page with no room for the initial.
 
-    The ``lead`` (an opening quote or a dash a chapter opening on dialogue
-    keeps in front of its initial) rides through lettrine's documented ``ante``
-    option, which sets it at the initial's own size before the dropped letter --
-    not scaled up into the initial and stranded above it, the bug this fixes.
-    When there is no lead the ``ante`` key is omitted entirely, so a chapter
-    that opens on an ordinary word compiles to exactly the lettrine call it did
-    before: this is a fix, not a design change.
+    The ``lead`` (an opening quotation mark a chapter opening on dialogue keeps
+    in front of its initial) rides lettrine's ``ante`` option, but hung into the
+    left margin: ``\\smash{\\llap{...}}`` gives the mark zero width so it laps
+    left past the initial, which therefore stays flush to the text block -- the
+    same optical margin every other chapter opening keeps (Bringhurst's rule:
+    keep the quotation mark, and hang the punctuation). The mark is reset to
+    upright body size, not scaled up with the initial. When there is no lead the
+    ``ante`` key is omitted entirely, so a chapter that opens on an ordinary word
+    compiles to exactly the lettrine call it did before.
 
     The ``ornate`` style additionally loads yfonts and sets the initial in
     yinit's decorated foliate capitals; the other styles leave the initial in
@@ -112,6 +114,11 @@ def tex_setup(settings: Settings) -> str:
         )
         initial = "\\PressOrnateInitial #2"
     remainder = f"{remainder_font} #3"
+    # The lead hangs in the left margin: \llap makes the mark zero-width so it
+    # laps left past the initial (which stays flush to the block), \smash keeps
+    # its height off the initial's metrics, and \normalfont\normalsize sets it at
+    # upright body size rather than scaled up with the initial.
+    hang = r"\smash{\llap{\normalfont\normalsize #1\kern0.1em}}"
     return (
         preamble
         + "\\newcommand{\\PressDropCap}[3]{%\n"
@@ -120,7 +127,7 @@ def tex_setup(settings: Settings) -> str:
         "  \\ifx\\PressDropLead\\empty\n"
         f"    \\lettrine[{opts}]{{{initial}}}{{{remainder}}}%\n"
         "  \\else\n"
-        f"    \\lettrine[{opts},ante={{#1}}]{{{initial}}}{{{remainder}}}%\n"
+        f"    \\lettrine[{opts},ante={{{hang}}}]{{{initial}}}{{{remainder}}}%\n"
         "  \\fi}\n"
     )
 

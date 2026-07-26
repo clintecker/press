@@ -38,11 +38,11 @@ pre { overflow-x: auto; background: #efefeb; padding: 1rem; }
   float: left; font-size: 3.1em; line-height: .82;
   padding: .05em .1em 0 0; color: var(--ink); font-weight: 600;
 }
-/* An opening quote or dash floats beside the initial at its size, never inside
-   the big .drop-cap span (absent on an ordinary opener). */
+/* An opening quote hung into the left margin at body size, so the big initial
+   stays flush to the text block (absent on an ordinary opener). */
 .chapter-opening .drop-cap-lead {
-  float: left; font-size: 3.1em; line-height: .82;
-  padding: .05em .05em 0 0; color: var(--ink); font-weight: 600;
+  float: left; font-size: 1.15em; line-height: 1; font-weight: 400;
+  margin: .1em .02em 0 -.52em; color: var(--ink);
 }
 /* Ornate opening: the print initial's decorated foliate font is print-only, so
    the web book degrades to a display-face initial in the accent ink. */

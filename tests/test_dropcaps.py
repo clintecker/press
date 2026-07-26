@@ -54,13 +54,15 @@ def test_tex_setup_without_small_caps():
 
 @pytest.mark.layer("unit")
 def test_tex_setup_routes_the_lead_through_ante_only_when_present():
-    # The macro takes the lead as its own first argument and passes it to
-    # lettrine's `ante`; an empty lead takes the branch with no `ante` at all,
-    # so an ordinary opener compiles to the exact lettrine call it did before.
+    # The macro takes the lead as its own first argument and hangs it in the
+    # left margin through lettrine's `ante` (\smash\llap gives it zero width so
+    # the initial stays flush); an empty lead takes the branch with no `ante` at
+    # all, so an ordinary opener compiles to the exact lettrine call it did
+    # before.
     tex = dropcaps.tex_setup(dropcaps.Settings(style="drop-cap", lines=3))
     assert "\\newcommand{\\PressDropCap}[3]" in tex
     assert "\\ifx\\PressDropLead\\empty" in tex
-    assert "ante={#1}" in tex
+    assert "ante={\\smash{\\llap{\\normalfont\\normalsize #1\\kern0.1em}}}" in tex
     # The empty-lead branch is byte-identical to the pre-fix lettrine call.
     assert ("\\lettrine[lines=3,depth=0,findent=2pt,nindent=0pt]{#2}"
             "{\\scshape #3}") in tex

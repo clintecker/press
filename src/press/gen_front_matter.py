@@ -157,6 +157,10 @@ def generate(include_cover: bool = True) -> Path | None:
     for name, keep in [
         ("cover", cover_on_page),
         ("nocover", not cover_on_page),
+        # The subtitle rides between two rules; with no subtitle the second rule
+        # and its OR stack drop out, leaving a single rule under the title
+        # rather than an empty bracket of two.
+        ("subtitle", bool(meta.get("subtitle"))),
         ("rights-notice", bool(front.get("rights-notice"))),
         ("contact", bool(front.get("contact"))),
         ("motto", bool(front.get("motto"))),
