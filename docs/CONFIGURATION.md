@@ -126,13 +126,20 @@ registrations:
   Both feed the cover wrap's spine arithmetic.
 - `chapter-opening` sets the initial that opens each chapter. The design
   profile carries the default (the house profile is `none`); a book overrides
-  it with `chapter-opening.style` (`none`, `drop-cap`, or `raised-cap`),
-  `chapter-opening.lines` (the text lines the initial spans, default 3), and
-  `chapter-opening.small-caps-remainder` (set the rest of the first word in
-  small caps, default true). The manuscript stays ordinary prose; the press
-  finds the first eligible paragraph after each chapter heading and drops its
-  initial, in the PDF, HTML, and EPUB alike. A book that leaves it `none`
-  renders exactly as before.
+  it with `chapter-opening.style` (`none`, `drop-cap`, `raised-cap`, or
+  `ornate`), `chapter-opening.lines` (the text lines the initial spans, default
+  3), and `chapter-opening.small-caps-remainder` (set the rest of the first
+  word in small caps, default true). The manuscript stays ordinary prose; the
+  press finds the first eligible paragraph after each chapter heading and drops
+  its initial, in the PDF, HTML, and EPUB alike. A chapter that opens on
+  dialogue keeps its opening quote (or a leading dash) beside the initial, at
+  the initial's size. `ornate` sets the print initial in a decorated foliate
+  font (yinit, from the toolchain's `texlive-fonts-extra`); because that font
+  is print-only, the web reader and EPUB degrade it honestly to a styled
+  display capital rather than the engraved letter. Choosing `ornate` changes a
+  book's rendered chapter openings, so it is a design decision, not a fix — a
+  valid book that leaves `chapter-opening` at `none` (or keeps its existing
+  `drop-cap`/`raised-cap` on ordinary openers) renders exactly as before.
 - `registrations.isbn` must be a mapping of editions. The print
   ISBN drives the wrap's EAN-13 (check digit validated) and the
   colophon; `pending` or absent renders an honest placeholder. The

@@ -7,6 +7,7 @@ number-sections: true
 metadata-file: "@book/config/metadata.yaml"
 filters:
   - "@press/lua/chapter-dropcap.lua"
+  - "@press/lua/scene-break.lua"
   - "@press/lua/figure-numbering.lua"
 split-level: 1
 css:

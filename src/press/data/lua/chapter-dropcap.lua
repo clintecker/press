@@ -106,15 +106,25 @@ local function first_text(inlines)
 end
 
 local function drop_inlines(parts)
-  -- The initial (with any leading punctuation) and the word remainder, as
-  -- format-specific inlines.
-  local head = parts.lead .. parts.initial
+  -- The lead (an opening quote or dash), the initial, and the word remainder,
+  -- as format-specific inlines. The lead is kept OUT of the initial: in LaTeX
+  -- it rides lettrine's `ante` option as \PressDropCap's own first argument, so
+  -- it is set at the initial's size, not scaled up into it and stranded above;
+  -- in HTML/EPUB it hangs in its own span beside the big initial, never inside
+  -- the .drop-cap span. When there is no lead nothing extra is emitted, so an
+  -- ordinary opener renders exactly as before.
   if FORMAT:match("latex") then
     return { pandoc.RawInline("latex",
-      "\\PressDropCap{" .. head .. "}{" .. parts.word .. "}") }
+      "\\PressDropCap{" .. parts.lead .. "}{" .. parts.initial .. "}{"
+        .. parts.word .. "}") }
   end
-  local cap = pandoc.Span(pandoc.Str(head), pandoc.Attr("", { "drop-cap" }))
-  local out = { cap }
+  local out = {}
+  if parts.lead ~= "" then
+    out[#out + 1] = pandoc.Span(pandoc.Str(parts.lead),
+      pandoc.Attr("", { "drop-cap-lead" }))
+  end
+  out[#out + 1] = pandoc.Span(pandoc.Str(parts.initial),
+    pandoc.Attr("", { "drop-cap" }))
   if parts.word ~= "" then
     out[#out + 1] = pandoc.Span(pandoc.Str(parts.word),
       pandoc.Attr("", { "opening-word-rest" }))
@@ -122,7 +132,36 @@ local function drop_inlines(parts)
   return out
 end
 
+-- Opening/closing glyphs for pandoc's Quoted node types.
+local OPEN_QUOTE = { DoubleQuote = "\u{201C}", SingleQuote = "\u{2018}" }
+local CLOSE_QUOTE = { DoubleQuote = "\u{201D}", SingleQuote = "\u{2019}" }
+
+-- Lift a smart-quoted opener's opening quote into the drop-cap lead. pandoc's
+-- `smart` extension wraps a chapter that opens on dialogue ('"Curiouser and
+-- curiouser!"') in a Quoted node, whose opening quote would otherwise render at
+-- text size, stranded beside the dropped initial. Splice that opener into
+-- literal quote glyphs around its content: the opening quote fuses onto the
+-- first word so split_initial keeps it as lead (carried at the initial's size
+-- through `ante`), and the closing quote renders as it did before. Only the
+-- common Quoted-that-starts-with-text opener is lifted; any other shape is left
+-- untouched for the ordinary one-level dive to handle.
+local function unwrap_leading_quote(content)
+  local head = content[1]
+  if head == nil or head.t ~= "Quoted" then return content end
+  local open = OPEN_QUOTE[head.quotetype]
+  local close = CLOSE_QUOTE[head.quotetype]
+  if open == nil then return content end
+  local inner = head.content
+  if inner[1] == nil or inner[1].t ~= "Str" then return content end
+  local out = { pandoc.Str(open .. inner[1].text) }
+  for k = 2, #inner do out[#out + 1] = inner[k] end
+  out[#out + 1] = pandoc.Str(close)
+  for k = 2, #content do out[#out + 1] = content[k] end
+  return out
+end
+
 local function transform(para)
+  para.content = unwrap_leading_quote(para.content)
   local str, list = first_text(para.content)
   if str == nil then return para end
   local parts = split_initial(str.text)
@@ -144,8 +183,13 @@ local function transform(para)
   for k, el in ipairs(rebuilt) do list[k] = el end
 
   -- Mark the whole paragraph so the stylesheet can clear the float below it.
+  -- An ornate opening carries a second class, so the reader stylesheet can
+  -- give the initial its decorative web treatment (a print-only initial font
+  -- cannot cross to the browser; the ornate look degrades to a styled cap).
   if not FORMAT:match("latex") then
-    return pandoc.Para({ pandoc.Span(para.content, pandoc.Attr("", { "chapter-opening" })) })
+    local classes = { "chapter-opening" }
+    if settings.style == "ornate" then classes[#classes + 1] = "ornate" end
+    return pandoc.Para({ pandoc.Span(para.content, pandoc.Attr("", classes)) })
   end
   return para
 end

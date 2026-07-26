@@ -31,7 +31,10 @@ _LEAD = set("\"'`‘’“”«»‹›"
 
 # The chapter-opening styles a profile may request. "none" is the default and
 # a no-op: a book that does not opt in renders byte-for-byte as before.
-STYLES = ("none", "drop-cap", "raised-cap")
+# "ornate" sets the initial in a decorated foliate initial font for print
+# (yinit, from yfonts in the toolchain's texlive-fonts-extra) and degrades to a
+# styled decorative initial on the web, where a print-only LaTeX font cannot go.
+STYLES = ("none", "drop-cap", "raised-cap", "ornate")
 
 
 @dataclass(frozen=True)
@@ -75,21 +78,50 @@ def settings(
 def tex_setup(settings: Settings) -> str:
     """The centralized LaTeX style layer for the drop cap, or an empty string
     when the feature is off. Loading and macro live here, not scattered
-    through the document: the Lua filter emits only ``\\PressDropCap{I}{he}``,
-    and this defines what that means -- the line span, the descender depth, the
-    small-cap remainder, and a needspace guard so a chapter opening is never
-    stranded at the foot of a page with no room for the initial."""
+    through the document: the Lua filter emits only ``\\PressDropCap{lead}{I}{he}``
+    (three arguments -- the leading punctuation, the initial, and the rest of
+    the first word), and this defines what that means -- the line span, the
+    descender depth, the small-cap remainder, and a needspace guard so a chapter
+    opening is never stranded at the foot of a page with no room for the initial.
+
+    The ``lead`` (an opening quote or a dash a chapter opening on dialogue
+    keeps in front of its initial) rides through lettrine's documented ``ante``
+    option, which sets it at the initial's own size before the dropped letter --
+    not scaled up into the initial and stranded above it, the bug this fixes.
+    When there is no lead the ``ante`` key is omitted entirely, so a chapter
+    that opens on an ordinary word compiles to exactly the lettrine call it did
+    before: this is a fix, not a design change.
+
+    The ``ornate`` style additionally loads yfonts and sets the initial in
+    yinit's decorated foliate capitals; the other styles leave the initial in
+    the body face."""
 
     if not settings.enabled:
         return ""
     remainder_font = r"\scshape" if settings.small_caps_remainder else ""
     reserve = settings.lines + settings.depth + 1
+    opts = (
+        f"lines={settings.lines},depth={settings.depth},findent=2pt,nindent=0pt"
+    )
+    preamble = "\\usepackage{lettrine}\n"
+    initial = "#2"
+    if settings.style == "ornate":
+        preamble += (
+            "\\usepackage{yfonts}\n"
+            "\\newcommand{\\PressOrnateInitial}{\\usefont{U}{yinit}{m}{n}}\n"
+        )
+        initial = "\\PressOrnateInitial #2"
+    remainder = f"{remainder_font} #3"
     return (
-        "\\usepackage{lettrine}\n"
-        f"\\newcommand{{\\PressDropCap}}[2]{{%\n"
+        preamble
+        + "\\newcommand{\\PressDropCap}[3]{%\n"
         f"  \\Needspace*{{{reserve}\\baselineskip}}%\n"
-        f"  \\lettrine[lines={settings.lines},depth={settings.depth},"
-        "findent=2pt,nindent=0pt]{#1}{" + remainder_font + " #2}}\n"
+        "  \\def\\PressDropLead{#1}%\n"
+        "  \\ifx\\PressDropLead\\empty\n"
+        f"    \\lettrine[{opts}]{{{initial}}}{{{remainder}}}%\n"
+        "  \\else\n"
+        f"    \\lettrine[{opts},ante={{#1}}]{{{initial}}}{{{remainder}}}%\n"
+        "  \\fi}\n"
     )
 
 

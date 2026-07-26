@@ -18,7 +18,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 # drop a gate.
 ENV PRESS_TOOLCHAIN=1
 # texlive-latex-extra below carries lettrine.sty, which chapter-opening drop
-# caps require; texlive-luatex covers needspace. Do not drop either collection.
+# caps require; texlive-luatex covers needspace. texlive-fonts-extra carries
+# yfonts.sty and the yinit decorated-capital font, which the "ornate"
+# chapter-opening style sets its initial in (\usefont{U}{yinit}{m}{n}). Do not
+# drop any of these three collections.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     make \
     git \

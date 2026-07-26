@@ -1,5 +1,8 @@
 title: "Alice's Adventures in Wonderland"
-subtitle: "The opening chapters, in the house engraving idiom"
+# The 1866 Macmillan title page carried no subtitle; this edition keeps none.
+# What this gallery example is -- the first three chapters in the house
+# engraving idiom -- is said in the description and the edition note, not
+# dressed up as the book's subtitle.
 author:
   - "Lewis Carroll"
 date: "Gallery edition, 2026"

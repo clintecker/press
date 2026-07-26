@@ -11,6 +11,19 @@ audit).
 
 ### Added
 
+- **An `ornate` chapter-opening style and an aesthetic-driven scene break.**
+  `chapter-opening.style: ornate` sets the chapter initial in a decorated
+  foliate font (yinit, from the toolchain's `texlive-fonts-extra`) for print;
+  because that font cannot cross to the browser, the web reader and EPUB
+  degrade it honestly to a styled display capital. Separately, a book whose
+  aesthetic declares `scene-break: asterism` renders every Markdown thematic
+  break (`* * *`) as a centered asterism in every edition, the light literary
+  mark a bare rule reads too heavily for. Both are opt-in: a book that chooses
+  neither (style `none`/`drop-cap`/`raised-cap`, scene break `rule`) typesets
+  **byte-for-byte as before**. Choosing `ornate` changes a book's rendered
+  openings, so it is a design decision, not a fix. Documented in
+  `docs/CONFIGURATION.md`.
+
 - **Numbered figures, cross-references, and a split illustration list.** A
   figure that declares an explicit informative kind (`.figure`, `.chart`,
   `.map`, `.photo`, `.diagram`) now earns a by-chapter number ("Figure 3.2"),
@@ -64,6 +77,17 @@ audit).
   public-domain art, imported from a plain-text source the way a live book
   would be. Nothing about it is generated; the plates are attributed as public
   domain in the colophon (#227).
+
+### Fixed
+
+- **A chapter that opens on dialogue no longer strands its opening quote above
+  the dropped initial.** The leading quote (or dash) now rides beside the
+  initial at its own size -- through lettrine's `ante` option in print, and its
+  own floated span on the web -- instead of being scaled up into the initial or
+  left hanging at text size beside it. A chapter that opens on an ordinary word
+  compiles to the exact same `\lettrine` call as before, so a drop-cap book is
+  otherwise unchanged. The Alice gallery example, whose chapter 2 opens on
+  "Curiouser and curiouser!", demonstrates the fix.
 
 ### Changed
 
