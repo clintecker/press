@@ -89,37 +89,89 @@ local function finalize_image(image, decorative, alt)
   return image
 end
 
--- A wrapfigure (parity-aware) for a placed plate. side is "i"/"o".
-local function wrapfig(image, caption_latex, side, width, outset)
+-- A figure's inner LaTeX: optional \phantomsection\label, the height-bounded
+-- graphic at the given \includegraphics width option, the unnumbered caption,
+-- and (for a numbered figure) the List-of-Figures line. Empty pieces drop.
+local function fig_inner(image, label, caption_latex, lof2_latex, gwidth)
+  local parts = {}
+  if label and label ~= "" then parts[#parts + 1] = label end
+  parts[#parts + 1] = "\\pandocbounded{\\includegraphics[keepaspectratio"
+    .. gwidth .. "]{" .. image.src .. "}}"
+  if caption_latex and caption_latex ~= "" then
+    parts[#parts + 1] = "\\caption*{" .. caption_latex .. "}"
+  end
+  if lof2_latex and lof2_latex ~= "" then parts[#parts + 1] = lof2_latex end
+  return table.concat(parts, "\n")
+end
+
+-- A wrapfigure (parity-aware) around pre-built inner LaTeX. side is "i"/"o".
+-- Returned as a STRING, not a block, so walk_blocks can fuse it to the head of
+-- the following paragraph: a standalone wrapfigure, with a \par between it and
+-- the running text, wraps nothing. Inside the box \linewidth is the wrap width.
+-- The \Needspace guard keeps a wrap from starting in the last few lines of a
+-- page, where it has no room to close under the figure and wrapfig would strand
+-- the figure on the next page away from its text; short of the room, the whole
+-- wrap moves to the next page together.
+local function wrapfig(inner, side, width, outset)
   local w = MEASURE_WIDTH[width] or "0.4\\linewidth"
   local gap = (outset and outset:match("^[%d%.]+em$")) or "1em"
-  local label = ""
-  return pandoc.RawBlock("latex", table.concat({
+  return table.concat({
+    "\\Needspace*{6\\baselineskip}%",
     "\\begin{wrapfigure}{" .. side .. "}{" .. w .. "}",
     "\\setlength{\\intextsep}{" .. gap .. "}%",
     "\\centering",
-    label,
-    "\\pandocbounded{\\includegraphics[keepaspectratio,width=" .. w .. "]{"
-      .. image.src .. "}}",
-    caption_latex ~= "" and ("\\caption*{" .. caption_latex .. "}") or "",
+    inner,
     "\\end{wrapfigure}",
-  }, "\n"))
+  }, "\n")
 end
 
--- A full-page plate on its own leaf (full-bleed and frontispiece map here;
--- true bleed would put ink on the trim edge, which the reading-PDF verifier
--- refuses, so the house treats it as a full-measure plate on a cleared page).
-local function full_page(image, caption_latex, recto)
-  local clear = recto and "\\cleardoublepage" or "\\clearpage"
-  return pandoc.RawBlock("latex", table.concat({
-    clear,
+-- A full-page figure on its OWN leaf, deterministically -- NOT a float. A
+-- floating figure[p] is only a request: LaTeX defers it when the current page
+-- cannot break cleanly, which strands the plate a leaf or two on and leaves a
+-- near-blank page where the reader expected it. So the house clears to the leaf,
+-- centres the plate and middles it vertically, sets the caption on the SAME leaf
+-- with \captionof (no float, so the caption can never defer away from its
+-- figure), then clears off. frontispiece clears to a recto so the plate faces
+-- the next chapter opening across the gutter. (True bleed would put ink on the
+-- trim edge, which the reading-PDF verifier refuses; the house fills the leaf
+-- inside the margins instead.)
+local function full_page(image, label, caption_latex, lof2_latex, frontis)
+  local parts = {
+    -- A frontispiece belongs on the verso facing the next chapter's recto, so
+    -- it clears to an even page (KOMA's \cleardoubleevenpage; in a one-sided
+    -- book it is simply \clearpage). A full-bleed plate just takes the next leaf.
+    frontis and "\\cleardoubleevenpage" or "\\clearpage",
     "\\thispagestyle{empty}",
-    "\\begin{figure}[p]\\centering",
-    "\\pandocbounded{\\includegraphics[keepaspectratio,width=\\linewidth]{"
-      .. image.src .. "}}",
-    caption_latex ~= "" and ("\\caption*{" .. caption_latex .. "}") or "",
-    "\\end{figure}",
-  }, "\n"))
+    "\\null\\vfill",
+    "\\begin{center}",
+  }
+  if label and label ~= "" then parts[#parts + 1] = label end
+  parts[#parts + 1] = "\\pandocbounded{\\includegraphics[keepaspectratio,"
+    .. "width=\\linewidth]{" .. image.src .. "}}"
+  parts[#parts + 1] = "\\end{center}"
+  if caption_latex and caption_latex ~= "" then
+    parts[#parts + 1] = "\\captionof{figure}{" .. caption_latex .. "}"
+  end
+  if lof2_latex and lof2_latex ~= "" then parts[#parts + 1] = lof2_latex end
+  parts[#parts + 1] = "\\vfill\\clearpage"
+  return pandoc.RawBlock("latex", table.concat(parts, "\n"))
+end
+
+-- Dispatch a placement to its LaTeX container, given the figure's pre-built
+-- inner pieces. Returns {wrap=<string>} for a runaround (walk_blocks fuses it
+-- to the next paragraph), a full-page RawBlock, or nil to fall through to the
+-- ordinary centered figure. A wrap fills its box, so it takes a \linewidth
+-- graphic (the declared width sizes the wrap column itself); a full page builds
+-- its own body (a non-float leaf uses \captionof, not the float-only \caption*).
+local function placed(image, place, width, outset, label, caption_latex, lof2_latex)
+  if place == "wrap-inner" or place == "wrap-outer" or place == "margin" then
+    local side = (place == "wrap-inner") and "i" or "o"
+    local inner = fig_inner(image, label, caption_latex, lof2_latex, ",width=\\linewidth")
+    return { wrap = wrapfig(inner, side, width, outset) }
+  elseif place == "full-bleed" or place == "frontispiece" then
+    return full_page(image, label, caption_latex, lof2_latex, place == "frontispiece")
+  end
+  return nil
 end
 
 function Pandoc(doc)
@@ -141,17 +193,18 @@ function Pandoc(doc)
     if latex then
       local label = fig.identifier ~= "" and
         ("\\phantomsection\\label{" .. fig.identifier .. "}") or ""
-      local tex = table.concat({
-        "\\begin{figure}[H]\\centering",
-        label,
-        "\\pandocbounded{\\includegraphics[keepaspectratio"
-          .. width_opt(image.attributes.width) .. "]{" .. image.src .. "}}",
-        "\\caption*{\\textbf{Figure~" .. numstr .. ".}\\enspace " .. cap .. "}",
-        "\\addcontentsline{lof2}{figure}{\\protect\\numberline{" .. numstr
-          .. "}" .. cap .. "}",
-        "\\end{figure}",
-      }, "\n")
-      return pandoc.RawBlock("latex", tex)
+      local caption_latex = "\\textbf{Figure~" .. numstr .. ".}\\enspace " .. cap
+      local lof2 = "\\addcontentsline{lof2}{figure}{\\protect\\numberline{"
+        .. numstr .. "}" .. cap .. "}"
+      -- A numbered figure honours its placement too (wrap, full page); only
+      -- when it names none does it fall through to the centered figure.
+      local by_place = placed(image, image.attributes.place,
+        image.attributes.width, image.attributes.outset, label, caption_latex, lof2)
+      if by_place then return by_place end
+      local inner = fig_inner(image, label, caption_latex, lof2,
+        width_opt(image.attributes.width))
+      return pandoc.RawBlock("latex",
+        "\\begin{figure}[H]\\centering\n" .. inner .. "\n\\end{figure}")
     end
     -- Every other writer: keep the real Figure, prepend the number to the
     -- caption, carry the id as the anchor, and honour width and alt. The
@@ -192,15 +245,8 @@ function Pandoc(doc)
     end })
     if not latex or not place then return fig end
     local cap = inlines_to_latex(caption_inlines(fig))
-    if place == "wrap-inner" then
-      return wrapfig(image, cap, "i", width, image.attributes.outset)
-    elseif place == "wrap-outer" or place == "margin" then
-      return wrapfig(image, cap, "o", width, image.attributes.outset)
-    elseif place == "full-bleed" then
-      return full_page(image, cap, false)
-    elseif place == "frontispiece" then
-      return full_page(image, cap, true)
-    end
+    local by_place = placed(image, place, width, image.attributes.outset, "", cap, "")
+    if by_place then return by_place end
     return fig      -- inline/plate: the ordinary in-flow figure
   end
 
@@ -223,20 +269,46 @@ function Pandoc(doc)
   local walk_blocks
   walk_blocks = function(blocks)
     local out = {}
+    -- A wrapfigure only wraps when it fuses to the START of the paragraph that
+    -- follows it -- no \par between them. transform() returns {wrap=<latex>}
+    -- for a runaround; we hold it here and splice it into the head of the next
+    -- Para/Plain. If none follows (end of a section, a heading next, a second
+    -- wrap), we flush it standalone so nothing is dropped.
+    local pending = nil
+    local function flush()
+      if pending then
+        out[#out + 1] = pandoc.RawBlock("latex", pending)
+        pending = nil
+      end
+    end
     for _, b in ipairs(blocks) do
       if b.t == "Header" and b.level == 1 and not unnumbered_header(b) then
+        flush()
         chapter = chapter + 1
         fign = 0
         out[#out + 1] = b
       elseif b.t == "Figure" then
-        out[#out + 1] = transform(b) or b
+        local r = transform(b) or b
+        flush()
+        if type(r) == "table" and r.wrap then
+          pending = r.wrap
+        else
+          out[#out + 1] = r
+        end
+      elseif (b.t == "Para" or b.t == "Plain") and pending then
+        table.insert(b.content, 1, pandoc.RawInline("latex", pending .. "%\n"))
+        pending = nil
+        out[#out + 1] = b
       elseif b.t == "Div" or b.t == "BlockQuote" then
+        flush()
         b.content = walk_blocks(b.content)
         out[#out + 1] = b
       else
+        flush()
         out[#out + 1] = b
       end
     end
+    flush()
     return out
   end
 

@@ -23,6 +23,13 @@ local TAIL_SIZES = {
   "\\footnotesize", "\\scriptsize", "\\scriptsize", "\\tiny",
 }
 
+-- Only html and epub carry the styled geometry; every other writer (markdown,
+-- plain text, docx) gets a clean native line block instead of the fenced divs
+-- and inline styles the html projection would otherwise leak into the source.
+local function is_web()
+  return FORMAT:match("html") ~= nil or FORMAT:match("epub") ~= nil
+end
+
 -- The lines of a set-piece: a line block's lines, else each Para/Plain as one.
 local function get_lines(div)
   for _, blk in ipairs(div.content) do
@@ -55,6 +62,7 @@ local function cascade(lines)
     out[#out + 1] = pandoc.RawBlock("latex", "\\addvspace{0.7em}")
     return out
   end
+  if not is_web() then return pandoc.LineBlock(lines) end
   local items = {}
   for i, line in ipairs(lines) do
     items[#items + 1] = pandoc.Div(pandoc.Plain(line), pandoc.Attr("",
@@ -91,6 +99,7 @@ local function verse(lines)
       pandoc.RawBlock("latex", "\\end{PressVerse}"),
     }
   end
+  if not is_web() then return pandoc.LineBlock(lines) end
   return pandoc.Div(pandoc.Plain(inl), pandoc.Attr("", { "verse" }))
 end
 
@@ -117,6 +126,7 @@ local function tail(lines)
     out[#out + 1] = pandoc.RawBlock("latex", "\\end{center}\\addvspace{1.1em}")
     return out
   end
+  if not is_web() then return pandoc.LineBlock(lines) end
   local items = {}
   local pct = { "1em", "1em", "0.92em", "0.92em", "0.84em", "0.84em", "0.76em",
                 "0.76em", "0.68em" }

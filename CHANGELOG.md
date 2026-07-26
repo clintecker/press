@@ -64,8 +64,20 @@ audit).
   out-of-vocabulary place, a non-em outset, a measure on a plate, or a
   decorative image that still carries alt text — before any render. Parsed
   and validated in `press.figures`; documented in `docs/ILLUSTRATIONS.md` and
-  the `plates-and-woodcuts` skill. (A new major: the design contract's figure
-  treatment changes.)
+  the `plates-and-woodcuts` skill. In the PDF each placement is now laid, not
+  merely accepted: a wrap fuses to the head of the following paragraph so the
+  running text closes around it on the binding-aware side -- a standalone
+  wrapfigure wraps nothing -- with a `\Needspace` guard that keeps a wrap off
+  the last lines of a page; and `full-bleed`/`frontispiece` take their own
+  *cleared* leaf, never a deferred float that lands a page late and leaves a
+  blank, the caption set on the same leaf (`\captionof`, no float) and the
+  frontispiece on the verso facing the next chapter. The caption package is the
+  single caption authority -- small italic, no automatic label, centred, its
+  list anchor carried by `hypcap=true` -- so a placed figure's unnumbered
+  caption is clean where the float package had `\caption*` print a stray
+  asterisk above it; ordinary plate captions are unchanged. markdown, plain
+  text, and docx keep a clean in-flow figure. (A new major: the design
+  contract's figure treatment changes.)
 - **A repeatable print-profile lifecycle: scaffold, prove, seal (#221).**
   Adding a trim or an ink is now one documented path rather than an ad hoc
   edit. `python3 -m press.profile_lifecycle scaffold <id> --trim WxH
@@ -98,6 +110,15 @@ audit).
 
 ### Fixed
 
+- **A plate on a gradient or textured ground is refused at intake, not
+  ghosted.** The luminance key reads every dark pixel as ink, so a ground that
+  is not a flat light colour survives as a smudge (its darker end keys only
+  part-way to transparent). `press art accept` now judges the delivery's
+  border, where the ground shows: most of it must be light and free of a
+  top-to-bottom or side-to-side drift. A ground that fails is refused with the
+  fix named -- a plain near-white ground, or a colour interior that keeps the
+  plate's exact pixels -- rather than segmented into a ghost. Sparse ink strokes
+  that reach the edge do not trip it.
 - **A chapter that opens on dialogue hangs its opening quote in the margin.**
   The leading quotation mark now hangs into the left margin at body size, so the
   dropped initial stays flush to the text block -- the same optical margin every

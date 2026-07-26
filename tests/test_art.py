@@ -75,6 +75,18 @@ def test_segmented_single_ink_master_reproduces_grayscale_on_white(tmp_path, mon
 
 
 @pytest.mark.layer("unit")
+def test_gradient_ground_is_refused_not_ghosted(tmp_path, monkeypatch):
+    # The luminance key cannot tell a gradient ground from ink -- the dark end
+    # survives as a ghost -- so intake refuses it rather than ship the smudge.
+    grad = Image.new("L", (60, 60))
+    for y in range(60):
+        for x in range(60):
+            grad.putpixel((x, y), int(245 - (y / 60) * 120))
+    with pytest.raises(SystemExit):
+        _accept_plate(tmp_path, monkeypatch, grad.convert("RGB"))
+
+
+@pytest.mark.layer("unit")
 def test_transparent_delivery_keeps_its_mask(tmp_path, monkeypatch):
     # A plate that arrives already on transparency is not re-keyed: its mask
     # (an author's deliberate cut-out) survives intake.

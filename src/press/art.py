@@ -92,6 +92,45 @@ def _segment_line_art(image: _Image.Image) -> _Image.Image:
     return master
 
 
+def _require_flat_ground(image: _Image.Image) -> None:
+    """Refuse an opaque line-art delivery whose ground is not a flat light
+    colour. The luminance key reads every dark pixel as ink, so a gradient or a
+    textured ground survives as a ghost on the page (the darker end keys only
+    part-way to transparent). Better to refuse it at intake than ship the smudge.
+    The border band is where the ground shows, so judge flatness there: it must
+    be light (a high mean), even (a low spread), and free of a top-to-bottom
+    gradient."""
+
+    from PIL import ImageStat
+
+    grey = image.convert("L")
+    w, h = grey.size
+    band = max(3, min(w, h) // 25)
+    top = grey.crop((0, 0, w, band))
+    bottom = grey.crop((0, h - band, w, h))
+    left = grey.crop((0, 0, band, h))
+    right = grey.crop((w - band, 0, w, h))
+    # The fraction of border pixels that are light. A flat light ground is
+    # almost all light; ink strokes that reach the edge are sparse, so they
+    # barely move this -- but a dark, tonal, or textured ground pushes it down.
+    border = (list(top.getdata()) + list(bottom.getdata())
+              + list(left.getdata()) + list(right.getdata()))
+    light = sum(1 for v in border if v >= 200) / len(border)
+    # A smooth gradient shows as a top-to-bottom or side-to-side drift in the
+    # border means (sparse edge ink does not drift one side against the other).
+    means = [ImageStat.Stat(e).mean[0] for e in (top, bottom, left, right)]
+    gradient = max(abs(means[0] - means[1]), abs(means[2] - means[3]))
+    if light < 0.82 or gradient > 45:
+        raise SystemExit(
+            "art accept: the plate's ground is not a flat light colour "
+            f"(only {light:.0%} of the border is light, drift {gradient:.0f}); "
+            "the luminance key would leave a ghost on the page. Commission the "
+            "line art on a plain, near-white ground, or -- for tonal or "
+            "photographic art -- set a colour interior so the plate keeps its "
+            "exact pixels."
+        )
+
+
 def _plate_master(image: _Image.Image, *, single_ink: bool) -> _Image.Image:
     """A plate's surface-agnostic master.
 
@@ -117,6 +156,7 @@ def _plate_master(image: _Image.Image, *, single_ink: bool) -> _Image.Image:
             greyed = rgba.convert("L").convert("RGBA")
             greyed.putalpha(rgba.getchannel("A"))
             return greyed
+        _require_flat_ground(image)
         return _segment_line_art(image)
     if delivered_alpha:
         return rgba

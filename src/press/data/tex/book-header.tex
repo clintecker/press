@@ -47,7 +47,6 @@
 % hyperref/hyperxmp combinations define. Provide it if hyperref does not.
 \AddToHook{package/hyperref/after}{%
   \providecommand{\xmpquote}[1]{#1}%
-  \usepackage[figure]{hypcap}%
 }
 
 \definecolor{ink}{HTML}{171717}
@@ -114,12 +113,21 @@
 
 % Woodcut figures: no "Figure N" labels, quiet small italic captions,
 % pinned where the source places them rather than floated.
-\renewcommand*{\figureformat}{}
-\renewcommand*{\captionformat}{}
-\setkomafont{caption}{\small\itshape}
-\setcapindent{0pt}
 \usepackage{graphicx}
 \usepackage{float}
+% The caption package is the single caption authority (loaded after float, the
+% package it must cooperate with). It sets every caption small and italic with
+% no automatic label -- the literary woodcut idiom shows no "Figure N:", and a
+% numbered figure carries its own bold "Figure C.N." inside the caption text,
+% set by the figure-numbering filter -- centred under the figure as before. It
+% also DEFINES the unnumbered \caption* that the float package leaves broken, so
+% a placed figure's caption no longer prints a stray asterisk above itself.
+% hypcap=true carries the list/link anchor to the figure top, the job the
+% now-removed hypcap package did (hypcap conflicts with caption and anchored at
+% the caption, overshooting).
+\usepackage{caption}
+\captionsetup{font={small,it},labelformat=empty,labelsep=none,%
+  justification=centering,singlelinecheck=true,hypcap=true}
 % wrapfig runs text around a placed figure; the figure-numbering filter uses
 % its parity-aware inner/outer sides (i/o) for place=wrap-inner/wrap-outer.
 % The toolchain image ships it (texlive-latex-extra); where it is absent a
@@ -135,7 +143,16 @@
 % here and is re-set per print profile (build/profile-geometry.tex), which
 % is included after this header.
 \providecommand{\PressFigureCap}{6.3in}
+\newsavebox\PressImgBox
 \makeatletter
+% The height cap, applied through pandoc's \pandocbounded hook. pandoc defines
+% that macro (and \pandoc@box) only when the manuscript still holds a native
+% image at write time; a book whose every figure is replaced by the
+% figure-numbering filter leaves it undefined, and the filter's own
+% \pandocbounded calls would then be an undefined control sequence. So the
+% else branch DEFINES \pandocbounded (over our own savebox) rather than only
+% setting the graphicx keys -- the cap holds either way, and a book pandoc did
+% define it for is byte-identical (the \ifdefined branch is unchanged).
 \AtBeginDocument{%
   \ifdefined\pandocbounded
     \renewcommand*\pandocbounded[1]{%
@@ -148,7 +165,14 @@
       \fi}%
   \else
     \providecommand{\maxwidth}{\linewidth}%
-    \setkeys{Gin}{width=\maxwidth,height=\PressFigureCap,keepaspectratio}%
+    \newcommand*\pandocbounded[1]{%
+      \sbox\PressImgBox{#1}%
+      \Gscale@div\@tempa{\PressFigureCap}{\dimexpr\ht\PressImgBox+\dp\PressImgBox\relax}%
+      \Gscale@div\@tempb{\linewidth}{\wd\PressImgBox}%
+      \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi
+      \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\PressImgBox}%
+      \else\usebox{\PressImgBox}%
+      \fi}%
   \fi}
 \makeatother
 
