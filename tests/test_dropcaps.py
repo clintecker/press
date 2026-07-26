@@ -23,6 +23,33 @@ def test_settings_default_is_off():
 
 
 @pytest.mark.layer("unit")
+def test_settings_defaults_are_three_lines_no_depth_small_caps_on():
+    # The resolved defaults when nothing is stated: three lines, no extra
+    # descender depth, small-caps remainder on. These pin the exact default
+    # constants the resolver and the Settings dataclass carry.
+    s = dropcaps.settings(None, None)
+    assert s.lines == 3
+    assert s.depth == 0
+    assert s.small_caps_remainder is True
+    # The dataclass field defaults are used when a style is set with no counts.
+    d = dropcaps.Settings(style="drop-cap")
+    assert d.lines == 3 and d.depth == 0 and d.small_caps_remainder is True
+    assert "lines=3,depth=0" in dropcaps.tex_setup(d)
+
+
+@pytest.mark.layer("unit")
+def test_settings_and_opening_are_frozen_value_objects():
+    # Both are frozen dataclasses: a resolved treatment and a split opening are
+    # immutable, so a caller cannot mutate one after the pipeline hands it over.
+    s = dropcaps.Settings(style="drop-cap")
+    with pytest.raises(Exception):
+        s.lines = 5  # type: ignore[misc]
+    o = dropcaps.split_initial("The shop opened at dawn.")
+    with pytest.raises(Exception):
+        o.initial = "X"  # type: ignore[misc]
+
+
+@pytest.mark.layer("unit")
 def test_book_override_wins_over_profile_default():
     s = dropcaps.settings({"style": "none"}, {"style": "drop-cap", "lines": 4})
     assert s.style == "drop-cap" and s.lines == 4 and s.enabled

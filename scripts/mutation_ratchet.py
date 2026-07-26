@@ -47,17 +47,25 @@ BASELINE = ROOT / "quality" / "mutation-baseline.json"
 #
 # The target set is deliberately the pure-computation modules, where a
 # surviving mutant is unambiguously a missing proof: the EAN-13 checksum
-# and bar encoding, and the artifact-state derivation. Mutation is the
-# wrong instrument for the rest of the package and they are gated
-# elsewhere -- data definitions (catalog's command flags) by the
+# and bar encoding, the artifact-state derivation, the drop-cap grapheme
+# and settings split, and the figure-declaration parse and validation.
+# Mutation is the wrong instrument for the rest of the package and they are
+# gated elsewhere -- data definitions (catalog's command flags) by the
 # surface-inventory and catalog-equals-CLI proofs, CLI dispatch
 # (receipts.main) by the selftest, orchestration that the tests
-# legitimately stub (impact) by its own example tests. Adding a module
-# here is a promise its tests pin its logic tightly; earn the score
-# before making the promise.
+# legitimately stub (impact) by its own example tests. verify_formats is
+# deliberately NOT a target: it is dominated by verifier functions that
+# only run under the toolchain (verify_epub, verify_site), so whole-module
+# mutation would enumerate scores of mutants no unit test can reach (7 of 92
+# killed) -- the wrong instrument, exactly like receipts and impact; its pure
+# witness logic is pinned by test_verify_editions and the normalized
+# property tests instead. Adding a module here is a promise its tests pin its
+# logic tightly; earn the score before making the promise.
 TARGETS: dict[str, list[str]] = {
     "barcode": ["tests/test_barcode.py"],
     "artifact_status": ["tests/test_artifact_status.py"],
+    "dropcaps": ["tests/test_dropcaps.py"],
+    "figures": ["tests/test_figures.py"],
 }
 
 _COMPARE_FLIP = {
