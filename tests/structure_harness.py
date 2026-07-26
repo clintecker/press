@@ -74,11 +74,14 @@ def extract_site(path: Path) -> dict:
 def extract_docx(path: Path) -> dict:
     """The declared structural style ids of a built DOCX.
 
-    The syntax-highlighting token styles pandoc bundles for code blocks
-    (every id ending in ``Tok``) are dropped: a prose book does not lean on
-    them and they are the one part of the reference styles that churns across
-    pandoc versions. What remains -- Title, Author, Heading1..9, BodyText,
-    FirstParagraph, Caption, and the rest -- is the house document structure.
+    Two families of reference styles churn across pandoc versions and are
+    dropped: the syntax-highlighting token styles for code blocks (every id
+    ending in ``Tok``) and the linked *character* styles pandoc's reference.docx
+    carries for its paragraph styles (every id ending in ``Char`` -- HeadingNChar,
+    TitleChar, SubtitleChar). A prose book leans on neither, and which of them a
+    given pandoc declares varies host to container. What remains -- Title,
+    Author, Heading1..9, BodyText, FirstParagraph, Caption, and the rest -- is
+    the house document structure, stable across pandoc builds.
     """
 
     with zipfile.ZipFile(path) as archive:
@@ -86,7 +89,7 @@ def extract_docx(path: Path) -> dict:
     styles = sorted(
         style
         for style in set(re.findall(r'<w:style\b[^>]*w:styleId="([^"]+)"', styles_xml))
-        if not style.endswith("Tok")
+        if not style.endswith(("Tok", "Char"))
     )
     return {"styles": styles}
 

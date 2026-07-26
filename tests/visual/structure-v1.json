@@ -1,6 +1,6 @@
 {
   "design_major": "v1",
-  "reason": "reason: initial structural baseline for the non-PDF editions (S2)",
+  "reason": "reason: prune pandoc-version-churny DOCX styles (the *Char linked character styles and FootnoteBlockText) to the stable structural set, so the baseline holds host-to-container",
   "features": {
     "epub": {
       "spine_itemrefs": 4,
@@ -19,7 +19,6 @@
         "Bibliography",
         "BlockText",
         "BodyText",
-        "BodyTextChar",
         "Caption",
         "CaptionedFigure",
         "Compact",
@@ -29,40 +28,27 @@
         "DefinitionTerm",
         "Figure",
         "FirstParagraph",
-        "FootnoteBlockText",
         "FootnoteReference",
         "FootnoteText",
         "Heading1",
-        "Heading1Char",
         "Heading2",
-        "Heading2Char",
         "Heading3",
-        "Heading3Char",
         "Heading4",
-        "Heading4Char",
         "Heading5",
-        "Heading5Char",
         "Heading6",
-        "Heading6Char",
         "Heading7",
-        "Heading7Char",
         "Heading8",
-        "Heading8Char",
         "Heading9",
-        "Heading9Char",
         "Hyperlink",
         "ImageCaption",
         "Normal",
         "SectionNumber",
         "SourceCode",
         "Subtitle",
-        "SubtitleChar",
         "TOCHeading",
         "Table",
         "TableCaption",
-        "Title",
-        "TitleChar",
-        "VerbatimChar"
+        "Title"
       ]
     }
   }
