@@ -28,6 +28,15 @@ local MEASURE_WIDTH = {
 local MEASURE_PERCENT = {
   ["full-measure"] = "100%", ["half-measure"] = "50%", ["third-measure"] = "33%",
 }
+-- Roughly how many text lines tall a wrapped figure at each measure is: a plate
+-- is about square, so a fraction of the line width is that fraction of the text
+-- block's ~24 lines, plus a couple for the caption. A wrap needs at least this
+-- many lines left on the page; short of them \Needspace moves the whole wrap to
+-- the next page instead of letting it hang off the foot with too few lines to
+-- close under it. A shade under square, so a wide-short plate is not over-moved.
+local MEASURE_GUARD = {
+  ["full-measure"] = 20, ["half-measure"] = 13, ["third-measure"] = 9,
+}
 
 local function is_true(v)
   v = tostring(v or ""):lower()
@@ -115,8 +124,9 @@ end
 local function wrapfig(inner, side, width, outset)
   local w = MEASURE_WIDTH[width] or "0.4\\linewidth"
   local gap = (outset and outset:match("^[%d%.]+em$")) or "1em"
+  local guard = MEASURE_GUARD[width] or 11
   return table.concat({
-    "\\Needspace*{6\\baselineskip}%",
+    "\\Needspace*{" .. guard .. "\\baselineskip}%",
     "\\begin{wrapfigure}{" .. side .. "}{" .. w .. "}",
     "\\setlength{\\intextsep}{" .. gap .. "}%",
     "\\centering",
