@@ -203,6 +203,19 @@ The wrap is one page at exactly trim plus bleed plus spine, the spine recomputed
 | **Tested by** | `integration` |
 | **Known limit** | Spine trusts the declared paper stock; a wrong stock yields a self-consistent wrong spine. |
 
+## House layout holds within a major
+
+`INV-design-layout-stable` · standard
+
+A valid v1 book renders at the committed house geometry -- page count, embedded fonts, and per-page trim and ink bounds within tolerance -- so the house typography and layout cannot change within a major without a deliberate, reasoned baseline decision.
+
+| | |
+|---|---|
+| **If it breaks** | The house design drifts silently -- a margin shifts, a font is swapped, a plate is displaced -- changing a valid book's typography or layout without the major-version decision the contract requires. |
+| **Enforced by** | `build.build_target` |
+| **Tested by** | `integration` |
+| **Known limit** | Toolchain-gated: the rendered comparison runs only where pandoc, LuaLaTeX, and the poppler tools are present, and the reviewed baseline is regenerated in the pinned toolchain, never silently. The comparison's bite (a font swap, a margin shift, a page-count change are each drift) is proven against the committed baseline without the toolchain. Two chapters and pages one and two are sampled; geometry is toolchain-stable only to the declared tolerance, so a sub-tolerance shift is not caught. |
+
 ## Docs never drift
 
 `INV-docs-no-drift` · standard

@@ -106,6 +106,7 @@ TITLES = {
     "INV-migration-safe": "Migration moves only the pin",
     "INV-migration-preview": "Migration previews before it mutates",
     "INV-profile-geometry": "Profiles render at their trim",
+    "INV-design-layout-stable": "House layout holds within a major",
     "INV-dropcap-opening": "Drop caps only on the opening",
 }
 
