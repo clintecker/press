@@ -464,6 +464,45 @@ PLACEMENT_MEASURES = [
        "A third-measure figure with text wrapping in a wider column beside it.")]),
 ]
 
+# How a wrap behaves against real running text: full-page scenarios (same
+# site/placement-demo/ images). Each is (title, [(image, alt), ...], note); a
+# two-image card shows a page foot and the next page's head, for the guard.
+WRAP_BEHAVIOURS_MARKER = "<!--WRAP-BEHAVIOURS-->"
+WRAP_BEHAVIOURS = [
+    ("Ample text closes the runaround",
+     [("behav-ample.png",
+       "A wrap whose paragraph runs the full height of the figure and closes "
+       "beneath it, the next paragraph resuming at the full measure.")],
+     "Give a wrap a paragraph long enough to run the figure's height and it "
+     "closes cleanly; once the figure ends the text returns to the full measure, "
+     "and later paragraphs set as ordinary prose."),
+    ("Short text: the next block rides up",
+     [("behav-short.png",
+       "A short paragraph beside a wrap, with the following heading and its "
+       "paragraph riding up into the space still open beside the figure.")],
+     "When the paragraph beside a wrap is too short to reach the figure's foot, "
+     "the next heading or paragraph draws up into the space still open beside it "
+     "rather than starting fresh below. Feed the wrap more prose for a clean "
+     "break."),
+    ("Where later paragraphs draw",
+     [("behav-several.png",
+       "Several paragraphs beside a wrap: narrow while the figure is beside "
+       "them, opening to the full measure mid-paragraph the moment it ends.")],
+     "The first paragraphs run narrow beside the figure; the moment it ends the "
+     "text opens to the full measure in the same paragraph, and everything "
+     "downstream is ordinary full-width prose again — a wrap costs only its own "
+     "height, in its own margin."),
+    ("Near a page foot: the guard carries the whole wrap over",
+     [("behav-guard-a.png", "A full page of prose with no figure at its foot."),
+      ("behav-guard-b.png",
+       "The same figure carried to the top of the next page with its "
+       "paragraph, closing beneath it.")],
+     "When fewer lines remain than the figure is tall, the whole wrap — figure "
+     "and paragraph together — is carried to the top of the next page rather "
+     "than stranded at the foot with no room to close. The page above keeps a "
+     "little quiet space; the reader never sees a broken runaround."),
+]
+
 # The card shows the physical trim size, not the internal profile name.
 PROFILE_LABELS = {"novella-5x8": "5×8", "house-6x9": "6×9"}
 
@@ -797,6 +836,38 @@ def placement_measures_html() -> str:
     return f'<section class="measure-demo">{"".join(groups)}\n</section>'
 
 
+def wrap_behaviours_html() -> str:
+    """How a wrap behaves against real running text, as full-page scenarios. A
+    two-image card (a page foot and the next page's head) shows the page-break
+    guard. Shares the site/placement-demo/ images; a card whose images are all
+    missing is skipped."""
+    cards = []
+    for title, shots, note in WRAP_BEHAVIOURS:
+        parts = []
+        for i, (img, alt) in enumerate(shots):
+            if not (PLACEMENT_DEMO_IMAGES / img).is_file():
+                continue
+            if parts:
+                parts.append('<span class="behav-arrow" aria-hidden="true">&rarr;</span>')
+            parts.append(
+                f'<img src="placement-demo/{escape(img)}" loading="lazy" '
+                f'alt="{escape(alt)}">')
+        if not parts:
+            continue
+        pair = " behav-pair" if len(shots) > 1 else ""
+        cards.append(f"""
+<figure class="behav-card">
+  <div class="behav-shots{pair}">{"".join(parts)}</div>
+  <figcaption>
+    <p class="behav-name">{escape(title)}</p>
+    <p class="behav-note">{note}</p>
+  </figcaption>
+</figure>""")
+    if not cards:
+        raise SystemExit(f"wrap-behaviours: no images under {PLACEMENT_DEMO_IMAGES}")
+    return f'<section class="behav-demo">{"".join(cards)}\n</section>'
+
+
 def build_page(source: str, name: str, label: str) -> None:
     title = "press" if name == "index.html" else f"press: {label}"
     nav_file = OUT / f".nav-{name}"
@@ -862,6 +933,9 @@ def build_page(source: str, name: str, label: str) -> None:
         if PLACEMENT_MEASURES_MARKER not in html:
             raise SystemExit(f"illustrations: {source} lost its {PLACEMENT_MEASURES_MARKER} marker")
         html = html.replace(PLACEMENT_MEASURES_MARKER, placement_measures_html(), 1)
+        if WRAP_BEHAVIOURS_MARKER not in html:
+            raise SystemExit(f"illustrations: {source} lost its {WRAP_BEHAVIOURS_MARKER} marker")
+        html = html.replace(WRAP_BEHAVIOURS_MARKER, wrap_behaviours_html(), 1)
     # Wrap the pandoc content in one <main class="prose"> between the
     # toolbar and the colophon, so the whole column is a single centered
     # container and no element can detach from it. The toolbar and footer

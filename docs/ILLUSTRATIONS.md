@@ -154,6 +154,16 @@ leaves no room for text beside it, so a wrap takes a half or a third.
 
 <!--PLACEMENT-MEASURES-->
 
+### How a wrap behaves against running text
+
+A wrap is not a fixed box; it is a runaround, and how it reads depends on the
+prose beside it. These are full pages from a build, so you can see the behaviour
+at the scale a reader meets it — how a long paragraph closes under the figure,
+what a short one leaves open, where later paragraphs draw, and what the house
+does when a figure is declared too near the foot of a page.
+
+<!--WRAP-BEHAVIOURS-->
+
 ## What does *not* belong here
 
 **Data figures — bar charts, line graphs — are not illustrations.** An image

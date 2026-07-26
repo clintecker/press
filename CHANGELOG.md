@@ -80,9 +80,11 @@ audit).
   asterisk above it; ordinary plate captions are unchanged. A numbered figure's
   "Figure C.N." label is boxed so a narrow column (a third-measure wrap) can
   never hyphenate it into "Fig-ure". markdown, plain text, and docx keep a clean
-  in-flow figure. The illustrations page shows every placement, and every width
-  measure against each placement, as source beside a shot. (A new major: the
-  design contract's figure treatment changes.)
+  in-flow figure. The illustrations page shows every placement, every width
+  measure against each placement, and how a wrap behaves against running text --
+  closing under ample prose, letting the next block ride up under short prose,
+  and the page-foot guard carrying a wrap whole to the next page -- as source and
+  full-page shots. (A new major: the design contract's figure treatment changes.)
 - **A repeatable print-profile lifecycle: scaffold, prove, seal (#221).**
   Adding a trim or an ink is now one documented path rather than an ad hoc
   edit. `python3 -m press.profile_lifecycle scaffold <id> --trim WxH

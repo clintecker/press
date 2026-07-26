@@ -641,3 +641,26 @@ h1 .tag, h2 .tag, h3 .tag{vertical-align:.28em; margin-left:.35rem}
   text-align:center; font-family:var(--sans); font-size:.8rem; color:var(--muted);
 }
 .measure-shot figcaption code{color:var(--accent-ink)}
+
+/* How a wrap behaves against running text: full-page scenarios. Each card is
+   the shot(s) over a name and a note; the guard card pairs a page foot with the
+   next page's head, an arrow between. */
+.prose > .behav-demo{
+  max-width:var(--measure-wide); margin:1.4rem auto 2.4rem; padding:0;
+  display:flex; flex-direction:column; gap:2.1rem;
+}
+.behav-card{
+  margin:0; display:flex; flex-direction:column; gap:.9rem;
+  padding-bottom:2rem; border-bottom:1px solid var(--rule);
+}
+.behav-card:last-child{border-bottom:0; padding-bottom:0}
+.behav-shots{display:flex; justify-content:center; align-items:flex-start; gap:1rem; flex-wrap:wrap}
+.behav-shots img{
+  max-width:100%; height:auto; border-radius:4px; border:1px solid var(--rule);
+  background:#fff; box-shadow:0 2px 12px rgb(0 0 0 / .14);
+}
+.behav-pair img{max-width:47%}
+.behav-arrow{align-self:center; color:var(--muted); font-size:1.7rem; line-height:1}
+.behav-name{margin:0; font-family:var(--sans); font-weight:700; color:var(--ink)}
+.behav-note{margin:0; font-family:var(--sans); font-size:.9rem; color:var(--ink); max-width:46rem}
+@media (max-width:560px){ .behav-pair img{max-width:100%} .behav-arrow{transform:rotate(90deg)} }
