@@ -89,6 +89,126 @@ fixtures:
     expect: words
     regenerate: Hand-authored; a 200-word run of word0..word199 in one paragraph.
 
+  - file: en-dash.md
+    kind: source
+    invariant: INV-editorial-battery
+    provenance: A minimal clean chapter (see src/press/data/known-good/clean.md).
+    mutation: A numeric range set with an en dash.
+    expected_result: rejected
+    checker: style_audit
+    expect: en dash
+    regenerate: Hand-authored; edit the fixture to change the mutation.
+
+  - file: trailing-whitespace.md
+    kind: source
+    invariant: INV-editorial-battery
+    provenance: A minimal clean chapter (see src/press/data/known-good/clean.md).
+    mutation: Trailing spaces left on one prose line.
+    expected_result: rejected
+    checker: style_audit
+    expect: trailing whitespace
+    regenerate: Hand-authored; leave trailing spaces on the body line.
+
+  - file: in-conclusion.md
+    kind: source
+    invariant: INV-editorial-battery
+    provenance: A minimal clean chapter (see src/press/data/known-good/clean.md).
+    mutation: A sentence opened with the generic conclusion phrase.
+    expected_result: rejected
+    checker: style_audit
+    expect: generic conclusion
+    regenerate: Hand-authored; edit the fixture to change the mutation.
+
+  - file: throat-clearing-important.md
+    kind: source
+    invariant: INV-editorial-battery
+    provenance: A minimal clean chapter (see src/press/data/known-good/clean.md).
+    mutation: The "it is important to note" throat-clearing opener dropped in.
+    expected_result: rejected
+    checker: style_audit
+    expect: throat-clearing phrase
+    regenerate: Hand-authored; edit the fixture to change the mutation.
+
+  - file: throat-clearing-worth.md
+    kind: source
+    invariant: INV-editorial-battery
+    provenance: A minimal clean chapter (see src/press/data/known-good/clean.md).
+    mutation: The "it is worth noting" throat-clearing opener dropped in.
+    expected_result: rejected
+    checker: style_audit
+    expect: throat-clearing phrase
+    regenerate: Hand-authored; edit the fixture to change the mutation.
+
+  - file: at-its-core.md
+    kind: source
+    invariant: INV-editorial-battery
+    provenance: A minimal clean chapter (see src/press/data/known-good/clean.md).
+    mutation: The "at its core" fake-revelation phrase dropped in.
+    expected_result: rejected
+    checker: style_audit
+    expect: fake-revelation phrase
+    regenerate: Hand-authored; edit the fixture to change the mutation.
+
+  - file: real-question.md
+    kind: source
+    invariant: INV-editorial-battery
+    provenance: A minimal clean chapter (see src/press/data/known-good/clean.md).
+    mutation: The "the real question is" fake-revelation phrase dropped in.
+    expected_result: rejected
+    checker: style_audit
+    expect: fake-revelation phrase
+    regenerate: Hand-authored; edit the fixture to change the mutation.
+
+  - file: lets-dive.md
+    kind: source
+    invariant: INV-editorial-battery
+    provenance: A minimal clean chapter (see src/press/data/known-good/clean.md).
+    mutation: The "let's dive" chatbot signposting phrase dropped in.
+    expected_result: rejected
+    checker: style_audit
+    expect: chatbot signposting
+    regenerate: Hand-authored; edit the fixture to change the mutation.
+
+  - file: without-further-ado.md
+    kind: source
+    invariant: INV-editorial-battery
+    provenance: A minimal clean chapter (see src/press/data/known-good/clean.md).
+    mutation: The "without further ado" chatbot signposting phrase dropped in.
+    expected_result: rejected
+    checker: style_audit
+    expect: chatbot signposting
+    regenerate: Hand-authored; edit the fixture to change the mutation.
+
+  - file: testament.md
+    kind: source
+    invariant: INV-editorial-battery
+    provenance: A minimal clean chapter (see src/press/data/known-good/clean.md).
+    mutation: The "stands as a testament" inflated-significance phrase dropped in.
+    expected_result: rejected
+    checker: style_audit
+    expect: inflated significance
+    regenerate: Hand-authored; edit the fixture to change the mutation.
+
+  - file: vibrant-tapestry.md
+    kind: source
+    invariant: INV-editorial-battery
+    provenance: A minimal clean chapter (see src/press/data/known-good/clean.md).
+    mutation: The "vibrant tapestry" inflated AI phrase dropped in.
+    expected_result: rejected
+    checker: style_audit
+    expect: inflated AI phrase
+    regenerate: Hand-authored; edit the fixture to change the mutation.
+
+  - file: negative-parallelism.md
+    kind: source
+    invariant: INV-editorial-battery
+    provenance: A minimal clean chapter (see src/press/data/known-good/clean.md).
+    mutation: A "not only ... but also" formulaic parallelism dropped in.
+    expected_result: rejected
+    checker: style_audit
+    expect: formulaic negative parallelism
+    regenerate: Hand-authored; edit the fixture to change the mutation.
+
   - file: jargon.md
     kind: source
     invariant: INV-editorial-jargon

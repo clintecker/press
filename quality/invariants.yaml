@@ -84,11 +84,23 @@ invariants:
     layers: [selftest, integration]
     negative:
       - fixture:em-dash.md
+      - fixture:en-dash.md
       - fixture:curly-quotes.md
       - fixture:emoji.md
       - fixture:title-case.md
       - fixture:numbered-heading.md
       - fixture:long-paragraph.md
+      - fixture:trailing-whitespace.md
+      - fixture:in-conclusion.md
+      - fixture:throat-clearing-important.md
+      - fixture:throat-clearing-worth.md
+      - fixture:at-its-core.md
+      - fixture:real-question.md
+      - fixture:lets-dive.md
+      - fixture:without-further-ado.md
+      - fixture:testament.md
+      - fixture:vibrant-tapestry.md
+      - fixture:negative-parallelism.md
     ci_tier: quality
     limitations: The glyph law flags legitimate Greek or math; short title-case headings slip.
 

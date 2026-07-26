@@ -265,7 +265,7 @@ The universal prose battery refuses dashes, curly quotes, out-of-font glyphs, th
 |---|---|
 | **If it breaks** | Synthetic or print-unsafe prose reaches a published book. |
 | **Enforced by** | `style_audit` |
-| **Tested by** | `fixture:em-dash.md`, `fixture:curly-quotes.md`, `fixture:emoji.md`, `fixture:title-case.md`, `fixture:numbered-heading.md`, `fixture:long-paragraph.md` |
+| **Tested by** | `fixture:em-dash.md`, `fixture:en-dash.md`, `fixture:curly-quotes.md`, `fixture:emoji.md`, `fixture:title-case.md`, `fixture:numbered-heading.md`, `fixture:long-paragraph.md`, `fixture:trailing-whitespace.md`, `fixture:in-conclusion.md`, `fixture:throat-clearing-important.md`, `fixture:throat-clearing-worth.md`, `fixture:at-its-core.md`, `fixture:real-question.md`, `fixture:lets-dive.md`, `fixture:without-further-ado.md`, `fixture:testament.md`, `fixture:vibrant-tapestry.md`, `fixture:negative-parallelism.md` |
 | **Known limit** | The glyph law flags legitimate Greek or math; short title-case headings slip. |
 
 ## Checkers proven by fixtures
