@@ -120,6 +120,9 @@ NOT_PUBLISHED = {
     "docs/LUA-QUALITY-PLAN.md": "internal engineering plan for the Lua filters' "
                                 "tests, coverage, lint, and formatting; lives in "
                                 "the repo and issues, not the docs site",
+    "docs/CELEBRIMBOR-PLAN.md": "internal analysis of extracting the app-agnostic "
+                                "quality harness into a reusable framework; lives "
+                                "in the repo and issues, not the docs site",
     "docs/PROVIDER-DATA.md": "contributor workflow for regenerating the packaged "
                              "provider ledger; lives in the repo for maintainers, "
                              "not on a site written for authors",
