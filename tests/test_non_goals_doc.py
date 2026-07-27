@@ -62,4 +62,4 @@ def test_site_completeness_accounts_for_the_doc() -> None:
     # (every repo Markdown file is published or consciously excluded) must pass
     # with it present -- i.e. the wiring above is what keeps the site green.
     build_site = _load_build_site()
-    build_site.check_completeness()
+    assert build_site.check_completeness() is None

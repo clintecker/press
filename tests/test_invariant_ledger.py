@@ -14,7 +14,7 @@ from press import invariants
 
 
 def test_shipped_ledger_holds():
-    invariants.validate(invariants.load())
+    assert invariants.validate(invariants.load()) is None
 
 
 def test_ledger_resolves_from_cwd_when_the_packaged_path_is_absent(monkeypatch):
@@ -118,7 +118,7 @@ def test_completeness_gate_holds_on_the_shipped_ledger():
 
     from press import selftest
 
-    selftest.check_ledger_completeness()  # does not raise
+    assert selftest.check_ledger_completeness() is None
 
 
 def test_completeness_gate_flags_a_critical_invariant_with_no_fast_proof(monkeypatch):
@@ -142,7 +142,7 @@ def test_completeness_gate_accepts_a_collected_pytest_proof(monkeypatch):
 
     monkeypatch.setattr(selftest.invariants, "load", lambda: [_critical(["integration"])])
     monkeypatch.setattr(selftest, "_invariants_with_pytest_proof", lambda: {"INV-x"})
-    selftest.check_ledger_completeness()  # does not raise
+    assert selftest.check_ledger_completeness() is None
 
 
 def test_completeness_gate_accepts_a_runnable_selftest_check(monkeypatch):
@@ -155,7 +155,7 @@ def test_completeness_gate_accepts_a_runnable_selftest_check(monkeypatch):
         selftest.invariants, "load",
         lambda: [_critical(["check_imports"])])  # a real selftest check
     monkeypatch.setattr(selftest, "_invariants_with_pytest_proof", set)
-    selftest.check_ledger_completeness()  # does not raise
+    assert selftest.check_ledger_completeness() is None
 
 
 def test_completeness_gate_flags_an_invariant_with_only_none(monkeypatch):

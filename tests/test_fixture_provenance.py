@@ -61,7 +61,7 @@ def test_shipped_manifest_holds():
 
 
 def test_selftest_check_passes():
-    fixture_provenance.check()
+    assert fixture_provenance.check() is None
 
 
 def test_sound_synthetic_manifest_holds(tmp_path):

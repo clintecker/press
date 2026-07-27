@@ -22,7 +22,9 @@ _loops: list[asyncio.AbstractEventLoop] = []
 
 @pytest.mark.asyncio
 async def test_each_async_test_gets_its_own_loop_first():
-    _loops.append(asyncio.get_running_loop())
+    loop = asyncio.get_running_loop()
+    assert loop is not None
+    _loops.append(loop)
 
 
 @pytest.mark.asyncio

@@ -15,7 +15,7 @@ from press import selftest
 
 @pytest.mark.parametrize("check", selftest.CHECKS, ids=lambda c: c.__name__)
 def test_invariant_check_passes(check):
-    check()
+    assert check() is None
 
 
 def test_every_check_is_orchestrated():
