@@ -114,6 +114,12 @@ NOT_PUBLISHED = {
     "docs/TUI-PLAN.md": "internal design plan; lives in the repo and issues, not the docs site",
     "docs/DIRECT-ORDERING-PLAN.md": "internal PRD/TRD; lives in the repo and issues, not the docs site",
     "docs/PRINT-PROFILES-PLAN.md": "internal v2 design record; lives in the repo and issues, not the docs site",
+    "docs/EDITION-PARITY-PLAN.md": "internal implementation plan for matching the "
+                                   "PDF layout across HTML/EPUB/DOCX; lives in the "
+                                   "repo and issues, not the docs site",
+    "docs/LUA-QUALITY-PLAN.md": "internal engineering plan for the Lua filters' "
+                                "tests, coverage, lint, and formatting; lives in "
+                                "the repo and issues, not the docs site",
     "docs/PROVIDER-DATA.md": "contributor workflow for regenerating the packaged "
                              "provider ledger; lives in the repo for maintainers, "
                              "not on a site written for authors",
