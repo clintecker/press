@@ -48,12 +48,12 @@ def test_color_profile_overrides_the_single_ink_plate_law(monkeypatch):
     # them in colour even so.
     from press import aesthetic, art, profiles
 
-    monkeypatch.setattr(aesthetic, "effective",
-                        lambda: {"plates": {"medium": "single-ink wood engraving"}})
+    monkeypatch.setattr(
+        aesthetic, "effective", lambda: {"plates": {"medium": "single-ink wood engraving"}}
+    )
     monkeypatch.setattr(profiles, "active", lambda: profiles.Profile("s", {}))
     assert art._single_ink_plates() is True
-    monkeypatch.setattr(profiles, "active",
-                        lambda: profiles.Profile("c", {"ink": "color"}))
+    monkeypatch.setattr(profiles, "active", lambda: profiles.Profile("c", {"ink": "color"}))
     assert art._single_ink_plates() is False
 
 
@@ -77,14 +77,17 @@ def test_quantize_keeps_colour_when_asked():
     assert distinct <= 16, f"colour quantize left {distinct} colours, wanted <= 16"
 
 
-@pytest.mark.parametrize("medium, model, colors", [
-    ("wood engraving on cream", "remacri-4x", 16),
-    ("a fine woodcut", "remacri-4x", 16),
-    ("pen and ink line", "remacri-4x", 16),  # 'line' wins as a substring
-    ("loose watercolour wash", "ultrasharp-4x", 64),
-    ("", "remacri-4x", 16),                 # default
-    ("something unheard of", "remacri-4x", 16),
-])
+@pytest.mark.parametrize(
+    "medium, model, colors",
+    [
+        ("wood engraving on cream", "remacri-4x", 16),
+        ("a fine woodcut", "remacri-4x", 16),
+        ("pen and ink line", "remacri-4x", 16),  # 'line' wins as a substring
+        ("loose watercolour wash", "ultrasharp-4x", 64),
+        ("", "remacri-4x", 16),  # default
+        ("something unheard of", "remacri-4x", 16),
+    ],
+)
 def test_medium_picks_model_and_palette(medium, model, colors):
     assert art_enhance.profile_for(medium) == (model, colors)
 
@@ -136,8 +139,7 @@ def test_enhance_upscales_through_the_process_adapter(tmp_path, monkeypatch):
     runner = Runner()
     monkeypatch.setattr(adapters, "process_runner", runner)
 
-    result = art_enhance.enhance(src, dst, model="remacri-4x", colors=8,
-                                 scale=4, max_edge=300)
+    result = art_enhance.enhance(src, dst, model="remacri-4x", colors=8, scale=4, max_edge=300)
 
     assert result.upscaled is True
     argv = runner.calls[0][0]
@@ -187,8 +189,7 @@ def test_cli_enhance_one_file(tmp_path, monkeypatch):
 
     from press import aesthetic, art, profiles
 
-    monkeypatch.setattr(aesthetic, "effective",
-                        lambda: {"plate": {"medium": "wood engraving"}})
+    monkeypatch.setattr(aesthetic, "effective", lambda: {"plate": {"medium": "wood engraving"}})
     monkeypatch.setattr(profiles, "active", lambda: profiles.Profile("t", {}))
     monkeypatch.setattr(art_enhance, "find_upscaler", lambda: None)
     src = tmp_path / "plate.jpg"

@@ -60,21 +60,41 @@ def render_packaged() -> str:
 
     return PACKAGED_HEADER + SOURCE_RECORD.read_text(encoding="utf-8")
 
+
 SCHEMA_VERSION = 1
-DISPOSITIONS = frozenset({
-    "primary", "secondary", "hosted-candidate", "candidate", "not-fit"})
+DISPOSITIONS = frozenset({"primary", "secondary", "hosted-candidate", "candidate", "not-fit"})
 # A not-fit provider cannot be qualified for production, whatever a copy shows.
-PRODUCTION_DISPOSITIONS = frozenset({
-    "primary", "secondary", "hosted-candidate", "candidate"})
+PRODUCTION_DISPOSITIONS = frozenset({"primary", "secondary", "hosted-candidate", "candidate"})
 CAPABILITY_VALUES = frozenset({"supported", "unsupported", "by_approval", "unknown"})
-REQUIRED_CAPABILITIES = frozenset({
-    "api", "sandbox", "one_copy_pod", "file_validation", "pricing_api",
-    "order_creation", "shipping", "cancellation", "webhooks", "worldwide",
-    "seller_of_record"})
+REQUIRED_CAPABILITIES = frozenset(
+    {
+        "api",
+        "sandbox",
+        "one_copy_pod",
+        "file_validation",
+        "pricing_api",
+        "order_creation",
+        "shipping",
+        "cancellation",
+        "webhooks",
+        "worldwide",
+        "seller_of_record",
+    }
+)
 # The inspection points every provider+product+region must pass, in order.
 REQUIRED_CHECKLIST = (
-    "content", "pagination", "trim", "bleed", "spine", "barcode", "color",
-    "paper", "binding", "packaging", "tracking")
+    "content",
+    "pagination",
+    "trim",
+    "bleed",
+    "spine",
+    "barcode",
+    "color",
+    "paper",
+    "binding",
+    "packaging",
+    "tracking",
+)
 
 PASS = "pass"
 
@@ -104,12 +124,14 @@ def providers(record: dict | None = None) -> dict[str, Provider]:
     out: dict[str, Provider] = {}
     for name, raw in (record.get("providers") or {}).items():
         out[name] = Provider(
-            name=name, disposition=raw.get("disposition", ""),
+            name=name,
+            disposition=raw.get("disposition", ""),
             routes=tuple(raw.get("routes", ())),
             evidence=tuple(raw.get("evidence", ())),
             capabilities=dict(raw.get("capabilities", {})),
             unknowns=tuple(raw.get("unknowns", ())),
-            notes=raw.get("notes", ""))
+            notes=raw.get("notes", ""),
+        )
     return out
 
 
@@ -119,8 +141,7 @@ def _validate_provider(name: str, prov: Provider) -> list[str]:
         problems.append(f"{name}: unknown disposition {prov.disposition!r}")
     if not prov.routes:
         problems.append(f"{name}: no routes recorded")
-    if not prov.evidence or any(
-            not e.get("claim") or not e.get("url") for e in prov.evidence):
+    if not prov.evidence or any(not e.get("claim") or not e.get("url") for e in prov.evidence):
         problems.append(f"{name}: every evidence entry needs a claim and a url")
     # Capabilities must be exactly the required set, each an explicit value:
     # an omitted capability is an implicit claim, which is forbidden.
@@ -132,13 +153,15 @@ def _validate_provider(name: str, prov: Provider) -> list[str]:
         problems.append(f"{name}: unknown capabilities: {sorted(extra)}")
     for cap, value in prov.capabilities.items():
         if value not in CAPABILITY_VALUES:
-            problems.append(f"{name}: capability {cap}={value!r} is not one of "
-                            f"{sorted(CAPABILITY_VALUES)}")
+            problems.append(
+                f"{name}: capability {cap}={value!r} is not one of {sorted(CAPABILITY_VALUES)}"
+            )
     # A `- text: more` line is YAML for a mapping, not a string; catch that
     # so an unknowns or routes entry cannot silently become a dict.
     if any(not isinstance(u, str) for u in prov.unknowns):
-        problems.append(f"{name}: every 'unknowns' entry must be a string "
-                        "(a colon made one a mapping)")
+        problems.append(
+            f"{name}: every 'unknowns' entry must be a string (a colon made one a mapping)"
+        )
     if any(not isinstance(r, str) for r in prov.routes):
         problems.append(f"{name}: every 'routes' entry must be a string")
     return problems
@@ -158,11 +181,13 @@ def validate(record: dict | None = None) -> list[str]:
         elif PACKAGED_RECORD.read_text(encoding="utf-8") != render_packaged():
             problems.append(
                 "packaged provider record is stale: regenerate it byte-for-byte "
-                "from quality/providers.yaml with `press selftest --write-docs`")
+                "from quality/providers.yaml with `press selftest --write-docs`"
+            )
     if record.get("schema_version") != SCHEMA_VERSION:
         problems.append(
             f"unknown schema version {record.get('schema_version')} "
-            f"(this press writes {SCHEMA_VERSION})")
+            f"(this press writes {SCHEMA_VERSION})"
+        )
     checklist = tuple(record.get("physical_checklist", ()))
     for point in REQUIRED_CHECKLIST:
         if point not in checklist:
@@ -198,8 +223,7 @@ class PhysicalInspection:
         return [point for point in checklist if self.results.get(point) != PASS]
 
 
-def qualify(inspection: PhysicalInspection, edition_id: str,
-            record: dict | None = None):
+def qualify(inspection: PhysicalInspection, edition_id: str, record: dict | None = None):
     """Turn a passed physical inspection into a provider qualification bound
     to the edition, or a list of the reasons it does not qualify. Returns
     ``(ProviderQualification | None, problems)``. Marketing evidence alone
@@ -218,27 +242,32 @@ def qualify(inspection: PhysicalInspection, edition_id: str,
     elif prov.disposition not in PRODUCTION_DISPOSITIONS:
         problems.append(
             f"provider {inspection.provider!r} disposition "
-            f"{prov.disposition!r} cannot be qualified for production")
+            f"{prov.disposition!r} cannot be qualified for production"
+        )
 
     if inspection.edition_id != edition_id:
         problems.append(
             "inspection is for a different edition "
             f"({inspection.edition_id[:12]} != {edition_id[:12]}); "
-            "qualification is scoped to an exact edition identity")
+            "qualification is scoped to an exact edition identity"
+        )
 
-    unresolved = inspection.unresolved(tuple(
-        record.get("physical_checklist", REQUIRED_CHECKLIST)))
+    unresolved = inspection.unresolved(tuple(record.get("physical_checklist", REQUIRED_CHECKLIST)))
     if unresolved:
         problems.append(
             f"physical inspection not passed: {unresolved}; a marketing claim "
-            "cannot satisfy the physical gate")
+            "cannot satisfy the physical gate"
+        )
 
     if problems:
         return None, problems
 
     qualification = edition_mod.ProviderQualification(
-        provider=inspection.provider, product_id=inspection.product_id,
-        qualified_for=edition_id, evidence_digest=inspection.digest())
+        provider=inspection.provider,
+        product_id=inspection.product_id,
+        qualified_for=edition_id,
+        evidence_digest=inspection.digest(),
+    )
     return qualification, []
 
 
@@ -254,13 +283,16 @@ def book_inspections(root: Path) -> list[PhysicalInspection]:
     data = yamlio.loads(path.read_text(encoding="utf-8")) or {}
     out: list[PhysicalInspection] = []
     for raw in data.get("inspections", ()):
-        out.append(PhysicalInspection(
-            edition_id=str(raw.get("edition_id", "")),
-            provider=str(raw.get("provider", "")),
-            product_id=str(raw.get("product_id", "")),
-            region=str(raw.get("region", "")),
-            inspector=str(raw.get("inspector", "")),
-            results=dict(raw.get("results", {}))))
+        out.append(
+            PhysicalInspection(
+                edition_id=str(raw.get("edition_id", "")),
+                provider=str(raw.get("provider", "")),
+                product_id=str(raw.get("product_id", "")),
+                region=str(raw.get("region", "")),
+                inspector=str(raw.get("inspector", "")),
+                results=dict(raw.get("results", {})),
+            )
+        )
     return out
 
 
@@ -279,12 +311,19 @@ CHECKLIST_HELP = {
     "tracking": "the tracking link resolves and matches the destination",
 }
 
-_CAP_LABELS = {"supported": "Supported", "by_approval": "By approval",
-               "unsupported": "Unsupported", "unknown": "Unknown"}
+_CAP_LABELS = {
+    "supported": "Supported",
+    "by_approval": "By approval",
+    "unsupported": "Unsupported",
+    "unknown": "Unknown",
+}
 _DISPOSITION_TITLE = {
-    "primary": "Primary provider", "secondary": "Second adapter",
-    "hosted-candidate": "Hosted-checkout candidate", "candidate": "Candidate",
-    "not-fit": "Not a fit"}
+    "primary": "Primary provider",
+    "secondary": "Second adapter",
+    "hosted-candidate": "Hosted-checkout candidate",
+    "candidate": "Candidate",
+    "not-fit": "Not a fit",
+}
 
 
 def _evidence_links(prov: Provider) -> str:
@@ -324,9 +363,9 @@ def render(record: dict | None = None) -> str:
         "point must pass, none may be skipped:",
         "",
     ]
-    lines += _field_table([
-        (point, CHECKLIST_HELP.get(point, ""))
-        for point in record.get("physical_checklist", ())])
+    lines += _field_table(
+        [(point, CHECKLIST_HELP.get(point, "")) for point in record.get("physical_checklist", ())]
+    )
     lines.append("")
 
     for name, prov in providers(record).items():
@@ -379,8 +418,10 @@ def main(argv: list[str] | None = None) -> int:
         for problem in problems:
             print(f"  - {problem}")
         return 1
-    print(f"provider qualification record holds: {len(providers())} providers, "
-          f"{len(REQUIRED_CHECKLIST)}-point physical checklist")
+    print(
+        f"provider qualification record holds: {len(providers())} providers, "
+        f"{len(REQUIRED_CHECKLIST)}-point physical checklist"
+    )
     return 0
 
 

@@ -36,8 +36,10 @@ def test_check_digit_weights_odd_positions_by_three():
 def test_check_digit_is_zero_when_total_is_a_multiple_of_ten():
     twelve = [int(c) for c in "978030640615"]  # its check digit is 7
     twelve[-1] = (twelve[-1] + 3) % 10  # nudge so the total lands on a ten
-    assert barcode.check_digit(twelve) == (10 - sum(
-        d * (1 if i % 2 == 0 else 3) for i, d in enumerate(twelve)) % 10) % 10
+    assert (
+        barcode.check_digit(twelve)
+        == (10 - sum(d * (1 if i % 2 == 0 else 3) for i, d in enumerate(twelve)) % 10) % 10
+    )
 
 
 def test_validate_accepts_a_correct_isbn_and_returns_its_digits():
@@ -65,9 +67,9 @@ def test_modules_match_the_known_pattern_exactly():
         "101110011100101010000110011010011101000100101"
     )
     assert len(pattern) == 95
-    assert pattern[:3] == "101"           # left guard
-    assert pattern[-3:] == "101"          # right guard
-    assert pattern[45:50] == "01010"      # centre guard
+    assert pattern[:3] == "101"  # left guard
+    assert pattern[-3:] == "101"  # right guard
+    assert pattern[45:50] == "01010"  # centre guard
 
 
 def test_runs_partition_the_pattern_and_start_with_ink():

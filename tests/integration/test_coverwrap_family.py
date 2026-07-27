@@ -99,9 +99,7 @@ def print_pack(tmp_path_factory):
         # coverwrap stands on the print interior; the registry builds it
         # first, so one toolchain run serves both proofs.
         registry.build("coverwrap")
-        evidence.outputs = digest_outputs(
-            dist, [f"{slug}-interior.pdf", f"{slug}-coverwrap.pdf"]
-        )
+        evidence.outputs = digest_outputs(dist, [f"{slug}-interior.pdf", f"{slug}-coverwrap.pdf"])
         yield PrintPack(root=handle.root, dist=dist, slug=slug, evidence=evidence)
     evidence.write(root)
 
@@ -113,10 +111,13 @@ def print_pack(tmp_path_factory):
 def test_print_interior_carries_ink(print_pack):
     from press import verify_pdf
 
-    rc = verify_pdf.main([
-        str(print_pack.dist / f"{print_pack.slug}-interior.pdf"),
-        "--profile", "print",
-    ])
+    rc = verify_pdf.main(
+        [
+            str(print_pack.dist / f"{print_pack.slug}-interior.pdf"),
+            "--profile",
+            "print",
+        ]
+    )
     print_pack.evidence.record_verifier("verify_pdf.main[--profile print]")
     print_pack.evidence.record_invariant("INV-pdf-ink")
 
@@ -138,6 +139,4 @@ def test_coverwrap_geometry_and_barcode(print_pack):
 
     assert rc == 0, "verify_coverwrap refused the freshly built wrap"
     assert f"{print_pack.slug}-coverwrap.pdf" in print_pack.evidence.outputs
-    assert all(
-        print_pack.evidence.tool_versions[tool] != "absent" for tool in REQUIRED
-    )
+    assert all(print_pack.evidence.tool_versions[tool] != "absent" for tool in REQUIRED)

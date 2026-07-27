@@ -27,8 +27,8 @@ def _baked_line_art(size: tuple[int, int] = (40, 40)) -> Image.Image:
     px = img.load()
     assert px is not None
     for i in range(size[0]):
-        px[i, size[1] // 2] = (0, 0, 0)      # a horizontal ink rule
-        px[size[0] // 2, i] = (0, 0, 0)      # and a vertical one
+        px[i, size[1] // 2] = (0, 0, 0)  # a horizontal ink rule
+        px[size[0] // 2, i] = (0, 0, 0)  # and a vertical one
     return img
 
 
@@ -70,8 +70,8 @@ def test_segmented_single_ink_master_reproduces_grayscale_on_white(tmp_path, mon
     master = Image.open(dst)
     flat = Image.new("RGB", master.size, (255, 255, 255))
     flat.paste(master, mask=master.getchannel("A"))
-    assert flat.getpixel((0, 0)) == (255, 255, 255)         # paper stays white
-    assert flat.getpixel((20, 20)) == (0, 0, 0)             # ink stays black
+    assert flat.getpixel((0, 0)) == (255, 255, 255)  # paper stays white
+    assert flat.getpixel((20, 20)) == (0, 0, 0)  # ink stays black
 
 
 @pytest.mark.layer("unit")
@@ -97,7 +97,7 @@ def test_transparent_delivery_keeps_its_mask(tmp_path, monkeypatch):
         px[i, 15] = (0, 0, 0, 255)
     dst = _accept_plate(tmp_path, monkeypatch, art_on_alpha)
     master = Image.open(dst)
-    assert master.getchannel("A").getpixel((0, 0)) == 0     # kept transparent
+    assert master.getchannel("A").getpixel((0, 0)) == 0  # kept transparent
     assert master.getchannel("A").getpixel((0, 15)) == 255  # kept opaque
 
 
@@ -113,5 +113,5 @@ def test_colour_plate_keeps_exact_colour_not_luminance_keyed(tmp_path, monkeypat
         px[i, 10] = (180, 20, 20)  # a red ink stroke
     dst = _accept_plate(tmp_path, monkeypatch, img, single_ink=False)
     master = Image.open(dst).convert("RGBA")
-    assert master.getpixel((5, 10)) == (180, 20, 20, 255)   # exact hue, opaque
+    assert master.getpixel((5, 10)) == (180, 20, 20, 255)  # exact hue, opaque
     assert master.getpixel((0, 0)) == (255, 255, 255, 255)  # white ground kept

@@ -21,19 +21,19 @@ DOWNLOADS = ["b.pdf", "b.epub"]
 
 
 def _jsonld_script(node) -> str:
-    return ('<script type="application/ld+json">\n'
-            + json.dumps(node, indent=2) + "\n</script>")
+    return '<script type="application/ld+json">\n' + json.dumps(node, indent=2) + "\n</script>"
 
 
-def _book_node(*, name=TITLE, url=BASE, image=BASE + "cover.jpg",
-               work_url=BASE + "downloads/b.pdf"):
-    node = {"@context": "https://schema.org", "@type": "Book", "name": name,
-            "url": url}
+def _book_node(
+    *, name=TITLE, url=BASE, image=BASE + "cover.jpg", work_url=BASE + "downloads/b.pdf"
+):
+    node = {"@context": "https://schema.org", "@type": "Book", "name": name, "url": url}
     if image:
         node["image"] = image
     if work_url:
-        node["workExample"] = [{"@type": "Book", "bookFormat": "https://schema.org/EBook",
-                                "url": work_url}]
+        node["workExample"] = [
+            {"@type": "Book", "bookFormat": "https://schema.org/EBook", "url": work_url}
+        ]
     return node
 
 
@@ -51,14 +51,14 @@ def _head(*, canonical=BASE, og_image=BASE + "cover.jpg", node=None, extra=""):
     return "\n".join(t for t in tags if t)
 
 
-def _site(tmp_path, *, index_head=None, site_url=SITE, with_cover=True,
-          with_downloads=True):
+def _site(tmp_path, *, index_head=None, site_url=SITE, with_cover=True, with_downloads=True):
     """A minimal but valid dist/pages, ready for one field to be damaged."""
     pages = tmp_path / "pages"
     pages.mkdir()
     head = _head() if index_head is None else index_head
     (pages / "index.html").write_text(
-        f"<html><head>{head}</head><body>{TITLE}</body></html>", encoding="utf-8")
+        f"<html><head>{head}</head><body>{TITLE}</body></html>", encoding="utf-8"
+    )
     if with_cover:
         (pages / "cover.jpg").write_bytes(b"jpegbytes")
     if with_downloads:
@@ -71,10 +71,12 @@ def _site(tmp_path, *, index_head=None, site_url=SITE, with_cover=True,
 def _sitemap(pages, locs):
     body = "\n".join(f"  <url><loc>{loc}</loc></url>" for loc in locs)
     (pages / "sitemap.xml").write_text(
-        f'<?xml version="1.0"?>\n<urlset>\n{body}\n</urlset>\n', encoding="utf-8")
+        f'<?xml version="1.0"?>\n<urlset>\n{body}\n</urlset>\n', encoding="utf-8"
+    )
 
 
 # --- The valid baseline: nothing is rejected. --------------------------------
+
 
 def test_a_correct_site_is_accepted(tmp_path):
     pages = _site(tmp_path)
@@ -82,6 +84,7 @@ def test_a_correct_site_is_accepted(tmp_path):
 
 
 # --- The six named damages, each rejected. -----------------------------------
+
 
 def test_catches_a_stale_title(tmp_path):
     pages = _site(tmp_path, index_head=_head(node=_book_node(name="Old Title")))
@@ -91,9 +94,10 @@ def test_catches_a_stale_title(tmp_path):
 
 def test_catches_a_wrong_site_url(tmp_path):
     # Canonical points at a different host than the configured site-url.
-    head = _head(canonical="https://elsewhere.test/b/",
-                 node=_book_node(url="https://elsewhere.test/b/",
-                                 image=None, work_url=None))
+    head = _head(
+        canonical="https://elsewhere.test/b/",
+        node=_book_node(url="https://elsewhere.test/b/", image=None, work_url=None),
+    )
     pages = _site(tmp_path, index_head=head)
     fails = verify_pages.check_metadata(pages, TITLE, SITE, DOWNLOADS)
     assert any("not under the site-url" in f for f in fails)
@@ -101,8 +105,9 @@ def test_catches_a_wrong_site_url(tmp_path):
 
 def test_catches_a_missing_cover(tmp_path):
     # The page claims an og:image but no cover file was shipped.
-    pages = _site(tmp_path, with_cover=False,
-                  index_head=_head(node=_book_node(image=None, work_url=None)))
+    pages = _site(
+        tmp_path, with_cover=False, index_head=_head(node=_book_node(image=None, work_url=None))
+    )
     fails = verify_pages.check_metadata(pages, TITLE, SITE, DOWNLOADS)
     assert any("missing cover" in f for f in fails)
 
@@ -117,8 +122,9 @@ def test_catches_a_foreign_edition(tmp_path):
 
 def test_catches_private_data_contamination(tmp_path):
     # A local build path leaks into the metadata head.
-    head = _head(extra='<meta property="og:image:alt" '
-                       'content="/Users/someone/dist/pages/cover.jpg">')
+    head = _head(
+        extra='<meta property="og:image:alt" content="/Users/someone/dist/pages/cover.jpg">'
+    )
     pages = _site(tmp_path, index_head=head)
     fails = verify_pages.check_metadata(pages, TITLE, SITE, DOWNLOADS)
     assert any("private build data" in f for f in fails)
@@ -134,14 +140,16 @@ def test_catches_a_credential_marker(tmp_path):
 def test_catches_a_real_credential_in_a_url(tmp_path):
     # A real credential-shaped value in a URL field is still rejected: the
     # shape-based marker did not weaken the protection.
-    head = _head(extra='<meta property="og:url" '
-                       'content="https://me.test/b/?apikey=sk_live_51H8xYzAbCdEf">')
+    head = _head(
+        extra='<meta property="og:url" content="https://me.test/b/?apikey=sk_live_51H8xYzAbCdEf">'
+    )
     pages = _site(tmp_path, index_head=head)
     fails = verify_pages.check_metadata(pages, TITLE, SITE, DOWNLOADS)
     assert any("private build data or a secret" in f for f in fails)
 
 
 # --- The false positive the shape-based marker fixes. ------------------------
+
 
 def test_a_book_titled_secrets_with_secret_prose_is_accepted(tmp_path):
     # The exact false-positive (#158): a book whose own title and description
@@ -150,15 +158,22 @@ def test_a_book_titled_secrets_with_secret_prose_is_accepted(tmp_path):
     # is. The bare English words in the title-and-prose the head carries pass.
     title = "Secrets of the Trade"
     desc = "A tale in which the secretary kept the password to herself."
-    node = {"@context": "https://schema.org", "@type": "Book", "name": title,
-            "url": BASE, "description": desc}
-    head = "\n".join([
-        f'<link rel="canonical" href="{BASE}">',
-        f'<meta property="og:title" content="{title}">',
-        f'<meta property="og:description" content="{desc}">',
-        '<meta name="twitter:card" content="summary_large_image">',
-        _jsonld_script(node),
-    ])
+    node = {
+        "@context": "https://schema.org",
+        "@type": "Book",
+        "name": title,
+        "url": BASE,
+        "description": desc,
+    }
+    head = "\n".join(
+        [
+            f'<link rel="canonical" href="{BASE}">',
+            f'<meta property="og:title" content="{title}">',
+            f'<meta property="og:description" content="{desc}">',
+            '<meta name="twitter:card" content="summary_large_image">',
+            _jsonld_script(node),
+        ]
+    )
     pages = _site(tmp_path, index_head=head)
     assert verify_pages.check_metadata(pages, title, SITE, DOWNLOADS) == []
 
@@ -188,8 +203,11 @@ def test_a_sitemap_without_a_site_url_is_rejected(tmp_path):
 
 def test_offline_build_carries_no_canonical_and_no_sitemap(tmp_path):
     # No site-url: no canonical anywhere, and no sitemap is required or allowed.
-    head = _head(canonical="", og_image="",
-                 node={"@context": "https://schema.org", "@type": "Book", "name": TITLE})
+    head = _head(
+        canonical="",
+        og_image="",
+        node={"@context": "https://schema.org", "@type": "Book", "name": TITLE},
+    )
     pages = _site(tmp_path, site_url="", with_cover=False, index_head=head)
     assert verify_pages.check_metadata(pages, TITLE, "", DOWNLOADS) == []
     assert verify_pages.check_book_sitemap(pages, "") == []

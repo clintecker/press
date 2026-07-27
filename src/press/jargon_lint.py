@@ -61,9 +61,7 @@ class Finding:
 def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     """Parse command-line arguments."""
 
-    default_watchlist = (
-        instruments.SKILLS / "overused-jargon" / "references" / "watchlist.csv"
-    )
+    default_watchlist = instruments.SKILLS / "overused-jargon" / "references" / "watchlist.csv"
 
     parser = argparse.ArgumentParser(
         description="Find watched jargon in Markdown or plain-text files."
@@ -144,13 +142,9 @@ def load_rules(path: Path) -> list[Rule]:
             if not term:
                 raise ValueError(f"{path}:{row_number}: empty term")
             if match not in {"word", "phrase", "regex"}:
-                raise ValueError(
-                    f"{path}:{row_number}: match must be word, phrase, or regex"
-                )
+                raise ValueError(f"{path}:{row_number}: match must be word, phrase, or regex")
             if status not in STATUS_LEVEL:
-                raise ValueError(
-                    f"{path}:{row_number}: unknown status {status!r}"
-                )
+                raise ValueError(f"{path}:{row_number}: unknown status {status!r}")
 
             rules.append(
                 Rule(

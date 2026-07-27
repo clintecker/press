@@ -39,8 +39,14 @@ MANIFEST = ROOT.parent.parent / "quality" / "fixtures.yaml"
 KNOWN_BAD = ROOT / "data" / "known-bad"
 
 REQUIRED = {
-    "file", "kind", "invariant", "provenance", "mutation",
-    "expected_result", "checker", "regenerate",
+    "file",
+    "kind",
+    "invariant",
+    "provenance",
+    "mutation",
+    "expected_result",
+    "checker",
+    "regenerate",
 }
 OPTIONAL = {"expect", "source_digest", "generator"}
 KINDS = {"source", "damaged-artifact", "recorded-response"}
@@ -178,8 +184,7 @@ def check() -> None:
     problems = audit(load(), KNOWN_BAD, invariants.load())
     if problems:
         raise SystemExit(
-            "fixture provenance manifest does not hold:\n"
-            + "\n".join(f"  - {p}" for p in problems)
+            "fixture provenance manifest does not hold:\n" + "\n".join(f"  - {p}" for p in problems)
         )
 
 

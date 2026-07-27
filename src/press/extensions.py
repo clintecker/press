@@ -56,13 +56,15 @@ PUBLICATION = ("published", "internal")
 # guarantee, and a manifest that claims them is refused. This is the tooth
 # behind "a plugin cannot weaken or replace mandatory core verification
 # invisibly."
-SEALED_CAPABILITIES: frozenset[str] = frozenset({
-    "core-verification",
-    "path-containment",
-    "artifact-graph",
-    "release-gate",
-    "config-validation",
-})
+SEALED_CAPABILITIES: frozenset[str] = frozenset(
+    {
+        "core-verification",
+        "path-containment",
+        "artifact-graph",
+        "release-gate",
+        "config-validation",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -95,8 +97,7 @@ def _require(data: dict[str, Any], key: str, kind: type) -> Any:
     value = data[key]
     if not isinstance(value, kind):
         raise SystemExit(
-            f"extension manifest key {key!r} must be {kind.__name__}, "
-            f"got {type(value).__name__}"
+            f"extension manifest key {key!r} must be {kind.__name__}, got {type(value).__name__}"
         )
     return value
 
@@ -183,14 +184,12 @@ def conformance(manifest: Manifest, reserved: set[str] | None = None) -> list[st
 
     if manifest.kind not in KINDS:
         problems.append(
-            f"kind {manifest.kind!r} is not an extensible surface "
-            f"(one of: {', '.join(KINDS)})"
+            f"kind {manifest.kind!r} is not an extensible surface (one of: {', '.join(KINDS)})"
         )
 
     if manifest.publication not in PUBLICATION:
         problems.append(
-            f"publication {manifest.publication!r} must be one of: "
-            f"{', '.join(PUBLICATION)}"
+            f"publication {manifest.publication!r} must be one of: {', '.join(PUBLICATION)}"
         )
 
     # A provided name may not collide with a core name or with another name
@@ -209,17 +208,14 @@ def conformance(manifest: Manifest, reserved: set[str] | None = None) -> list[st
     knowable = reserved | set(manifest.provides)
     for name in manifest.requires:
         if name not in knowable:
-            problems.append(
-                f"requires {name!r}, which is neither a core name nor provided here"
-            )
+            problems.append(f"requires {name!r}, which is neither a core name nor provided here")
 
     # Every invariant an extension takes on must carry a proof. An obligation
     # without a proof is exactly the invisible weakening the seal forbids.
     proofs = [p for p in manifest.proofs if p and p != "none"]
     if manifest.invariants and not proofs:
         problems.append(
-            "declares invariants "
-            f"({', '.join(manifest.invariants)}) but names no proof for them"
+            f"declares invariants ({', '.join(manifest.invariants)}) but names no proof for them"
         )
 
     sealed = [c for c in manifest.capabilities if c in SEALED_CAPABILITIES]

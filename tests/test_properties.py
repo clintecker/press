@@ -42,6 +42,7 @@ _VALUE_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789#"
 # booklib.validate_slug  (INV-config-slug)
 # --------------------------------------------------------------------------
 
+
 @pytest.mark.invariant("INV-config-slug")
 @pytest.mark.layer("property")
 @pytest.mark.proof("positive")
@@ -120,7 +121,7 @@ def test_ean13_single_digit_corruption_is_caught(first_twelve, data):
     position = data.draw(st.integers(min_value=0, max_value=12))
     original = int(isbn[position])
     replacement = data.draw(st.integers(min_value=0, max_value=9).filter(lambda d: d != original))
-    corrupted = isbn[:position] + str(replacement) + isbn[position + 1:]
+    corrupted = isbn[:position] + str(replacement) + isbn[position + 1 :]
     with pytest.raises(SystemExit):
         barcode.validate(corrupted)
 
@@ -200,7 +201,7 @@ def test_issn_single_digit_corruption_is_caught(first_seven, data):
     position = data.draw(st.integers(min_value=0, max_value=6))
     original = int(issn[position])
     replacement = data.draw(st.integers(min_value=0, max_value=9).filter(lambda d: d != original))
-    corrupted = issn[:position] + str(replacement) + issn[position + 1:]
+    corrupted = issn[:position] + str(replacement) + issn[position + 1 :]
     assert not registrations.issn_valid(corrupted)
 
 

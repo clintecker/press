@@ -13,16 +13,17 @@ from pathlib import Path
 
 import pytest
 
-FILTER = Path(__file__).resolve().parent.parent / "src" / "press" / "data" / "lua" / \
-    "set-pieces.lua"
+FILTER = (
+    Path(__file__).resolve().parent.parent / "src" / "press" / "data" / "lua" / "set-pieces.lua"
+)
 
 _needs_pandoc = pytest.mark.skipif(
-    shutil.which("pandoc") is None, reason="requires capability: pandoc")
+    shutil.which("pandoc") is None, reason="requires capability: pandoc"
+)
 
 
 def _render(markdown: str, to: str = "latex") -> str:
-    args = ["pandoc", "-f", "markdown+smart+fenced_divs", "-t", to,
-            f"--lua-filter={FILTER}"]
+    args = ["pandoc", "-f", "markdown+smart+fenced_divs", "-t", to, f"--lua-filter={FILTER}"]
     result = subprocess.run(args, input=markdown, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     return result.stdout
@@ -59,8 +60,8 @@ def test_verse_is_one_paragraph_with_line_breaks():
 def test_tail_is_a_centred_serpentine_with_a_size_ramp():
     out = _render(_TAIL)
     assert "\\begin{center}" in out
-    assert "\\hspace*" in out              # per-line horizontal offset
-    assert "\\normalsize" in out and "\\tiny" in out   # the head-to-tip taper
+    assert "\\hspace*" in out  # per-line horizontal offset
+    assert "\\normalsize" in out and "\\tiny" in out  # the head-to-tip taper
 
 
 @_needs_pandoc

@@ -58,43 +58,73 @@ def test_generated_doc_matches_ledger():
 
 
 def test_validator_rejects_dangling_enforcer():
-    bad = [{
-        "id": "INV-x", "statement": "s", "risk": "r", "criticality": "standard",
-        "owner": "booklib", "enforcer": "booklib.no_such_function",
-        "layers": ["selftest"], "negative": ["none"], "ci_tier": "quality",
-        "limitations": "l",
-    }]
+    bad = [
+        {
+            "id": "INV-x",
+            "statement": "s",
+            "risk": "r",
+            "criticality": "standard",
+            "owner": "booklib",
+            "enforcer": "booklib.no_such_function",
+            "layers": ["selftest"],
+            "negative": ["none"],
+            "ci_tier": "quality",
+            "limitations": "l",
+        }
+    ]
     with pytest.raises(SystemExit, match="resolves to nothing"):
         invariants.validate(bad)
 
 
 def test_validator_rejects_dangling_proof():
-    bad = [{
-        "id": "INV-x", "statement": "s", "risk": "r", "criticality": "standard",
-        "owner": "booklib", "enforcer": "booklib",
-        "layers": ["selftest"], "negative": ["check_does_not_exist"],
-        "ci_tier": "quality", "limitations": "l",
-    }]
+    bad = [
+        {
+            "id": "INV-x",
+            "statement": "s",
+            "risk": "r",
+            "criticality": "standard",
+            "owner": "booklib",
+            "enforcer": "booklib",
+            "layers": ["selftest"],
+            "negative": ["check_does_not_exist"],
+            "ci_tier": "quality",
+            "limitations": "l",
+        }
+    ]
     with pytest.raises(SystemExit, match="no selftest"):
         invariants.validate(bad)
 
 
 def test_validator_rejects_undefended_critical():
-    bad = [{
-        "id": "INV-x", "statement": "s", "risk": "r", "criticality": "critical",
-        "owner": "booklib", "enforcer": "booklib",
-        "layers": ["selftest"], "negative": ["none"], "ci_tier": "quality",
-        "limitations": "l",
-    }]
+    bad = [
+        {
+            "id": "INV-x",
+            "statement": "s",
+            "risk": "r",
+            "criticality": "critical",
+            "owner": "booklib",
+            "enforcer": "booklib",
+            "layers": ["selftest"],
+            "negative": ["none"],
+            "ci_tier": "quality",
+            "limitations": "l",
+        }
+    ]
     with pytest.raises(SystemExit, match="no real negative proof"):
         invariants.validate(bad)
 
 
 def test_validator_rejects_duplicate_id():
     entry = {
-        "id": "INV-dup", "statement": "s", "risk": "r", "criticality": "standard",
-        "owner": "booklib", "enforcer": "booklib",
-        "layers": ["selftest"], "negative": ["none"], "ci_tier": "quality",
+        "id": "INV-dup",
+        "statement": "s",
+        "risk": "r",
+        "criticality": "standard",
+        "owner": "booklib",
+        "enforcer": "booklib",
+        "layers": ["selftest"],
+        "negative": ["none"],
+        "ci_tier": "quality",
         "limitations": "l",
     }
     with pytest.raises(SystemExit, match="duplicate id"):
@@ -103,11 +133,18 @@ def test_validator_rejects_duplicate_id():
 
 # ---- the ledger-completeness gate (selftest.check_ledger_completeness) ----
 
+
 def _critical(negative):
     return {
-        "id": "INV-x", "statement": "s", "risk": "r", "criticality": "critical",
-        "owner": "booklib", "enforcer": "booklib",
-        "layers": ["integration"], "negative": negative, "ci_tier": "integration",
+        "id": "INV-x",
+        "statement": "s",
+        "risk": "r",
+        "criticality": "critical",
+        "owner": "booklib",
+        "enforcer": "booklib",
+        "layers": ["integration"],
+        "negative": negative,
+        "ci_tier": "integration",
         "limitations": "l",
     }
 
@@ -152,8 +189,8 @@ def test_completeness_gate_accepts_a_runnable_selftest_check(monkeypatch):
     from press import selftest
 
     monkeypatch.setattr(
-        selftest.invariants, "load",
-        lambda: [_critical(["check_imports"])])  # a real selftest check
+        selftest.invariants, "load", lambda: [_critical(["check_imports"])]
+    )  # a real selftest check
     monkeypatch.setattr(selftest, "_invariants_with_pytest_proof", set)
     assert selftest.check_ledger_completeness() is None
 

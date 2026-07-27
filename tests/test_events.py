@@ -29,6 +29,7 @@ def test_malformed_json_is_a_protocol_failure():
 
 def test_unknown_version_is_a_protocol_failure():
     import json
+
     bad = events.SENTINEL + json.dumps({"version": 999, "type": "complete", "payload": {}})
     result = events.parse_line(bad)
     assert isinstance(result, events.ProtocolError)
@@ -37,8 +38,10 @@ def test_unknown_version_is_a_protocol_failure():
 
 def test_unknown_type_is_a_protocol_failure():
     import json
+
     bad = events.SENTINEL + json.dumps(
-        {"version": events.PROTOCOL_VERSION, "type": "explode", "payload": {}})
+        {"version": events.PROTOCOL_VERSION, "type": "explode", "payload": {}}
+    )
     result = events.parse_line(bad)
     assert isinstance(result, events.ProtocolError)
     assert "type" in result.reason
@@ -46,6 +49,7 @@ def test_unknown_type_is_a_protocol_failure():
 
 def test_emit_rejects_unknown_type():
     import pytest
+
     with pytest.raises(ValueError, match="unknown event type"):
         events.emit_line("explode")
 

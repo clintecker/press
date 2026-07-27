@@ -21,8 +21,7 @@ EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
 def _example_dirs() -> list[Path]:
     if not EXAMPLES.is_dir():
         return []
-    return sorted(d for d in EXAMPLES.iterdir()
-                  if (d / "config" / "metadata.yaml").is_file())
+    return sorted(d for d in EXAMPLES.iterdir() if (d / "config" / "metadata.yaml").is_file())
 
 
 def _metadata(example: Path) -> dict:
@@ -53,8 +52,9 @@ def test_examples_vary_the_design_surfaces():
         profiles.add((meta.get("print") or {}).get("profile", "house-6x9"))
         has_aesthetic |= (example / "config" / "aesthetic.yaml").is_file()
         has_front_matter |= (example / "config" / "front-matter.yaml").is_file()
-        has_web_override |= (example / "assets" / "web" / "extra.css").is_file() or \
-            (example / "assets" / "web" / "reader.css").is_file()
+        has_web_override |= (example / "assets" / "web" / "extra.css").is_file() or (
+            example / "assets" / "web" / "reader.css"
+        ).is_file()
         has_index |= (example / "config" / "index-terms.yaml").is_file()
     # The whole point of the gallery: the surfaces actually differ across it.
     assert len(profiles) >= 2, f"examples should span >1 trim/profile, got {profiles}"
@@ -71,8 +71,7 @@ def test_example_slugs_are_unique():
 
 
 @pytest.mark.layer("integration")
-@pytest.mark.skipif(shutil.which("pandoc") is None,
-                    reason="requires capability: pandoc")
+@pytest.mark.skipif(shutil.which("pandoc") is None, reason="requires capability: pandoc")
 @pytest.mark.parametrize("example", _example_dirs(), ids=lambda d: d.name)
 def test_example_passes_editorial_law(example):
     # `press check` runs the source checks, style audit, and jargon lint --
@@ -80,6 +79,8 @@ def test_example_passes_editorial_law(example):
     # pass it, or the gallery ships a book the press would reject.
     result = subprocess.run(
         [sys.executable, "-m", "press", "check"],
-        cwd=example, capture_output=True, text=True,
+        cwd=example,
+        capture_output=True,
+        text=True,
     )
     assert result.returncode == 0, result.stdout + result.stderr

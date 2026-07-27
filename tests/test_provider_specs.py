@@ -39,8 +39,9 @@ def test_a_color_interior_uses_the_declared_color_stock():
     # premium via print.color-grade.
     kdp = provider_specs.load("kdp")
     assert kdp.spine(100, ink="color") == pytest.approx(100 * 0.002252 + 0.06)
-    assert kdp.spine(100, ink="color", color_grade="premium-color") == \
-        pytest.approx(100 * 0.002347 + 0.06)
+    assert kdp.spine(100, ink="color", color_grade="premium-color") == pytest.approx(
+        100 * 0.002347 + 0.06
+    )
     # The single-ink spine is unchanged, and the new ink default is single.
     assert kdp.spine(100, "cream") == kdp.spine(100, "cream", ink="single")
 
@@ -101,10 +102,14 @@ def test_support_matrix_is_the_trim_ink_view():
 
 @pytest.mark.layer("unit")
 def test_constant_shape_applies_the_allowance():
-    spec = _spec({
-        "shape": "constant", "calipers": {"white": 0.002252},
-        "paperback-allowance": 0.06, "default-paper": "white",
-    })
+    spec = _spec(
+        {
+            "shape": "constant",
+            "calipers": {"white": 0.002252},
+            "paperback-allowance": 0.06,
+            "default-paper": "white",
+        }
+    )
     assert spec.spine(100, "white") == pytest.approx(100 * 0.002252 + 0.06)
 
 
@@ -149,18 +154,21 @@ def test_unknown_provider_is_refused_and_names_available():
 
 
 def _catalog() -> provider_specs.ProviderSpec:
-    return provider_specs.ProviderSpec("vendor", {
-        "spine": {"shape": "constant", "calipers": {"white": 0.002252}},
-        "cover": {"bleed": 0.125},
-        "trims": [
-            {"width": 6, "height": 9, "bindings": ["perfect-bound", "casewrap"]},
-            {"width": 5.5, "height": 8.5, "bindings": ["perfect-bound"]},
-        ],
-        "pages": {
-            "perfect-bound": {"min": 32, "max": 828},
-            "casewrap": {"min": 24, "max": 550},
+    return provider_specs.ProviderSpec(
+        "vendor",
+        {
+            "spine": {"shape": "constant", "calipers": {"white": 0.002252}},
+            "cover": {"bleed": 0.125},
+            "trims": [
+                {"width": 6, "height": 9, "bindings": ["perfect-bound", "casewrap"]},
+                {"width": 5.5, "height": 8.5, "bindings": ["perfect-bound"]},
+            ],
+            "pages": {
+                "perfect-bound": {"min": 32, "max": 828},
+                "casewrap": {"min": 24, "max": 550},
+            },
         },
-    })
+    )
 
 
 @pytest.mark.layer("unit")

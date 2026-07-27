@@ -18,35 +18,60 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class Artifact:
     name: str
-    outputs: tuple[str, ...]          # dist-relative, {slug} substituted
+    outputs: tuple[str, ...]  # dist-relative, {slug} substituted
     prerequisites: tuple[str, ...] = ()
-    published: bool = True            # listed as a public download
-    condition: str | None = None      # e.g. "authorities": only when configured
-    format_target: bool = True        # built via build.build_target(name)
+    published: bool = True  # listed as a public download
+    condition: str | None = None  # e.g. "authorities": only when configured
+    format_target: bool = True  # built via build.build_target(name)
 
 
-ARTIFACTS: dict[str, Artifact] = {a.name: a for a in [
-    Artifact("pdf", ("{slug}.pdf",)),
-    Artifact("epub", ("{slug}.epub",)),
-    Artifact("html", ("{slug}.html",)),
-    Artifact("markdown", ("{slug}.md",)),
-    Artifact("txt", ("{slug}.txt",)),
-    Artifact("docx", ("{slug}.docx",)),
-    Artifact("site", ("site", "{slug}-site.zip")),
-    Artifact("source", ("{slug}-source.zip",), format_target=False),
-    Artifact("sources", ("{slug}-sources.md",), prerequisites=("markdown",),
-             condition="authorities", format_target=False),
-    Artifact("pages", ("pages",),
-             prerequisites=("pdf", "epub", "html", "markdown", "txt", "docx",
-                            "site", "source", "sources"),
-             published=False, format_target=False),
-    Artifact("print", ("{slug}-interior.pdf",), published=False),
-    Artifact("coverwrap", ("{slug}-coverwrap.pdf",), prerequisites=("print",),
-             published=False, format_target=False),
-]}
+ARTIFACTS: dict[str, Artifact] = {
+    a.name: a
+    for a in [
+        Artifact("pdf", ("{slug}.pdf",)),
+        Artifact("epub", ("{slug}.epub",)),
+        Artifact("html", ("{slug}.html",)),
+        Artifact("markdown", ("{slug}.md",)),
+        Artifact("txt", ("{slug}.txt",)),
+        Artifact("docx", ("{slug}.docx",)),
+        Artifact("site", ("site", "{slug}-site.zip")),
+        Artifact("source", ("{slug}-source.zip",), format_target=False),
+        Artifact(
+            "sources",
+            ("{slug}-sources.md",),
+            prerequisites=("markdown",),
+            condition="authorities",
+            format_target=False,
+        ),
+        Artifact(
+            "pages",
+            ("pages",),
+            prerequisites=(
+                "pdf",
+                "epub",
+                "html",
+                "markdown",
+                "txt",
+                "docx",
+                "site",
+                "source",
+                "sources",
+            ),
+            published=False,
+            format_target=False,
+        ),
+        Artifact("print", ("{slug}-interior.pdf",), published=False),
+        Artifact(
+            "coverwrap",
+            ("{slug}-coverwrap.pdf",),
+            prerequisites=("print",),
+            published=False,
+            format_target=False,
+        ),
+    ]
+}
 
-FORMATS = [a.name for a in ARTIFACTS.values()
-           if a.format_target and a.name not in ("print",)]
+FORMATS = [a.name for a in ARTIFACTS.values() if a.format_target and a.name not in ("print",)]
 
 
 def condition_holds(artifact: Artifact) -> bool:

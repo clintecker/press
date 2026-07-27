@@ -34,25 +34,24 @@ def diagnostics(fixture: Path) -> list[str]:
     buffer = io.StringIO()
     with contextlib.redirect_stdout(buffer):
         style_audit.main([str(fixture)])
-    found.extend(
-        line.strip() for line in buffer.getvalue().splitlines()
-        if fixture.name in line
-    )
+    found.extend(line.strip() for line in buffer.getvalue().splitlines() if fixture.name in line)
     allow = booklib.house_rules().get("jargon-allow") or []
     command = [
-        sys.executable, "-m", "press.jargon_lint",
-        "--fail-on", "rewrite",
+        sys.executable,
+        "-m",
+        "press.jargon_lint",
+        "--fail-on",
+        "rewrite",
         *[arg for term in allow for arg in ("--allow", term)],
         str(fixture),
     ]
     result = adapters.process_runner.run(command, capture=True, check=False)
     if result.returncode != 0:
-        output = result.stdout.decode("utf-8", errors="replace") + \
-            result.stderr.decode("utf-8", errors="replace")
+        output = result.stdout.decode("utf-8", errors="replace") + result.stderr.decode(
+            "utf-8", errors="replace"
+        )
         found.extend(
-            f"jargon: {line.strip()}"
-            for line in output.splitlines()
-            if "rewrite:" in line
+            f"jargon: {line.strip()}" for line in output.splitlines() if "rewrite:" in line
         )
     return found
 
@@ -79,9 +78,7 @@ def main() -> int:
         matching = [d for d in found if rule.lower() in d.lower()]
         if not matching:
             others = "; ".join(found[:3]) or "no diagnostics at all"
-            failures.append(
-                f"{fixture.name}: expected rule {rule!r} did not fire ({others})"
-            )
+            failures.append(f"{fixture.name}: expected rule {rule!r} did not fire ({others})")
         elif len(found) > len(matching):
             extras += len(found) - len(matching)
             for extra in (d for d in found if rule.lower() not in d.lower()):
@@ -91,8 +88,7 @@ def main() -> int:
         found = diagnostics(clean)
         if found:
             failures.append(
-                f"{clean.name}: a checker rejected the known-good fixture: "
-                + "; ".join(found[:3])
+                f"{clean.name}: a checker rejected the known-good fixture: " + "; ".join(found[:3])
             )
 
     if failures:

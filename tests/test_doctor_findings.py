@@ -133,9 +133,7 @@ def test_broken_optional_tool_still_denies_machine():
 
 @pytest.mark.layer("unit")
 def test_environment_keys_report_but_never_deny():
-    env = fakes.FakeEnvironment(
-        values={"OPENAI_API_KEY": "sk-live"}, present_tools=ALL_TOOLS
-    )
+    env = fakes.FakeEnvironment(values={"OPENAI_API_KEY": "sk-live"}, present_tools=ALL_TOOLS)
     report = _run(environment=env, runs=lambda tool: True, python_version=(3, 11))
     by_name = _by_name(report)
     assert by_name["OPENAI_API_KEY"].state == "ok"
@@ -240,9 +238,7 @@ def test_render_finding_lines_match_legacy_gutter():
     ok = doctor.Finding("git", "tool", "ok", "scaffolding identity", True)
     assert doctor.render_finding(ok) == "  [     ok] git        scaffolding identity"
     missing = doctor.Finding("pandoc", "tool", "missing", "every build target", True)
-    assert doctor.render_finding(missing) == (
-        "  [MISSING] pandoc     every build target"
-    )
+    assert doctor.render_finding(missing) == ("  [MISSING] pandoc     every build target")
     broken = doctor.Finding(
         "lualatex", "tool", "broken", "present but cannot execute; PDF builds", True
     )
@@ -250,9 +246,7 @@ def test_render_finding_lines_match_legacy_gutter():
         "  [ BROKEN] lualatex   present but cannot execute; PDF builds"
     )
     key = doctor.Finding("OPENAI_API_KEY", "key", "unset", "art commission", False)
-    assert doctor.render_finding(key) == (
-        "  [  unset] OPENAI_API_KEY   art commission"
-    )
+    assert doctor.render_finding(key) == ("  [  unset] OPENAI_API_KEY   art commission")
     deps = doctor.Finding("python-deps", "deps", "ok", "libs importable", True)
     assert doctor.render_finding(deps) == "  [     ok] python     libs importable"
 
@@ -262,9 +256,7 @@ def _render_expected(report: doctor.DoctorReport) -> str:
     lines += [doctor.render_finding(f) for f in report.findings]
     if report.failing:
         lines.append("")
-        lines.append(
-            f"not ready: {', '.join(report.failing)} {doctor._NOT_READY_HINT}"
-        )
+        lines.append(f"not ready: {', '.join(report.failing)} {doctor._NOT_READY_HINT}")
     else:
         lines.append("")
         lines.append("this machine can make books")
@@ -288,9 +280,7 @@ def test_main_renders_examine_report_exactly(
     the roll-call, and returns exactly report.exit_code -- the differential
     that pins CLI text and exit to the typed report."""
 
-    env = fakes.FakeEnvironment(
-        values={"OPENAI_API_KEY": "x"}, present_tools=present
-    )
+    env = fakes.FakeEnvironment(values={"OPENAI_API_KEY": "x"}, present_tools=present)
     real_examine = doctor.examine
 
     def scripted_examine(**_kwargs) -> doctor.DoctorReport:
@@ -322,16 +312,21 @@ def test_upscaler_present_is_reported_ok():
     from press import art_enhance
 
     env = fakes.FakeEnvironment(present_tools=ALL_TOOLS)
-    report = _run(environment=env, runs=lambda tool: True, python_version=(3, 11),
-                  upscaler_probe=lambda: art_enhance.Upscaler("/x/re", "/x/m"))
+    report = _run(
+        environment=env,
+        runs=lambda tool: True,
+        python_version=(3, 11),
+        upscaler_probe=lambda: art_enhance.Upscaler("/x/re", "/x/m"),
+    )
     finding = _by_name(report)["realesrgan"]
     assert finding.state == "ok" and not finding.required
 
 
 def test_upscaler_absent_is_optional_and_does_not_deny():
     env = fakes.FakeEnvironment(present_tools=ALL_TOOLS)
-    report = _run(environment=env, runs=lambda tool: True, python_version=(3, 11),
-                  upscaler_probe=lambda: None)
+    report = _run(
+        environment=env, runs=lambda tool: True, python_version=(3, 11), upscaler_probe=lambda: None
+    )
     finding = _by_name(report)["realesrgan"]
     assert finding.state == "absent" and not finding.required
     assert report.ready  # an absent optional tool never denies the machine

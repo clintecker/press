@@ -86,8 +86,7 @@ def test_generated_front_matter_matches_the_golden(tmp_path):
     if update is not None:
         if "reason:" not in update:
             raise SystemExit(
-                "PRESS_UPDATE_GOLDEN must carry a reason; a golden is not "
-                "updated by accident"
+                "PRESS_UPDATE_GOLDEN must carry a reason; a golden is not updated by accident"
             )
         GOLDEN.parent.mkdir(parents=True, exist_ok=True)
         GOLDEN.write_text(tex, encoding="utf-8")
@@ -107,15 +106,15 @@ def test_generated_front_matter_matches_the_golden(tmp_path):
 def test_present_blocks_and_escaped_fields(tmp_path):
     tex = _generate(tmp_path)
     # Every configured block is kept, with its (escaped) content.
-    assert "For R\\&D, and 50\\% of the shop." in tex          # dedication, escaped
-    assert "Type is 100\\% honest." in tex                     # epigraph quote, escaped
-    assert "A. Printer" in tex                                 # epigraph attribution
-    assert "Thanks to the whole shop." in tex                 # acknowledgements
-    assert "Festina lente." in tex                             # motto
-    assert "Printed by hand." in tex                           # manufacture
-    assert "Set in Libertinus." in tex                         # colophon-note
-    assert "All rights reserved." in tex                       # rights-notice
-    assert "press@example.org" in tex                          # contact
+    assert "For R\\&D, and 50\\% of the shop." in tex  # dedication, escaped
+    assert "Type is 100\\% honest." in tex  # epigraph quote, escaped
+    assert "A. Printer" in tex  # epigraph attribution
+    assert "Thanks to the whole shop." in tex  # acknowledgements
+    assert "Festina lente." in tex  # motto
+    assert "Printed by hand." in tex  # manufacture
+    assert "Set in Libertinus." in tex  # colophon-note
+    assert "All rights reserved." in tex  # rights-notice
+    assert "press@example.org" in tex  # contact
     # The uppercased title keeps its ampersand escaped.
     assert "MAKE \\& READY." in tex
     # No raw TeX-active ampersand or percent survives from the data.
@@ -127,8 +126,9 @@ def test_present_blocks_and_escaped_fields(tmp_path):
 @pytest.mark.proof("positive")
 def test_cover_and_logo_includegraphics_sizing(tmp_path):
     tex = _generate(tmp_path)
-    cover_line = next(ln for ln in tex.splitlines()
-                      if "includegraphics" in ln and "cover.jpg" in ln)
+    cover_line = next(
+        ln for ln in tex.splitlines() if "includegraphics" in ln and "cover.jpg" in ln
+    )
     # The cover plate fits the text block; never a fixed inch size (which
     # clipped a 5x8 page) -- the scar this sizing carries.
     assert r"width=\textwidth,height=\textheight,keepaspectratio" in cover_line
@@ -144,9 +144,15 @@ def test_absent_blocks_are_dropped_for_a_bare_book(tmp_path):
     epigraph, colophon note, or registration block: the keep_block machinery
     removes what the config does not populate."""
 
-    handle = factories.minimal().with_metadata(
-        copyright="Copyright 2026 A. Author.", publisher="Test Press",
-        **{"publisher-place": "Nowhere"}).build(tmp_path)
+    handle = (
+        factories.minimal()
+        .with_metadata(
+            copyright="Copyright 2026 A. Author.",
+            publisher="Test Press",
+            **{"publisher-place": "Nowhere"},
+        )
+        .build(tmp_path)
+    )
     (handle.root / "assets").mkdir(exist_ok=True)
     Image.new("RGB", (200, 300), (40, 60, 80)).save(handle.root / "assets" / "cover.jpg")
     with handle.use():
@@ -161,6 +167,7 @@ def test_absent_blocks_are_dropped_for_a_bare_book(tmp_path):
 
 # ---- gen_coverwrap: the pure wrap geometry (INV-coverwrap-geometry) ----
 
+
 @pytest.mark.invariant("INV-coverwrap-geometry")
 @pytest.mark.layer("unit")
 @pytest.mark.proof("positive")
@@ -170,15 +177,21 @@ def test_perfect_bound_wrap_geometry_is_exact():
     numbers, computed with no toolchain."""
 
     lay = gen_coverwrap.wrap_geometry(
-        trim_w=6.0, trim_h=9.0, spine=0.5, has_spine=True,
-        margin=0.125, inner=0.0, width_delta=0.0, height_delta=0.0,
+        trim_w=6.0,
+        trim_h=9.0,
+        spine=0.5,
+        has_spine=True,
+        margin=0.125,
+        inner=0.0,
+        width_delta=0.0,
+        height_delta=0.0,
         material="paperback",
     )
     # wrap_w = 2*bleed + 2*trim + spine; wrap_h = 2*bleed + trim_h.
-    assert lay.wrap_w == pytest.approx(2 * 0.125 + 2 * 6.0 + 0.5)   # 12.75
-    assert lay.wrap_h == pytest.approx(2 * 0.125 + 9.0)             # 9.25
+    assert lay.wrap_w == pytest.approx(2 * 0.125 + 2 * 6.0 + 0.5)  # 12.75
+    assert lay.wrap_h == pytest.approx(2 * 0.125 + 9.0)  # 9.25
     assert lay.back_x == pytest.approx(0.125)
-    assert lay.front_x == pytest.approx(0.125 + 6.0 + 0.5)          # 6.625
+    assert lay.front_x == pytest.approx(0.125 + 6.0 + 0.5)  # 6.625
     assert lay.panel_w == pytest.approx(6.0)
     # A flat wrap (inner 0) bleeds the front art past its panel to the edge.
     assert lay.front_art_w == pytest.approx(6.0 + 0.125)
@@ -190,17 +203,29 @@ def test_perfect_bound_wrap_geometry_is_exact():
 @pytest.mark.proof("positive")
 def test_linen_material_paints_no_field_and_spine_flag_carries():
     lay = gen_coverwrap.wrap_geometry(
-        trim_w=5.0, trim_h=8.0, spine=0.0, has_spine=False,
-        margin=0.125, inner=0.0, width_delta=0.0, height_delta=0.0,
+        trim_w=5.0,
+        trim_h=8.0,
+        spine=0.0,
+        has_spine=False,
+        margin=0.125,
+        inner=0.0,
+        width_delta=0.0,
+        height_delta=0.0,
         material="linen",
     )
-    assert lay.cloth_field is False   # linen: the material is the finish
+    assert lay.cloth_field is False  # linen: the material is the finish
     assert lay.has_spine is False
     assert lay.spine == 0.0
     # A hinged/flapped cover (inner > 0) keeps the art to its own panel.
     hinged = gen_coverwrap.wrap_geometry(
-        trim_w=6.0, trim_h=9.0, spine=0.6, has_spine=True,
-        margin=0.75, inner=0.5, width_delta=0.125, height_delta=0.125,
+        trim_w=6.0,
+        trim_h=9.0,
+        spine=0.6,
+        has_spine=True,
+        margin=0.75,
+        inner=0.5,
+        width_delta=0.125,
+        height_delta=0.125,
         material="cloth",
     )
     assert hinged.front_art_w == pytest.approx(6.0 + 0.125)  # panel_w, not bled

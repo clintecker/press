@@ -69,13 +69,23 @@ TARGETS: dict[str, list[str]] = {
 }
 
 _COMPARE_FLIP = {
-    ast.Lt: ast.LtE, ast.LtE: ast.Lt, ast.Gt: ast.GtE, ast.GtE: ast.Gt,
-    ast.Eq: ast.NotEq, ast.NotEq: ast.Eq, ast.Is: ast.IsNot,
-    ast.IsNot: ast.Is, ast.In: ast.NotIn, ast.NotIn: ast.In,
+    ast.Lt: ast.LtE,
+    ast.LtE: ast.Lt,
+    ast.Gt: ast.GtE,
+    ast.GtE: ast.Gt,
+    ast.Eq: ast.NotEq,
+    ast.NotEq: ast.Eq,
+    ast.Is: ast.IsNot,
+    ast.IsNot: ast.Is,
+    ast.In: ast.NotIn,
+    ast.NotIn: ast.In,
 }
 _ARITH_FLIP = {
-    ast.Add: ast.Sub, ast.Sub: ast.Add, ast.Mult: ast.FloorDiv,
-    ast.FloorDiv: ast.Mult, ast.Mod: ast.Mult,
+    ast.Add: ast.Sub,
+    ast.Sub: ast.Add,
+    ast.Mult: ast.FloorDiv,
+    ast.FloorDiv: ast.Mult,
+    ast.Mod: ast.Mult,
 }
 _BOOL_FLIP = {ast.And: ast.Or, ast.Or: ast.And}
 
@@ -150,23 +160,34 @@ def _mut_bool(node: ast.AST, detail: str) -> bool:
 
 
 def _mut_boolconst(node: ast.AST, detail: str) -> bool:
-    if isinstance(node, ast.Constant) and isinstance(node.value, bool) and str(node.value) == detail:
+    if (
+        isinstance(node, ast.Constant)
+        and isinstance(node.value, bool)
+        and str(node.value) == detail
+    ):
         node.value = not node.value
         return True
     return False
 
 
 def _mut_intconst(node: ast.AST, detail: str) -> bool:
-    if (isinstance(node, ast.Constant) and isinstance(node.value, int)
-            and not isinstance(node.value, bool) and str(node.value) == detail):
+    if (
+        isinstance(node, ast.Constant)
+        and isinstance(node.value, int)
+        and not isinstance(node.value, bool)
+        and str(node.value) == detail
+    ):
         node.value = node.value + 1
         return True
     return False
 
 
 _MUTATORS = {
-    "compare": _mut_compare, "arith": _mut_arith, "bool": _mut_bool,
-    "boolconst": _mut_boolconst, "intconst": _mut_intconst,
+    "compare": _mut_compare,
+    "arith": _mut_arith,
+    "bool": _mut_bool,
+    "boolconst": _mut_boolconst,
+    "intconst": _mut_intconst,
 }
 
 
@@ -195,9 +216,11 @@ def _replace_not(tree: ast.AST, target: ast.UnaryOp) -> ast.AST:
     class Dropper(ast.NodeTransformer):
         def visit_UnaryOp(self, node: ast.UnaryOp):
             self.generic_visit(node)
-            if (isinstance(node.op, ast.Not)
-                    and node.lineno == target.lineno
-                    and node.col_offset == target.col_offset):
+            if (
+                isinstance(node.op, ast.Not)
+                and node.lineno == target.lineno
+                and node.col_offset == target.col_offset
+            ):
                 return node.operand
             return node
 
@@ -230,9 +253,20 @@ def _run_tests(test_files: list[str], pkg_parent: Path) -> bool:
     # Forbidding the cache makes every import compile the current source.
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     result = subprocess.run(
-        [sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-q",
-         "--no-header", "-x", *test_files],
-        cwd=ROOT, env=env, capture_output=True,
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-p",
+            "no:cacheprovider",
+            "-q",
+            "--no-header",
+            "-x",
+            *test_files,
+        ],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
     )
     return result.returncode == 0
 
@@ -247,16 +281,19 @@ def _assert_shadow_wins(module: str, pkg_parent: Path) -> None:
     env = dict(os.environ)
     env["PYTHONPATH"] = str(pkg_parent) + os.pathsep + env.get("PYTHONPATH", "")
     result = subprocess.run(
-        [sys.executable, "-c",
-         f"import press.{module} as m; print(m.__file__)"],
-        cwd=ROOT, env=env, capture_output=True, text=True,
+        [sys.executable, "-c", f"import press.{module} as m; print(m.__file__)"],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
     )
     resolved = result.stdout.strip()
     if not resolved.startswith(str(pkg_parent)):
         raise SystemExit(
             f"mutation shadow did not win: press.{module} resolved to "
             f"{resolved!r}, not under {pkg_parent}. Mutants would be measured "
-            "against the real module; refusing to score.")
+            "against the real module; refusing to score."
+        )
 
 
 def score_module(module: str) -> dict:
@@ -276,8 +313,7 @@ def score_module(module: str) -> dict:
             if _run_tests(TARGETS[module], tmp_path):
                 survivors.append(site.id)
     total = len(sites)
-    return {"total": total, "killed": total - len(survivors),
-            "survivors": sorted(survivors)}
+    return {"total": total, "killed": total - len(survivors), "survivors": sorted(survivors)}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -291,11 +327,17 @@ def main(argv: list[str] | None = None) -> int:
     current = {m: score_module(m) for m in modules}
     for m in modules:
         r = current[m]
-        print(f"{m}: killed {r['killed']}/{r['total']}"
-              + (f"  survivors: {', '.join(r['survivors'])}" if r["survivors"] else ""))
+        print(
+            f"{m}: killed {r['killed']}/{r['total']}"
+            + (f"  survivors: {', '.join(r['survivors'])}" if r["survivors"] else "")
+        )
 
     if update:
-        existing = json.loads(BASELINE.read_text(encoding="utf-8")) if BASELINE.exists() else {"modules": {}}
+        existing = (
+            json.loads(BASELINE.read_text(encoding="utf-8"))
+            if BASELINE.exists()
+            else {"modules": {}}
+        )
         existing.setdefault("modules", {}).update(current)
         existing["modules"] = dict(sorted(existing["modules"].items()))
         BASELINE.write_text(json.dumps(existing, indent=2) + "\n", encoding="utf-8")
@@ -312,7 +354,8 @@ def main(argv: list[str] | None = None) -> int:
         elif r["total"] != base["total"]:
             problems.append(
                 f"{m}: mutant total changed {base['total']} -> {r['total']}; "
-                f"the source moved, re-take the baseline deliberately")
+                f"the source moved, re-take the baseline deliberately"
+            )
         else:
             # Survivor identity is the invariant, not the count: a change
             # that lets one mutant survive while another newly dies keeps
@@ -321,8 +364,8 @@ def main(argv: list[str] | None = None) -> int:
             new = sorted(set(r["survivors"]) - set(base["survivors"]))
             if new:
                 problems.append(
-                    f"{m}: {len(new)} new survivor(s) a proof no longer kills: "
-                    f"{', '.join(new)}")
+                    f"{m}: {len(new)} new survivor(s) a proof no longer kills: {', '.join(new)}"
+                )
     if problems:
         print("\nmutation ratchet failed:")
         for p in problems:

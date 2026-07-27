@@ -22,9 +22,13 @@ def test_the_gate_skips_from_an_installed_wheel(monkeypatch):
     # the fresh-install path `press selftest` takes. A guard that instead
     # touched surfaces would raise FileNotFoundError here.
     monkeypatch.setattr(selftest, "_repo_root", lambda: None)
-    monkeypatch.setattr(surfaces, "load_config",
-                        lambda *a, **k: (_ for _ in ()).throw(
-                            AssertionError("must not read surfaces from an install")))
+    monkeypatch.setattr(
+        surfaces,
+        "load_config",
+        lambda *a, **k: (_ for _ in ()).throw(
+            AssertionError("must not read surfaces from an install")
+        ),
+    )
     assert selftest.check_producers_are_verified() is None
 
 
@@ -32,8 +36,9 @@ def test_the_gate_skips_from_an_installed_wheel(monkeypatch):
 @pytest.mark.proof("negative")
 def test_a_new_producer_without_a_proof_is_rejected(monkeypatch):
     base = surfaces.load_config()["modules"]
-    monkeypatch.setattr(surfaces, "load_config",
-                        lambda *a, **k: {"modules": {**base, "brand_new": "producer"}})
+    monkeypatch.setattr(
+        surfaces, "load_config", lambda *a, **k: {"modules": {**base, "brand_new": "producer"}}
+    )
     with pytest.raises(SystemExit, match="no registered rejection proof"):
         selftest.check_producers_are_verified()
 

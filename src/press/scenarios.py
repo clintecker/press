@@ -34,13 +34,15 @@ CONFIG = Path(__file__).resolve().parent.parent.parent / "quality" / "scenarios.
 # may add more, but if one of these leaves quality/scenarios.yaml the
 # high-risk gate reddens: these are the combinations a pairwise set is
 # structurally unable to guarantee, learned the hard way.
-REQUIRED_HIGH_RISK = frozenset({
-    "css-pages-crawl",
-    "authorities-sources-companion",
-    "index-tex-safety",
-    "retail-registrations",
-    "overrides-design",
-})
+REQUIRED_HIGH_RISK = frozenset(
+    {
+        "css-pages-crawl",
+        "authorities-sources-companion",
+        "index-tex-safety",
+        "retail-registrations",
+        "overrides-design",
+    }
+)
 
 
 def load(path: Path | None = None) -> dict[str, Any]:
@@ -119,7 +121,7 @@ def pairwise(values: dict[str, list[str]]) -> list[dict[str, str]]:
     # dimension first so lookups and discards agree.
     uncovered: set[tuple[str, str, str, str]] = set()
     for i, ni in enumerate(names):
-        for nj in names[i + 1:]:
+        for nj in names[i + 1 :]:
             for a in values[ni]:
                 for b in values[nj]:
                     uncovered.add((ni, a, nj, b))
@@ -142,7 +144,8 @@ def pairwise(values: dict[str, list[str]]) -> list[dict[str, str]]:
             best_gain = -1
             for value in values[name]:
                 gain = sum(
-                    1 for other, chosen in combo.items()
+                    1
+                    for other, chosen in combo.items()
                     if key(name, value, other, chosen) in uncovered
                 )
                 if gain > best_gain:
@@ -150,7 +153,7 @@ def pairwise(values: dict[str, list[str]]) -> list[dict[str, str]]:
                     best_value = value
             combo[name] = best_value
         for i, ni in enumerate(names):
-            for nj in names[i + 1:]:
+            for nj in names[i + 1 :]:
                 uncovered.discard((ni, combo[ni], nj, combo[nj]))
         combinations.append({name: combo[name] for name in names})
     return combinations
@@ -177,13 +180,15 @@ def high_risk_scenarios(config: dict[str, Any] | None = None) -> list[dict[str, 
                     f"high-risk {entry['id']!r} sets {name}={value!r}, not a declared value"
                 )
         dimensions = {name: fixed.get(name, absent) for name, (absent, _) in defaults.items()}
-        scenarios.append({
-            "id": entry["id"],
-            "kind": "high-risk",
-            "fixed": dict(fixed),
-            "rationale": entry.get("rationale", ""),
-            "dimensions": dimensions,
-        })
+        scenarios.append(
+            {
+                "id": entry["id"],
+                "kind": "high-risk",
+                "fixed": dict(fixed),
+                "rationale": entry.get("rationale", ""),
+                "dimensions": dimensions,
+            }
+        )
     return scenarios
 
 
@@ -195,11 +200,13 @@ def covering_set(config: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     config = config if config is not None else load()
     scenarios: list[dict[str, Any]] = []
     for combo in pairwise(dimension_values(config)):
-        scenarios.append({
-            "id": scenario_id(combo),
-            "kind": "pairwise",
-            "dimensions": combo,
-        })
+        scenarios.append(
+            {
+                "id": scenario_id(combo),
+                "kind": "pairwise",
+                "dimensions": combo,
+            }
+        )
     scenarios.extend(high_risk_scenarios(config))
     return scenarios
 

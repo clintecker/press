@@ -22,8 +22,9 @@ def test_sabotage_unclassified_function_reddens_surface_gate(monkeypatch):
     surface inventory must fail."""
 
     real = surfaces.public_callables
-    monkeypatch.setattr(surfaces, "public_callables",
-                        lambda: {**real(), "ghost_module": ["ghost_fn"]})
+    monkeypatch.setattr(
+        surfaces, "public_callables", lambda: {**real(), "ghost_module": ["ghost_fn"]}
+    )
     problems = surfaces.audit()["problems"]
     assert any("ghost_module.ghost_fn" in p for p in problems)
 
@@ -32,12 +33,20 @@ def test_sabotage_dangling_invariant_proof_reddens_ledger():
     """An invariant whose negative proof names a deleted check must fail
     the ledger validator."""
 
-    bad = [{
-        "id": "INV-sabotage", "statement": "s", "risk": "r",
-        "criticality": "standard", "owner": "booklib", "enforcer": "booklib",
-        "layers": ["selftest"], "negative": ["check_deleted_long_ago"],
-        "ci_tier": "quality", "limitations": "l",
-    }]
+    bad = [
+        {
+            "id": "INV-sabotage",
+            "statement": "s",
+            "risk": "r",
+            "criticality": "standard",
+            "owner": "booklib",
+            "enforcer": "booklib",
+            "layers": ["selftest"],
+            "negative": ["check_deleted_long_ago"],
+            "ci_tier": "quality",
+            "limitations": "l",
+        }
+    ]
     with pytest.raises(SystemExit, match="no selftest"):
         invariants.validate(bad)
 
@@ -52,8 +61,7 @@ def test_sabotage_orphan_fixture_reddens_provenance(tmp_path):
     d = tmp_path / "known-bad"
     shutil.copytree(src, d)
     (d / "orphan-sabotage.docx").write_bytes(b"not manifested")
-    problems = fixture_provenance.audit(
-        fixture_provenance.load(), d, invariants.load())
+    problems = fixture_provenance.audit(fixture_provenance.load(), d, invariants.load())
     assert any("orphan-sabotage.docx" in p for p in problems)
 
 
@@ -86,11 +94,21 @@ def test_sabotage_mismatched_release_receipt_reddens_chain():
     be refused."""
 
     dirty = receipts.Receipt(
-        schema_version=receipts.SCHEMA_VERSION, layer="release",
-        source_commit="c", tree_clean=False,
-        inputs={"invariants": "d", "fixtures": "d", "scenarios": "d",
-                "surfaces": "d", "toolchain": "t"},
-        prerequisites=[], proofs=[], artifacts={}, local_dev=True,
+        schema_version=receipts.SCHEMA_VERSION,
+        layer="release",
+        source_commit="c",
+        tree_clean=False,
+        inputs={
+            "invariants": "d",
+            "fixtures": "d",
+            "scenarios": "d",
+            "surfaces": "d",
+            "toolchain": "t",
+        },
+        prerequisites=[],
+        proofs=[],
+        artifacts={},
+        local_dev=True,
     )
     problems = receipts.verify_chain([dirty], require_clean=True)
     assert any("dirty tree" in p for p in problems)

@@ -21,10 +21,12 @@ def _passed(**over):
         product_id=over.get("product_id", "PB-BW-6x9"),
         region=over.get("region", "US"),
         inspector=over.get("inspector", "inspector"),
-        results=over.get("results", results))
+        results=over.get("results", results),
+    )
 
 
 # ---- the record ----
+
 
 def test_the_shipped_record_validates():
     assert q.validate() == []
@@ -65,8 +67,7 @@ def test_generated_projection_is_the_canonical_bytes_under_one_fixed_banner():
     assert projection.count("The print-provider qualification record:") == 1
 
 
-def test_a_comment_only_edit_to_the_packaged_copy_is_refused(
-        monkeypatch, tmp_path):
+def test_a_comment_only_edit_to_the_packaged_copy_is_refused(monkeypatch, tmp_path):
     """A whitespace/comment edit that leaves the YAML semantically identical
     still fails the byte gate -- the failure the old semantic-only compare
     let through."""
@@ -74,19 +75,17 @@ def test_a_comment_only_edit_to_the_packaged_copy_is_refused(
     drifted = tmp_path / "providers.yaml"
     drifted.write_text(
         q.render_packaged() + "# a hand edit that never went through the generator\n",
-        encoding="utf-8")
+        encoding="utf-8",
+    )
     monkeypatch.setattr(q, "PACKAGED_RECORD", drifted)
-    assert any("packaged provider record is stale" in problem
-               for problem in q.validate())
+    assert any("packaged provider record is stale" in problem for problem in q.validate())
 
 
-def test_packaged_provider_record_cannot_drift_from_repository_copy(
-        monkeypatch, tmp_path):
+def test_packaged_provider_record_cannot_drift_from_repository_copy(monkeypatch, tmp_path):
     stale = tmp_path / "providers.yaml"
     stale.write_text("schema_version: 1\nproviders: {}\n", encoding="utf-8")
     monkeypatch.setattr(q, "PACKAGED_RECORD", stale)
-    assert any("packaged provider record is stale" in problem
-               for problem in q.validate())
+    assert any("packaged provider record is stale" in problem for problem in q.validate())
 
 
 @pytest.mark.invariant("INV-provider-qualification")
@@ -118,6 +117,7 @@ def test_an_unknown_capability_value_is_refused():
 
 
 # ---- the gate ----
+
 
 def test_a_full_pass_qualifies_the_provider():
     qual, problems = q.qualify(_passed(edition_id="ed-1"), "ed-1")
@@ -184,18 +184,31 @@ def test_qualification_cli_reports_the_validated_record(capsys):
 
 # ---- helpers tying qualification to the edition manifest ----
 
+
 def _manifest_with(qual):
     import dataclasses
 
     base = edition.EditionManifest(
-        schema_version=edition.SCHEMA_VERSION, edition_id="ed-1", slug="mk",
-        title="MK", format="paperback", isbn=None, trim_width=6.0,
-        trim_height=9.0, page_count=100, paper="cream", spine_width_in=0.25,
+        schema_version=edition.SCHEMA_VERSION,
+        edition_id="ed-1",
+        slug="mk",
+        title="MK",
+        format="paperback",
+        isbn=None,
+        trim_width=6.0,
+        trim_height=9.0,
+        page_count=100,
+        paper="cream",
+        spine_width_in=0.25,
         bleed_in=0.125,
         interior=edition.ArtifactRef("interior", "a" * 64, 1000),
         cover=edition.ArtifactRef("cover", "b" * 64, 500),
-        toolchain_digest="sha-x", source_commit="c", tree_clean=True,
-        input_digests={}, receipt_digests=("r0",))
+        toolchain_digest="sha-x",
+        source_commit="c",
+        tree_clean=True,
+        input_digests={},
+        receipt_digests=("r0",),
+    )
     # Bind the real identity, then attach the qualification against it.
     ident = edition._identity_digest(base)
     real_qual = dataclasses.replace(qual, qualified_for=ident)
@@ -203,5 +216,6 @@ def _manifest_with(qual):
 
 
 def _observed(m):
-    return edition.Observed(m.interior.sha256, m.interior.byte_size,
-                            m.page_count, m.cover.sha256, m.cover.byte_size)
+    return edition.Observed(
+        m.interior.sha256, m.interior.byte_size, m.page_count, m.cover.sha256, m.cover.byte_size
+    )

@@ -123,8 +123,9 @@ def _current_seal(profile_id: str, note: str, on: str) -> Seal:
     )
 
 
-def validate(seals: dict[str, Seal] | None = None,
-             profile_ids: list[str] | None = None) -> list[str]:
+def validate(
+    seals: dict[str, Seal] | None = None, profile_ids: list[str] | None = None
+) -> list[str]:
     """Every way the seal ledger fails the design contract: a shipped profile
     with no seal, a seal whose recorded digest no longer matches the profile's
     live geometry (appearance drifted without a re-seal), a design-major
@@ -143,7 +144,8 @@ def validate(seals: dict[str, Seal] | None = None,
         if seal is None:
             problems.append(
                 f"profile {profile_id!r} is not sealed; prove it and run "
-                f"`python3 -m press.profile_lifecycle seal {profile_id}`")
+                f"`python3 -m press.profile_lifecycle seal {profile_id}`"
+            )
             continue
         try:
             current = _current_seal(profile_id, seal.note, seal.qualified_on)
@@ -155,15 +157,16 @@ def validate(seals: dict[str, Seal] | None = None,
                 f"profile {profile_id!r} drifted from its seal "
                 f"({seal.digest} -> {current.digest}); its geometry changed. "
                 "This is a design-major decision: re-seal deliberately with "
-                f"`python3 -m press.profile_lifecycle seal {profile_id}`")
+                f"`python3 -m press.profile_lifecycle seal {profile_id}`"
+            )
         if seal.design_major != current.design_major:
             problems.append(
                 f"profile {profile_id!r} seal records design-major "
-                f"{seal.design_major}, profile declares {current.design_major}")
+                f"{seal.design_major}, profile declares {current.design_major}"
+            )
     for sealed_id in seals:
         if sealed_id not in known:
-            problems.append(
-                f"seal names {sealed_id!r}, which is not a shipped profile")
+            problems.append(f"seal names {sealed_id!r}, which is not a shipped profile")
     return problems
 
 
@@ -182,8 +185,7 @@ def _parse_trim(spec: str) -> tuple[float, float]:
     return width, height
 
 
-def scaffold(profile_id: str, trim: str, *, ink: str = "single",
-             base: str = profiles.HOUSE) -> str:
+def scaffold(profile_id: str, trim: str, *, ink: str = "single", base: str = profiles.HOUSE) -> str:
     """A new profile's YAML text, derived from an existing profile so it
     starts from proven geometry. Only the id, trim, and (optionally) the ink
     change; margins, figure cap, and typography carry over from the base for a
@@ -193,8 +195,7 @@ def scaffold(profile_id: str, trim: str, *, ink: str = "single",
     if ink not in ("single", "color"):
         raise SystemExit(f"ink must be 'single' or 'color', not {ink!r}")
     if not profile_id or not profile_id.replace("-", "").isalnum():
-        raise SystemExit(
-            f"profile id must be a slug (letters, digits, hyphens): {profile_id!r}")
+        raise SystemExit(f"profile id must be a slug (letters, digits, hyphens): {profile_id!r}")
     width, height = _parse_trim(trim)
     src = profiles.load(base)
     interior = src.data["interior"]
@@ -220,8 +221,7 @@ def scaffold(profile_id: str, trim: str, *, ink: str = "single",
         f"trim: {{width: {width:g}, height: {height:g}}}",
         "",
         "interior:",
-        f"  # Inherited from {base}; the figure cap must never approach"
-        " \\textheight.",
+        f"  # Inherited from {base}; the figure cap must never approach \\textheight.",
         f"  margins: {{{margins}}}",
         f"  figure-cap: {float(interior['figure-cap']):g}",
         f"  typography: {{indent: {typ['indent']}, leading: {float(typ['leading']):g}}}",
@@ -232,8 +232,9 @@ def scaffold(profile_id: str, trim: str, *, ink: str = "single",
     return "\n".join(lines) + "\n"
 
 
-def write_scaffold(profile_id: str, trim: str, *, ink: str = "single",
-                   base: str = profiles.HOUSE) -> Path:
+def write_scaffold(
+    profile_id: str, trim: str, *, ink: str = "single", base: str = profiles.HOUSE
+) -> Path:
     """Lay a scaffolded profile into ``data/profiles/`` without clobbering an
     existing one, and confirm it loads as valid data before returning."""
 
@@ -248,8 +249,9 @@ def write_scaffold(profile_id: str, trim: str, *, ink: str = "single",
     return out
 
 
-def write_seal(profile_id: str, note: str, *, on: str | None = None,
-               path: Path | None = None) -> Seal:
+def write_seal(
+    profile_id: str, note: str, *, on: str | None = None, path: Path | None = None
+) -> Seal:
     """Record (or refresh) a profile's seal at its current digest and write
     the ledger. Sealing is the deliberate act that qualifies a profile under
     the design contract; the digest is read from the profile, never supplied,
@@ -271,8 +273,8 @@ def _render_report(seals: dict[str, Seal], problems: list[str]) -> str:
     lines = ["print-profile seals:"]
     for seal in sorted(seals.values(), key=lambda s: s.profile_id):
         lines.append(
-            f"  {seal.profile_id}  v{seal.design_major}  {seal.digest}  "
-            f"sealed {seal.qualified_on}")
+            f"  {seal.profile_id}  v{seal.design_major}  {seal.digest}  sealed {seal.qualified_on}"
+        )
     if problems:
         lines.append("problems:")
         lines += [f"  - {p}" for p in problems]
@@ -285,13 +287,15 @@ _USAGE = (
     "usage: python3 -m press.profile_lifecycle validate\n"
     "       python3 -m press.profile_lifecycle scaffold <id> --trim WxH "
     "[--ink single|color] [--from <base>]\n"
-    "       python3 -m press.profile_lifecycle seal <id> [--note \"why\"]\n"
+    '       python3 -m press.profile_lifecycle seal <id> [--note "why"]\n'
     "       python3 -m press.profile_lifecycle list"
 )
 
 
 def _opt(argv: list[str], name: str, default: str | None = None) -> str | None:
-    return argv[argv.index(name) + 1] if name in argv and argv.index(name) + 1 < len(argv) else default
+    return (
+        argv[argv.index(name) + 1] if name in argv and argv.index(name) + 1 < len(argv) else default
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -321,8 +325,10 @@ def main(argv: list[str] | None = None) -> int:
             print(_USAGE)
             return 2
         out = write_scaffold(argv[1], trim, ink=ink, base=base)
-        print(f"scaffolded {out}\nnow PROVE it (render + the geometry test) and "
-              f"SEAL it: python3 -m press.profile_lifecycle seal {argv[1]}")
+        print(
+            f"scaffolded {out}\nnow PROVE it (render + the geometry test) and "
+            f"SEAL it: python3 -m press.profile_lifecycle seal {argv[1]}"
+        )
         return 0
 
     if action == "seal":
@@ -330,8 +336,10 @@ def main(argv: list[str] | None = None) -> int:
             print(_USAGE)
             return 2
         seal = write_seal(argv[1], _opt(argv, "--note", "") or "")
-        print(f"sealed {seal.profile_id} at digest {seal.digest} "
-              f"(design-major {seal.design_major}, {seal.qualified_on})")
+        print(
+            f"sealed {seal.profile_id} at digest {seal.digest} "
+            f"(design-major {seal.design_major}, {seal.qualified_on})"
+        )
         return 0
 
     print(_USAGE)

@@ -32,8 +32,9 @@ async def test_each_async_test_gets_its_own_loop_second():
     # A distinct loop object from the first test proves function scope; a
     # shared (wider-scoped) loop would be the same object.
     loop = asyncio.get_running_loop()
-    assert all(loop is not seen for seen in _loops), \
+    assert all(loop is not seen for seen in _loops), (
         "async tests shared an event loop (scope widened)"
+    )
     _loops.append(loop)
 
 

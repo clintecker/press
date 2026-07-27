@@ -79,7 +79,9 @@ def _combined(result) -> str:
 
 
 def test_unknown_invariant_id_fails_collection(pytester):
-    result = _run(pytester, '''
+    result = _run(
+        pytester,
+        """
         import pytest
 
         @pytest.mark.invariant("INV-not-a-real-id")
@@ -87,21 +89,25 @@ def test_unknown_invariant_id_fails_collection(pytester):
         @pytest.mark.proof("positive")
         def test_thing():
             assert True
-    ''')
+    """,
+    )
     assert result.ret != 0
     assert "unknown invariant" in _combined(result)
     assert "test_thing" in _combined(result)
 
 
 def test_invariant_without_proof_fails_collection(pytester):
-    result = _run(pytester, '''
+    result = _run(
+        pytester,
+        """
         import pytest
 
         @pytest.mark.invariant("INV-config-slug")
         @pytest.mark.layer("property")
         def test_no_proof():
             assert True
-    ''')
+    """,
+    )
     assert result.ret != 0
     combined = _combined(result)
     assert "requires a proof marker" in combined
@@ -109,7 +115,9 @@ def test_invariant_without_proof_fails_collection(pytester):
 
 
 def test_unknown_layer_fails_collection(pytester):
-    result = _run(pytester, '''
+    result = _run(
+        pytester,
+        """
         import pytest
 
         @pytest.mark.invariant("INV-config-slug")
@@ -117,13 +125,16 @@ def test_unknown_layer_fails_collection(pytester):
         @pytest.mark.proof("positive")
         def test_bad_layer():
             assert True
-    ''')
+    """,
+    )
     assert result.ret != 0
     assert "unknown layer" in _combined(result)
 
 
 def test_assertionless_marked_test_fails_collection(pytester):
-    result = _run(pytester, '''
+    result = _run(
+        pytester,
+        """
         import pytest
 
         @pytest.mark.invariant("INV-config-slug")
@@ -131,7 +142,8 @@ def test_assertionless_marked_test_fails_collection(pytester):
         @pytest.mark.proof("positive")
         def test_proves_nothing():
             value = 1 + 1
-    ''')
+    """,
+    )
     assert result.ret != 0
     combined = _combined(result)
     assert "no assertion" in combined
@@ -139,25 +151,31 @@ def test_assertionless_marked_test_fails_collection(pytester):
 
 
 def test_xfail_without_limitation_fails_collection(pytester):
-    result = _run(pytester, '''
+    result = _run(
+        pytester,
+        """
         import pytest
 
         @pytest.mark.xfail(reason="flaky, will look at it later")
         def test_unexplained_xfail():
             assert False
-    ''')
+    """,
+    )
     assert result.ret != 0
     assert "declared invariant limitation" in _combined(result)
 
 
 def test_environment_skip_without_capability_fails_collection(pytester):
-    result = _run(pytester, '''
+    result = _run(
+        pytester,
+        """
         import pytest
 
         @pytest.mark.skipif(True, reason="not in the mood")
         def test_unexplained_skip():
             assert True
-    ''')
+    """,
+    )
     assert result.ret != 0
     assert "must name a declared capability" in _combined(result)
 
@@ -166,7 +184,9 @@ def test_wellformed_suite_is_accepted(pytester):
     """The plugin has restraint: a valid marked test, a properly cited
     xfail, and a capability-gated skip all collect cleanly."""
 
-    result = _run(pytester, '''
+    result = _run(
+        pytester,
+        """
         import pytest
 
         @pytest.mark.invariant("INV-config-slug")
@@ -182,6 +202,7 @@ def test_wellformed_suite_is_accepted(pytester):
         @pytest.mark.skipif(False, reason="requires capability:pandoc")
         def test_capability_skip():
             assert True
-    ''')
+    """,
+    )
     assert result.ret == 0
     result.assert_outcomes(passed=2, xfailed=1)

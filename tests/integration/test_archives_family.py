@@ -35,9 +35,7 @@ from tests.integration._harness import (
 )
 
 REQUIRED = ("pandoc", "git")
-requires_tools = pytest.mark.skipif(
-    bool(missing_tools(REQUIRED)), reason=skip_reason(REQUIRED)
-)
+requires_tools = pytest.mark.skipif(bool(missing_tools(REQUIRED)), reason=skip_reason(REQUIRED))
 
 CLAIM = "movable type reorders the labor of the page"
 
@@ -51,18 +49,22 @@ def _book(root):
         )
         .with_chapter(
             "00-intro.md",
-            "# Intro\n\nHere the first witness of the archive runner stands, "
-            f"and {CLAIM}.\n",
+            f"# Intro\n\nHere the first witness of the archive runner stands, and {CLAIM}.\n",
         )
         .with_chapter(
             "01-more.md",
             "# More\n\nHere the second witness of the archive runner stands "
             "in another plain sentence.\n",
         )
-        .with_authorities([
-            {"claim": CLAIM, "file": "book/chapters/00-intro.md",
-             "authority": "A Trade History (1900)"},
-        ])
+        .with_authorities(
+            [
+                {
+                    "claim": CLAIM,
+                    "file": "book/chapters/00-intro.md",
+                    "authority": "A Trade History (1900)",
+                },
+            ]
+        )
         .build(root)
     )
     # A real repository: the source-archive policy is "tracked files
@@ -76,15 +78,20 @@ def _book(root):
         "GIT_TERMINAL_PROMPT": "0",
     }
     identity = [
-        "-c", "user.email=runner@press.test",
-        "-c", "user.name=runner",
-        "-c", "commit.gpgsign=false",
+        "-c",
+        "user.email=runner@press.test",
+        "-c",
+        "user.name=runner",
+        "-c",
+        "commit.gpgsign=false",
     ]
     subprocess.run(["git", "init", "-q"], cwd=handle.root, check=True, env=env)
     subprocess.run(["git", "add", "-A"], cwd=handle.root, check=True, env=env)
     subprocess.run(
         ["git", *identity, "commit", "-q", "-m", "source-only book"],
-        cwd=handle.root, check=True, env=env,
+        cwd=handle.root,
+        check=True,
+        env=env,
     )
     return handle
 
@@ -117,9 +124,14 @@ def test_archives_and_sources_companion(tmp_path):
         evidence.record_invariant("INV-archive-source-policy")
         evidence.record_invariant("INV-archive-site-bytes")
         evidence.record_invariant("INV-authorities-claims")
-        evidence.outputs = digest_outputs(dist, [
-            f"{slug}-site.zip", f"{slug}-source.zip", f"{slug}-sources.md",
-        ])
+        evidence.outputs = digest_outputs(
+            dist,
+            [
+                f"{slug}-site.zip",
+                f"{slug}-source.zip",
+                f"{slug}-sources.md",
+            ],
+        )
     evidence.write(tmp_path)
 
     assert rc == 0, "verify_archives refused the freshly built archives"

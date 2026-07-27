@@ -30,8 +30,17 @@ from pathlib import Path
 from . import adapters
 
 LAYERS = [
-    "collection", "unit", "property", "component", "damage", "graph",
-    "scenario", "integration", "distribution", "container", "boundary",
+    "collection",
+    "unit",
+    "property",
+    "component",
+    "damage",
+    "graph",
+    "scenario",
+    "integration",
+    "distribution",
+    "container",
+    "boundary",
     "release",
 ]
 
@@ -75,9 +84,7 @@ class Receipt:
 
 
 def _git(*args: str) -> str:
-    result = adapters.process_runner.run(
-        ["git", "-C", str(ROOT), *args], capture=True, check=True
-    )
+    result = adapters.process_runner.run(["git", "-C", str(ROOT), *args], capture=True, check=True)
     return result.stdout.decode("utf-8").strip()
 
 
@@ -110,15 +117,19 @@ def current_inputs(toolchain_digest: str = "unpinned") -> tuple[dict[str, str], 
     return inputs, commit, clean
 
 
-def emit(layer: str, proofs: list[str], prerequisites: list[Receipt] | None = None,
-         artifacts: dict[str, str] | None = None, limitations: list[str] | None = None,
-         toolchain_digest: str = "unpinned") -> Receipt:
+def emit(
+    layer: str,
+    proofs: list[str],
+    prerequisites: list[Receipt] | None = None,
+    artifacts: dict[str, str] | None = None,
+    limitations: list[str] | None = None,
+    toolchain_digest: str = "unpinned",
+) -> Receipt:
     """Build a receipt for one layer from the current inputs and the
     prerequisite receipts it extends."""
 
     if layer not in LAYERS and layer not in RELEASE_TIERS:
-        raise SystemExit(
-            f"unknown trust layer: {layer!r} (a LAYERS layer or a RELEASE_TIERS tier)")
+        raise SystemExit(f"unknown trust layer: {layer!r} (a LAYERS layer or a RELEASE_TIERS tier)")
     inputs, commit, clean = current_inputs(toolchain_digest)
     return Receipt(
         schema_version=SCHEMA_VERSION,
@@ -177,8 +188,7 @@ def verify_chain(chain: list[Receipt], require_clean: bool = False) -> list[str]
                     )
             if receipt.source_commit != prereq.source_commit:
                 problems.append(
-                    f"{receipt.layer}: source commit differs from prerequisite "
-                    f"{prereq.layer!r}"
+                    f"{receipt.layer}: source commit differs from prerequisite {prereq.layer!r}"
                 )
         # Later layers extend, never drop, the invariant results proven.
         seen_proofs |= set(receipt.proofs)
@@ -228,8 +238,9 @@ def build_release_receipt(package_digest: str, chain: list[Receipt]) -> Receipt:
     )
 
 
-def build_full_chain(package_digest: str, toolchain_digest: str,
-                     proofs_by_layer: dict[str, list[str]] | None = None) -> list[Receipt]:
+def build_full_chain(
+    package_digest: str, toolchain_digest: str, proofs_by_layer: dict[str, list[str]] | None = None
+) -> list[Receipt]:
     """The full trust chain for a release: a receipt for every pre-release
     layer, each extending the one before, then the terminal release
     receipt. proofs_by_layer optionally records which invariants each
@@ -241,12 +252,14 @@ def build_full_chain(package_digest: str, toolchain_digest: str,
     for layer in LAYERS:
         if layer == "release":
             continue
-        chain.append(emit(
-            layer,
-            proofs=proofs_by_layer.get(layer, []),
-            prerequisites=chain[-1:],  # extend the immediately preceding layer
-            toolchain_digest=toolchain_digest,
-        ))
+        chain.append(
+            emit(
+                layer,
+                proofs=proofs_by_layer.get(layer, []),
+                prerequisites=chain[-1:],  # extend the immediately preceding layer
+                toolchain_digest=toolchain_digest,
+            )
+        )
     chain.append(build_release_receipt(package_digest, chain))
     return chain
 
@@ -298,13 +311,9 @@ def verify_release(chain: list[Receipt], package_digest: str) -> list[str]:
     if release.layer != "release":
         problems.append(f"terminal receipt is {release.layer!r}, not a release")
     if release.artifacts.get("package") != package_digest:
-        problems.append(
-            "release receipt package digest does not match the built package"
-        )
+        problems.append("release receipt package digest does not match the built package")
     if release.artifacts.get("toolchain") != pinned_toolchain_digest():
-        problems.append(
-            "release receipt toolchain does not match the pinned build.yml image"
-        )
+        problems.append("release receipt toolchain does not match the pinned build.yml image")
     return problems
 
 
@@ -316,9 +325,12 @@ def assemble_release(tier_receipts: list[Receipt], package_digest: str) -> list[
 
     proofs = sorted({p for r in tier_receipts for p in r.proofs})
     release = emit(
-        "release", proofs=proofs, prerequisites=tier_receipts,
+        "release",
+        proofs=proofs,
+        prerequisites=tier_receipts,
         artifacts={"package": package_digest, "toolchain": pinned_toolchain_digest()},
-        toolchain_digest=pinned_toolchain_digest())
+        toolchain_digest=pinned_toolchain_digest(),
+    )
     return [*tier_receipts, release]
 
 
@@ -335,16 +347,15 @@ def verify_ci_release(chain: list[Receipt], package_digest: str) -> list[str]:
     present = {r.layer for r in chain}
     for tier in RELEASE_TIERS:
         if tier not in present:
-            problems.append(
-                f"missing tier receipt {tier!r}: its CI job did not run or upload")
+            problems.append(f"missing tier receipt {tier!r}: its CI job did not run or upload")
     commits = {r.source_commit for r in chain}
     if len(commits) > 1:
         problems.append(f"tier receipts disagree on source commit: {sorted(commits)}")
     for receipt in chain:
         if not receipt.tree_clean:
             problems.append(
-                f"{receipt.layer}: built from a dirty tree; a release requires "
-                "clean-tree receipts")
+                f"{receipt.layer}: built from a dirty tree; a release requires clean-tree receipts"
+            )
     release = next((r for r in chain if r.layer == "release"), None)
     if release is None:
         problems.append("no terminal release receipt")
@@ -379,12 +390,18 @@ def main(argv: list[str] | None = None) -> int:
     import sys
 
     args = list(argv if argv is not None else sys.argv[1:])
-    dispatch = {"emit": _cmd_emit, "assemble": _cmd_assemble,
-                "verify-release": _cmd_verify_release, "verify": _cmd_verify}
+    dispatch = {
+        "emit": _cmd_emit,
+        "assemble": _cmd_assemble,
+        "verify-release": _cmd_verify_release,
+        "verify": _cmd_verify,
+    }
     handler = dispatch.get(args[0]) if args else None
     if handler is None:
         print("usage: python3 -m press.receipts emit <tier> --out <file> [--proof INV-x ...]")
-        print("       python3 -m press.receipts assemble <receipts-dir> <package-digest> --out <file>")
+        print(
+            "       python3 -m press.receipts assemble <receipts-dir> <package-digest> --out <file>"
+        )
         print("       python3 -m press.receipts verify <chain.json> [--release]")
         print("       python3 -m press.receipts verify-release <chain.json> <package-digest>")
         return 2
@@ -418,8 +435,10 @@ def _cmd_assemble(args: list[str]) -> int:
         for problem in problems:
             print(f"  - {problem}")
         return 1
-    print(f"release chain holds: {len(chain)} receipts, tiers "
-          f"{sorted(r.layer for r in chain)}, assembled from per-job artifacts")
+    print(
+        f"release chain holds: {len(chain)} receipts, tiers "
+        f"{sorted(r.layer for r in chain)}, assembled from per-job artifacts"
+    )
     return 0
 
 
@@ -431,8 +450,10 @@ def _cmd_verify_release(args: list[str]) -> int:
         for problem in problems:
             print(f"  - {problem}")
         return 1
-    print(f"release chain holds: {len(chain)} layers, clean tree, "
-          "package and toolchain match the proven objects")
+    print(
+        f"release chain holds: {len(chain)} layers, clean tree, "
+        "package and toolchain match the proven objects"
+    )
     return 0
 
 
@@ -444,8 +465,7 @@ def _cmd_verify(args: list[str]) -> int:
         for problem in problems:
             print(f"  - {problem}")
         return 1
-    print(f"receipt chain holds: {len(chain)} layers, "
-          f"{chain[-1].layer} extends {chain[0].layer}")
+    print(f"receipt chain holds: {len(chain)} layers, {chain[-1].layer} extends {chain[0].layer}")
     return 0
 
 

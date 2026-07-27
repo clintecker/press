@@ -145,9 +145,7 @@ class FakeImageClient:
     programmed list of JSON responses (or raises a programmed exception).
     Never opens a socket."""
 
-    def __init__(
-        self, responses: Sequence[dict | BaseException] | None = None
-    ) -> None:
+    def __init__(self, responses: Sequence[dict | BaseException] | None = None) -> None:
         self.requests: list[RecordedRequest] = []
         self._responses: list[dict | BaseException] = list(responses or [])
 
@@ -159,20 +157,12 @@ class FakeImageClient:
             raise outcome
         return outcome
 
-    def post_json(
-        self, url: str, payload: Mapping[str, Any], headers: Mapping[str, str]
-    ) -> dict:
-        self.requests.append(
-            RecordedRequest("json", url, dict(payload), dict(headers))
-        )
+    def post_json(self, url: str, payload: Mapping[str, Any], headers: Mapping[str, str]) -> dict:
+        self.requests.append(RecordedRequest("json", url, dict(payload), dict(headers)))
         return self._answer()
 
-    def post_multipart(
-        self, url: str, body: bytes, headers: Mapping[str, str]
-    ) -> dict:
-        self.requests.append(
-            RecordedRequest("multipart", url, body, dict(headers))
-        )
+    def post_multipart(self, url: str, body: bytes, headers: Mapping[str, str]) -> dict:
+        self.requests.append(RecordedRequest("multipart", url, body, dict(headers)))
         return self._answer()
 
 

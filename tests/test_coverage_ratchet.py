@@ -43,13 +43,15 @@ def test_a_small_dip_within_tolerance_holds():
 def test_a_module_with_no_baseline_is_flagged_new():
     ratchet = _load_ratchet()
     regressions, new = ratchet.compare(
-        {"receipts": 68.9, "brandnew": 40.0}, {"receipts": 68.9}, tolerance=1.5)
+        {"receipts": 68.9, "brandnew": 40.0}, {"receipts": 68.9}, tolerance=1.5
+    )
     assert regressions == []
     assert new == ["brandnew"]
 
 
 def test_main_fails_when_measurement_contains_an_unbaselined_source_module(
-        tmp_path, monkeypatch, capsys):
+    tmp_path, monkeypatch, capsys
+):
     """The executable gate, not only compare(), refuses a new module.
 
     This is the migration invariant that #178 exposed: adding source and
@@ -58,13 +60,17 @@ def test_main_fails_when_measurement_contains_an_unbaselined_source_module(
 
     ratchet = _load_ratchet()
     baseline = tmp_path / "coverage-baseline.json"
-    baseline.write_text(json.dumps({
-        "tolerance": 0.5,
-        "modules": {"receipts": 68.9},
-    }), encoding="utf-8")
+    baseline.write_text(
+        json.dumps(
+            {
+                "tolerance": 0.5,
+                "modules": {"receipts": 68.9},
+            }
+        ),
+        encoding="utf-8",
+    )
     monkeypatch.setattr(ratchet, "BASELINE", baseline)
-    monkeypatch.setattr(
-        ratchet, "measure", lambda: {"receipts": 68.9, "brandnew": 100.0})
+    monkeypatch.setattr(ratchet, "measure", lambda: {"receipts": 68.9, "brandnew": 100.0})
 
     assert ratchet.main([]) == 1
     output = capsys.readouterr().out
@@ -77,7 +83,8 @@ def test_a_baselined_module_vanishing_is_a_regression():
     # silently -- it means the report stopped covering it.
     ratchet = _load_ratchet()
     regressions, new = ratchet.compare(
-        {"receipts": 68.9}, {"receipts": 68.9, "impact": 83.7}, tolerance=1.5)
+        {"receipts": 68.9}, {"receipts": 68.9, "impact": 83.7}, tolerance=1.5
+    )
     assert new == []
     assert any("impact" in r and "absent" in r for r in regressions)
 
@@ -91,8 +98,9 @@ def test_the_committed_baseline_is_well_formed():
 
 def test_real_baseline_low_floors_are_all_justified():
     ratchet = _load_ratchet()
-    modules = json.loads((ROOT / "quality" / "coverage-baseline.json")
-                         .read_text(encoding="utf-8"))["modules"]
+    modules = json.loads((ROOT / "quality" / "coverage-baseline.json").read_text(encoding="utf-8"))[
+        "modules"
+    ]
     # Every module floored below the line is on the reasoned allowlist, and no
     # allowlist entry has silently risen above it.
     assert ratchet.check_low_floors(modules) == []

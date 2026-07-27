@@ -31,8 +31,18 @@ EXCLUDE_PARTS = {"build", "dist", ".git", "__pycache__"}
 
 # Files that end the run: publishing one of these is never intended.
 SECRET_PATTERNS = [
-    ".env", ".env.*", "*.pem", "*.key", "*.p12", "*.pfx", "id_rsa*",
-    "id_ed25519*", ".netrc", "*.keychain", "credentials*", "*.secret",
+    ".env",
+    ".env.*",
+    "*.pem",
+    "*.key",
+    "*.p12",
+    "*.pfx",
+    "id_rsa*",
+    "id_ed25519*",
+    ".netrc",
+    "*.keychain",
+    "credentials*",
+    "*.secret",
 ]
 
 # Files that are merely noise; skipped, and said so.
@@ -47,7 +57,8 @@ def tracked_paths(root: Path) -> set[str] | None:
     try:
         listing = adapters.process_runner.run(
             ["git", "-C", str(root), "ls-files", "-z"],
-            capture=True, check=True,
+            capture=True,
+            check=True,
         )
     except (OSError, subprocess.CalledProcessError):
         return None

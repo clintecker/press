@@ -41,9 +41,19 @@ def escape(text: str) -> str:
 
 def roman(year: int) -> str:
     numerals = [
-        (1000, "m"), (900, "cm"), (500, "d"), (400, "cd"), (100, "c"),
-        (90, "xc"), (50, "l"), (40, "xl"), (10, "x"), (9, "ix"),
-        (5, "v"), (4, "iv"), (1, "i"),
+        (1000, "m"),
+        (900, "cm"),
+        (500, "d"),
+        (400, "cd"),
+        (100, "c"),
+        (90, "xc"),
+        (50, "l"),
+        (40, "xl"),
+        (10, "x"),
+        (9, "ix"),
+        (5, "v"),
+        (4, "iv"),
+        (1, "i"),
     ]
     out = []
     for value, glyph in numerals:
@@ -76,9 +86,7 @@ def subtitle_stack(subtitle: str) -> str:
 
 
 def keep_block(text: str, name: str, keep: bool) -> str:
-    pattern = re.compile(
-        rf"%<<if {name}>>\n(.*?)%<<end {name}>>\n", re.DOTALL
-    )
+    pattern = re.compile(rf"%<<if {name}>>\n(.*?)%<<end {name}>>\n", re.DOTALL)
     return pattern.sub(lambda m: m.group(1) if keep else "", text)
 
 
@@ -106,8 +114,7 @@ def generate(include_cover: bool = True) -> Path | None:
     if not config.is_file() and not cover_exists:
         return None
 
-    front = ((yamlio.loads(config.read_text(encoding="utf-8")) or {})
-             if config.is_file() else {})
+    front = (yamlio.loads(config.read_text(encoding="utf-8")) or {}) if config.is_file() else {}
 
     # A front-matter.yaml the typed model accepts but this generator
     # dereferences as a mapping (or reads epigraph as a nested mapping)
@@ -115,11 +122,13 @@ def generate(include_cover: bool = True) -> Path | None:
     # front with a diagnostic that names the file (#207). check_source runs
     # the same guard, but a direct `press pdf` reaches here with no check.
     from . import config_schema
+
     config_schema.enforce_file(root, config_schema.FRONT_MATTER, front)
 
     meta = booklib.metadata()
     missing = [
-        key for key in ("title", "author", "copyright", "publisher", "publisher-place")
+        key
+        for key in ("title", "author", "copyright", "publisher", "publisher-place")
         if not meta.get(key)
     ]
     if missing:
@@ -200,8 +209,7 @@ def generate(include_cover: bool = True) -> Path | None:
         # the reading front matter keeps the original. A book with a
         # hand-authored title page points its own logo at build/print-assets.
         "{{LOGO_PATH}}": (
-            "assets/press-logo.png" if include_cover
-            else "build/print-assets/assets/press-logo.png"
+            "assets/press-logo.png" if include_cover else "build/print-assets/assets/press-logo.png"
         ),
     }
     for key, value in values.items():

@@ -25,8 +25,10 @@ def run(argv: list[str] | None = None) -> int:
     import sys
 
     if not sys.stdout.isatty():
-        print("press desk needs a terminal; every action it runs is a "
-              "`press` target, so use the CLI in a non-interactive context")
+        print(
+            "press desk needs a terminal; every action it runs is a "
+            "`press` target, so use the CLI in a non-interactive context"
+        )
         return 2
 
     from .app import DeskApp

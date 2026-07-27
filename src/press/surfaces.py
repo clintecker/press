@@ -35,7 +35,8 @@ def public_callables() -> dict[str, list[str]]:
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"))
         names = [
-            node.name for node in tree.body
+            node.name
+            for node in tree.body
             if isinstance(node, ast.FunctionDef) and not node.name.startswith("_")
         ]
         if names:
@@ -135,8 +136,11 @@ def main(argv: list[str] | None = None) -> int:
         argv = sys.argv[1:]
     if "--write" in argv:
         added = scaffold()
-        print(f"scaffolded {len(added)} new module(s): {added}" if added
-              else "surfaces.yaml already lists every module")
+        print(
+            f"scaffolded {len(added)} new module(s): {added}"
+            if added
+            else "surfaces.yaml already lists every module"
+        )
     result = audit()
     if result["problems"]:
         raise SystemExit(

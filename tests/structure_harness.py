@@ -35,12 +35,14 @@ def extract_epub(path: Path) -> dict:
         names = archive.namelist()
         opf = "\n".join(
             archive.read(name).decode("utf-8", errors="ignore")
-            for name in names if name.endswith(".opf")
+            for name in names
+            if name.endswith(".opf")
         )
         spine_itemrefs = len(re.findall(r"<itemref\b", opf))
         content_docs = [n for n in names if n.endswith((".xhtml", ".html"))]
         chapter_docs = [
-            n for n in content_docs
+            n
+            for n in content_docs
             if re.search(r"/ch\d+\.xhtml$", n) or re.search(r"/ch\d+\.html$", n)
         ]
         nav_docs = [n for n in content_docs if "nav" in n.rsplit("/", 1)[-1].lower()]
@@ -62,9 +64,11 @@ def extract_site(path: Path) -> dict:
     index = path / "index.html"
     nav_links = 0
     if index.is_file():
-        nav_links = len(re.findall(
-            r'<a\b[^>]*href="[^"]*\.html"', index.read_text(encoding="utf-8", errors="ignore")
-        ))
+        nav_links = len(
+            re.findall(
+                r'<a\b[^>]*href="[^"]*\.html"', index.read_text(encoding="utf-8", errors="ignore")
+            )
+        )
     return {
         "page_count": len(pages),
         "index_nav_links": nav_links,
@@ -106,6 +110,7 @@ def extract_editions(dist: Path, slug: str) -> dict:
 
 # ---- baseline comparison ----
 
+
 def compare_structure(baseline: dict, actual: dict) -> list[str]:
     """Structural drift beyond the scoping rules above, as a list of human
     diffs. Empty means the built editions match the reviewed baseline."""
@@ -114,9 +119,7 @@ def compare_structure(baseline: dict, actual: dict) -> list[str]:
     epub_b, epub_a = baseline["epub"], actual["epub"]
     # Chapter documents are book-determined: exact.
     if epub_b["chapter_docs"] != epub_a["chapter_docs"]:
-        drifts.append(
-            f"epub.chapter_docs {epub_b['chapter_docs']} -> {epub_a['chapter_docs']}"
-        )
+        drifts.append(f"epub.chapter_docs {epub_b['chapter_docs']} -> {epub_a['chapter_docs']}")
     # Spine and nav must not shrink below the reviewed shape.
     if epub_a["spine_itemrefs"] < epub_b["spine_itemrefs"]:
         drifts.append(
@@ -129,9 +132,7 @@ def compare_structure(baseline: dict, actual: dict) -> list[str]:
 
     site_b, site_a = baseline["site"], actual["site"]
     if site_b["page_count"] != site_a["page_count"]:
-        drifts.append(
-            f"site.page_count {site_b['page_count']} -> {site_a['page_count']}"
-        )
+        drifts.append(f"site.page_count {site_b['page_count']} -> {site_a['page_count']}")
     if site_a["index_nav_links"] < site_b["index_nav_links"]:
         drifts.append(
             f"site.index_nav_links dropped {site_b['index_nav_links']} -> {site_a['index_nav_links']}"

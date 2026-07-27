@@ -58,8 +58,7 @@ def book_root() -> Path | None:
 
 def stripped(text: str) -> str:
     return "".join(
-        line for line in text.splitlines(keepends=True)
-        if not line.startswith(STAMP_PREFIX)
+        line for line in text.splitlines(keepends=True) if not line.startswith(STAMP_PREFIX)
     )
 
 
@@ -97,8 +96,5 @@ def list_workflows() -> int:
         else:
             root_arg = str(root) if root else "<absolute book root>"
             print(f"  script: {path}")
-            print(
-                f'  invoke: Workflow({{scriptPath: "{path}", '
-                f'args: {{root: "{root_arg}"}}}})'
-            )
+            print(f'  invoke: Workflow({{scriptPath: "{path}", args: {{root: "{root_arg}"}}}})')
     return 0

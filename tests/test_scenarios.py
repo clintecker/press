@@ -44,6 +44,7 @@ def _all_ids(scenario_set: list[dict]) -> list[str]:
 # Pairwise correctness and determinism
 # --------------------------------------------------------------------------
 
+
 @pytest.mark.layer("unit")
 @pytest.mark.proof("positive")
 def test_pairwise_covers_every_pair():
@@ -56,7 +57,7 @@ def test_pairwise_covers_every_pair():
     need = {
         (ni, a, nj, b)
         for i, ni in enumerate(names)
-        for nj in names[i + 1:]
+        for nj in names[i + 1 :]
         for a in values[ni]
         for b in values[nj]
     }
@@ -64,7 +65,7 @@ def test_pairwise_covers_every_pair():
         (ni, c[ni], nj, c[nj])
         for c in combos
         for i, ni in enumerate(names)
-        for nj in names[i + 1:]
+        for nj in names[i + 1 :]
     }
     missing = need - covered
     assert not missing, f"pairs never covered: {sorted(missing)}"
@@ -131,6 +132,7 @@ def test_scenario_ids_are_stable_and_unique():
 # Gate: every surface dimension is covered present AND absent
 # --------------------------------------------------------------------------
 
+
 @pytest.mark.layer("unit")
 @pytest.mark.proof("positive")
 def test_every_surface_dimension_is_covered_present_and_absent():
@@ -145,18 +147,11 @@ def test_every_surface_dimension_is_covered_present_and_absent():
     for name, partition in surfaces.items():
         seen = {s["dimensions"][name] for s in scenario_set}
         present_seen = seen & set(partition["present"])
-        witnesses = {
-            s["id"]: s["dimensions"][name]
-            for s in scenario_set
-        }
+        witnesses = {s["id"]: s["dimensions"][name] for s in scenario_set}
         if partition["absent"] not in seen:
-            problems.append(
-                f"surface {name!r} is never absent across {sorted(witnesses)}"
-            )
+            problems.append(f"surface {name!r} is never absent across {sorted(witnesses)}")
         if not present_seen:
-            problems.append(
-                f"surface {name!r} is never present across {sorted(witnesses)}"
-            )
+            problems.append(f"surface {name!r} is never present across {sorted(witnesses)}")
     assert not problems, "\n".join(problems)
 
 
@@ -170,19 +165,17 @@ def test_surface_gate_reddens_when_a_surface_is_never_present():
     name, partition = next(iter(surfaces.items()))
     # A degenerate set that pins this surface absent everywhere.
     scenario_set = [
-        {"id": "forced-absent", "kind": "pairwise",
-         "dimensions": {name: partition["absent"]}},
+        {"id": "forced-absent", "kind": "pairwise", "dimensions": {name: partition["absent"]}},
     ]
     seen = {s["dimensions"][name] for s in scenario_set}
     present_seen = seen & set(partition["present"])
-    assert not present_seen, (
-        f"expected {name!r} to be pinned absent so the gate would fire"
-    )
+    assert not present_seen, f"expected {name!r} to be pinned absent so the gate would fire"
 
 
 # --------------------------------------------------------------------------
 # Gate: every declared high-risk interaction has a collected test
 # --------------------------------------------------------------------------
+
 
 @pytest.mark.layer("unit")
 @pytest.mark.proof("positive")
@@ -256,6 +249,7 @@ def test_root_mode_scenarios_isolate(tmp_path):
 # Building a scenario's declared surfaces through the factory
 # --------------------------------------------------------------------------
 
+
 def _expected_surfaces(dims: dict[str, str]) -> dict[str, bool]:
     """Which config surfaces the scenario's dimensions demand on disk."""
 
@@ -304,10 +298,15 @@ def _build(scenario: dict, tmp_path):
         )
 
     if dims.get("authorities") == "present":
-        factory.with_authorities([
-            {"claim": _CLAIM, "file": "book/chapters/00-opening.md",
-             "authority": "A Trade History (1900)"},
-        ])
+        factory.with_authorities(
+            [
+                {
+                    "claim": _CLAIM,
+                    "file": "book/chapters/00-opening.md",
+                    "authority": "A Trade History (1900)",
+                },
+            ]
+        )
     if dims.get("index") == "present":
         factory.with_index_terms([{"term": _TERM, "match": [_TERM]}])
     if dims.get("art") == "present":

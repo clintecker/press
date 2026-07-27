@@ -64,6 +64,5 @@ def test_rebuild_to_identical_bytes_is_current(tmp_path):
 
 def test_incomplete_when_some_outputs_missing(tmp_path):
     (tmp_path / "book-site.zip").write_bytes(b"zip")
-    state = artifact_status.artifact_state(
-        tmp_path, "book", ("site", "{slug}-site.zip"), {})
+    state = artifact_status.artifact_state(tmp_path, "book", ("site", "{slug}-site.zip"), {})
     assert state == State.INCOMPLETE

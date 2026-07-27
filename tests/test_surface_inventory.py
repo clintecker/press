@@ -6,7 +6,6 @@ list can rot; this suite proves the classification covers it and that
 the gate actually fails when it should.
 """
 
-
 from press import surfaces
 
 

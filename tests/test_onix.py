@@ -16,13 +16,26 @@ NS = "{http://ns.editeur.org/onix/3.0/reference}"
 
 def _book(**over) -> Book:
     base = dict(
-        root=None, title="The Analytical Engine", subtitle="Notes on the Engine",
-        authors=("Ada Lovelace",), date="First edition, 2026", year="2026",
-        copyright="2026", publisher="LGTM Publishing", publisher_place="London",
-        description="A book.", keywords=(), slug="analytical-engine",
-        repository="https://github.com/x/y", site_url="https://x.github.io/y",
-        trim_width=6.0, trim_height=9.0, sentinels=(), min_pages=1,
-        print_config={"binding": "perfect-bound"}, registrations={},
+        root=None,
+        title="The Analytical Engine",
+        subtitle="Notes on the Engine",
+        authors=("Ada Lovelace",),
+        date="First edition, 2026",
+        year="2026",
+        copyright="2026",
+        publisher="LGTM Publishing",
+        publisher_place="London",
+        description="A book.",
+        keywords=(),
+        slug="analytical-engine",
+        repository="https://github.com/x/y",
+        site_url="https://x.github.io/y",
+        trim_width=6.0,
+        trim_height=9.0,
+        sentinels=(),
+        min_pages=1,
+        print_config={"binding": "perfect-bound"},
+        registrations={},
     )
     base.update(over)
     return Book(**base)
@@ -36,9 +49,8 @@ def _parse(xml: str) -> ET.Element:
 def test_message_is_well_formed_and_namespaced():
     book = _book()
     editions = onix.editions_for(book, "9781234567897", None)
-    xml = onix.build(book, editions, lang="en-US", sent="20260101T0000",
-                     sender="LGTM Publishing")
-    root = _parse(xml)   # raises if malformed
+    xml = onix.build(book, editions, lang="en-US", sent="20260101T0000", sender="LGTM Publishing")
+    root = _parse(xml)  # raises if malformed
     assert root.tag == f"{NS}ONIXMessage"
     assert root.get("release") == "3.0"
     assert root.find(f"{NS}Header/{NS}Sender/{NS}SenderName").text == "LGTM Publishing"
@@ -116,15 +128,15 @@ def test_special_characters_are_escaped():
     book = _book(title="Ada & the <Engine>")
     editions = onix.editions_for(book, "9781234567897", None)
     root = _parse(onix.build(book, editions, lang="en", sent="20260101", sender="p"))
-    title = root.find(f"{NS}Product/{NS}DescriptiveDetail/{NS}TitleDetail/"
-                      f"{NS}TitleElement/{NS}TitleText")
-    assert title.text == "Ada & the <Engine>"   # parsed back intact -> was escaped
+    title = root.find(
+        f"{NS}Product/{NS}DescriptiveDetail/{NS}TitleDetail/{NS}TitleElement/{NS}TitleText"
+    )
+    assert title.text == "Ada & the <Engine>"  # parsed back intact -> was escaped
 
 
 @pytest.mark.layer("unit")
 def test_forthcoming_status():
     book = _book()
     editions = onix.editions_for(book, "9781234567897", None)
-    root = _parse(onix.build(book, editions, lang="en", sent="20260101",
-                             sender="p", status="02"))
+    root = _parse(onix.build(book, editions, lang="en", sent="20260101", sender="p", status="02"))
     assert root.find(f"{NS}Product/{NS}PublishingDetail/{NS}PublishingStatus").text == "02"

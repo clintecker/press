@@ -41,8 +41,12 @@ def test_http_transport_returns_status_body_headers_and_request(monkeypatch):
 
     monkeypatch.setattr(http.urllib.request, "urlopen", open_request)
     response = http.urlopen_transport(
-        "POST", "https://provider.test/jobs", headers={"X-Test": "yes"},
-        body=b"payload", timeout=7.5)
+        "POST",
+        "https://provider.test/jobs",
+        headers={"X-Test": "yes"},
+        body=b"payload",
+        timeout=7.5,
+    )
 
     assert response.status == 201
     assert response.body == b'{"ok": true}'
@@ -55,8 +59,12 @@ def test_http_transport_returns_status_body_headers_and_request(monkeypatch):
 
 def test_http_error_is_a_real_response_not_a_transport_failure(monkeypatch):
     error = urllib.error.HTTPError(
-        "https://provider.test/jobs", 422, "invalid", {"X-Error": "typed"},
-        io.BytesIO(b'{"detail": "invalid"}'))
+        "https://provider.test/jobs",
+        422,
+        "invalid",
+        {"X-Error": "typed"},
+        io.BytesIO(b'{"detail": "invalid"}'),
+    )
 
     def fail(*args, **kwargs):
         raise error
@@ -68,12 +76,14 @@ def test_http_error_is_a_real_response_not_a_transport_failure(monkeypatch):
     assert response.headers["X-Error"] == "typed"
 
 
-@pytest.mark.parametrize(("error", "translated"), [
-    (socket.timeout("response lost"), TransportTimeout),
-    (urllib.error.URLError("dns failed"), TransportError),
-])
-def test_network_failures_are_translated_to_typed_transport_signals(
-        error, translated, monkeypatch):
+@pytest.mark.parametrize(
+    ("error", "translated"),
+    [
+        (socket.timeout("response lost"), TransportTimeout),
+        (urllib.error.URLError("dns failed"), TransportError),
+    ],
+)
+def test_network_failures_are_translated_to_typed_transport_signals(error, translated, monkeypatch):
     def fail(*args, **kwargs):
         raise error
 
@@ -109,15 +119,13 @@ class _BoundedReply:
 
 
 def _serve(monkeypatch, reply):
-    monkeypatch.setattr(http.urllib.request, "urlopen",
-                        lambda request, *, timeout: reply)
+    monkeypatch.setattr(http.urllib.request, "urlopen", lambda request, *, timeout: reply)
 
 
 def test_max_bytes_bounds_the_read_itself(monkeypatch):
     reply = _BoundedReply()
     _serve(monkeypatch, reply)
-    response = http.urlopen_transport(
-        "GET", "https://provider.test/record", max_bytes=1024)
+    response = http.urlopen_transport("GET", "https://provider.test/record", max_bytes=1024)
     # One past the bound, so an overrun is detectable; never the whole body.
     assert reply.asked == [1025]
     assert len(response.body) == 1025
@@ -142,8 +150,9 @@ def test_an_error_body_is_bounded_too(monkeypatch):
     class _Error(urllib.error.HTTPError):
         def __init__(self):
             self.asked: list[int | None] = []
-            super().__init__("https://provider.test/x", 500, "boom",
-                             {"Content-Type": "text/plain"}, None)
+            super().__init__(
+                "https://provider.test/x", 500, "boom", {"Content-Type": "text/plain"}, None
+            )
 
         def read(self, amount=None):
             self.asked.append(amount)
@@ -155,8 +164,7 @@ def test_an_error_body_is_bounded_too(monkeypatch):
         raise error
 
     monkeypatch.setattr(http.urllib.request, "urlopen", raise_error)
-    response = http.urlopen_transport(
-        "GET", "https://provider.test/x", max_bytes=512)
+    response = http.urlopen_transport("GET", "https://provider.test/x", max_bytes=512)
     assert error.asked == [513]
     assert response.status == 500
     assert len(response.body) == 513

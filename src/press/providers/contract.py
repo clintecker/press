@@ -60,7 +60,7 @@ class Money:
 
     @classmethod
     def parse(cls, currency: str, amount: str | int | Decimal, *, exponent: int = 2) -> Money:
-        scaled = (Decimal(str(amount)) * (10 ** exponent)).to_integral_value()
+        scaled = (Decimal(str(amount)) * (10**exponent)).to_integral_value()
         return cls(currency.upper(), int(scaled))
 
     def __add__(self, other: Money) -> Money:
@@ -127,6 +127,7 @@ class ProviderOrder:
 
 
 # ---- outcomes: typed active signals, never exceptions for control flow ----
+
 
 @dataclass(frozen=True)
 class Accepted:

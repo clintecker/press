@@ -35,18 +35,24 @@ GEMINI_WORKHORSE = "gemini-3.1-flash-image"
 
 # (openai model, size, quality, transparent), (gemini model, aspect, imageSize)
 SHAPES = {
-    "cover": ((OPENAI_FLAGSHIP, "2304x3456", "high", False),
-              (GEMINI_FLAGSHIP, "2:3", "4K")),
-    "portrait-plate": ((OPENAI_FLAGSHIP, "2304x3456", "high", False),
-                       (GEMINI_WORKHORSE, "2:3", "2K")),
-    "landscape-plate": ((OPENAI_FLAGSHIP, "3456x2304", "high", False),
-                        (GEMINI_WORKHORSE, "3:2", "2K")),
-    "square-plate": ((OPENAI_FLAGSHIP, "2048x2048", "high", False),
-                     (GEMINI_WORKHORSE, "1:1", "2K")),
-    "logomark": ((OPENAI_TRANSPARENT, "1024x1024", "high", True),
-                 (GEMINI_WORKHORSE, "1:1", "1K")),
-    "author-portrait": ((OPENAI_FLAGSHIP, "2304x3456", "high", False),
-                        (GEMINI_WORKHORSE, "2:3", "2K")),
+    "cover": ((OPENAI_FLAGSHIP, "2304x3456", "high", False), (GEMINI_FLAGSHIP, "2:3", "4K")),
+    "portrait-plate": (
+        (OPENAI_FLAGSHIP, "2304x3456", "high", False),
+        (GEMINI_WORKHORSE, "2:3", "2K"),
+    ),
+    "landscape-plate": (
+        (OPENAI_FLAGSHIP, "3456x2304", "high", False),
+        (GEMINI_WORKHORSE, "3:2", "2K"),
+    ),
+    "square-plate": (
+        (OPENAI_FLAGSHIP, "2048x2048", "high", False),
+        (GEMINI_WORKHORSE, "1:1", "2K"),
+    ),
+    "logomark": ((OPENAI_TRANSPARENT, "1024x1024", "high", True), (GEMINI_WORKHORSE, "1:1", "1K")),
+    "author-portrait": (
+        (OPENAI_FLAGSHIP, "2304x3456", "high", False),
+        (GEMINI_WORKHORSE, "2:3", "2K"),
+    ),
 }
 
 
@@ -72,9 +78,7 @@ def parse_commissions(path: Path) -> dict[str, str]:
     """target -> prompt, from the workflow's commissions.md structure."""
 
     if not path.is_file():
-        raise SystemExit(
-            f"no {path.name}; run the art-direction workflow first"
-        )
+        raise SystemExit(f"no {path.name}; run the art-direction workflow first")
     text = path.read_text(encoding="utf-8")
     prompts: dict[str, str] = {}
     section = None
@@ -124,24 +128,21 @@ def key_for(model: str) -> str:
     return value
 
 
-def generate_openai(prompt: str, spec: tuple, count: int,
-                    references: list[tuple[bytes, str]] | None = None) -> list[bytes]:
+def generate_openai(
+    prompt: str, spec: tuple, count: int, references: list[tuple[bytes, str]] | None = None
+) -> list[bytes]:
     model, size, quality, transparent = spec
     headers = {"Authorization": f"Bearer {key_for('openai')}"}
     if not references:
-        payload = {"model": model, "prompt": prompt, "size": size,
-                   "quality": quality, "n": count}
+        payload = {"model": model, "prompt": prompt, "size": size, "quality": quality, "n": count}
         if transparent:
             payload["background"] = "transparent"
-        body = post_json(
-            "https://api.openai.com/v1/images/generations", payload, headers
-        )
+        body = post_json("https://api.openai.com/v1/images/generations", payload, headers)
         return [base64.b64decode(item["b64_json"]) for item in body.get("data", [])]
 
     # Reference-image work goes through images/edits, a multipart form.
     boundary = "pressart" + base64.urlsafe_b64encode(references[0][0][:9]).decode().strip("=")
-    fields = {"model": model, "prompt": prompt, "size": size,
-              "quality": quality, "n": str(count)}
+    fields = {"model": model, "prompt": prompt, "size": size, "quality": quality, "n": str(count)}
     parts = []
     for name, value in fields.items():
         parts.append(
@@ -152,42 +153,49 @@ def generate_openai(prompt: str, spec: tuple, count: int,
         parts.append(
             f"--{boundary}\r\nContent-Disposition: form-data; "
             f'name="image[]"; filename="ref{index}.{mime.split("/")[1]}"\r\n'
-            f"Content-Type: {mime}\r\n\r\n".encode() + blob + b"\r\n"
+            f"Content-Type: {mime}\r\n\r\n".encode()
+            + blob
+            + b"\r\n"
         )
     parts.append(f"--{boundary}--\r\n".encode())
     try:
         body = adapters.image_client.post_multipart(
             "https://api.openai.com/v1/images/edits",
             b"".join(parts),
-            {**headers,
-             "Content-Type": f"multipart/form-data; boundary={boundary}"},
+            {**headers, "Content-Type": f"multipart/form-data; boundary={boundary}"},
         )
     except adapters.HttpError as exc:
         raise SystemExit(f"api.openai.com refused ({exc.code}): {exc.detail}")
     return [base64.b64decode(item["b64_json"]) for item in body.get("data", [])]
 
 
-def generate_gemini(prompt: str, spec: tuple, count: int,
-                    references: list[tuple[bytes, str]] | None = None) -> list[bytes]:
+def generate_gemini(
+    prompt: str, spec: tuple, count: int, references: list[tuple[bytes, str]] | None = None
+) -> list[bytes]:
     # The Imagen predict endpoint is closed to new API users; the Gemini
     # image models answer generateContent with inline image parts.
     model, aspect, image_size = spec
     parts: list[dict] = [{"text": prompt}]
     for blob, mime in references or []:
-        parts.append({"inlineData": {
-            "mimeType": mime,
-            "data": base64.b64encode(blob).decode("ascii"),
-        }})
+        parts.append(
+            {
+                "inlineData": {
+                    "mimeType": mime,
+                    "data": base64.b64encode(blob).decode("ascii"),
+                }
+            }
+        )
     images: list[bytes] = []
     for _ in range(count):
         body = post_json(
-            "https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{model}:generateContent",
-            {"contents": [{"parts": parts}],
-             "generationConfig": {
-                 "responseModalities": ["TEXT", "IMAGE"],
-                 "imageConfig": {"aspectRatio": aspect, "imageSize": image_size},
-             }},
+            f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+            {
+                "contents": [{"parts": parts}],
+                "generationConfig": {
+                    "responseModalities": ["TEXT", "IMAGE"],
+                    "imageConfig": {"aspectRatio": aspect, "imageSize": image_size},
+                },
+            },
             {"x-goog-api-key": key_for("gemini")},
         )
         found = len(images)
@@ -200,7 +208,9 @@ def generate_gemini(prompt: str, spec: tuple, count: int,
             # A refusal explains itself in text or finishReason; relay it.
             for candidate in body.get("candidates", []):
                 reason = candidate.get("finishReason", "")
-                texts = [p.get("text", "") for p in (candidate.get("content") or {}).get("parts", [])]
+                texts = [
+                    p.get("text", "") for p in (candidate.get("content") or {}).get("parts", [])
+                ]
                 note = " ".join(t for t in texts if t)[:300]
                 print(f"    gemini returned no image ({reason}): {note or 'no explanation'}")
     return images
@@ -219,8 +229,7 @@ def author_photo(root: Path) -> tuple[bytes, str] | None:
             data = path.read_bytes()
             if not data:
                 raise SystemExit(
-                    f"{path} is empty (an interrupted copy?); "
-                    "re-save the photograph and rerun"
+                    f"{path} is empty (an interrupted copy?); re-save the photograph and rerun"
                 )
             return normalize_reference(data, path), "image/jpeg"
     return None
@@ -237,8 +246,7 @@ def normalize_reference(data: bytes, path: Path) -> bytes:
     from PIL import Image, ImageOps
 
     image: Image.Image = Image.open(io.BytesIO(data))
-    if (len(data) <= 4_000_000 and max(image.size) <= 2048
-            and image.format == "JPEG"):
+    if len(data) <= 4_000_000 and max(image.size) <= 2048 and image.format == "JPEG":
         # Small and already the format its mime label claims.
         return data
     image = Image.open(io.BytesIO(data))
@@ -267,10 +275,7 @@ def style_references(root: Path, target: str) -> list[tuple[bytes, str]]:
     if not target.startswith("plate:"):
         return []
     own = target.split(":", 1)[1]
-    plates = [
-        p for p in booklib.plate_files(root / "assets" / "woodcuts")
-        if p.stem != own
-    ][:2]
+    plates = [p for p in booklib.plate_files(root / "assets" / "woodcuts") if p.stem != own][:2]
     mime = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}
     return [
         (normalize_reference(p.read_bytes(), p), mime.get(p.suffix.lower(), "image/png"))
@@ -290,16 +295,15 @@ LIKENESS_PREAMBLE = (
 )
 
 
-def commission(targets: list[str], models: list[str], count: int,
-               photo_path: str | None = None) -> int:
+def commission(
+    targets: list[str], models: list[str], count: int, photo_path: str | None = None
+) -> int:
     root = booklib.root()
     prompts = parse_commissions(root / "art" / "commissions.md")
     chosen = {t: p for t, p in prompts.items() if not targets or t in targets}
     unknown = [t for t in targets if t not in prompts]
     if unknown:
-        raise SystemExit(
-            f"no commission for {', '.join(unknown)}; have: {', '.join(prompts)}"
-        )
+        raise SystemExit(f"no commission for {', '.join(unknown)}; have: {', '.join(prompts)}")
     plan = ", ".join(f"{t} -> {'+'.join(models)}" for t in chosen)
     print(f"submitting {len(chosen)} commissions ({count} image(s) each): {plan}")
 
@@ -309,8 +313,10 @@ def commission(targets: list[str], models: list[str], count: int,
             chosen_photo = root / chosen_photo
         if not chosen_photo.is_file():
             raise SystemExit(f"no such photograph: {chosen_photo}")
-        photo: tuple[bytes, str] | None = (normalize_reference(chosen_photo.read_bytes(), chosen_photo),
-                 "image/jpeg")
+        photo: tuple[bytes, str] | None = (
+            normalize_reference(chosen_photo.read_bytes(), chosen_photo),
+            "image/jpeg",
+        )
     else:
         photo = author_photo(root)
     saved = 0
@@ -343,7 +349,7 @@ def commission(targets: list[str], models: list[str], count: int,
                     index += 1
                 out = directory / f"{model}-{index}.png"
                 out.write_bytes(blob)
-                print(f"  {target} <- {model}: {out.relative_to(root)} ({len(blob)//1024}kB)")
+                print(f"  {target} <- {model}: {out.relative_to(root)} ({len(blob) // 1024}kB)")
                 saved += 1
     if saved == 0:
         raise SystemExit("no images were produced")
@@ -358,14 +364,21 @@ def main(argv: list[str]) -> int:
     import argparse
 
     parser = argparse.ArgumentParser(prog="press art commission")
-    parser.add_argument("targets", nargs="*",
-                        help="cover, plate:<name>, logomark, portrait; default all")
-    parser.add_argument("--model", action="append", choices=["openai", "gemini"],
-                        dest="models", help="repeatable; default both")
-    parser.add_argument("--count", type=int, default=1,
-                        help="images per target per model (default 1)")
-    parser.add_argument("--photo", default=None,
-                        help="portrait reference photograph (default art/author-photo.*)")
+    parser.add_argument(
+        "targets", nargs="*", help="cover, plate:<name>, logomark, portrait; default all"
+    )
+    parser.add_argument(
+        "--model",
+        action="append",
+        choices=["openai", "gemini"],
+        dest="models",
+        help="repeatable; default both",
+    )
+    parser.add_argument(
+        "--count", type=int, default=1, help="images per target per model (default 1)"
+    )
+    parser.add_argument(
+        "--photo", default=None, help="portrait reference photograph (default art/author-photo.*)"
+    )
     args = parser.parse_args(argv)
-    return commission(args.targets, args.models or ["openai", "gemini"],
-                      args.count, args.photo)
+    return commission(args.targets, args.models or ["openai", "gemini"], args.count, args.photo)

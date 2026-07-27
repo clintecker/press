@@ -114,9 +114,7 @@ class DoctorReport:
 def tool_runs(tool: str) -> bool:
     try:
         for flag in ("--version", "-v"):
-            if adapters.process_runner.run(
-                [tool, flag], capture=True, timeout=15
-            ).returncode == 0:
+            if adapters.process_runner.run([tool, flag], capture=True, timeout=15).returncode == 0:
                 return True
     except (OSError, subprocess.TimeoutExpired):
         return False
@@ -236,9 +234,7 @@ def examine(
             )
         )
     else:
-        findings.append(
-            Finding("python-deps", "deps", "missing", deps_error, True)
-        )
+        findings.append(Finding("python-deps", "deps", "missing", deps_error, True))
 
     return DoctorReport(tuple(findings))
 

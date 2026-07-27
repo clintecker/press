@@ -110,16 +110,28 @@ def _dispatch(ns: argparse.Namespace, root: Path) -> int:
 
 # ---- list ------------------------------------------------------------
 
+
 def _list(ns: argparse.Namespace) -> int:
     fields = [f for f in schema.REGISTRY if ns.file in (None, f.file)]
     if ns.json:
-        print(json.dumps([
-            {"path": f.path, "file": f.file, "kind": f.kind,
-             "type": f.type if f.writable else None, "help": f.help,
-             "required": f.required, "choices": list(f.choices) or None,
-             "manager": f.manager or None}
-            for f in fields
-        ], indent=2))
+        print(
+            json.dumps(
+                [
+                    {
+                        "path": f.path,
+                        "file": f.file,
+                        "kind": f.kind,
+                        "type": f.type if f.writable else None,
+                        "help": f.help,
+                        "required": f.required,
+                        "choices": list(f.choices) or None,
+                        "manager": f.manager or None,
+                    }
+                    for f in fields
+                ],
+                indent=2,
+            )
+        )
         return EXIT_OK
     width = max((len(f.path) for f in fields), default=0)
     for f in fields:
@@ -133,14 +145,16 @@ def _list(ns: argparse.Namespace) -> int:
 
 # ---- get -------------------------------------------------------------
 
+
 def _get(ns: argparse.Namespace, root: Path) -> int:
     field = schema.field_for(ns.path)
     if field is None:
-        raise _Refusal(f"unknown field {ns.path!r}; see `press config list`",
-                       EXIT_UNKNOWN_FIELD)
+        raise _Refusal(f"unknown field {ns.path!r}; see `press config list`", EXIT_UNKNOWN_FIELD)
     if not field.file or field.whole_file:
-        raise _Refusal(f"{ns.path} is a {field.kind} area, not a single key; "
-                       f"{field.manager}", EXIT_UNKNOWN_FIELD)
+        raise _Refusal(
+            f"{ns.path} is a {field.kind} area, not a single key; {field.manager}",
+            EXIT_UNKNOWN_FIELD,
+        )
     data = store.load(root / field.file)
     try:
         value = store.get_path(data, ns.path)
@@ -154,6 +168,7 @@ def _get(ns: argparse.Namespace, root: Path) -> int:
 
 
 # ---- the reusable edit boundary (shared by the CLI and the desk wizard) --
+
 
 @dataclass(frozen=True)
 class Preview:
@@ -211,6 +226,7 @@ def commit(preview: Preview) -> None:
 
 # ---- set -------------------------------------------------------------
 
+
 def _set(ns: argparse.Namespace, root: Path) -> int:
     field = _writable_or_refuse(ns.path)
     value = check_value(field, ns.value, as_json=ns.json)
@@ -234,6 +250,7 @@ def _set(ns: argparse.Namespace, root: Path) -> int:
 
 # ---- unset -----------------------------------------------------------
 
+
 def _unset(ns: argparse.Namespace, root: Path) -> int:
     field = _writable_or_refuse(ns.path)
     if field.required:
@@ -254,6 +271,7 @@ def _unset(ns: argparse.Namespace, root: Path) -> int:
 
 # ---- validate --------------------------------------------------------
 
+
 def _validate(ns: argparse.Namespace, root: Path) -> int:
     report: dict[str, list[str]] = {}
     for file in schema.FILE_VALIDATORS:
@@ -273,15 +291,14 @@ def _validate(ns: argparse.Namespace, root: Path) -> int:
 
 # ---- helpers ---------------------------------------------------------
 
+
 def _writable_or_refuse(path: str) -> schema.Field:
     field = schema.field_for(path)
     if field is None:
-        raise _Refusal(f"unknown field {path!r}; see `press config list`",
-                       EXIT_UNKNOWN_FIELD)
+        raise _Refusal(f"unknown field {path!r}; see `press config list`", EXIT_UNKNOWN_FIELD)
     if not field.writable:
         why = field.manager or f"it is {field.kind}"
-        raise _Refusal(f"{path} is not writable through `press config`: {why}",
-                       EXIT_UNKNOWN_FIELD)
+        raise _Refusal(f"{path} is not writable through `press config`: {why}", EXIT_UNKNOWN_FIELD)
     return field
 
 
@@ -293,7 +310,9 @@ def _refuse_secret(field: schema.Field, value) -> None:
         raise _Refusal(
             f"refusing to write {field.path}: the value looks like a secret. "
             "A book's config holds no credential; keep it in your environment "
-            "or the provider's dashboard.", EXIT_REFUSED)
+            "or the provider's dashboard.",
+            EXIT_REFUSED,
+        )
 
 
 def is_secretish(value) -> bool:
@@ -316,8 +335,7 @@ def _has_secret_leaf(value) -> bool:
 
 def _refuse_bad_shape(field: schema.Field, value) -> None:
     if field.choices and value not in field.choices:
-        raise _Refusal(
-            f"{field.path} must be one of {', '.join(field.choices)}", EXIT_REFUSED)
+        raise _Refusal(f"{field.path} must be one of {', '.join(field.choices)}", EXIT_REFUSED)
     if field.https and isinstance(value, str) and not value.startswith("https://"):
         raise _Refusal(f"{field.path} must be an https URL", EXIT_REFUSED)
 
@@ -341,9 +359,14 @@ def _commit(path: Path, before, after, dry_run: bool) -> int:
 def _diff(before: str, after: str, name: str) -> str:
     import difflib
 
-    lines = list(difflib.unified_diff(
-        before.splitlines(keepends=True), after.splitlines(keepends=True),
-        fromfile=f"a/{name}", tofile=f"b/{name}"))
+    lines = list(
+        difflib.unified_diff(
+            before.splitlines(keepends=True),
+            after.splitlines(keepends=True),
+            fromfile=f"a/{name}",
+            tofile=f"b/{name}",
+        )
+    )
     return "".join(lines)
 
 

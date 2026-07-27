@@ -51,10 +51,12 @@ def generate() -> Path | None:
     # diagnostic that names the file (#207). check_source runs the same guard,
     # but a direct `press pdf` reaches this generator with no check in front.
     from . import config_schema
+
     config_schema.enforce_file(root, config_schema.INDEX_TERMS, entries)
 
     # The index takes the first free appendix letter.
     from .gen_authorities import next_letter, taken_letters
+
     letter = next_letter(taken_letters())
     output = root / "build" / "generated" / f"{letter}-index-of-subjects.md"
 
@@ -75,21 +77,16 @@ def generate() -> Path | None:
     silent: list[str] = []
     for entry in sorted(entries, key=lambda item: item["term"].lower()):
         patterns = [
-            re.compile(rf"(?<![\w-]){re.escape(alt.lower())}(?![\w-])")
-            for alt in entry["match"]
+            re.compile(rf"(?<![\w-]){re.escape(alt.lower())}(?![\w-])") for alt in entry["match"]
         ]
         hits = [
-            label
-            for label, text in sources
-            if any(pattern.search(text) for pattern in patterns)
+            label for label, text in sources if any(pattern.search(text) for pattern in patterns)
         ]
         if hits:
             # print_safe strips backslashes: pandoc's markdown reader
             # passes raw TeX through, and a curated data file must not
             # be a \input path into the engine.
-            lines.append(
-                f"**{gen_authorities.print_safe(entry['term'])}** · {', '.join(hits)}"
-            )
+            lines.append(f"**{gen_authorities.print_safe(entry['term'])}** · {', '.join(hits)}")
             lines.append("")
         else:
             silent.append(entry["term"])

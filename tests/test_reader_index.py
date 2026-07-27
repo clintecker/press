@@ -14,8 +14,7 @@ import pytest
 
 pytestmark = [
     pytest.mark.layer("integration"),
-    pytest.mark.skipif(shutil.which("pandoc") is None,
-                       reason="requires capability: pandoc"),
+    pytest.mark.skipif(shutil.which("pandoc") is None, reason="requires capability: pandoc"),
 ]
 
 
@@ -27,11 +26,14 @@ def _main(html: str) -> str:
 def test_reader_index_starts_the_reader(scaffolded_book):
     chapters = scaffolded_book / "book" / "chapters"
     (chapters / "01-first.md").write_text(
-        "# First part {.unnumbered}\n\nProse of the first part.\n", encoding="utf-8")
+        "# First part {.unnumbered}\n\nProse of the first part.\n", encoding="utf-8"
+    )
     (chapters / "02-second.md").write_text(
-        "# Second part {.unnumbered}\n\nProse of the second part.\n", encoding="utf-8")
+        "# Second part {.unnumbered}\n\nProse of the second part.\n", encoding="utf-8"
+    )
 
     from press import build
+
     build.build_target("site")
     site = scaffolded_book / "dist" / "site"
 
@@ -48,17 +50,21 @@ def test_reader_index_starts_the_reader(scaffolded_book):
     assert index.count("<h1") == 1
 
     # A chapter page keeps its own body and gets no start-reading block.
-    chapter = next(p for p in site.glob("*.html")
-                   if p.name != "index.html" and "start-reading" not in _main(
-                       p.read_text(encoding="utf-8")))
+    chapter = next(
+        p
+        for p in site.glob("*.html")
+        if p.name != "index.html" and "start-reading" not in _main(p.read_text(encoding="utf-8"))
+    )
     assert chapter, "no chapter page without a start-reading block"
 
 
 def test_a_single_part_book_still_starts_cleanly(scaffolded_book):
     # Only the scaffolded preface: the index still orients and offers a start.
     from press import build
+
     build.build_target("site")
-    index_main = _main((scaffolded_book / "dist" / "site" / "index.html")
-                       .read_text(encoding="utf-8"))
+    index_main = _main(
+        (scaffolded_book / "dist" / "site" / "index.html").read_text(encoding="utf-8")
+    )
     assert "reader-lede" in index_main
     assert 'class="start-reading"' in index_main

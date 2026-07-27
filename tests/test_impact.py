@@ -60,7 +60,6 @@ def test_changed_modules_filters_to_press_python(monkeypatch):
     class R:
         stdout = b"src/press/verify_pdf.py\ntests/test_x.py\nsrc/press/desk/app.py\nREADME.md\n"
 
-    monkeypatch.setattr(impact.adapters.process_runner, "run",
-                        lambda *a, **k: R())
+    monkeypatch.setattr(impact.adapters.process_runner, "run", lambda *a, **k: R())
     stems = impact.changed_modules("origin/main")
     assert stems == ["verify_pdf"]  # tests/, subpackages, and docs excluded

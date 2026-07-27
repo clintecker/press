@@ -54,8 +54,9 @@ def load_styles(book_dir: Path | None = None) -> dict[str, dict]:
 
 
 def _initials(imprint: str) -> str:
-    return "".join(w[0] for w in imprint.split()
-                   if w[:1].isalpha() and w.lower() not in _SKIP_WORDS)[:3].upper()
+    return "".join(
+        w[0] for w in imprint.split() if w[:1].isalpha() and w.lower() not in _SKIP_WORDS
+    )[:3].upper()
 
 
 def build_prompt(style: dict, ctx: dict[str, str]) -> str:
@@ -117,8 +118,7 @@ def _generate(prompt: str, dest: Path) -> None:
     dest.write_bytes(images[0])
 
 
-def _resolve_style(styles: dict[str, dict], chosen: str | None,
-                   aes: dict) -> str:
+def _resolve_style(styles: dict[str, dict], chosen: str | None, aes: dict) -> str:
     style_id = chosen or (aes.get("cover") or {}).get("style") or "penguin-tri-band"
     if style_id not in styles:
         known = ", ".join(sorted(styles))

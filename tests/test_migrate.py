@@ -44,8 +44,7 @@ def test_absent_pin_is_diagnosed_not_crashed(tmp_path):
 
 @pytest.mark.layer("unit")
 def test_split_pin_is_refused(tmp_path):
-    book = _book(tmp_path, REQ_V1,
-                 "    uses: clintecker/press/.github/workflows/build.yml@v2\n")
+    book = _book(tmp_path, REQ_V1, "    uses: clintecker/press/.github/workflows/build.yml@v2\n")
     diagnosis = migrate.diagnose(book)
     assert diagnosis.from_major is None
     assert any("more than one major" in p for p in diagnosis.problems)

@@ -28,8 +28,9 @@ _PAGE_COUNT = 10
 _W, _H = 240, 360
 
 
-def _write(tmp_path: Path, index: int, left: int, right: int,
-           *, fill: tuple[int, int, int] = (10, 10, 10)) -> Path:
+def _write(
+    tmp_path: Path, index: int, left: int, right: int, *, fill: tuple[int, int, int] = (10, 10, 10)
+) -> Path:
     """A page whose only ink is one filled block between x=left and x=right."""
 
     img = Image.new("RGB", (_W, _H), (255, 255, 255))
@@ -90,8 +91,7 @@ def test_a_gutter_on_the_wrong_side_is_rejected(tmp_path):
 def test_a_black_interior_passes(tmp_path):
     # Grayscale ink only (r == g == b everywhere): the print interior is clean.
     pages = [
-        _write(tmp_path, i, 40, 200, fill=(v, v, v))
-        for i, v in enumerate((0, 30, 90), start=1)
+        _write(tmp_path, i, 40, 200, fill=(v, v, v)) for i, v in enumerate((0, 30, 90), start=1)
     ]
     assert verify_pdf.verify_black_ink(pages) is None
 

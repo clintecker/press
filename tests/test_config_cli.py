@@ -25,6 +25,7 @@ def _meta_bytes(book):
 
 # ---- get / list ------------------------------------------------------
 
+
 def test_preview_and_commit_are_the_shared_edit_boundary(scaffolded_book):
     from press import config_cli, config_schema as schema
 
@@ -88,6 +89,7 @@ def test_list_names_paths_and_parses_as_json(scaffolded_book, capsys):
 
 # ---- set: the happy path --------------------------------------------
 
+
 def test_set_then_get_round_trips_and_preserves_comments(scaffolded_book, capsys):
     before = (scaffolded_book / "config" / "metadata.yaml").read_text()
     assert "# Press facts" in before  # the template's guidance comments
@@ -96,7 +98,7 @@ def test_set_then_get_round_trips_and_preserves_comments(scaffolded_book, capsys
     assert cli.main(["config", "get", "subtitle"]) == cli.EXIT_OK
     assert capsys.readouterr().out.strip() == "A New Subtitle"
     after = (scaffolded_book / "config" / "metadata.yaml").read_text()
-    assert "# Press facts" in after           # comments survived the write
+    assert "# Press facts" in after  # comments survived the write
     assert "A New Subtitle" in after
 
 
@@ -111,14 +113,14 @@ def test_dry_run_shows_a_diff_but_writes_nothing(scaffolded_book, capsys):
 def test_a_list_field_takes_json_and_a_bare_string_is_refused(scaffolded_book, capsys):
     assert cli.main(["config", "set", "keywords", "a,b"]) == cli.EXIT_REFUSED
     assert "--json" in capsys.readouterr().out
-    assert cli.main(
-        ["config", "set", "keywords", '["essays", "press"]', "--json"]) == cli.EXIT_OK
+    assert cli.main(["config", "set", "keywords", '["essays", "press"]', "--json"]) == cli.EXIT_OK
     capsys.readouterr()
     cli.main(["config", "get", "keywords", "--json"])
     assert json.loads(capsys.readouterr().out) == ["essays", "press"]
 
 
 # ---- set: refusals leave every byte unchanged ------------------------
+
 
 def test_an_out_of_range_enum_is_refused_and_changes_nothing(scaffolded_book, capsys):
     before = _meta_bytes(scaffolded_book)
@@ -129,9 +131,12 @@ def test_an_out_of_range_enum_is_refused_and_changes_nothing(scaffolded_book, ca
 
 def test_a_non_https_url_is_refused(scaffolded_book):
     before = _meta_bytes(scaffolded_book)
-    assert cli.main(
-        ["config", "set", "commerce.print-ordering.storefront-url",
-         "http://insecure.test"]) == cli.EXIT_REFUSED
+    assert (
+        cli.main(
+            ["config", "set", "commerce.print-ordering.storefront-url", "http://insecure.test"]
+        )
+        == cli.EXIT_REFUSED
+    )
     assert _meta_bytes(scaffolded_book) == before
 
 
@@ -153,30 +158,32 @@ def test_a_bad_type_value_that_looks_secret_is_not_echoed(scaffolded_book, capsy
     secret = "api_key=sk-abcdefghijklmnop0123456789"
     # retail is a bool field; the value fails coercion, but the secret scan
     # runs on the raw input first, so the value is never printed.
-    assert cli.main(
-        ["config", "set", "registrations.retail", secret]) == cli.EXIT_REFUSED
+    assert cli.main(["config", "set", "registrations.retail", secret]) == cli.EXIT_REFUSED
     assert secret not in capsys.readouterr().out
 
 
 def test_a_secret_value_is_refused_and_never_echoed(scaffolded_book, capsys):
     before = _meta_bytes(scaffolded_book)
     secret = "sk-abcdefghijklmnop0123456789"
-    assert cli.main(
-        ["config", "set", "commerce.print-ordering.seller-of-record", secret]
-    ) == cli.EXIT_REFUSED
+    assert (
+        cli.main(["config", "set", "commerce.print-ordering.seller-of-record", secret])
+        == cli.EXIT_REFUSED
+    )
     out = capsys.readouterr().out
     assert "looks like a secret" in out
-    assert secret not in out                       # the value is not printed back
+    assert secret not in out  # the value is not printed back
     assert _meta_bytes(scaffolded_book) == before
 
 
 def test_a_secret_inside_a_json_collection_is_also_refused(scaffolded_book):
-    before = (scaffolded_book / "config" / "aesthetic.yaml")
+    before = scaffolded_book / "config" / "aesthetic.yaml"
     original = before.read_text() if before.is_file() else None
-    assert cli.main(
-        ["config", "set", "web-palette",
-         '{"cloth": "sk-abcdefghijklmnop0123456789"}', "--json"]
-    ) == cli.EXIT_REFUSED
+    assert (
+        cli.main(
+            ["config", "set", "web-palette", '{"cloth": "sk-abcdefghijklmnop0123456789"}', "--json"]
+        )
+        == cli.EXIT_REFUSED
+    )
     now = before.read_text() if before.is_file() else None
     assert now == original  # nothing written
 
@@ -197,11 +204,11 @@ def test_setting_a_non_writable_field_is_refused(scaffolded_book, capsys):
 
 def test_hostile_path_shapes_are_refused(scaffolded_book):
     for bad in ["title.", ".title", "a..b"]:
-        assert cli.main(["config", "set", bad, "x"]) in (
-            cli.EXIT_UNKNOWN_FIELD, cli.EXIT_REFUSED)
+        assert cli.main(["config", "set", bad, "x"]) in (cli.EXIT_UNKNOWN_FIELD, cli.EXIT_REFUSED)
 
 
 # ---- unset -----------------------------------------------------------
+
 
 def test_unset_removes_an_optional_field(scaffolded_book, capsys):
     cli.main(["config", "set", "motto", "festina lente"])
@@ -219,6 +226,7 @@ def test_unset_of_a_required_field_is_refused(scaffolded_book, capsys):
 
 # ---- validate --------------------------------------------------------
 
+
 def test_validate_passes_a_fresh_book(scaffolded_book, capsys):
     assert cli.main(["config", "validate"]) == cli.EXIT_OK
     assert "metadata.yaml: ok" in capsys.readouterr().out
@@ -234,6 +242,7 @@ def test_validate_reports_a_hand_broken_file(scaffolded_book, capsys):
 
 
 # ---- the acceptance flow: stand up ordering with no hand-editing -----
+
 
 def test_seller_of_record_ordering_is_configured_entirely_by_cli(scaffolded_book, capsys):
     # Fill the block while it is still disabled (each step stays valid),
@@ -252,15 +261,18 @@ def test_seller_of_record_ordering_is_configured_entirely_by_cli(scaffolded_book
 
 
 def test_enabling_an_incomplete_ordering_block_is_refused_with_the_missing_fields(
-    scaffolded_book, capsys):
+    scaffolded_book, capsys
+):
     before = _meta_bytes(scaffolded_book)
-    assert cli.main(
-        ["config", "set", "commerce.print-ordering.enabled", "true", "--json"]
-    ) == cli.EXIT_REFUSED
+    assert (
+        cli.main(["config", "set", "commerce.print-ordering.enabled", "true", "--json"])
+        == cli.EXIT_REFUSED
+    )
     out = capsys.readouterr().out
     assert "storefront-url" in out and "seller-of-record" in out
     assert _meta_bytes(scaffolded_book) == before
     # And the real commerce validator agrees the block is complete.
     from press import commerce
+
     meta = store.load(scaffolded_book / "config" / "metadata.yaml")
     assert commerce.validate(commerce.load(dict(meta))) == []

@@ -79,14 +79,24 @@ def test_figures_are_returned_in_source_order():
 def test_as_dict_carries_the_art_direction_for_a_workflow():
     (fig,) = figures.parse(
         "![A label](assets/fig/x.jpg){.plate style=wood-engraving}\n"
-        "<!-- art: the described scene -->\n")
+        "<!-- art: the described scene -->\n"
+    )
     d = figures.as_dict(fig)
     assert d == {
-        "src": "assets/fig/x.jpg", "caption": "A label", "kind": "plate",
-        "style": "wood-engraving", "directive": "art",
-        "description": "the described scene", "generatable": True,
-        "identifier": None, "width": None, "place": None, "outset": None,
-        "alt": None, "decorative": False, "numbered": False,
+        "src": "assets/fig/x.jpg",
+        "caption": "A label",
+        "kind": "plate",
+        "style": "wood-engraving",
+        "directive": "art",
+        "description": "the described scene",
+        "generatable": True,
+        "identifier": None,
+        "width": None,
+        "place": None,
+        "outset": None,
+        "alt": None,
+        "decorative": False,
+        "numbered": False,
     }
 
 
@@ -94,7 +104,7 @@ def test_as_dict_carries_the_art_direction_for_a_workflow():
 def test_placement_vocabulary_rides_on_the_image_attributes():
     (fig,) = figures.parse(
         "![The press at work](assets/fig/press.jpg){#fig:press .figure "
-        'width=half-measure place=wrap-outer outset=1em '
+        "width=half-measure place=wrap-outer outset=1em "
         'fig-alt="A hand press, the platen raised"}\n'
     )
     assert fig.identifier == "fig:press"
@@ -104,7 +114,7 @@ def test_placement_vocabulary_rides_on_the_image_attributes():
     assert fig.outset == "1em"
     assert fig.alt == "A hand press, the platen raised"
     assert fig.decorative is False
-    assert fig.numbered is True   # an explicit informative kind is numbered
+    assert fig.numbered is True  # an explicit informative kind is numbered
 
 
 @pytest.mark.layer("unit")
@@ -112,9 +122,7 @@ def test_a_bare_image_and_a_plate_are_never_numbered():
     # Byte-identity's guarantee: a book that declares no numbered figure gets
     # none. A bare image defaults to kind "figure" but is not DECLARED, and a
     # plate is the unnumbered woodcut idiom.
-    bare, plate = figures.parse(
-        "![One](a.png)\n\n![Two](b.png){.plate}\n"
-    )
+    bare, plate = figures.parse("![One](a.png)\n\n![Two](b.png){.plate}\n")
     assert bare.kind == "figure" and bare.kind_declared is False
     assert bare.numbered is False
     assert plate.kind == "plate" and plate.numbered is False
@@ -145,24 +153,25 @@ def test_validate_refuses_left_right_absolute_and_bad_outset():
     left = figures.validate(figures.parse("![A](a.png){.figure place=left}\n"))
     assert left and "parity-aware" in left[0]
 
-    unknown = figures.validate(
-        figures.parse("![A](a.png){.figure place=floating}\n"))
+    unknown = figures.validate(figures.parse("![A](a.png){.figure place=floating}\n"))
     assert unknown and "unknown place" in unknown[0]
 
-    absolute = figures.validate(
-        figures.parse("![A](a.png){.figure place=inline width=2.4in}\n"))
+    absolute = figures.validate(figures.parse("![A](a.png){.figure place=inline width=2.4in}\n"))
     assert absolute and "absolute" in absolute[0]
 
     measure_on_plate = figures.validate(
-        figures.parse("![A](a.png){.plate place=plate width=half-measure}\n"))
+        figures.parse("![A](a.png){.plate place=plate width=half-measure}\n")
+    )
     assert measure_on_plate and "in-flow" in measure_on_plate[0]
 
     bad_outset = figures.validate(
-        figures.parse("![A](a.png){.figure place=wrap-outer outset=12pt}\n"))
+        figures.parse("![A](a.png){.figure place=wrap-outer outset=12pt}\n")
+    )
     assert bad_outset and "runaround gap" in bad_outset[0]
 
     contradiction = figures.validate(
-        figures.parse('![A](a.png){.plate decorative=true fig-alt="x"}\n'))
+        figures.parse('![A](a.png){.plate decorative=true fig-alt="x"}\n')
+    )
     assert contradiction and "empty alt" in contradiction[0]
 
 
@@ -172,8 +181,12 @@ def test_figure_is_a_frozen_value_object_with_off_by_default_flags():
     # a bare image is not decorative and not kind-declared until the manuscript
     # says so. These pin the dataclass defaults the parser leans on.
     fig = figures.Figure(
-        src="a.png", caption="A", kind="figure", style=None,
-        directive="", description=None,
+        src="a.png",
+        caption="A",
+        kind="figure",
+        style=None,
+        directive="",
+        description=None,
     )
     assert fig.decorative is False
     assert fig.kind_declared is False
@@ -187,22 +200,24 @@ def test_a_decorative_image_without_alt_validates_clean():
     # fig-alt; a decorative image with no alt (the correct spelling) is clean,
     # and a captioned image with alt and no decorative flag is clean too. This
     # pins the `decorative and alt` conjunction: neither half alone is a fault.
-    decorative_only = figures.validate(
-        figures.parse("![orn](o.png){.figure decorative=true}\n"))
+    decorative_only = figures.validate(figures.parse("![orn](o.png){.figure decorative=true}\n"))
     assert decorative_only == []
-    alt_only = figures.validate(
-        figures.parse('![A](a.png){.figure fig-alt="a hand on a stick"}\n'))
+    alt_only = figures.validate(figures.parse('![A](a.png){.figure fig-alt="a hand on a stick"}\n'))
     assert alt_only == []
 
 
 @pytest.mark.layer("integration")
 def test_press_figures_prints_declared_figures_as_json(tmp_path, capsys):
-    handle = factories.minimal().with_chapter(
-        "01-fig.md",
-        "# Fig\n\n![A compositor](assets/fig/compositor.jpg){.plate}\n"
-        "<!-- art: a compositor's hand on a composing stick -->\n\n"
-        "![Yields](assets/fig/yields.svg){.chart}\n<!-- data: from t.csv -->\n",
-    ).build(tmp_path)
+    handle = (
+        factories.minimal()
+        .with_chapter(
+            "01-fig.md",
+            "# Fig\n\n![A compositor](assets/fig/compositor.jpg){.plate}\n"
+            "<!-- art: a compositor's hand on a composing stick -->\n\n"
+            "![Yields](assets/fig/yields.svg){.chart}\n<!-- data: from t.csv -->\n",
+        )
+        .build(tmp_path)
+    )
     with handle.use():
         assert figures.main([]) == 0
     raw = capsys.readouterr().out

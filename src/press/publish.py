@@ -81,8 +81,7 @@ def verify_retail() -> dict[str, tuple[bool, Path, str]]:
 
     # Interior and wrap fail separately, each under its own label; a
     # missing cover must never read as an interior defect.
-    attempt("Print interior PDF (mirrored margins, black ink)", interior,
-            interior_check)
+    attempt("Print interior PDF (mirrored margins, black ink)", interior, interior_check)
     attempt("Cover wrap PDF (trim + bleed, spine computed)", wrap, wrap_check)
 
     def epub_verified() -> None:
@@ -110,18 +109,17 @@ def unverified_retail() -> dict[str, tuple[bool, Path, str]]:
     slug = booklib.slug()
     dist = root / "dist"
     entries = {
-        "Print interior PDF (mirrored margins, black ink)":
-            dist / f"{slug}-interior.pdf",
-        "Cover wrap PDF (trim + bleed, spine computed)":
-            dist / f"{slug}-coverwrap.pdf",
+        "Print interior PDF (mirrored margins, black ink)": dist / f"{slug}-interior.pdf",
+        "Cover wrap PDF (trim + bleed, spine computed)": dist / f"{slug}-coverwrap.pdf",
         "EPUB (KDP eBook / Ingram ebook program)": dist / f"{slug}.epub",
-        "Marketing cover image (front board only)":
-            root / "assets" / "cover.jpg",
+        "Marketing cover image (front board only)": root / "assets" / "cover.jpg",
     }
     return {
-        label: (False, path,
-                "present but NOT verified (report-only)" if path.is_file()
-                else "missing")
+        label: (
+            False,
+            path,
+            "present but NOT verified (report-only)" if path.is_file() else "missing",
+        )
         for label, path in entries.items()
     }
 

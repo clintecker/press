@@ -45,7 +45,8 @@ STYLES_DATA = booklib.DATA / "illustration-styles.yaml"
 # Appended to every illustration: wordless and single-ink, always.
 _GUARDRAIL = (
     "\n\nSingle ink only, no colour wash. No text, no words, no lettering, no "
-    "caption, no page border, no watermark, no signature.")
+    "caption, no page border, no watermark, no signature."
+)
 
 # An interior plate: a versatile square at high quality, opaque on paper.
 _SPEC = ("gpt-image-2", "1024x1024", "high", False)
@@ -124,16 +125,19 @@ def subject_from_figure(fig: figures.Figure | None, name: str) -> str:
         raise SystemExit(
             f"press illustrate: no figure named {name!r} in the manuscript, and no "
             f"--subject given. Declare it (e.g. ![caption](assets/fig/{name}.jpg)"
-            "{.plate}) with an <!-- art: … --> description, or pass --subject.")
+            "{.plate}) with an <!-- art: … --> description, or pass --subject."
+        )
     if fig.kind in figures.DATA_KINDS:
         raise SystemExit(
             f"press illustrate: figure {name!r} is a {fig.kind}; it renders from its "
-            f"{fig.directive or 'data'} file, not an image model. It is not illustrated.")
+            f"{fig.directive or 'data'} file, not an image model. It is not illustrated."
+        )
     if not fig.generatable or not fig.description:
         raise SystemExit(
             f"press illustrate: figure {name!r} carries no <!-- art: … --> description. "
             "A caption is a label, not art direction (#225): add an art: comment after "
-            "the image in the manuscript, or pass --subject.")
+            "the image in the manuscript, or pass --subject."
+        )
     return fig.description
 
 
@@ -206,8 +210,11 @@ def main(argv: list[str]) -> int:
     if print_only or not _has_key():
         if not print_only:
             print("# no OPENAI_API_KEY set; emitting the prompt to run elsewhere.\n")
-        print(f"# illustration style: {style_id}"
-              + (f"  (with reference {source})" if source else "") + "\n")
+        print(
+            f"# illustration style: {style_id}"
+            + (f"  (with reference {source})" if source else "")
+            + "\n"
+        )
         print(prompt)
         return 0
 

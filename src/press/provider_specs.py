@@ -41,8 +41,13 @@ class ProviderSpec:
     _HARDCOVER = frozenset({"casewrap", "dust-jacket"})
 
     def spine(
-        self, pages: int, paper: str | None = None, binding: str = "perfect-bound",
-        *, override: float | None = None, ink: str = "single",
+        self,
+        pages: int,
+        paper: str | None = None,
+        binding: str = "perfect-bound",
+        *,
+        override: float | None = None,
+        ink: str = "single",
         color_grade: str | None = None,
     ) -> float:
         """Spine width in inches for ``pages`` on ``paper`` in ``binding``. A
@@ -66,8 +71,14 @@ class ProviderSpec:
             return pages * float(override) + allowance
         return self._shape_width(spec, pages, paper, ink, color_grade) + allowance
 
-    def _shape_width(self, shape: dict, pages: int, paper: str | None,
-                     ink: str = "single", color_grade: str | None = None) -> float:
+    def _shape_width(
+        self,
+        shape: dict,
+        pages: int,
+        paper: str | None,
+        ink: str = "single",
+        color_grade: str | None = None,
+    ) -> float:
         kind = shape["shape"]
         if ink == "color":
             stock = color_grade or shape.get("color-default")
@@ -75,13 +86,13 @@ class ProviderSpec:
                 raise SystemExit(
                     f"provider {self.id}: no color-interior caliper "
                     "(spine.color-default); it does not print a color interior. "
-                    "Select a color-capable provider or a single-ink profile.")
+                    "Select a color-capable provider or a single-ink profile."
+                )
             if kind == "constant":
                 return pages * self._stock(shape["calipers"], stock)
             if kind == "ppi-table":
                 return pages / self._stock(shape["ppi"], stock)
-            raise SystemExit(
-                f"provider {self.id}: a {kind!r} spine has no color caliper model")
+            raise SystemExit(f"provider {self.id}: a {kind!r} spine has no color caliper model")
         paper = paper or shape.get("default-paper", "cream")
         if kind == "constant":
             return pages * self._stock(shape["calipers"], paper)
@@ -99,9 +110,7 @@ class ProviderSpec:
     def _stock(self, table: dict, paper: str) -> float:
         if paper not in table:
             known = ", ".join(sorted(table))
-            raise SystemExit(
-                f"provider {self.id}: unknown paper stock {paper!r}; known: {known}"
-            )
+            raise SystemExit(f"provider {self.id}: unknown paper stock {paper!r}; known: {known}")
         return float(table[paper])
 
     def supports_color(self, binding: str = "perfect-bound") -> bool:
@@ -112,8 +121,10 @@ class ProviderSpec:
         spec = self.data["spine"]
         hardcover = binding in self._HARDCOVER
         shape = spec["hardcover"] if (hardcover and "hardcover" in spec) else spec
-        return (shape.get("shape") in {"constant", "ppi-table"}
-                and shape.get("color-default") is not None)
+        return (
+            shape.get("shape") in {"constant", "ppi-table"}
+            and shape.get("color-default") is not None
+        )
 
     def supported_inks(self, binding: str = "perfect-bound") -> tuple[str, ...]:
         """The interior inks this provider prints for this binding: always
@@ -132,20 +143,25 @@ class ProviderSpec:
         rows: list[dict[str, Any]] = []
         for trim in self.data.get("trims") or []:
             bindings = list(trim.get("bindings") or [])
-            inks = sorted({
-                ink for binding in bindings for ink in self.supported_inks(binding)
-            })
-            rows.append({
-                "width": float(trim["width"]),
-                "height": float(trim["height"]),
-                "bindings": bindings,
-                "inks": inks,
-            })
+            inks = sorted({ink for binding in bindings for ink in self.supported_inks(binding)})
+            rows.append(
+                {
+                    "width": float(trim["width"]),
+                    "height": float(trim["height"]),
+                    "bindings": bindings,
+                    "inks": inks,
+                }
+            )
         return rows
 
     def check_selection(
-        self, trim_w: float, trim_h: float, binding: str, pages: int | None = None,
-        *, ink: str = "single",
+        self,
+        trim_w: float,
+        trim_h: float,
+        binding: str,
+        pages: int | None = None,
+        *,
+        ink: str = "single",
     ) -> list[str]:
         """Every reason this provider cannot make this book, or an empty list.
         A spec with no ``trims`` or ``pages`` tables (the house spec) imposes no
@@ -156,14 +172,16 @@ class ProviderSpec:
 
         problems: list[str] = []
         if ink == "color" and not self.supports_color(binding):
-            problems.append(
-                f"provider {self.id!r} does not print a color interior")
+            problems.append(f"provider {self.id!r} does not print a color interior")
         trims = self.data.get("trims")
         if trims is not None:
             match = next(
-                (t for t in trims
-                 if abs(float(t["width"]) - trim_w) < 0.01
-                 and abs(float(t["height"]) - trim_h) < 0.01),
+                (
+                    t
+                    for t in trims
+                    if abs(float(t["width"]) - trim_w) < 0.01
+                    and abs(float(t["height"]) - trim_h) < 0.01
+                ),
                 None,
             )
             if match is None:

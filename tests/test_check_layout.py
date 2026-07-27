@@ -47,13 +47,13 @@ def _sound() -> dict:
         "nav_client_w": 239.0,
         "current_id": "a1.html|Overview",
         "last_id": "repo|source",
-        "current_focus": {"focusVisible": True, "outlineWidth": 2.0,
-                          "outlineStyle": "solid"},
+        "current_focus": {"focusVisible": True, "outlineWidth": 2.0, "outlineStyle": "solid"},
         "last_focus": {"onScreen": True, "area": 900.0},
         "lockup": {"x": 22.0, "y": 24.0, "width": 153.0, "height": 48.0},
         "wordmark": {"x": 22.0, "y": 24.0, "width": 153.0, "height": 48.0},
-        "tables": [{"stacked": True, "labelled": True, "scrollW": 350,
-                    "clientW": 350, "clippedCells": 0}],
+        "tables": [
+            {"stacked": True, "labelled": True, "scrollW": 350, "clientW": 350, "clippedCells": 0}
+        ],
     }
 
 
@@ -111,8 +111,7 @@ def test_current_item_without_focus_visible_is_rejected():
 
 def test_current_item_with_no_outline_is_rejected():
     m = _sound()
-    m["current_focus"] = {"focusVisible": True, "outlineWidth": 0.0,
-                          "outlineStyle": "none"}
+    m["current_focus"] = {"focusVisible": True, "outlineWidth": 0.0, "outlineStyle": "none"}
     problems = cl.assess_page(m)
     assert any("visible focus" in p for p in problems)
 
@@ -184,16 +183,18 @@ def test_a_stacked_table_that_still_scrolls_sideways_is_rejected():
     scroll; if it still does, a value is hidden."""
 
     m = _sound()
-    m["tables"] = [{"stacked": True, "labelled": True, "scrollW": 780,
-                    "clientW": 350, "clippedCells": 0}]
+    m["tables"] = [
+        {"stacked": True, "labelled": True, "scrollW": 780, "clientW": 350, "clippedCells": 0}
+    ]
     problems = cl.assess_page(m)
     assert any("scrolls sideways" in p for p in problems), problems
 
 
 def test_a_stacked_table_with_clipped_cells_is_rejected():
     m = _sound()
-    m["tables"] = [{"stacked": True, "labelled": True, "scrollW": 350,
-                    "clientW": 350, "clippedCells": 3}]
+    m["tables"] = [
+        {"stacked": True, "labelled": True, "scrollW": 350, "clientW": 350, "clippedCells": 3}
+    ]
     problems = cl.assess_page(m)
     assert any("clips 3 cell" in p for p in problems), problems
 
@@ -203,8 +204,9 @@ def test_an_unstacked_desktop_table_may_scroll_in_its_box():
     inside its own box -- that is the designed behaviour, not a fault."""
 
     m = _sound()
-    m["tables"] = [{"stacked": False, "labelled": True, "scrollW": 980,
-                    "clientW": 700, "clippedCells": 2}]
+    m["tables"] = [
+        {"stacked": False, "labelled": True, "scrollW": 980, "clientW": 700, "clippedCells": 2}
+    ]
     assert cl.assess_page(m) == []
 
 

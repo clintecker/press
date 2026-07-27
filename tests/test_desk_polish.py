@@ -25,6 +25,7 @@ class _BlockingProcess:
 
     def __init__(self):
         from press.process_control import OutputChannel
+
         self._first = (OutputChannel.STDOUT, "building...")
         self._sent = False
         self._interrupted = threading.Event()
@@ -53,9 +54,13 @@ class _BlockingProcess:
 
 def _report(failing_tools=()):
     from press import doctor
-    return doctor.DoctorReport(tuple(
-        doctor.Finding(name=t, category="tool", state="missing",
-                       detail="x", required=True) for t in failing_tools))
+
+    return doctor.DoctorReport(
+        tuple(
+            doctor.Finding(name=t, category="tool", state="missing", detail="x", required=True)
+            for t in failing_tools
+        )
+    )
 
 
 @pytest.mark.layer("integration")
@@ -88,6 +93,7 @@ async def test_picker_grays_out_a_blocked_command(tmp_path):
     handle = factories.minimal().build(tmp_path)
     with handle.use():
         from press import desk_model
+
         model = desk_model.build_model(handle.root, report=_report(["lualatex"]))
         app = DeskApp(root=handle.root)
         async with app.run_test() as pilot:

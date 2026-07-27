@@ -13,11 +13,7 @@ from press import booklib, check_source
 
 
 def _book(tmp_path, chapter_body: str):
-    return (
-        factories.minimal()
-        .with_chapter("01-figs.md", chapter_body)
-        .build(tmp_path)
-    )
+    return factories.minimal().with_chapter("01-figs.md", chapter_body).build(tmp_path)
 
 
 @pytest.mark.layer("integration")
@@ -30,8 +26,7 @@ def test_a_clean_placement_vocabulary_passes(tmp_path):
         "width=half-measure place=wrap-outer outset=1em}\n",
     )
     with handle.use():
-        assert check_source._figure_failures(
-            booklib.root(), set(booklib.chapter_files())) == []
+        assert check_source._figure_failures(booklib.root(), set(booklib.chapter_files())) == []
 
 
 @pytest.mark.layer("integration")
@@ -43,8 +38,7 @@ def test_an_absolute_width_on_an_inflow_figure_is_refused(tmp_path):
         "![The press](assets/fig/press.jpg){.figure place=inline width=2.4in}\n",
     )
     with handle.use():
-        problems = check_source._figure_failures(
-            booklib.root(), set(booklib.chapter_files()))
+        problems = check_source._figure_failures(booklib.root(), set(booklib.chapter_files()))
         assert problems and "absolute" in problems[0]
         # And the whole source check turns red, not just this helper.
         assert check_source.main() == 1
@@ -59,6 +53,5 @@ def test_left_right_placement_is_refused_for_parity(tmp_path):
         "![The press](assets/fig/press.jpg){.figure place=right}\n",
     )
     with handle.use():
-        problems = check_source._figure_failures(
-            booklib.root(), set(booklib.chapter_files()))
+        problems = check_source._figure_failures(booklib.root(), set(booklib.chapter_files()))
         assert problems and "parity-aware" in problems[0]

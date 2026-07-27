@@ -30,10 +30,13 @@ def test_the_default_scaffold_passes_the_format_gate(scaffolded_book):
 @pytest.mark.proof("negative")
 def test_check_refuses_a_binding_the_provider_does_not_offer(scaffolded_book, capsys):
     # KDP offers no dust jacket at any trim; the source check must refuse it.
-    _set(scaffolded_book, [
-        ("print.provider", "kdp"),
-        ("print.binding", "dust-jacket"),
-    ])
+    _set(
+        scaffolded_book,
+        [
+            ("print.provider", "kdp"),
+            ("print.binding", "dust-jacket"),
+        ],
+    )
     problems = check_source._print_format_failures()
     assert any("does not offer" in p for p in problems), problems
 
@@ -47,10 +50,13 @@ def test_check_refuses_a_binding_the_provider_does_not_offer(scaffolded_book, ca
 def test_check_refuses_a_color_interior_at_a_single_ink_provider(scaffolded_book):
     # A color design profile at Lulu (no color caliper) is refused at check
     # time, not deep in the spine math at render.
-    _set(scaffolded_book, [
-        ("print.profile", "house-6x9-color"),
-        ("print.provider", "lulu"),
-    ])
+    _set(
+        scaffolded_book,
+        [
+            ("print.profile", "house-6x9-color"),
+            ("print.provider", "lulu"),
+        ],
+    )
     problems = check_source._print_format_failures()
     assert any("does not print a color interior" in p for p in problems), problems
 
@@ -58,8 +64,11 @@ def test_check_refuses_a_color_interior_at_a_single_ink_provider(scaffolded_book
 @pytest.mark.layer("integration")
 def test_check_accepts_a_supported_combination(scaffolded_book):
     # 6x9 perfect-bound colour at KDP is a combination KDP makes: no refusal.
-    _set(scaffolded_book, [
-        ("print.profile", "house-6x9-color"),
-        ("print.provider", "kdp"),
-    ])
+    _set(
+        scaffolded_book,
+        [
+            ("print.profile", "house-6x9-color"),
+            ("print.provider", "kdp"),
+        ],
+    )
     assert check_source._print_format_failures() == []

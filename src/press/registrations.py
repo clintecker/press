@@ -88,7 +88,7 @@ def hyphenate(isbn13: str) -> str:
     conf = isbn_block() or {}
     prefix = str(conf.get("prefix", "")).strip().rstrip("-")
     prefix_digits, width = _block_spec()
-    publication = isbn13[len(prefix_digits):12]
+    publication = isbn13[len(prefix_digits) : 12]
     check = isbn13[12]
     joiner = "-" if "-" in prefix else ""
     return f"{prefix}{joiner or '-'}{publication}-{check}" if prefix else isbn13
@@ -102,17 +102,17 @@ def _used_publications(prefix_digits: str, width: int) -> dict[int, str]:
     for edition, value in isbn_map().items():
         digits = "".join(ch for ch in str(value) if ch.isdigit())
         if len(digits) == 13 and digits.startswith(prefix_digits):
-            used[int(digits[len(prefix_digits):12])] = edition
+            used[int(digits[len(prefix_digits) : 12])] = edition
     return used
 
 
 @dataclass(frozen=True)
 class BlockStatus:
-    prefix: str                # the hyphenated prefix as configured
-    prefix_digits: str         # the same, digits only
+    prefix: str  # the hyphenated prefix as configured
+    prefix_digits: str  # the same, digits only
     size: int
     width: int
-    assigned: dict[int, str]   # publication number -> edition holding it
+    assigned: dict[int, str]  # publication number -> edition holding it
 
     @property
     def free(self) -> int:
@@ -144,11 +144,11 @@ def next_publication() -> int:
 
     prefix_digits, width = _block_spec()
     used = _used_publications(prefix_digits, width)
-    for publication in range(10 ** width):
+    for publication in range(10**width):
         if publication not in used:
             return publication
     raise SystemExit(
-        f"ISBN block exhausted: all {10 ** width} numbers under {prefix_digits} "
+        f"ISBN block exhausted: all {10**width} numbers under {prefix_digits} "
         "are assigned. Buy another prefix from your agency."
     )
 
@@ -206,9 +206,7 @@ def isbn(edition: str) -> str | None:
     try:
         return barcode.validate(value)
     except SystemExit as exc:
-        raise SystemExit(
-            f"registrations isbn {edition} in config/metadata.yaml: {exc}"
-        ) from exc
+        raise SystemExit(f"registrations isbn {edition} in config/metadata.yaml: {exc}") from exc
 
 
 def isbn_display(edition: str) -> str | None:
@@ -244,7 +242,9 @@ def issn_valid(value: str) -> bool:
 def lccn_plausible(value: str) -> bool:
     """LCCNs have no check digit; hold the shape, not the arithmetic."""
 
-    return bool(re.fullmatch(r"[a-z]{0,3}\d{8,12}", value.replace("-", "").replace(" ", "").lower()))
+    return bool(
+        re.fullmatch(r"[a-z]{0,3}\d{8,12}", value.replace("-", "").replace(" ", "").lower())
+    )
 
 
 def issn_check_digit(first_seven: str) -> str:
@@ -337,15 +337,16 @@ def failures(reg: dict | None = None) -> list[str]:
     if reg.get("retail"):
         isbns = editions
         pending = [
-            f"isbn {edition} missing"
-            for edition in ("print", "epub") if edition not in isbns
+            f"isbn {edition} missing" for edition in ("print", "epub") if edition not in isbns
         ]
         pending += [
-            f"isbn {edition}" for edition, value in isbns.items()
+            f"isbn {edition}"
+            for edition, value in isbns.items()
             if str(value).strip().lower() == PENDING
         ]
         pending += [
-            name for name in ("issn", "lccn")
+            name
+            for name in ("issn", "lccn")
             if reg.get(name) and str(reg[name]).strip().lower() == PENDING
         ]
         if pending:

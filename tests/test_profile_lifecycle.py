@@ -61,8 +61,7 @@ def test_digest_drift_is_refused():
     # design-major decision, refused until re-sealed.
     seals = dict(pl.load_seals())
     victim = next(iter(seals))
-    seals[victim] = pl.Seal(victim, seals[victim].design_major,
-                            "deadbeefdeadbeef", "2026-07-25")
+    seals[victim] = pl.Seal(victim, seals[victim].design_major, "deadbeefdeadbeef", "2026-07-25")
     problems = pl.validate(seals)
     assert any("drifted from its seal" in p for p in problems)
 
@@ -72,8 +71,7 @@ def test_design_major_mismatch_is_refused():
     seals = dict(pl.load_seals())
     victim = next(iter(seals))
     real = seals[victim]
-    seals[victim] = pl.Seal(victim, real.design_major + 9, real.digest,
-                            real.qualified_on)
+    seals[victim] = pl.Seal(victim, real.design_major + 9, real.digest, real.qualified_on)
     problems = pl.validate(seals)
     assert any("design-major" in p for p in problems)
 

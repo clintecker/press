@@ -30,9 +30,7 @@ def stamp_workflows(destination: Path) -> None:
 
 def git_identity() -> str | None:
     try:
-        result = adapters.process_runner.run(
-            ["git", "config", "user.name"], capture=True
-        )
+        result = adapters.process_runner.run(["git", "config", "user.name"], capture=True)
     except OSError:
         return None
     name = result.stdout.decode("utf-8", errors="replace").strip()
@@ -49,15 +47,21 @@ def main(args: list[str]) -> int:
         "config, or neutral placeholders.",
     )
     parser.add_argument("directory")
-    parser.add_argument("--author", default=None,
-                        help="byline (default: git config user.name, else 'The Author')")
-    parser.add_argument("--publisher", default=None,
-                        help="imprint (default: the author, self-published)")
-    parser.add_argument("--place", default="Earth",
-                        help="imprint place for the colophon (default: Earth)")
-    parser.add_argument("--owner", default=None,
-                        help="GitHub owner for repository and Pages URLs; "
-                        "omitted, those lines are left commented for later")
+    parser.add_argument(
+        "--author", default=None, help="byline (default: git config user.name, else 'The Author')"
+    )
+    parser.add_argument(
+        "--publisher", default=None, help="imprint (default: the author, self-published)"
+    )
+    parser.add_argument(
+        "--place", default="Earth", help="imprint place for the colophon (default: Earth)"
+    )
+    parser.add_argument(
+        "--owner",
+        default=None,
+        help="GitHub owner for repository and Pages URLs; "
+        "omitted, those lines are left commented for later",
+    )
     parsed = parser.parse_args(args)
 
     destination = Path(parsed.directory).resolve()

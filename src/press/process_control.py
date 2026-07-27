@@ -289,8 +289,9 @@ class ProcessController:
         self._state = RunState.DONE
         return Outcome(returncode=returncode, cancelled=cancelled, cancel_stage=stage)
 
-    def run(self, invocation: Invocation, sink: LineSink, *,
-            env: Optional[Mapping[str, str]] = None) -> Outcome:
+    def run(
+        self, invocation: Invocation, sink: LineSink, *, env: Optional[Mapping[str, str]] = None
+    ) -> Outcome:
         """Start, stream every line to ``sink``, and return the verdict. A
         caller wanting to cancel mid-run drives :meth:`start`/:meth:`poll`/
         :meth:`finish` directly (or calls :meth:`cancel` from a worker while

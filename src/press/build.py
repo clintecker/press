@@ -160,7 +160,7 @@ def render_defaults(name: str) -> Path:
             fragment.parent.mkdir(parents=True, exist_ok=True)
             fragment.write_text(_dropcaps.tex_setup(opening), encoding="utf-8")
         elif fragment.exists():
-            fragment.unlink()   # a disabled build never carries a stale fragment
+            fragment.unlink()  # a disabled build never carries a stale fragment
     if name == "html":
         cover = root / "assets" / "cover.jpg"
         if cover.is_file():
@@ -174,9 +174,7 @@ def render_defaults(name: str) -> Path:
     if name == "chunked":
         # The reader shows a cover only when the book has one; the
         # template must not reference an image that does not exist.
-        defaults.setdefault("variables", {})["cover"] = (
-            root / "assets" / "cover.jpg"
-        ).is_file()
+        defaults.setdefault("variables", {})["cover"] = (root / "assets" / "cover.jpg").is_file()
     if name in ("pdf", "print"):
         # An empty List of Plates is worse than none; only figure-bearing
         # books get the list.
@@ -189,9 +187,7 @@ def render_defaults(name: str) -> Path:
         # fragment included right after the house header, overriding its
         # defaults. The house profile carries the v1 numbers, so a v1 book is
         # unchanged; another profile changes the page (#172).
-        profiles.write_geometry_tex(
-            profiles.active(), root / "build" / "profile-geometry.tex"
-        )
+        profiles.write_geometry_tex(profiles.active(), root / "build" / "profile-geometry.tex")
         if name == "print":
             # Flatten transparency and cap image resolution for the print
             # interior only; print-header.tex prepends build/print-assets to
@@ -203,7 +199,8 @@ def render_defaults(name: str) -> Path:
     if name == "print" and (root / "tex" / "title-page-print.tex").is_file():
         # The print variant replaces the reading title page; never stack.
         defaults["include-in-header"] = [
-            entry for entry in defaults["include-in-header"]
+            entry
+            for entry in defaults["include-in-header"]
             if entry != "@book/tex/title-page.tex?optional"
         ]
 
@@ -255,14 +252,9 @@ def markdown_build(output: str) -> None:
     book = booklib.book()
     authors = ", ".join(book.authors)
     subtitle_line = f"*{book.subtitle}*\n\n" if book.subtitle else ""
-    imprint = (
-        f" Published by {book.publisher}, {book.publisher_place}."
-        if book.publisher else ""
-    )
+    imprint = f" Published by {book.publisher}, {book.publisher_place}." if book.publisher else ""
     header = (
-        f"# {book.title}\n\n"
-        f"{subtitle_line}"
-        f"By {authors}. {book.date}. {book.copyright}{imprint}\n"
+        f"# {book.title}\n\n{subtitle_line}By {authors}. {book.date}. {book.copyright}{imprint}\n"
     )
     parts = [header]
     inputs = book_inputs()
@@ -328,8 +320,15 @@ def _reader_page_title(html_text: str) -> str:
     return html_mod.unescape(match.group(1).strip()) if match else ""
 
 
-def _reader_jsonld(book, is_index: bool, page_title: str, canonical: str,
-                   read_base: str, desc: str, has_cover: bool):
+def _reader_jsonld(
+    book,
+    is_index: bool,
+    page_title: str,
+    canonical: str,
+    read_base: str,
+    desc: str,
+    has_cover: bool,
+):
     """The structured node for one reader page: a Book on the index (consistent
     with the landing's identity), an Article that isPartOf that Book on a
     chapter, plus a BreadcrumbList when there is a public base to point at."""
@@ -354,8 +353,10 @@ def _reader_jsonld(book, is_index: bool, page_title: str, canonical: str,
         return node
 
     article: dict = {
-        "@context": "https://schema.org", "@type": "Article",
-        "headline": page_title or book.title, "inLanguage": "en",
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": page_title or book.title,
+        "inLanguage": "en",
         "isPartOf": identity,
     }
     if desc:
@@ -367,12 +368,21 @@ def _reader_jsonld(book, is_index: bool, page_title: str, canonical: str,
     if not canonical:
         return article
     breadcrumb = {
-        "@context": "https://schema.org", "@type": "BreadcrumbList",
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
         "itemListElement": [
-            {"@type": "ListItem", "position": 1, "name": book.title,
-             "item": read_base + "index.html"},
-            {"@type": "ListItem", "position": 2, "name": page_title or book.title,
-             "item": canonical},
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": book.title,
+                "item": read_base + "index.html",
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": page_title or book.title,
+                "item": canonical,
+            },
         ],
     }
     return [article, breadcrumb]
@@ -404,8 +414,7 @@ def inject_reader_metadata(site_dir: Path, book) -> None:
         else:
             desc = _first_paragraph_text(text)
             page_title = _reader_page_title(text) or book.title
-        node = _reader_jsonld(
-            book, is_index, page_title, canonical, read_base, desc, has_cover)
+        node = _reader_jsonld(book, is_index, page_title, canonical, read_base, desc, has_cover)
         fragment = webmeta.head_fragment(
             base=read_base,
             title=page_title,
@@ -453,6 +462,7 @@ def site_stylesheet() -> str:
     # so a house book's stylesheet is byte-for-byte unchanged.
     if not own.is_file():
         from . import profiles
+
         css += profiles.web_css(profiles.active())
     extra = root / "assets" / "web" / "extra.css"
     if extra.is_file():
@@ -536,9 +546,7 @@ def subtitle_stack_html(subtitle: str) -> str:
             lines.append('      <span class="or sc">or,</span><br>')
         tag = "strong" if index == 0 else "span"
         close = "<br>" if index < len(clauses) - 1 else ""
-        lines.append(
-            f'      <{tag} class="sc">{html_mod.escape(clause)}</{tag}>{close}'
-        )
+        lines.append(f'      <{tag} class="sc">{html_mod.escape(clause)}</{tag}>{close}')
     return "\n".join(lines)
 
 
@@ -548,13 +556,14 @@ _SCHEMA_FORMATS = {
 }
 
 
-def _landing_jsonld(book, base: str, desc: str, has_cover: bool,
-                    format_names: list[str]) -> dict:
+def _landing_jsonld(book, base: str, desc: str, has_cover: bool, format_names: list[str]) -> dict:
     """A schema.org Book node carrying only the facts the book actually has."""
 
     node: dict = {
-        "@context": "https://schema.org", "@type": "Book",
-        "name": book.title, "inLanguage": "en",
+        "@context": "https://schema.org",
+        "@type": "Book",
+        "name": book.title,
+        "inLanguage": "en",
     }
     if book.authors:
         node["author"] = [{"@type": "Person", "name": a} for a in book.authors]
@@ -570,18 +579,24 @@ def _landing_jsonld(book, base: str, desc: str, has_cover: bool,
     if has_cover:
         node["image"] = base + "cover.jpg"
     examples = [
-        {"@type": "Book", "bookFormat": fmt, "encodingFormat": enc,
-         "url": base + "downloads/" + name}
+        {
+            "@type": "Book",
+            "bookFormat": fmt,
+            "encodingFormat": enc,
+            "url": base + "downloads/" + name,
+        }
         for name in format_names
-        for suffix, (fmt, enc) in _SCHEMA_FORMATS.items() if name.endswith(suffix)
+        for suffix, (fmt, enc) in _SCHEMA_FORMATS.items()
+        if name.endswith(suffix)
     ]
     if examples:
         node["workExample"] = examples
     return node
 
 
-def landing_head_metadata(book, has_cover: bool, format_names: list[str],
-                          cover_dims: tuple[int, int] | None = None) -> str:
+def landing_head_metadata(
+    book, has_cover: bool, format_names: list[str], cover_dims: tuple[int, int] | None = None
+) -> str:
     """Canonical, social-card, and schema.org JSON-LD for the book's landing
     page, generated from the book's own config (#158). No fact is invented: a
     canonical/og:url and og:image appear only when a `site-url` is set (and a
@@ -664,8 +679,7 @@ def pages_build(output_dir: str) -> None:
     if (root / "assets" / "press-logo.png").is_file():
         publisher = html_mod.escape(booklib.book().publisher)
         logo_block = (
-            f'    <img class="press-logo" src="press-logo.png" '
-            f'alt="Imprint device of {publisher}">'
+            f'    <img class="press-logo" src="press-logo.png" alt="Imprint device of {publisher}">'
         )
     repo_paragraph = ""
     repository = str(meta.get("repository") or "")
@@ -679,6 +693,7 @@ def pages_build(output_dir: str) -> None:
         )
 
     from . import commerce as commerce_mod
+
     commerce_block = commerce_mod.render(commerce_mod.load(meta))
 
     template = (booklib.DATA / "web" / "index-template.html").read_text(encoding="utf-8")
@@ -779,10 +794,11 @@ def _write_book_sitemap(out: Path, book) -> None:
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         f"{entries}\n</urlset>\n",
-        encoding="utf-8")
+        encoding="utf-8",
+    )
     (out / "robots.txt").write_text(
-        f"User-agent: *\nAllow: /\nSitemap: {base}sitemap.xml\n",
-        encoding="utf-8")
+        f"User-agent: *\nAllow: /\nSitemap: {base}sitemap.xml\n", encoding="utf-8"
+    )
 
 
 def _write_policy_pages(out, meta, book) -> None:
@@ -805,8 +821,9 @@ def _write_policy_pages(out, meta, book) -> None:
         page = template
         page = page.replace("{{TITLE}}", html_mod.escape(f"{book.title} — {heading}"))
         page = page.replace("{{BOOK_TITLE}}", html_mod.escape(book.title))
-        page = page.replace("{{BODY}}", commerce_mod.render_policy_body(
-            config, book.publisher, kind))
+        page = page.replace(
+            "{{BODY}}", commerce_mod.render_policy_body(config, book.publisher, kind)
+        )
         (out / filename).write_text(aesthetic.substitute_web(page), encoding="utf-8")
 
 
@@ -822,11 +839,14 @@ def build_target(target: str) -> None:
         from . import registrations
 
         book = booklib.book()
-        rights = " ".join(part for part in (
-            book.copyright,
-            f"Published by {book.publisher}, {book.publisher_place}."
-            if book.publisher else "",
-        ) if part)
+        rights = " ".join(
+            part
+            for part in (
+                book.copyright,
+                f"Published by {book.publisher}, {book.publisher_place}." if book.publisher else "",
+            )
+            if part
+        )
         extra = ["--metadata", f"rights={rights}"]
         epub_isbn = registrations.isbn("epub")
         if epub_isbn:
@@ -850,8 +870,8 @@ def build_target(target: str) -> None:
 
         edition = booklib.root() / "dist" / f"{slug}.html"
         edition.write_text(
-            webmeta.label_table_cells(edition.read_text(encoding="utf-8")),
-            encoding="utf-8")
+            webmeta.label_table_cells(edition.read_text(encoding="utf-8")), encoding="utf-8"
+        )
     elif target == "markdown":
         markdown_build(f"dist/{slug}.md")
     elif target == "site":

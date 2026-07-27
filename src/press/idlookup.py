@@ -45,9 +45,9 @@ from .providers.transport import Response, TransportError, TransportTimeout
 
 # --- bounds; fail closed past any of them -------------------------------
 
-TIMEOUT = 10.0          # seconds handed to the transport per request
-MAX_RETRIES = 2         # extra attempts on timeout / connection loss / 5xx
-MAX_REDIRECTS = 3       # 3xx hops followed before giving up
+TIMEOUT = 10.0  # seconds handed to the transport per request
+MAX_RETRIES = 2  # extra attempts on timeout / connection loss / 5xx
+MAX_REDIRECTS = 3  # 3xx hops followed before giving up
 MAX_BYTES = 512 * 1024  # largest response body accepted
 
 _USER_AGENT = "press-registrations-lookup (+https://github.com/clintecker/press)"
@@ -68,11 +68,11 @@ _ISSN_PROVENANCE = "ISSN Portal content negotiation (portal.issn.org, JSON-LD)"
 class Outcome(str, Enum):
     """The one explicit thing a lookup can conclude."""
 
-    FOUND = "found"            # a single record, and it carries the request
-    NOT_FOUND = "not-found"    # the authority has no such record
-    AMBIGUOUS = "ambiguous"    # more than one record carries the request
-    MISMATCH = "mismatch"      # a record came back, for a different identifier
-    INVALID = "invalid"        # the request is not a well-formed identifier
+    FOUND = "found"  # a single record, and it carries the request
+    NOT_FOUND = "not-found"  # the authority has no such record
+    AMBIGUOUS = "ambiguous"  # more than one record carries the request
+    MISMATCH = "mismatch"  # a record came back, for a different identifier
+    INVALID = "invalid"  # the request is not a well-formed identifier
     UNAVAILABLE = "unavailable"  # the lookup could not be completed, bounded out
 
 
@@ -83,12 +83,12 @@ class LookupResult:
     title. Never raises for a network or data problem -- those are
     outcomes, not exceptions."""
 
-    kind: str                       # "lccn" | "issn"
-    query: str                      # the normalized identifier requested
+    kind: str  # "lccn" | "issn"
+    query: str  # the normalized identifier requested
     outcome: Outcome
-    source_url: str                 # the endpoint consulted ("" if never reached)
-    provenance: str                 # human description of the authority
-    identifier: str | None = None   # the identifier the matched record carries
+    source_url: str  # the endpoint consulted ("" if never reached)
+    provenance: str  # human description of the authority
+    identifier: str | None = None  # the identifier the matched record carries
     title: str | None = None
     detail: str = ""
 
@@ -118,8 +118,9 @@ class _Body:
 # --- the bounded fetch pipeline -----------------------------------------
 
 
-def _fetch_once(transport: object, url: str, accept: str, *,
-                timeout: float, max_retries: int) -> "Response | _Fail":
+def _fetch_once(
+    transport: object, url: str, accept: str, *, timeout: float, max_retries: int
+) -> "Response | _Fail":
     """One URL, retried a fixed number of times on a lost/refused request
     or a 5xx, then reported unavailable. A 4xx or a redirect is a real
     response and is returned as-is for the caller to classify."""
@@ -134,7 +135,8 @@ def _fetch_once(transport: object, url: str, accept: str, *,
             # spend. One byte over the bound is read so the overrun is visible
             # to _read, which fails closed rather than truncating silently.
             response = transport(  # type: ignore[operator]
-                "GET", url, headers=headers, timeout=timeout, max_bytes=MAX_BYTES)
+                "GET", url, headers=headers, timeout=timeout, max_bytes=MAX_BYTES
+            )
         except TransportTimeout:
             if attempt >= max_retries:
                 return _Fail(Outcome.UNAVAILABLE, f"timed out after {attempt + 1} attempts")
@@ -153,8 +155,16 @@ def _fetch_once(transport: object, url: str, accept: str, *,
         return response
 
 
-def _fetch(transport: object, url: str, accept: str, media_types: frozenset[str], *,
-           timeout: float, max_retries: int, max_redirects: int) -> "_Body | _Fail":
+def _fetch(
+    transport: object,
+    url: str,
+    accept: str,
+    media_types: frozenset[str],
+    *,
+    timeout: float,
+    max_retries: int,
+    max_redirects: int,
+) -> "_Body | _Fail":
     """Fetch a URL, following bounded redirects, and return a size- and
     media-type-checked body -- or a failure carrying an explicit
     outcome."""
@@ -162,8 +172,7 @@ def _fetch(transport: object, url: str, accept: str, media_types: frozenset[str]
     current = url
     hops = 0
     while True:
-        response = _fetch_once(transport, current, accept,
-                               timeout=timeout, max_retries=max_retries)
+        response = _fetch_once(transport, current, accept, timeout=timeout, max_retries=max_retries)
         if isinstance(response, _Fail):
             return response
         if response.status in _REDIRECT_CODES:
@@ -220,43 +229,93 @@ def _content_type(headers: dict[str, str]) -> str:
 # --- LCCN --------------------------------------------------------------
 
 
-def lookup_lccn(transport: object, raw: str, *, timeout: float = TIMEOUT,
-                max_retries: int = MAX_RETRIES,
-                max_redirects: int = MAX_REDIRECTS) -> LookupResult:
+def lookup_lccn(
+    transport: object,
+    raw: str,
+    *,
+    timeout: float = TIMEOUT,
+    max_retries: int = MAX_RETRIES,
+    max_redirects: int = MAX_REDIRECTS,
+) -> LookupResult:
     """Resolve an already-issued LCCN through the LC Permalink MODS
     endpoint. The LCCN is normalized before lookup and the returned record
     must carry it."""
 
     normalized = registrations.lccn_normalize(str(raw).strip())
     if not registrations.lccn_plausible(normalized):
-        return LookupResult("lccn", normalized, Outcome.INVALID, "", _LCCN_PROVENANCE,
-                            detail="not the shape of an LCCN")
+        return LookupResult(
+            "lccn",
+            normalized,
+            Outcome.INVALID,
+            "",
+            _LCCN_PROVENANCE,
+            detail="not the shape of an LCCN",
+        )
     url = _LCCN_URL.format(lccn=normalized)
-    body = _fetch(transport, url, _LCCN_ACCEPT, _LCCN_MEDIA,
-                  timeout=timeout, max_retries=max_retries, max_redirects=max_redirects)
+    body = _fetch(
+        transport,
+        url,
+        _LCCN_ACCEPT,
+        _LCCN_MEDIA,
+        timeout=timeout,
+        max_retries=max_retries,
+        max_redirects=max_redirects,
+    )
     if isinstance(body, _Fail):
-        return LookupResult("lccn", normalized, body.outcome, url,
-                            _LCCN_PROVENANCE, detail=body.detail)
+        return LookupResult(
+            "lccn", normalized, body.outcome, url, _LCCN_PROVENANCE, detail=body.detail
+        )
     return _match_lccn(normalized, body, url)
 
 
 def _match_lccn(query: str, body: _Body, url: str) -> LookupResult:
     records = _parse_mods(body.text)
     if records is None:
-        return LookupResult("lccn", query, Outcome.UNAVAILABLE, url, _LCCN_PROVENANCE,
-                            detail="MODS response was malformed or declared entities")
+        return LookupResult(
+            "lccn",
+            query,
+            Outcome.UNAVAILABLE,
+            url,
+            _LCCN_PROVENANCE,
+            detail="MODS response was malformed or declared entities",
+        )
     if not records:
-        return LookupResult("lccn", query, Outcome.NOT_FOUND, url, _LCCN_PROVENANCE,
-                            detail="no MODS record in the response")
+        return LookupResult(
+            "lccn",
+            query,
+            Outcome.NOT_FOUND,
+            url,
+            _LCCN_PROVENANCE,
+            detail="no MODS record in the response",
+        )
     matches = [record for record in records if query in record[0]]
     if len(matches) == 1:
-        return LookupResult("lccn", query, Outcome.FOUND, url, _LCCN_PROVENANCE,
-                            identifier=query, title=matches[0][1])
+        return LookupResult(
+            "lccn",
+            query,
+            Outcome.FOUND,
+            url,
+            _LCCN_PROVENANCE,
+            identifier=query,
+            title=matches[0][1],
+        )
     if len(matches) > 1:
-        return LookupResult("lccn", query, Outcome.AMBIGUOUS, url, _LCCN_PROVENANCE,
-                            detail=f"{len(matches)} records carry this LCCN")
-    return LookupResult("lccn", query, Outcome.MISMATCH, url, _LCCN_PROVENANCE,
-                        detail="the record returned carries a different LCCN")
+        return LookupResult(
+            "lccn",
+            query,
+            Outcome.AMBIGUOUS,
+            url,
+            _LCCN_PROVENANCE,
+            detail=f"{len(matches)} records carry this LCCN",
+        )
+    return LookupResult(
+        "lccn",
+        query,
+        Outcome.MISMATCH,
+        url,
+        _LCCN_PROVENANCE,
+        detail="the record returned carries a different LCCN",
+    )
 
 
 def _parse_mods(text: str) -> "list[tuple[set[str], str | None]] | None":
@@ -302,24 +361,43 @@ def _declares_entities(text: str) -> bool:
 # --- ISSN --------------------------------------------------------------
 
 
-def lookup_issn(transport: object, raw: str, *, timeout: float = TIMEOUT,
-                max_retries: int = MAX_RETRIES,
-                max_redirects: int = MAX_REDIRECTS) -> LookupResult:
+def lookup_issn(
+    transport: object,
+    raw: str,
+    *,
+    timeout: float = TIMEOUT,
+    max_retries: int = MAX_RETRIES,
+    max_redirects: int = MAX_REDIRECTS,
+) -> LookupResult:
     """Resolve an already-issued ISSN through the ISSN Portal under content
     negotiation. The ISSN is check-digit-validated before lookup and the
     returned resource must carry it."""
 
     digits = _normalize_issn(str(raw))
     if not registrations.issn_valid(digits):
-        return LookupResult("issn", digits, Outcome.INVALID, "", _ISSN_PROVENANCE,
-                            detail="fails the ISSN check digit")
+        return LookupResult(
+            "issn",
+            digits,
+            Outcome.INVALID,
+            "",
+            _ISSN_PROVENANCE,
+            detail="fails the ISSN check digit",
+        )
     canonical = f"{digits[:4]}-{digits[4:]}"
     url = _ISSN_URL.format(issn=canonical)
-    body = _fetch(transport, url, _ISSN_ACCEPT, _ISSN_MEDIA,
-                  timeout=timeout, max_retries=max_retries, max_redirects=max_redirects)
+    body = _fetch(
+        transport,
+        url,
+        _ISSN_ACCEPT,
+        _ISSN_MEDIA,
+        timeout=timeout,
+        max_retries=max_retries,
+        max_redirects=max_redirects,
+    )
     if isinstance(body, _Fail):
-        return LookupResult("issn", canonical, body.outcome, url,
-                            _ISSN_PROVENANCE, detail=body.detail)
+        return LookupResult(
+            "issn", canonical, body.outcome, url, _ISSN_PROVENANCE, detail=body.detail
+        )
     return _match_issn(canonical, digits, body, url)
 
 
@@ -330,11 +408,23 @@ def _normalize_issn(raw: str) -> str:
 def _match_issn(canonical: str, digits: str, body: _Body, url: str) -> LookupResult:
     records = _parse_issn(body.text)
     if records is None:
-        return LookupResult("issn", canonical, Outcome.UNAVAILABLE, url, _ISSN_PROVENANCE,
-                            detail="JSON-LD response was malformed")
+        return LookupResult(
+            "issn",
+            canonical,
+            Outcome.UNAVAILABLE,
+            url,
+            _ISSN_PROVENANCE,
+            detail="JSON-LD response was malformed",
+        )
     if not records:
-        return LookupResult("issn", canonical, Outcome.NOT_FOUND, url, _ISSN_PROVENANCE,
-                            detail="no ISSN resource in the response")
+        return LookupResult(
+            "issn",
+            canonical,
+            Outcome.NOT_FOUND,
+            url,
+            _ISSN_PROVENANCE,
+            detail="no ISSN resource in the response",
+        )
     matches = [record for record in records if digits in record[0]]
     # Collapse the graph nodes that describe one resource. The ISSN Portal
     # returns the main resource node plus #fragment sub-nodes (#ISSN,
@@ -348,13 +438,32 @@ def _match_issn(canonical: str, digits: str, body: _Body, url: str) -> LookupRes
             resources[iri] = title
     if len(resources) == 1:
         (title,) = resources.values()
-        return LookupResult("issn", canonical, Outcome.FOUND, url, _ISSN_PROVENANCE,
-                            identifier=canonical, title=title)
+        return LookupResult(
+            "issn",
+            canonical,
+            Outcome.FOUND,
+            url,
+            _ISSN_PROVENANCE,
+            identifier=canonical,
+            title=title,
+        )
     if len(resources) > 1:
-        return LookupResult("issn", canonical, Outcome.AMBIGUOUS, url, _ISSN_PROVENANCE,
-                            detail=f"{len(resources)} resources carry this ISSN")
-    return LookupResult("issn", canonical, Outcome.MISMATCH, url, _ISSN_PROVENANCE,
-                        detail="the portal returned a different ISSN")
+        return LookupResult(
+            "issn",
+            canonical,
+            Outcome.AMBIGUOUS,
+            url,
+            _ISSN_PROVENANCE,
+            detail=f"{len(resources)} resources carry this ISSN",
+        )
+    return LookupResult(
+        "issn",
+        canonical,
+        Outcome.MISMATCH,
+        url,
+        _ISSN_PROVENANCE,
+        detail="the portal returned a different ISSN",
+    )
 
 
 def _parse_issn(text: str) -> "list[tuple[set[str], str | None, str]] | None":
@@ -403,7 +512,7 @@ def _issn_from_id(identifier: str) -> str:
     lowered = identifier.lower()
     if marker not in lowered:
         return ""
-    tail = identifier[lowered.index(marker) + len(marker):]
+    tail = identifier[lowered.index(marker) + len(marker) :]
     digits = "".join(ch for ch in tail.upper() if ch.isdigit() or ch == "X")
     return digits if len(digits) == 8 else ""
 

@@ -45,8 +45,9 @@ def output_paths(base: Path, slug: str, outputs: tuple[str, ...]) -> list[Path]:
     return [base / o.format(slug=slug) for o in outputs]
 
 
-def artifact_state(base: Path, slug: str, outputs: tuple[str, ...],
-                   evidence: dict[str, str]) -> State:
+def artifact_state(
+    base: Path, slug: str, outputs: tuple[str, ...], evidence: dict[str, str]
+) -> State:
     """The evidence state of one artifact, from the digests of its
     outputs and the recorded verified digests."""
 

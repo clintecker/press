@@ -60,12 +60,12 @@ class WrapLayout:
     wrap_h: float
     spine: float
     has_spine: bool
-    margin: float          # outer allowance: bleed (soft cover) or wrap/turn-in (board)
-    back_x: float          # left edge of the back panel
-    front_x: float         # left edge of the front panel
-    panel_w: float         # a panel's width (trim, or board/jacket-adjusted)
-    front_art_w: float     # width the front art fills
-    cloth_field: bool      # paint the cloth-colored field (off for linen)
+    margin: float  # outer allowance: bleed (soft cover) or wrap/turn-in (board)
+    back_x: float  # left edge of the back panel
+    front_x: float  # left edge of the front panel
+    panel_w: float  # a panel's width (trim, or board/jacket-adjusted)
+    front_art_w: float  # width the front art fills
+    cloth_field: bool  # paint the cloth-colored field (off for linen)
 
 
 # The back-panel cloth field colour, as RGB. It is the single source of truth:
@@ -85,7 +85,7 @@ _LOGO_WIDTH_IN = 1.1
 # or a jacket's flaps) need the provider spec to supply their geometry, so an
 # unsupported binding is refused rather than guessed.
 _SOFT_BINDINGS = {
-    "perfect-bound": True,    # has a spine
+    "perfect-bound": True,  # has a spine
     "saddle-stitch": False,
     "coil": False,
 }
@@ -106,9 +106,13 @@ def _binding_geometry(spec, binding: str) -> tuple[bool, float, float, float, fl
         has_spine = bool(e.get("spine", True))
         margin = float(e.get("margin", e.get("turn-in", spec.bleed)))
         inner = float(e.get("hinge", 0.0)) + float(e.get("flap", 0.0)) + float(e.get("strip", 0.0))
-        return (has_spine, margin, inner,
-                float(e.get("panel-width-delta", 0.0)),
-                float(e.get("panel-height-delta", 0.0)))
+        return (
+            has_spine,
+            margin,
+            inner,
+            float(e.get("panel-width-delta", 0.0)),
+            float(e.get("panel-height-delta", 0.0)),
+        )
     if binding in _SOFT_BINDINGS:
         return _SOFT_BINDINGS[binding], spec.bleed, 0.0, 0.0, 0.0
     raise SystemExit(
@@ -118,8 +122,14 @@ def _binding_geometry(spec, binding: str) -> tuple[bool, float, float, float, fl
 
 
 def wrap_geometry(
-    trim_w: float, trim_h: float, spine: float, has_spine: bool,
-    margin: float, inner: float, width_delta: float, height_delta: float,
+    trim_w: float,
+    trim_h: float,
+    spine: float,
+    has_spine: bool,
+    margin: float,
+    inner: float,
+    width_delta: float,
+    height_delta: float,
     material: str,
 ) -> WrapLayout:
     """Compose the wrap. Left to right the panels are
@@ -137,8 +147,16 @@ def wrap_geometry(
     # hinged or flapped cover keeps the art to its panel.
     front_art_w = panel_w if inner else panel_w + margin
     return WrapLayout(
-        wrap_w, wrap_h, spine, has_spine, margin,
-        back_x, front_x, panel_w, front_art_w, cloth_field=material != "linen",
+        wrap_w,
+        wrap_h,
+        spine,
+        has_spine,
+        margin,
+        back_x,
+        front_x,
+        panel_w,
+        front_art_w,
+        cloth_field=material != "linen",
     )
 
 
@@ -157,14 +175,21 @@ def layout(pages: int) -> WrapLayout:
     from . import profiles
 
     spec = provider_specs.active()
-    problems = spec.check_selection(
-        trim_w, trim_h, binding, pages, ink=profiles.active().ink)
+    problems = spec.check_selection(trim_w, trim_h, binding, pages, ink=profiles.active().ink)
     if problems:
         raise SystemExit("; ".join(problems))
     has_spine, margin, inner, width_delta, height_delta = _binding_geometry(spec, binding)
     spine = spine_width(pages, binding) if has_spine else 0.0
     return wrap_geometry(
-        trim_w, trim_h, spine, has_spine, margin, inner, width_delta, height_delta, material,
+        trim_w,
+        trim_h,
+        spine,
+        has_spine,
+        margin,
+        inner,
+        width_delta,
+        height_delta,
+        material,
     )
 
 
@@ -195,9 +220,7 @@ def barcode_tex(isbn: str | None) -> str:
     for kind, count in barcode.runs(isbn):
         width = count * module
         if kind == "ink":
-            bars.append(
-                f"\\fill[black] ({x:.4f}in,0) rectangle ({x + width:.4f}in,0.9in);"
-            )
+            bars.append(f"\\fill[black] ({x:.4f}in,0) rectangle ({x + width:.4f}in,0.9in);")
         x += width
     # Human-readable digits per the EAN convention: the leading digit
     # sits left of the left guard, outside the symbol; each 6-digit
@@ -220,9 +243,7 @@ def tex_safe_path(path: Path) -> Path:
     """Refuse paths TeX would mis-parse; quoting does not neutralize them."""
 
     if any(ch in str(path) for ch in "%#$&~{}\\"):
-        raise SystemExit(
-            f"path contains TeX-active characters and cannot be included: {path}"
-        )
+        raise SystemExit(f"path contains TeX-active characters and cannot be included: {path}")
     return path
 
 
@@ -230,8 +251,7 @@ def generate(interior: Path, output: Path) -> Path:
     root = booklib.root()
     meta = booklib.metadata()
     missing = [
-        key for key in ("title", "author", "publisher", "publisher-place")
-        if not meta.get(key)
+        key for key in ("title", "author", "publisher", "publisher-place") if not meta.get(key)
     ]
     if missing:
         raise SystemExit(
@@ -253,7 +273,7 @@ def generate(interior: Path, output: Path) -> Path:
 
     field_bg = _CLOTH_FIELD_RGB if lay.cloth_field else (255, 255, 255)
     cover_cap = int(590 * wrap_h)
-    logo_cap = int(590 * _LOGO_WIDTH_IN)   # keep the small cover logo under 600 PPI
+    logo_cap = int(590 * _LOGO_WIDTH_IN)  # keep the small cover logo under 600 PPI
     safe = print_safe.prepare_cover(root, field_bg, cover_cap, logo_cap)
 
     raw_cover = root / "assets" / "cover.jpg"
@@ -269,18 +289,17 @@ def generate(interior: Path, output: Path) -> Path:
         return escape(value)
 
     logo_block = (
-        f"\\includegraphics[width={_LOGO_WIDTH_IN}in]{{\"{logo}\"}}\\\\[0.18in]"
-        if logo.is_file() else ""
+        f'\\includegraphics[width={_LOGO_WIDTH_IN}in]{{"{logo}"}}\\\\[0.18in]'
+        if logo.is_file()
+        else ""
     )
-    spine_text = (
-        f"{esc(meta['title'])} \\hspace{{0.35in}} {esc(', '.join(authors))}"
-    )
+    spine_text = f"{esc(meta['title'])} \\hspace{{0.35in}} {esc(', '.join(authors))}"
     # A spine under 0.25in cannot carry readable text; KDP forbids spine
     # text below 0.0625in x ~100 pages. Drop it rather than shrink it.
     spine_node = (
-        "\\node[rotate=-90] at (spinecenter) "
-        f"{{\\scshape\\small {spine_text}}};"
-        if lay.has_spine and spine >= 0.25 else "% spine too thin (or absent) for text"
+        f"\\node[rotate=-90] at (spinecenter) {{\\scshape\\small {spine_text}}};"
+        if lay.has_spine and spine >= 0.25
+        else "% spine too thin (or absent) for text"
     )
     cloth_line = (
         f"\\fill[black!85!red!25!white] (0,0) rectangle ({wrap_w:.4f}in,{wrap_h:.4f}in);"
@@ -315,10 +334,10 @@ def generate(interior: Path, output: Path) -> Path:
 % back cover text block
 \\node[anchor=north west,text width={trim_w - 1.5:.4f}in,align=center]
   at ({back_text_x:.4f}in,{back_text_y:.4f}in) {{
-  {{\\large\\scshape {esc(meta['title'])}\\par}}\\vspace{{0.3in}}
-  {{\\small {esc(meta.get('description', ''))}\\par}}\\vspace{{0.4in}}
+  {{\\large\\scshape {esc(meta["title"])}\\par}}\\vspace{{0.3in}}
+  {{\\small {esc(meta.get("description", ""))}\\par}}\\vspace{{0.4in}}
   {logo_block}
-  {{\\footnotesize\\scshape {esc(meta['publisher'])}, {esc(meta['publisher-place'])}\\par}}
+  {{\\footnotesize\\scshape {esc(meta["publisher"])}, {esc(meta["publisher-place"])}\\par}}
 }};
 % barcode, back cover lower right with quiet margin. inner sep=0 is
 % load-bearing: without it the node's default padding (~0.05in) shifts the
@@ -339,7 +358,8 @@ def generate(interior: Path, output: Path) -> Path:
     source.write_text(tex, encoding="utf-8")
     compiled = adapters.process_runner.run(
         ["latexmk", "-lualatex", "-interaction=nonstopmode", "coverwrap.tex"],
-        cwd=build, capture=True,
+        cwd=build,
+        capture=True,
     )
     if compiled.returncode != 0:
         log = build / "coverwrap.log"

@@ -8,13 +8,43 @@ TeX layer to draw as rules (vector, printer-sharp at any size).
 
 from __future__ import annotations
 
-L_CODES = ["0001101", "0011001", "0010011", "0111101", "0100011",
-           "0110001", "0101111", "0111011", "0110111", "0001011"]
-G_CODES = ["0100111", "0110011", "0011011", "0100001", "0011101",
-           "0111001", "0000101", "0010001", "0001001", "0010111"]
+L_CODES = [
+    "0001101",
+    "0011001",
+    "0010011",
+    "0111101",
+    "0100011",
+    "0110001",
+    "0101111",
+    "0111011",
+    "0110111",
+    "0001011",
+]
+G_CODES = [
+    "0100111",
+    "0110011",
+    "0011011",
+    "0100001",
+    "0011101",
+    "0111001",
+    "0000101",
+    "0010001",
+    "0001001",
+    "0010111",
+]
 R_CODES = [code.translate(str.maketrans("01", "10")) for code in L_CODES]
-PARITY = ["LLLLLL", "LLGLGG", "LLGGLG", "LLGGGL", "LGLLGG",
-          "LGGLLG", "LGGGLL", "LGLGLG", "LGLGGL", "LGGLGL"]
+PARITY = [
+    "LLLLLL",
+    "LLGLGG",
+    "LLGGLG",
+    "LLGGGL",
+    "LGLLGG",
+    "LGGLLG",
+    "LGGGLL",
+    "LGLGLG",
+    "LGLGGL",
+    "LGGLGL",
+]
 
 
 def digits_of(isbn: str) -> list[int]:
@@ -48,8 +78,7 @@ def modules(isbn: str) -> str:
     digits = digits_of(validate(isbn))
     parity = PARITY[digits[0]]
     left = "".join(
-        (L_CODES if kind == "L" else G_CODES)[digit]
-        for kind, digit in zip(parity, digits[1:7])
+        (L_CODES if kind == "L" else G_CODES)[digit] for kind, digit in zip(parity, digits[1:7])
     )
     right = "".join(R_CODES[digit] for digit in digits[7:13])
     return "101" + left + "01010" + right + "101"

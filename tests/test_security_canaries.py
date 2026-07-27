@@ -37,6 +37,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # page) is exactly commerce._SECRET_MARKERS. These prove it fires on a
 # synthetic credential and stays quiet on ordinary page text.
 
+
 def test_secret_scan_rejects_a_synthetic_credential():
     """A known-bad: text shaped like a leaked credential must be FLAGGED by
     the published-output secret scan. The scanner keys on a credential SHAPE --
@@ -47,10 +48,12 @@ def test_secret_scan_rejects_a_synthetic_credential():
     anything a platform detector (or GitHub push protection) would flag."""
 
     dummy = "config: api_key=EXAMPLE0000NOTREAL; Authorization: Bearer EXAMPLE0000NOTATOKEN"
-    assert commerce._SECRET_MARKERS.search(dummy), \
+    assert commerce._SECRET_MARKERS.search(dummy), (
         "secret scan failed to flag credential-shaped text"
-    assert commerce._SECRET_MARKERS.search("https://x.test/cb?token=EXAMPLE00000"), \
+    )
+    assert commerce._SECRET_MARKERS.search("https://x.test/cb?token=EXAMPLE00000"), (
         "secret scan failed to flag a url carrying a token query param"
+    )
 
 
 def test_secret_scan_passes_clean_output():
@@ -58,8 +61,10 @@ def test_secret_scan_passes_clean_output():
     URL, a seller name, prose -- must NOT be flagged, or the scan would be
     noise that publishers learn to ignore."""
 
-    clean = ("Order a print copy from https://example.test/book. "
-             "Sold by Example Press. Returns accepted within 30 days.")
+    clean = (
+        "Order a print copy from https://example.test/book. "
+        "Sold by Example Press. Returns accepted within 30 days."
+    )
     assert commerce._SECRET_MARKERS.search(clean) is None
 
 
@@ -70,6 +75,7 @@ def test_secret_scan_passes_clean_output():
 # is proven by the action itself on a real PR, not seedable here without a
 # real CVE.
 
+
 def _dependency_review_severity(workflow_text: str) -> str | None:
     """The ``fail-on-severity`` the dependency-review action is armed with in
     a workflow, or None when the action is absent or unarmed. Pure over the
@@ -77,7 +83,7 @@ def _dependency_review_severity(workflow_text: str) -> str | None:
 
     data = yamlio.loads(workflow_text)
     for job in (data.get("jobs") or {}).values():
-        for step in (job.get("steps") or []):
+        for step in job.get("steps") or []:
             if "dependency-review-action" in (step.get("uses") or ""):
                 return (step.get("with") or {}).get("fail-on-severity")
     return None
@@ -89,8 +95,9 @@ def test_dependency_review_is_armed_to_fail_on_high_severity():
 
     wf = ROOT / ".github" / "workflows" / "dependency-review.yml"
     assert wf.is_file(), "dependency-review.yml is missing"
-    assert _dependency_review_severity(wf.read_text(encoding="utf-8")) == "high", \
+    assert _dependency_review_severity(wf.read_text(encoding="utf-8")) == "high", (
         "dependency review is not armed to fail on high-severity vulns"
+    )
 
 
 def test_dependency_review_canary_flags_a_disarmed_config():
@@ -108,9 +115,6 @@ def test_dependency_review_canary_flags_a_disarmed_config():
         "    steps:\n"
         "      - uses: actions/dependency-review-action@abc123 # v5\n"
     )
-    armed = disarmed + (
-        "        with:\n"
-        "          fail-on-severity: high\n"
-    )
+    armed = disarmed + ("        with:\n          fail-on-severity: high\n")
     assert _dependency_review_severity(disarmed) is None
     assert _dependency_review_severity(armed) == "high"

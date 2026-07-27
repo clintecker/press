@@ -111,17 +111,13 @@ def test_unknown_invariant_fails(tmp_path):
 
 def test_checker_must_match_invariant_enforcer(tmp_path):
     write_fixture(tmp_path, "em-dash.md", "em dash")
-    problems = fixture_provenance.audit(
-        [entry(checker="jargon_lint")], tmp_path, INVARIANTS
-    )
+    problems = fixture_provenance.audit([entry(checker="jargon_lint")], tmp_path, INVARIANTS)
     assert any("is not the enforcer" in p for p in problems), problems
 
 
 def test_diagnostic_drift_fails(tmp_path):
     write_fixture(tmp_path, "em-dash.md", "em dash")
-    problems = fixture_provenance.audit(
-        [entry(expect="something else")], tmp_path, INVARIANTS
-    )
+    problems = fixture_provenance.audit([entry(expect="something else")], tmp_path, INVARIANTS)
     assert any("disagrees with" in p for p in problems), problems
 
 
@@ -151,9 +147,7 @@ def test_binary_kind_requires_digest_or_generator(tmp_path):
     del without["expect"]
     problems = fixture_provenance.audit([without], tmp_path, INVARIANTS)
     assert any("source_digest or generator" in p for p in problems), problems
-    with_generator = entry(
-        file="blob.md", kind="damaged-artifact", generator="press build v1.11.2"
-    )
+    with_generator = entry(file="blob.md", kind="damaged-artifact", generator="press build v1.11.2")
     del with_generator["expect"]
     assert fixture_provenance.audit([with_generator], tmp_path, INVARIANTS) == []
 

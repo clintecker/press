@@ -37,11 +37,27 @@ DESELECT = "not integration and not house_pdf and not distribution"
 # environment-probing modules. measure() hides exactly these so the floor
 # is reproducible whether or not the machine has them installed; every
 # other executable stays visible so git and the interpreter still work.
-HIDDEN_TOOLS = frozenset({
-    "pandoc", "lualatex", "latexmk", "xelatex", "pdflatex", "tex", "luatex",
-    "pdftoppm", "pdffonts", "pdfinfo", "pdftotext", "pdfimages",
-    "epubcheck", "gs", "magick", "convert", "qpdf",
-})
+HIDDEN_TOOLS = frozenset(
+    {
+        "pandoc",
+        "lualatex",
+        "latexmk",
+        "xelatex",
+        "pdflatex",
+        "tex",
+        "luatex",
+        "pdftoppm",
+        "pdffonts",
+        "pdfinfo",
+        "pdftotext",
+        "pdfimages",
+        "epubcheck",
+        "gs",
+        "magick",
+        "convert",
+        "qpdf",
+    }
+)
 
 
 def _toolchain_hidden_path(shadow: Path) -> str:
@@ -82,10 +98,23 @@ def measure() -> dict[str, float]:
         # stale-artifact scar). build/ is reused, so this is the norm.
         cov_json.unlink(missing_ok=True)
         result = subprocess.run(
-            [sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-q",
-             "-k", DESELECT, "--cov=press", "--cov-branch",
-             f"--cov-report=json:{cov_json}"],
-            cwd=ROOT, check=False, capture_output=True, env=env,
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                "-p",
+                "no:cacheprovider",
+                "-q",
+                "-k",
+                DESELECT,
+                "--cov=press",
+                "--cov-branch",
+                f"--cov-report=json:{cov_json}",
+            ],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            env=env,
         )
     # pytest exits 0 (all pass) or 1 (tests failed) with a valid report;
     # any other code (2 interrupted, 3 internal error, 5 nothing
@@ -95,19 +124,21 @@ def measure() -> dict[str, float]:
         raise SystemExit(
             f"coverage run did not produce a trustworthy report "
             f"(pytest exit {result.returncode}):\n"
-            + result.stderr.decode("utf-8", "replace")[-2000:])
+            + result.stderr.decode("utf-8", "replace")[-2000:]
+        )
     data = json.loads(cov_json.read_text(encoding="utf-8"))
     modules: dict[str, float] = {}
     for path, entry in data["files"].items():
         if not path.startswith("src/press/") or "/desk/" in path:
             continue
-        stem = path[len("src/press/"):-3].replace("/", ".")
+        stem = path[len("src/press/") : -3].replace("/", ".")
         modules[stem] = round(entry["summary"]["percent_covered"], 1)
     if not modules:
         raise SystemExit(
             "coverage measured zero press modules; the report paths are not "
             "'src/press/...' (a non-src install or strict editable mode). "
-            "Refusing to pass a vacuous gate.")
+            "Refusing to pass a vacuous gate."
+        )
     return modules
 
 
@@ -174,11 +205,15 @@ def check_low_floors(baseline_modules: dict[str, float]) -> list[str]:
     allowlist entry whose module has risen above the line (or vanished) must be
     removed, so the exception list only shrinks."""
     below = {m for m, pct in baseline_modules.items() if pct < LOW_FLOOR}
-    issues = [f"{m} floored at {baseline_modules[m]:.1f}% with no reason "
-              "(raise it, or add it to LOW_FLOOR_ALLOWED)"
-              for m in sorted(below - set(LOW_FLOOR_ALLOWED))]
-    issues += [f"{m} is in LOW_FLOOR_ALLOWED but no longer below {LOW_FLOOR:g}% "
-               "(remove it)" for m in sorted(set(LOW_FLOOR_ALLOWED) - below)]
+    issues = [
+        f"{m} floored at {baseline_modules[m]:.1f}% with no reason "
+        "(raise it, or add it to LOW_FLOOR_ALLOWED)"
+        for m in sorted(below - set(LOW_FLOOR_ALLOWED))
+    ]
+    issues += [
+        f"{m} is in LOW_FLOOR_ALLOWED but no longer below {LOW_FLOOR:g}% (remove it)"
+        for m in sorted(set(LOW_FLOOR_ALLOWED) - below)
+    ]
     return issues
 
 

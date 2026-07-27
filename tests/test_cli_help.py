@@ -15,6 +15,7 @@ from press import catalog
 
 # ---- global help and version ----------------------------------------
 
+
 def test_global_help_exits_zero_and_lists_commands(capsys):
     assert cli.main(["--help"]) == 0
     out = capsys.readouterr().out
@@ -48,6 +49,7 @@ def test_help_and_version_need_no_book(monkeypatch, tmp_path, capsys):
 
 
 # ---- per-command help ------------------------------------------------
+
 
 def test_command_help_does_not_execute_the_handler(capsys):
     # doctor --help must show help, not run the diagnostic (which would
@@ -89,6 +91,7 @@ def test_suggest_returns_none_for_gibberish():
 
 
 # ---- unknown commands ------------------------------------------------
+
 
 def test_unknown_command_exits_two_with_a_pointer(capsys):
     assert cli.main(["nonsense"]) == 2

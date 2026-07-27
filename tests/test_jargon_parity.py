@@ -44,14 +44,7 @@ CORPUS = Path(__file__).resolve().parent / "corpus" / "jargon_parity"
 SEEDS = CORPUS / "seeds"
 KNOWN_BAD = REPO / "src" / "press" / "data" / "known-bad"
 SKILL_COPY = (
-    REPO
-    / "src"
-    / "press"
-    / "data"
-    / "skills"
-    / "overused-jargon"
-    / "scripts"
-    / "jargon_lint.py"
+    REPO / "src" / "press" / "data" / "skills" / "overused-jargon" / "scripts" / "jargon_lint.py"
 )
 
 
@@ -245,9 +238,7 @@ def test_corpus_exercises_real_findings() -> None:
     assert json.loads(pkg_out) == json.loads(skill_out)
     assert len(json.loads(pkg_out)) >= 3
 
-    allowed = _argv_for(
-        {"input": "inputs/allowlist-scenario.md", "allow": ["drift", "parity"]}
-    )
+    allowed = _argv_for({"input": "inputs/allowlist-scenario.md", "allow": ["drift", "parity"]})
     _, allowed_out, _ = _run(PACKAGE_IMPL, allowed)
     terms = {f["term"].lower() for f in json.loads(allowed_out)}
     assert "drift" not in terms and "parity" not in terms
@@ -256,9 +247,7 @@ def test_corpus_exercises_real_findings() -> None:
 @pytest.mark.invariant("INV-editorial-jargon-parity")
 @pytest.mark.layer("unit")
 @pytest.mark.proof("positive")
-@pytest.mark.parametrize(
-    "fixture", sorted(KNOWN_BAD.glob("*.md")), ids=lambda p: p.name
-)
+@pytest.mark.parametrize("fixture", sorted(KNOWN_BAD.glob("*.md")), ids=lambda p: p.name)
 def test_shipped_known_bad_fixtures_agree(fixture: Path) -> None:
     """The known-bad fixtures press check already runs through the package
     checker score identically through the portable skill copy."""
@@ -276,9 +265,7 @@ def test_shipped_known_bad_fixtures_agree(fixture: Path) -> None:
 @pytest.mark.invariant("INV-editorial-jargon-parity")
 @pytest.mark.layer("unit")
 @pytest.mark.proof("positive")
-@pytest.mark.parametrize(
-    "seed", sorted(SEEDS.glob("*.md")), ids=lambda p: p.name
-)
+@pytest.mark.parametrize("seed", sorted(SEEDS.glob("*.md")), ids=lambda p: p.name)
 def test_stored_seeds_agree(seed: Path) -> None:
     """A stored mismatch seed must now score identically through both
     checkers (the drift it caught stays fixed)."""
@@ -297,10 +284,34 @@ def test_stored_seeds_agree(seed: Path) -> None:
 # and the markdown constructs strip_nonprose must hide, so the boundary,
 # allowlist, and stripping paths are all reachable by the generator.
 _WORDS = [
-    "seam", "seams", "seamless", "gate", "gateway", "gating", "load-bearing",
-    "overload-bearing", "blast radius", "drift", "parity", "surface", "clean",
-    "ship", "shipped", "substrate", "café", "señor", "élite", "the", "and",
-    "a", "wall", " ", "`", ">", "-", "https://example.com/gate",
+    "seam",
+    "seams",
+    "seamless",
+    "gate",
+    "gateway",
+    "gating",
+    "load-bearing",
+    "overload-bearing",
+    "blast radius",
+    "drift",
+    "parity",
+    "surface",
+    "clean",
+    "ship",
+    "shipped",
+    "substrate",
+    "café",
+    "señor",
+    "élite",
+    "the",
+    "and",
+    "a",
+    "wall",
+    " ",
+    "`",
+    ">",
+    "-",
+    "https://example.com/gate",
 ]
 _token = st.sampled_from(_WORDS)
 _line = st.lists(_token, min_size=0, max_size=12).map(" ".join)
@@ -329,14 +340,12 @@ def test_differential_fuzz_agrees(body: str, allow: list[str], tmp_path_factory)
     (pkg_code, pkg_out, pkg_err), (skill_code, skill_out, skill_err) = _both(argv)
 
     if (pkg_code, pkg_out, pkg_err) != (skill_code, skill_out, skill_err):
-        digest = hashlib.sha256(
-            (body + "\x00" + "\x00".join(allow)).encode("utf-8")
-        ).hexdigest()[:16]
+        digest = hashlib.sha256((body + "\x00" + "\x00".join(allow)).encode("utf-8")).hexdigest()[
+            :16
+        ]
         SEEDS.mkdir(parents=True, exist_ok=True)
         (SEEDS / f"mismatch-{digest}.md").write_text(body, encoding="utf-8")
-        (SEEDS / f"mismatch-{digest}.args").write_text(
-            "\n".join(allow), encoding="utf-8"
-        )
+        (SEEDS / f"mismatch-{digest}.args").write_text("\n".join(allow), encoding="utf-8")
         pytest.fail(
             "jargon checkers disagreed on generated input; stored seed "
             f"mismatch-{digest}.md (allow={allow})"

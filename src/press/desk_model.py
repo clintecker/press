@@ -64,9 +64,7 @@ def doctor_rows(report: doctor.DoctorReport) -> tuple[DoctorRow, ...]:
     rows: list[DoctorRow] = []
     for finding in report.findings:
         glyph, word = DOCTOR_STATE_GLYPH.get(finding.state, ("?", finding.state))
-        rows.append(
-            DoctorRow(glyph, word, finding.name, finding.detail, finding.required)
-        )
+        rows.append(DoctorRow(glyph, word, finding.name, finding.detail, finding.required))
     return tuple(rows)
 
 
@@ -159,8 +157,7 @@ class RunProgress:
         or a dot while pending, then the count of tool steps seen."""
 
         marks = " ".join(
-            f"{'✓' if phase in self.phases_done else '·'} {phase}"
-            for phase in BUILD_PHASES
+            f"{'✓' if phase in self.phases_done else '·'} {phase}" for phase in BUILD_PHASES
         )
         return f"{marks}    {self.invocations} steps"
 
@@ -190,15 +187,18 @@ class DeskModel:
         desk can gray it out with the reason instead of failing mid-run."""
 
         failing = set(self.capabilities.failing)
-        if command_name in {"pdf", "print", "verify", "verify-print", "all"} \
-                and {"pandoc", "lualatex", "latexmk"} & failing:
+        if (
+            command_name in {"pdf", "print", "verify", "verify-print", "all"}
+            and {"pandoc", "lualatex", "latexmk"} & failing
+        ):
             missing = sorted({"pandoc", "lualatex", "latexmk"} & failing)
             return f"missing {', '.join(missing)}"
         return None
 
 
-def build_model(root: Path, evidence: dict[str, str] | None = None,
-                report: doctor.DoctorReport | None = None) -> DeskModel:
+def build_model(
+    root: Path, evidence: dict[str, str] | None = None, report: doctor.DoctorReport | None = None
+) -> DeskModel:
     """Assemble the desk model from the registries. evidence maps output
     paths to verified digests (empty means everything present is
     unverified); report lets a caller inject doctor findings for a

@@ -55,15 +55,10 @@ def jsonld_script(node: Any, *, indent_prefix: str = "") -> str:
     extractor expects on every surface."""
 
     body = _json.dumps(node, ensure_ascii=False, indent=2)
-    return (
-        f'{indent_prefix}<script type="application/ld+json">\n'
-        f"{body}\n"
-        f"{indent_prefix}</script>"
-    )
+    return f'{indent_prefix}<script type="application/ld+json">\n{body}\n{indent_prefix}</script>'
 
 
-def _og_image_lines(image: str, width: int | None, height: int | None,
-                    alt: str) -> list[str]:
+def _og_image_lines(image: str, width: int | None, height: int | None, alt: str) -> list[str]:
     """The og:image family, emitted only for a real, dimensioned social card."""
 
     lines = [f'<meta property="og:image" content="{_esc(image)}">']
@@ -173,8 +168,7 @@ _TAGS = _re.compile(r"<[^>]+>")
 def _cell_label(header_html: str) -> str:
     """The plain text of a header cell, safe to carry in an attribute."""
 
-    return _html.escape(
-        _html.unescape(_TAGS.sub("", header_html)).strip(), quote=True)
+    return _html.escape(_html.unescape(_TAGS.sub("", header_html)).strip(), quote=True)
 
 
 def label_table_cells(markup: str) -> str:
@@ -190,8 +184,9 @@ def label_table_cells(markup: str) -> str:
         head = _re.search(r"<thead>(.*?)</thead>", table, _re.S)
         if not head:
             return table
-        headers = [_cell_label(c) for c in
-                   _re.findall(r"<th\b[^>]*>(.*?)</th>", head.group(1), _re.S)]
+        headers = [
+            _cell_label(c) for c in _re.findall(r"<th\b[^>]*>(.*?)</th>", head.group(1), _re.S)
+        ]
         if not any(headers):
             return table
 

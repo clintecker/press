@@ -13,11 +13,18 @@ from pathlib import Path
 
 import pytest
 
-FILTER = Path(__file__).resolve().parent.parent / "src" / "press" / "data" / "lua" / \
-    "typographic-spacing.lua"
+FILTER = (
+    Path(__file__).resolve().parent.parent
+    / "src"
+    / "press"
+    / "data"
+    / "lua"
+    / "typographic-spacing.lua"
+)
 
 _needs_pandoc = pytest.mark.skipif(
-    shutil.which("pandoc") is None, reason="requires capability: pandoc")
+    shutil.which("pandoc") is None, reason="requires capability: pandoc"
+)
 
 
 def _render(markdown: str, to: str = "latex") -> str:
@@ -31,8 +38,8 @@ def _render(markdown: str, to: str = "latex") -> str:
 @pytest.mark.layer("integration")
 def test_titles_refs_and_initials_tie_in_latex():
     out = _render("Mr. Smith read p. 42 and Fig. 3, per C. L. Dodgson.")
-    assert "Mr.~Smith" in out      # title + name
-    assert "p.~42" in out          # reference + number
+    assert "Mr.~Smith" in out  # title + name
+    assert "p.~42" in out  # reference + number
     assert "Fig.~3" in out
     assert "C.~L.~Dodgson" in out  # initials chain, then tie to the name
 

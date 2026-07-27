@@ -26,7 +26,8 @@ from .verify_pdf import looks_blank, verify_fonts
 def render(wrap: Path, out_dir: Path) -> Image.Image:
     adapters.process_runner.run(
         ["pdftoppm", "-png", "-r", "150", str(wrap), str(out_dir / "wrap")],
-        check=True, capture=True,
+        check=True,
+        capture=True,
     )
     rendered = sorted(out_dir.glob("wrap*.png"))
     if len(rendered) != 1:
@@ -34,8 +35,7 @@ def render(wrap: Path, out_dir: Path) -> Image.Image:
     return Image.open(rendered[0])
 
 
-def check_front_panel(image: Image.Image, front_x_in: float,
-                      wrap_w: float) -> None:
+def check_front_panel(image: Image.Image, front_x_in: float, wrap_w: float) -> None:
     dpi = image.width / wrap_w
     front_x = int(front_x_in * dpi)
     front = image.crop((front_x, 0, image.width, image.height))
@@ -44,13 +44,13 @@ def check_front_panel(image: Image.Image, front_x_in: float,
     spread = ImageStat.Stat(front.convert("L")).stddev[0]
     if spread < 8:
         raise SystemExit(
-            f"coverwrap front panel is flat (stddev {spread:.1f}); "
-            "the cover art did not survive"
+            f"coverwrap front panel is flat (stddev {spread:.1f}); the cover art did not survive"
         )
 
 
-def scanline(image: Image.Image, back_right: float, margin: float,
-             wrap_w: float, isbn: str | None) -> None:
+def scanline(
+    image: Image.Image, back_right: float, margin: float, wrap_w: float, isbn: str | None
+) -> None:
     """The barcode panel, inspected structurally: a white card with
     dark marks, and readable bar transitions plus quiet zones when an
     ISBN is declared. ``back_right`` is the back panel's right edge and
@@ -87,15 +87,15 @@ def scanline(image: Image.Image, back_right: float, margin: float,
     module = 0.0130
     symbol_right = int((2.4 - 0.15) * dpi)
     symbol_left = symbol_right - int(95 * module * dpi)
-    window = row[max(0, symbol_left - 2):symbol_right + 2]
+    window = row[max(0, symbol_left - 2) : symbol_right + 2]
     transitions = sum(1 for a, b in zip(window, window[1:]) if a != b)
     if transitions < 25:
         raise SystemExit(
             f"coverwrap barcode is not structurally readable "
             f"({transitions} bar transitions on the scanline; EAN-13 has 59)"
         )
-    left_zone = row[symbol_left - int(0.14 * dpi):symbol_left - int(0.02 * dpi)]
-    right_zone = row[symbol_right + int(0.02 * dpi):symbol_right + int(0.14 * dpi)]
+    left_zone = row[symbol_left - int(0.14 * dpi) : symbol_left - int(0.02 * dpi)]
+    right_zone = row[symbol_right + int(0.02 * dpi) : symbol_right + int(0.14 * dpi)]
     for zone, side in ((left_zone, "left"), (right_zone, "right")):
         if any(zone):
             raise SystemExit(f"coverwrap barcode {side} quiet zone carries ink")
@@ -130,9 +130,7 @@ def check_print_safe(wrap: Path) -> None:
     if adapters.environment.which("pdfimages") is None:
         print("  (pdfimages absent; cover image resolution not checked)")
         return
-    listing = adapters.process_runner.run(
-        ["pdfimages", "-list", str(wrap)], capture=True
-    )
+    listing = adapters.process_runner.run(["pdfimages", "-list", str(wrap)], capture=True)
     stdout = listing.stdout.decode("utf-8", errors="replace")
     over = []
     for line in stdout.splitlines()[2:]:
@@ -195,8 +193,9 @@ def main() -> int:
         if looks_blank(image):
             raise SystemExit("coverwrap rendered blank")
         check_front_panel(image, lay.front_x, wrap_w)
-        scanline(image, lay.back_x + lay.panel_w, lay.margin, wrap_w,
-                 gen_coverwrap.isbn_for_print())
+        scanline(
+            image, lay.back_x + lay.panel_w, lay.margin, wrap_w, gen_coverwrap.isbn_for_print()
+        )
 
     isbn = gen_coverwrap.isbn_for_print()
     barcode_note = "EAN-13 readable with quiet zones" if isbn else "honest placeholder present"

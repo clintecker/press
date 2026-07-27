@@ -53,9 +53,7 @@ def _targets(root: Path) -> list[tuple[Path, int]]:
 
 
 def _has_alpha(image) -> bool:
-    return image.mode in ("RGBA", "LA") or (
-        image.mode == "P" and "transparency" in image.info
-    )
+    return image.mode in ("RGBA", "LA") or (image.mode == "P" and "transparency" in image.info)
 
 
 def sanitize(

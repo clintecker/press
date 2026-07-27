@@ -63,14 +63,15 @@ def changed_modules(base_ref: str = "origin/main") -> list[str]:
     try:
         result = adapters.process_runner.run(
             ["git", "diff", "--name-only", f"{base_ref}...HEAD"],
-            capture=True, check=True,
+            capture=True,
+            check=True,
         )
     except Exception:
         return []
     stems = []
     for line in result.stdout.decode("utf-8").splitlines():
         if line.startswith("src/press/") and line.endswith(".py"):
-            stem = line[len("src/press/"):-len(".py")]
+            stem = line[len("src/press/") : -len(".py")]
             if "/" not in stem and stem not in ("__init__", "__main__"):
                 stems.append(stem)
     return sorted(set(stems))

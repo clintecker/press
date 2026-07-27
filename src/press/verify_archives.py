@@ -38,7 +38,8 @@ def verify_site_zip(archive_path: Path, site_dir: Path) -> list[str]:
     failures: list[str] = []
     expected = {
         str(p.relative_to(site_dir.parent)): _digest(p.read_bytes())
-        for p in sorted(site_dir.rglob("*")) if p.is_file()
+        for p in sorted(site_dir.rglob("*"))
+        if p.is_file()
     }
     with zipfile.ZipFile(archive_path) as archive:
         members = {}
@@ -52,16 +53,17 @@ def verify_site_zip(archive_path: Path, site_dir: Path) -> list[str]:
     missing = sorted(set(expected) - set(members))
     surplus = sorted(set(members) - set(expected))
     if missing:
-        failures.append(f"site zip is missing {len(missing)} reader files "
-                        f"(first: {missing[0]})")
+        failures.append(f"site zip is missing {len(missing)} reader files (first: {missing[0]})")
     if surplus:
-        failures.append(f"site zip carries {len(surplus)} files the reader "
-                        f"does not (first: {surplus[0]})")
-    mismatched = sorted(n for n in expected.keys() & members.keys()
-                        if expected[n] != members[n])
+        failures.append(
+            f"site zip carries {len(surplus)} files the reader does not (first: {surplus[0]})"
+        )
+    mismatched = sorted(n for n in expected.keys() & members.keys() if expected[n] != members[n])
     if mismatched:
-        failures.append(f"site zip bytes disagree with the reader on "
-                        f"{len(mismatched)} files (first: {mismatched[0]})")
+        failures.append(
+            f"site zip bytes disagree with the reader on "
+            f"{len(mismatched)} files (first: {mismatched[0]})"
+        )
     return failures
 
 
@@ -93,16 +95,20 @@ def verify_source_zip(archive_path: Path, slug: str) -> list[str]:
     missing = sorted(set(expected) - set(members))
     surplus = sorted(set(members) - set(expected))
     if missing:
-        failures.append(f"source zip is missing {len(missing)} files the "
-                        f"policy admits (first: {missing[0]})")
+        failures.append(
+            f"source zip is missing {len(missing)} files the policy admits (first: {missing[0]})"
+        )
     if surplus:
-        failures.append(f"source zip carries {len(surplus)} files the "
-                        f"policy did not admit (first: {surplus[0]})")
-    mismatched = sorted(n for n in expected.keys() & members.keys()
-                        if expected[n] != members[n])
+        failures.append(
+            f"source zip carries {len(surplus)} files the "
+            f"policy did not admit (first: {surplus[0]})"
+        )
+    mismatched = sorted(n for n in expected.keys() & members.keys() if expected[n] != members[n])
     if mismatched:
-        failures.append(f"source zip bytes disagree with the repository on "
-                        f"{len(mismatched)} files (first: {mismatched[0]})")
+        failures.append(
+            f"source zip bytes disagree with the repository on "
+            f"{len(mismatched)} files (first: {mismatched[0]})"
+        )
     return failures
 
 

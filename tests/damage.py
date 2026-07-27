@@ -42,6 +42,7 @@ def _digest(data: bytes) -> str:
 
 # ---- zip archive operators (bytes in, bytes out) ----
 
+
 def _rewrite_zip(data: bytes, transform) -> bytes:
     """Rebuild a zip after a transform((name, info, bytes)) -> list of
     (name, compress_type, external_attr, bytes) members. transform sees
@@ -61,7 +62,9 @@ def _rewrite_zip(data: bytes, transform) -> bytes:
     return out.getvalue()
 
 
-def add_member(data: bytes, prefix: str = "site", name: str = "intruder.txt") -> tuple[bytes, DamageRecord]:
+def add_member(
+    data: bytes, prefix: str = "site", name: str = "intruder.txt"
+) -> tuple[bytes, DamageRecord]:
     rec = DamageRecord("archive.add_member", {"name": name}, _digest(data))
 
     def t(members):
@@ -134,13 +137,15 @@ def flip_member_byte(data: bytes) -> tuple[bytes, DamageRecord]:
 
 # ---- reader-site operators (directory in place) ----
 
+
 def duplicate_chapter_page(site: Path) -> DamageRecord:
     """Copy a chapter page under a new name so its witness appears twice."""
 
     pages = sorted(p for p in site.glob("*.html") if p.name != "index.html")
     source = pages[0]
-    rec = DamageRecord("site.duplicate_chapter", {"page": source.name},
-                       _digest(source.read_bytes()))
+    rec = DamageRecord(
+        "site.duplicate_chapter", {"page": source.name}, _digest(source.read_bytes())
+    )
     (site / "duplicate-chapter.html").write_bytes(source.read_bytes())
     rec.result_digest = _digest((site / "duplicate-chapter.html").read_bytes())
     return rec
@@ -168,8 +173,14 @@ def dead_fragment(page: Path) -> DamageRecord:
 DAMAGE_INVARIANTS: dict[str, dict[str, str]] = {
     "archive.add_member": {"invariant": "INV-archive-source-policy", "diagnostic": "did not admit"},
     "archive.remove_member": {"invariant": "INV-archive-source-policy", "diagnostic": "missing"},
-    "archive.escaping_path": {"invariant": "INV-archive-source-policy", "diagnostic": "escapes its prefix"},
-    "archive.store_uncompressed": {"invariant": "INV-archive-source-policy", "diagnostic": "not deflated"},
+    "archive.escaping_path": {
+        "invariant": "INV-archive-source-policy",
+        "diagnostic": "escapes its prefix",
+    },
+    "archive.store_uncompressed": {
+        "invariant": "INV-archive-source-policy",
+        "diagnostic": "not deflated",
+    },
     "archive.flip_byte": {"invariant": "INV-archive-site-bytes", "diagnostic": "bytes disagree"},
     "site.duplicate_chapter": {"invariant": "INV-format-site-identity", "diagnostic": "duplicates"},
     "site.dead_css_url": {"invariant": "INV-pages-refs", "diagnostic": "missing-asset.png"},

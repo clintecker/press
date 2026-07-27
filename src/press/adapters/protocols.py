@@ -77,9 +77,7 @@ class HttpImageClient(Protocol):
         self, url: str, payload: Mapping[str, Any], headers: Mapping[str, str]
     ) -> dict: ...
 
-    def post_multipart(
-        self, url: str, body: bytes, headers: Mapping[str, str]
-    ) -> dict: ...
+    def post_multipart(self, url: str, body: bytes, headers: Mapping[str, str]) -> dict: ...
 
 
 class OutputChannel(str, Enum):

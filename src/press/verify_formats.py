@@ -30,7 +30,6 @@ class VisibleText(html.parser.HTMLParser):
             self.parts.append(data)
 
 
-
 STRAIGHTEN = str.maketrans("\u2018\u2019\u201c\u201d", "''\"\"")
 
 
@@ -116,7 +115,7 @@ def _witness_fragments(witness: str) -> list[str]:
     starts = list(range(0, last + 1, _FRAGMENT_STEP))
     if starts[-1] != last:
         starts.append(last)  # always include the tail window
-    return [" ".join(words[i:i + _FRAGMENT_WORDS]) for i in starts]
+    return [" ".join(words[i : i + _FRAGMENT_WORDS]) for i in starts]
 
 
 def _chapter_present(witness: str, haystack: str) -> bool:
@@ -151,8 +150,7 @@ def verify_editions_agree(editions: dict[str, str], witnesses: dict[str, str]) -
     for label in sorted(editions):
         haystack = normalized(editions[label])
         missing = sorted(
-            chap for chap, witness in witnesses.items()
-            if not _chapter_present(witness, haystack)
+            chap for chap, witness in witnesses.items() if not _chapter_present(witness, haystack)
         )
         if missing:
             raise SystemExit(
@@ -217,9 +215,7 @@ def pdf_visible_text(path: Path) -> str:
 
     if adapters.environment.which("pdftotext") is None:
         raise SystemExit("pdftotext is not installed; cannot read the PDF edition")
-    result = adapters.process_runner.run(
-        ["pdftotext", str(path), "-"], capture=True, check=False
-    )
+    result = adapters.process_runner.run(["pdftotext", str(path), "-"], capture=True, check=False)
     if result.returncode != 0:
         stderr = result.stderr.decode("utf-8", errors="replace")
         raise SystemExit(f"pdftotext failed on {path} (exit {result.returncode}): {stderr}")
@@ -284,9 +280,7 @@ def require_witnesses(text: str, label: str) -> None:
             "cannot be proven (write one honest plain sentence)"
         )
     if witness not in haystack:
-        raise SystemExit(
-            f"{label} lost the manuscript witness line: {witness[:60]}..."
-        )
+        raise SystemExit(f"{label} lost the manuscript witness line: {witness[:60]}...")
 
 
 def plate_count() -> int:
@@ -316,7 +310,8 @@ def verify_epub(path: Path) -> None:
             raise SystemExit("EPUB missing container.xml")
         opf = "\n".join(
             archive.read(name).decode("utf-8", errors="ignore")
-            for name in names if name.endswith(".opf")
+            for name in names
+            if name.endswith(".opf")
         )
         if re.search(r"<dc:date[^>]*/>|<dc:date[^>]*>\s*</dc:date>", opf):
             raise SystemExit(
@@ -325,9 +320,7 @@ def verify_epub(path: Path) -> None:
             )
         epub_isbn = registrations.isbn("epub")
         if epub_isbn and epub_isbn not in opf:
-            raise SystemExit(
-                f"EPUB metadata is missing the registered ISBN {epub_isbn}"
-            )
+            raise SystemExit(f"EPUB metadata is missing the registered ISBN {epub_isbn}")
         raw = "\n".join(
             archive.read(name).decode("utf-8", errors="ignore")
             for name in names
@@ -367,23 +360,21 @@ def epubcheck(path: Path) -> None:
         )
         return
     try:
-        result = adapters.process_runner.run(
-            ["epubcheck", str(path)], capture=True
-        )
+        result = adapters.process_runner.run(["epubcheck", str(path)], capture=True)
     except OSError as exc:
         # A tool that exists but cannot execute (a container without
         # binfmt jar support, a broken wrapper) is a toolchain fault,
         # not an EPUB fault; say so instead of a traceback.
-        raise SystemExit(f"epubcheck is present but cannot run ({exc}); "
-                         "the toolchain image is broken") from exc
+        raise SystemExit(
+            f"epubcheck is present but cannot run ({exc}); the toolchain image is broken"
+        ) from exc
     if result.returncode != 0:
         # ProcessResult carries bytes (the runner never sets text=True);
         # decode so the diagnostic reproduces the captured epubcheck report.
         stdout = result.stdout.decode("utf-8", errors="replace")
         stderr = result.stderr.decode("utf-8", errors="replace")
         raise SystemExit(
-            f"epubcheck failed on {path} (exit {result.returncode}):\n"
-            f"{stdout}{stderr}"
+            f"epubcheck failed on {path} (exit {result.returncode}):\n{stdout}{stderr}"
         )
     print(f"epubcheck passed: {path.name}")
 
@@ -517,8 +508,13 @@ def main(argv: list[str] | None = None) -> int:
     # PDF joins the set where pdftotext is present (the toolchain tier).
     witnesses = chapter_witnesses()
     editions = gather_editions(
-        html=args.html, epub=args.epub, markdown=args.markdown,
-        text=args.text, docx=args.docx, site=args.site, pdf=args.pdf,
+        html=args.html,
+        epub=args.epub,
+        markdown=args.markdown,
+        text=args.text,
+        docx=args.docx,
+        site=args.site,
+        pdf=args.pdf,
     )
     verify_editions_agree(editions, witnesses)
 

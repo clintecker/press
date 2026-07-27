@@ -17,8 +17,10 @@ from tests import factories
 
 def _book(tmp_path, *, cover: bool, front_matter: bool):
     fac = factories.minimal().with_metadata(
-        copyright="Copyright 2026 A. Author.", publisher="Test Press",
-        **{"publisher-place": "Nowhere"})
+        copyright="Copyright 2026 A. Author.",
+        publisher="Test Press",
+        **{"publisher-place": "Nowhere"},
+    )
     if front_matter:
         fac = fac.with_front_matter(dedication="For the test.")
     handle = fac.build(tmp_path)

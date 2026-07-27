@@ -56,9 +56,7 @@ def load_config_mapping(path, required: bool = False) -> dict:
             raise SystemExit(f"{path}: empty")
         return {}
     if not isinstance(loaded, dict):
-        raise SystemExit(
-            f"{path}: must be a YAML mapping, not {type(loaded).__name__}"
-        )
+        raise SystemExit(f"{path}: must be a YAML mapping, not {type(loaded).__name__}")
     return loaded
 
 
@@ -169,13 +167,12 @@ def require_release_witnesses() -> None:
             "needs at least 2 distinctive prose fragments"
         )
     if b.min_pages < 24:
-        problems.append(
-            f"verify-min-pages is {b.min_pages}; a release needs at least 24"
-        )
+        problems.append(f"verify-min-pages is {b.min_pages}; a release needs at least 24")
     if problems:
         raise SystemExit(
             "this is a release build (PRESS_RELEASE=1) and its witnesses "
-            "are vacuous:\n" + "\n".join(f"  - {p}" for p in problems)
+            "are vacuous:\n"
+            + "\n".join(f"  - {p}" for p in problems)
             + "\n(drafts may build with defaults; releases must prove the "
             "manuscript survived)"
         )

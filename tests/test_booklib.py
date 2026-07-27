@@ -1,5 +1,3 @@
-
-
 def test_plate_files_counts_both_jpeg_and_png(tmp_path):
     """A plate is a JPEG or a lossless PNG -- `press art enhance` produces
     quantized PNG -- so the pipeline must count either. Before this, the

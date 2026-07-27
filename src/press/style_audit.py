@@ -47,8 +47,27 @@ FORBIDDEN_PATTERNS = {
 }
 
 TITLE_SMALL_WORDS = {
-    "a", "an", "and", "as", "at", "but", "by", "for", "from", "in", "into",
-    "nor", "of", "on", "or", "over", "the", "to", "up", "with", "without",
+    "a",
+    "an",
+    "and",
+    "as",
+    "at",
+    "but",
+    "by",
+    "for",
+    "from",
+    "in",
+    "into",
+    "nor",
+    "of",
+    "on",
+    "or",
+    "over",
+    "the",
+    "to",
+    "up",
+    "with",
+    "without",
 }
 
 
@@ -62,15 +81,12 @@ def banned_book_patterns(rules: dict | None = None) -> dict[re.Pattern, str]:
     if rules is None:
         rules = booklib.house_rules()
     compiled = {}
-    for pattern, label in dict(
-        rules.get("banned-patterns") or {}
-    ).items():
+    for pattern, label in dict(rules.get("banned-patterns") or {}).items():
         try:
             compiled[re.compile(pattern)] = label
         except re.error as exc:
             raise SystemExit(
-                "config/house-rules.yaml: banned pattern "
-                f"{pattern!r} is not a valid regex ({exc})"
+                f"config/house-rules.yaml: banned pattern {pattern!r} is not a valid regex ({exc})"
             ) from exc
     return compiled
 
@@ -143,10 +159,7 @@ def check_book_prose(
             errors.append(f"{where}: contains {name}")
     stray = ALLOWED_CHARS.search(line)
     if stray:
-        errors.append(
-            f"{where}: glyph U+{ord(stray.group(0)):04X} "
-            "is outside the print-font set"
-        )
+        errors.append(f"{where}: glyph U+{ord(stray.group(0)):04X} is outside the print-font set")
     for compiled, label in banned.items():
         if compiled.search(line):
             errors.append(f"{where}: {label}")

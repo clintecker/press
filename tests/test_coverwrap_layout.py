@@ -19,8 +19,8 @@ BLEED = 0.125
 def test_perfect_bound_reproduces_v1_geometry():
     # trim 6x9, spine 0.115 (make-ready): the exact v1 wrap numbers.
     lay = cw.wrap_geometry(6.0, 9.0, 0.115, True, BLEED, 0.0, 0.0, 0.0, "paperback")
-    assert lay.wrap_w == pytest.approx(2 * BLEED + 2 * 6.0 + 0.115)   # 12.365
-    assert lay.wrap_h == pytest.approx(2 * BLEED + 9.0)               # 9.250
+    assert lay.wrap_w == pytest.approx(2 * BLEED + 2 * 6.0 + 0.115)  # 12.365
+    assert lay.wrap_h == pytest.approx(2 * BLEED + 9.0)  # 9.250
     assert lay.back_x == pytest.approx(BLEED)
     assert lay.front_x == pytest.approx(BLEED + 6.0 + 0.115)
     assert lay.front_art_w == pytest.approx(6.0 + BLEED)
@@ -30,8 +30,8 @@ def test_perfect_bound_reproduces_v1_geometry():
 @pytest.mark.layer("unit")
 def test_no_spine_binding_drops_the_spine():
     lay = cw.wrap_geometry(6.0, 9.0, 0.0, False, BLEED, 0.0, 0.0, 0.0, "paperback")
-    assert lay.wrap_w == pytest.approx(2 * BLEED + 2 * 6.0)   # no spine
-    assert lay.front_x == pytest.approx(BLEED + 6.0)          # front butts back
+    assert lay.wrap_w == pytest.approx(2 * BLEED + 2 * 6.0)  # no spine
+    assert lay.front_x == pytest.approx(BLEED + 6.0)  # front butts back
     assert lay.has_spine is False
 
 
@@ -53,14 +53,19 @@ def test_jacket_matches_ingram_formula():
     assert lay.wrap_w == pytest.approx(
         0.125 + 3.25 + 0.25 + cover_w + 0.25 + cover_w + 0.25 + 3.25 + 0.125
     )
-    assert lay.back_x == pytest.approx(BLEED + 3.5)          # bleed + flap + strip
-    assert lay.front_art_w == pytest.approx(cover_w)         # art stays on panel
-    assert lay.cloth_field is False                          # linen: no field
+    assert lay.back_x == pytest.approx(BLEED + 3.5)  # bleed + flap + strip
+    assert lay.front_art_w == pytest.approx(cover_w)  # art stays on panel
+    assert lay.cloth_field is False  # linen: no field
 
 
 def _spec(bindings: dict) -> ProviderSpec:
-    return ProviderSpec("v", {"spine": {"shape": "constant", "calipers": {}},
-                              "cover": {"bleed": BLEED, "bindings": bindings}})
+    return ProviderSpec(
+        "v",
+        {
+            "spine": {"shape": "constant", "calipers": {}},
+            "cover": {"bleed": BLEED, "bindings": bindings},
+        },
+    )
 
 
 @pytest.mark.layer("unit")
@@ -72,12 +77,25 @@ def test_soft_binding_defaults_need_no_spec():
 
 @pytest.mark.layer("unit")
 def test_hardcover_bindings_read_the_spec():
-    spec = _spec({
-        "casewrap": {"spine": True, "margin": 0.625, "hinge": 0.5,
-                     "panel-width-delta": -0.185, "panel-height-delta": 0.25},
-        "dust-jacket": {"spine": True, "margin": 0.125, "flap": 3.25, "strip": 0.25,
-                        "panel-width-delta": 0.4375, "panel-height-delta": 0.25},
-    })
+    spec = _spec(
+        {
+            "casewrap": {
+                "spine": True,
+                "margin": 0.625,
+                "hinge": 0.5,
+                "panel-width-delta": -0.185,
+                "panel-height-delta": 0.25,
+            },
+            "dust-jacket": {
+                "spine": True,
+                "margin": 0.125,
+                "flap": 3.25,
+                "strip": 0.25,
+                "panel-width-delta": 0.4375,
+                "panel-height-delta": 0.25,
+            },
+        }
+    )
     assert cw._binding_geometry(spec, "casewrap") == (True, 0.625, 0.5, -0.185, 0.25)
     # inner = flap + strip = 3.5
     assert cw._binding_geometry(spec, "dust-jacket") == (True, 0.125, 3.5, 0.4375, 0.25)
@@ -149,7 +167,7 @@ def test_check_print_safe_accepts_a_clean_wrap(tmp_path):
     wrap = tmp_path / "wrap.pdf"
     with open(wrap, "wb") as handle:
         writer.write(handle)
-    assert verify_coverwrap.check_print_safe(wrap) is None   # clean: no raise
+    assert verify_coverwrap.check_print_safe(wrap) is None  # clean: no raise
 
 
 @pytest.mark.layer("unit")
@@ -187,7 +205,7 @@ def test_check_print_safe_rejects_a_transparent_image(tmp_path):
 
     smask_ref = writer._add_object(_image_xobject())
     image = _image_xobject()
-    image[NameObject("/SMask")] = smask_ref        # the soft mask == transparency
+    image[NameObject("/SMask")] = smask_ref  # the soft mask == transparency
     image_ref = writer._add_object(image)
 
     resources = DictionaryObject()

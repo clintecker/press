@@ -75,12 +75,13 @@ class WizardScreen(Screen):
             for field in self._fields:
                 current = self._current.get(field.path.split(".")[0])
                 required = " (required)" if field.required else ""
-                yield Label(f"{field.path}{required} - {field.help}",
-                            id=f"label-{field.path}")
-                yield Input(value=_display(current), id=f"input-{field.path}",
-                            classes="wizard-input")
-        yield Label("Ctrl+R to review changes, Esc to cancel (nothing written yet)",
-                    id="wizard-status")
+                yield Label(f"{field.path}{required} - {field.help}", id=f"label-{field.path}")
+                yield Input(
+                    value=_display(current), id=f"input-{field.path}", classes="wizard-input"
+                )
+        yield Label(
+            "Ctrl+R to review changes, Esc to cancel (nothing written yet)", id="wizard-status"
+        )
         yield Footer()
 
     def action_cancel(self) -> None:
@@ -127,12 +128,15 @@ class ReviewScreen(Screen):
             yield Static(
                 "validation failed - nothing will be written:\n"
                 + "\n".join(f"  - {p}" for p in self._preview.problems),
-                id="review-verdict", classes="warn")
+                id="review-verdict",
+                classes="warn",
+            )
         elif not self._preview.diff:
             yield Static("no changes to apply", id="review-verdict")
         else:
-            yield Static("Ctrl+A to write this diff; Esc to discard",
-                         id="review-verdict", classes="ok")
+            yield Static(
+                "Ctrl+A to write this diff; Esc to discard", id="review-verdict", classes="ok"
+            )
         yield Footer()
 
     def on_mount(self) -> None:
