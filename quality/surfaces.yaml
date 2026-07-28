@@ -86,6 +86,7 @@ modules:
   publish: {default: orchestrator, overrides: {}}
   qualification: {default: verifier, overrides: {load: parser, providers: parser, render: producer, render_packaged: producer}}
   receipts: {default: verifier, overrides: {emit: producer, current_inputs: adapter, to_json: pure, from_json: pure}}
+  quality_checks: pure
   registrations: {default: parser, overrides: {}}
   registry: {default: orchestrator, overrides: {build_order: pure, condition_holds: pure, download_names: pure}}
   scaffold: producer

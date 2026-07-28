@@ -468,6 +468,10 @@ modules:
     pin: "9fd2f914efad"
     role: verifier
     status: ratified
+  quality_checks:
+    pin: "cf927ab49664"
+    role: pure
+    status: ratified
   receipts:
     overrides:
       assemble_release: producer
