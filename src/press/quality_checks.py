@@ -9,13 +9,12 @@ check_modules``) run them alongside the framework's own gates.
 
 Registration-by-import is celebrimbor's one documented seam, the same way its
 own builtins register when ``load_builtin_checks`` imports them. It is a
-registry mutation, not an I/O side effect, so it does not offend press's
-import law (``_prove_no_import_side_effects`` forbids network/subprocess/file
-writes on import, nothing more). :func:`register` is idempotent so the
-side-effect probe -- which drops the module and re-imports it -- does not
-raise ``DuplicateCheckError`` on the second pass. celebrimbor is not a book
-runtime dependency, so ``selftest.IMPORT_OPTIONAL_DEPS`` skips this module when
-celebrimbor is absent rather than failing the import gate.
+registry mutation, not an I/O side effect, so it does not offend celebrimbor's
+import-health gate (which forbids network/subprocess/file writes on import).
+:func:`register` is idempotent so re-importing the module -- as that gate's
+probe does -- does not raise ``DuplicateCheckError`` on the second pass. This
+module is imported only when the celebrimbor gate runs (celebrimbor is a dev/CI
+dependency, never a book runtime one), so ``import press`` never pulls it in.
 
 This is the registration seam only: the check *bodies* stay in their home
 modules (``selftest.check_*`` delegates to ``verify_pdf``, ``jargon_lint``,

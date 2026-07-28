@@ -670,36 +670,6 @@ invariants:
       tests/test_sabotage.py::test_sabotage_removed_graph_edge_reddens_state_model
     limitations:
     - Tolerates one structural blank verso in the print profile.
-  INV-pkg-import-inventory:
-    ci_tier: quality
-    critical: true
-    criticality: critical
-    enforced_by: selftest:check_imports
-    layers:
-    - selftest
-    - pytest
-    - integration
-    negative_proof:
-    - src/press/selftest.py::check_imports
-    - src/press/selftest.py::check_import_side_effects
-    owner: selftest
-    risk: A nested runtime module ships unimportable in a wheel while the 
-      selftest, inventorying only top-level files, stays green; or a module 
-      quietly phones home or writes to disk at import, making the pipeline 
-      non-deterministic and unsafe to run in a sandbox.
-    statement: Every distributable runtime module in the installed press package
-      imports exactly once in deterministic order, discovered recursively from 
-      the package itself so nested adapters, providers, and desk modules are 
-      covered, not only top-level files; a held-out module is named with a 
-      reason and a stale exception fails the gate; and each module's import runs
-      free of forbidden side effects -- no network connection, no spawned 
-      subprocess, no filesystem write while the body executes.
-    limitations:
-    - Proves importability, a single deterministic import, and freedom from 
-      network, subprocess, and filesystem-write side effects at import; it does 
-      not prove a module is wired into a pipeline, and it does not trap clock 
-      reads or environment lookups, which neither corrupt state nor leak on 
-      their own at import.
   INV-profile-geometry:
     ci_tier: quality
     criticality: standard

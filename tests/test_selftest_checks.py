@@ -43,7 +43,6 @@ def test_write_docs_mode_writes_all_generated_contracts(tmp_path, monkeypatch, c
     monkeypatch.setattr(selftest, "__file__", str(package / "selftest.py"))
     ran = []
     monkeypatch.setattr(selftest, "CHECKS", [lambda: ran.append("check")])
-    monkeypatch.setattr(selftest, "modules", lambda: [])
     monkeypatch.setattr(selftest, "render_reference", lambda: "reference\n")
     monkeypatch.setattr(selftest.invariants, "render", lambda: "invariants\n")
     from press import qualification

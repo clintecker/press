@@ -10,215 +10,12 @@ press.
 
 from __future__ import annotations
 
-import importlib
-import pkgutil
 import re
 import sys
 from pathlib import Path
-from types import ModuleType
 
 from . import invariants
-from .adapters.import_guard import _ForbiddenImportSideEffect, _import_sandbox
 
-
-# Modules the installed package ships that the import gate deliberately
-# holds out, each with the reason on the record. A name here that no longer
-# resolves to a real module is a stale exception and fails the
-# collection-time gate below, so a rename or deletion cannot leave a silent
-# hole in the inventory.
-IMPORT_EXCEPTIONS: dict[str, str] = {
-    "press.__main__": (
-        "the console entry-point shell; importing it is running the CLI's "
-        "dispatch wiring, proven by check_command_catalog and the cli tests, "
-        "not by this import gate -- surfaces.py holds it out of the "
-        "classified surface for the same reason"
-    ),
-}
-
-# Optional dependencies a distributable module may need to import. The base
-# wheel does not ship these (they are extras), so a module that needs one is
-# skipped -- with a reason, never silently -- when the extra is absent, rather
-# than failing the gate for a dependency the base install never promised. When
-# the extra IS installed (the dev environment, the [tui] CI job) the module is
-# imported and proven like any other, so this is a runtime-conditional skip,
-# not a blanket exception. Keyed by the top-level import name of the extra.
-IMPORT_OPTIONAL_DEPS: dict[str, str] = {
-    "textual": "the [tui] extra (press.desk.*, the operator desk)",
-    "celebrimbor": "the celebrimbor quality gate (dev/CI, via press.quality_checks)",
-}
-
-
-def _on_walk_error(name: str) -> None:
-    """Discovery walks subpackages by importing them; a package whose
-    __init__ cannot import would otherwise be swallowed by walk_packages and
-    its submodules silently dropped from the inventory. Re-raise instead,
-    naming the package and preserving the original exception, so a broken
-    nested package fails loudly rather than quietly shrinking the count."""
-
-    raise ImportError(
-        f"press module discovery could not import package {name!r}"
-    ) from sys.exc_info()[1]
-
-
-def _discover_package_modules(package: ModuleType) -> list[str]:
-    """Every importable module under an installed package, discovered from
-    the package's own __path__ so the inventory is what the wheel actually
-    ships -- nested runtime modules included -- never a checkout's file
-    layout. Deterministic order, and every dotted name is unique, so two
-    modules that share a filename stem in different subpackages keep
-    distinct identities instead of collapsing to one."""
-
-    prefix = f"{package.__name__}."
-    return sorted(
-        info.name for info in pkgutil.walk_packages(package.__path__, prefix, _on_walk_error)
-    )
-
-
-def _import_module_names(names: list[str]) -> list[str]:
-    """Import each named module exactly once, in the order given, naming the
-    precise module and preserving the original exception on the first genuine
-    failure -- never a bare traceback that hides which module broke. A module
-    that fails only because a known optional extra (IMPORT_OPTIONAL_DEPS) is not
-    installed is skipped, not failed; the skipped names are returned so the gate
-    can report them. A ModuleNotFoundError for anything else is a real failure."""
-
-    skipped: list[str] = []
-    for name in names:
-        try:
-            importlib.import_module(name)
-        except ModuleNotFoundError as exc:
-            extra = IMPORT_OPTIONAL_DEPS.get(exc.name or "")
-            if extra is not None:
-                skipped.append(f"{name} (needs {extra})")
-                continue
-            raise SystemExit(
-                f"selftest: importing {name} failed: ModuleNotFoundError: {exc}"
-            ) from exc
-        except Exception as exc:
-            raise SystemExit(
-                f"selftest: importing {name} failed: {type(exc).__name__}: {exc}"
-            ) from exc
-    return skipped
-
-
-def modules() -> list[str]:
-    """Every distributable runtime module the import gate covers: the
-    installed package's recursive inventory minus the held-out exceptions,
-    in deterministic order."""
-
-    import press
-
-    return [name for name in _discover_package_modules(press) if name not in IMPORT_EXCEPTIONS]
-
-
-def check_imports() -> None:
-    """Every distributable runtime module imports, discovered recursively
-    from the installed package itself. This proves a wheel's nested runtime
-    modules (adapters, providers, desk) are importable, not only the
-    top-level ones a filename glob would find -- the gap where a nested
-    module could ship unimportable while the selftest stayed green. It
-    proves importability and a single deterministic import; that an import
-    is free of forbidden side effects is proven separately, by
-    check_import_side_effects."""
-
-    import press
-
-    discovered = set(_discover_package_modules(press))
-    stale = sorted(name for name in IMPORT_EXCEPTIONS if name not in discovered)
-    if stale:
-        raise SystemExit(
-            "selftest: import exceptions name modules that no longer exist "
-            f"(remove them from IMPORT_EXCEPTIONS): {', '.join(stale)}"
-        )
-    if not any(name.count(".") >= 2 for name in discovered):
-        raise SystemExit(
-            "selftest: module discovery found no nested modules; the "
-            "installed inventory has regressed to top-level only, so a "
-            "broken module under adapters/, providers/, or desk/ could ship "
-            "unimported"
-        )
-    skipped = _import_module_names(modules())
-    for name in skipped:
-        print(f"selftest: skipped (optional extra not installed): {name}")
-
-
-def _prove_no_import_side_effects(names: list[str]) -> str | None:
-    """Re-execute each named module's body under the import sandbox, in the
-    given order, returning the first module that reaches for the network,
-    spawns a subprocess, or writes a file at import -- named, with the
-    effect -- or None when every one is clean. Each module is dropped from
-    sys.modules first so its body actually runs again (a cached import is a
-    no-op that would prove nothing), then sys.modules is restored so the
-    proof does not disturb the process that ran it. Meant to run in a fresh
-    interpreter, where the drop-and-reimport starts from the module's real
-    import-time state."""
-
-    saved = {name: sys.modules[name] for name in names if name in sys.modules}
-    for name in names:
-        sys.modules.pop(name, None)
-    try:
-        with _import_sandbox():
-            for name in names:
-                try:
-                    importlib.import_module(name)
-                except _ForbiddenImportSideEffect as exc:
-                    return f"{name}: {exc}"
-                except ModuleNotFoundError as exc:
-                    # A module needing an absent optional extra can't be probed
-                    # (it won't import); skip it, as check_imports does. A
-                    # missing *required* dep is a real failure -- re-raise.
-                    if IMPORT_OPTIONAL_DEPS.get(exc.name or "") is None:
-                        raise
-    finally:
-        for name in names:
-            sys.modules.pop(name, None)
-        sys.modules.update(saved)
-    return None
-
-
-def _side_effect_probe() -> int:
-    """The body of the fresh-interpreter subprocess check_import_side_effects
-    spawns: prove every distributable module imports without a forbidden
-    side effect, printing the offending module if one does."""
-
-    import press  # noqa: F401  (ensures the package resolves before discovery)
-
-    offender = _prove_no_import_side_effects(modules())
-    if offender is not None:
-        print(offender)
-        return 1
-    return 0
-
-
-def check_import_side_effects() -> None:
-    """Every distributable runtime module imports without a forbidden
-    side effect: no network connection, no spawned subprocess, no
-    filesystem write while the module body runs. Importing a module must
-    load code, not do work -- an import that phones home or writes to disk
-    makes the pipeline non-deterministic and unsafe to run in a sandbox.
-    The proof runs in a fresh interpreter so each module body truly
-    re-executes under the sandbox and the isolation cannot disturb this
-    selftest. Clock reads and environment lookups are not trapped: they
-    neither corrupt state nor leak on their own at import time."""
-
-    from . import adapters
-
-    probe = "import sys; from press import selftest; sys.exit(selftest._side_effect_probe())"
-    result = adapters.process_runner.run(
-        [sys.executable, "-c", probe],
-        capture=True,
-    )
-    if result.returncode != 0:
-        detail = (result.stdout + result.stderr).decode("utf-8", errors="replace").strip()
-        raise SystemExit(
-            "selftest: a module has a forbidden import-time side effect "
-            f"(network, subprocess, or filesystem write):\n  {detail}"
-        )
-
-
-# The slug invariant's evidence, stated once: the pytest suite
-# parametrizes over these same tuples, so the two runners cannot
-# disagree about what a slug is.
 GOOD_SLUGS = ("make-ready", "a", "book-2", "9lives")
 BAD_SLUGS = (
     "../escape",
@@ -1666,8 +1463,6 @@ def check_jargon_parity() -> None:
 # pytest suite parametrizes over it, so the CLI and the test runner
 # cannot disagree about which invariants the press proves.
 CHECKS = [
-    check_imports,
-    check_import_side_effects,
     check_arithmetic,
     check_slug_invariant,
     check_jargon_parity,
@@ -1720,7 +1515,7 @@ def main(argv: list[str] | None = None) -> int:
     for check in CHECKS:
         check()
     print(
-        f"Selftest passed: {len(modules())} modules import, arithmetic agrees "
+        f"Selftest passed: {len(CHECKS)} checks, arithmetic agrees "
         "with the canonical examples, usage and README name every target"
     )
     return 0

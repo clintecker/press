@@ -105,7 +105,6 @@ TITLES = {
     "INV-scaffold-neutral": "Neutral scaffold",
     "INV-docs-no-drift": "Docs never drift",
     "INV-contract-mirror": "AGENTS mirrors CLAUDE",
-    "INV-pkg-import-inventory": "Installed modules all import",
     "INV-release-receipt-chain": "Complete release chain",
     "INV-edition-manifest": "Immutable edition identity",
     "INV-provider-qualification": "Honest provider record",

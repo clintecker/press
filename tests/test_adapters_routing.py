@@ -752,50 +752,6 @@ def test_borrow_book_restores_a_prior_book_root_through_environment(tmp_path, fa
 
 
 # --------------------------------------------------------------------------
-# selftest.check_import_side_effects spawns the fresh-interpreter probe
-# through the process runner and decodes its bytes on failure (issue #199).
-# --------------------------------------------------------------------------
-
-
-def test_check_import_side_effects_routes_probe_through_runner(fake_runner):
-    from press import selftest
-
-    # The default fake answers ProcessResult(0): a clean probe, no refusal.
-    selftest.check_import_side_effects()
-    assert len(fake_runner.runs) == 1
-    recorded = fake_runner.runs[0]
-    assert recorded.argv[0] == sys.executable
-    assert recorded.argv[1] == "-c"
-    assert "selftest._side_effect_probe" in recorded.argv[2]
-    assert recorded.capture is True
-    # It reads only the returncode/stdout; it must not raise on a nonzero exit
-    # itself, so check stays off.
-    assert recorded.check is False
-
-
-def test_check_import_side_effects_decodes_offender_bytes_on_failure(monkeypatch):
-    from press import selftest
-
-    # The runner returns BYTES (it never sets text=True); the diagnostic must
-    # decode them, not embed a bytes-repr. Fails before the migration, when the
-    # raw subprocess.run used text=True and this path never crossed the fake.
-    fake = fakes.FakeProcessRunner(
-        results=[ProcessResult(1, stdout=b"press.evil: wrote a file \xe2\x9c\x97", stderr=b"")]
-    )
-    monkeypatch.setattr(adapters, "process_runner", fake)
-    with pytest.raises(SystemExit) as excinfo:
-        selftest.check_import_side_effects()
-    message = str(excinfo.value)
-    assert "press.evil: wrote a file ✗" in message
-    assert "b'" not in message  # decoded text, never a bytes-repr
-
-
-# --------------------------------------------------------------------------
-# selftest.check_release_grammar drives the tag-grammar checks through the
-# process runner with bash release.sh --check-tag (issue #199).
-# --------------------------------------------------------------------------
-
-
 def test_check_release_grammar_routes_tag_checks_through_runner(monkeypatch):
     from press import selftest
 
