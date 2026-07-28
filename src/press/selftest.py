@@ -1751,13 +1751,15 @@ def _jargon_impl_paths() -> tuple[Path, Path]:
 def _jargon_shared_defs(source: str) -> dict[str, str]:
     """Top-level function and class source, keyed by name, minus parse_args
     (whose only sanctioned difference is how each copy finds its default
-    watchlist)."""
+    watchlist) and diagnostics_for (the package-only in-process seam
+    celebrimbor's known_bad gate calls; it is not part of the portable skill)."""
 
     import ast
 
+    skip = {"parse_args", "diagnostics_for"}
     defs: dict[str, str] = {}
     for node in ast.parse(source).body:
-        if isinstance(node, (ast.FunctionDef, ast.ClassDef)) and node.name != "parse_args":
+        if isinstance(node, (ast.FunctionDef, ast.ClassDef)) and node.name not in skip:
             segment = ast.get_source_segment(source, node)
             defs[node.name] = segment or ""
     return defs

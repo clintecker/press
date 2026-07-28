@@ -163,9 +163,12 @@ def audit(
 
     # Every file, not only markdown: the schema supports damaged-artifact
     # and recorded-response kinds (docx, epub, json), and those must not
-    # escape the provenance audit by not ending in .md.
+    # escape the provenance audit by not ending in .md. expected.yaml is
+    # celebrimbor's own provenance ledger for the same fixtures (its known_bad
+    # gate reads it here), not a fixture -- the same names celebrimbor reserves.
+    reserved = {"expected.yaml", "README.md", "__init__.py"}
     for fixture in sorted(fixture_dir.rglob("*")):
-        if fixture.is_file() and fixture.name not in seen:
+        if fixture.is_file() and fixture.name not in seen and fixture.name not in reserved:
             problems.append(
                 f"fixture {fixture.name!r}: on disk but absent from quality/fixtures.yaml"
             )

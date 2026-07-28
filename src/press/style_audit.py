@@ -215,6 +215,58 @@ def report(explicit: list[str], errors: list[str], warnings: list[str]) -> int:
     return 0
 
 
+def _scan_file(
+    path: Path,
+    relative: Path,
+    *,
+    in_book: bool,
+    banned: dict[re.Pattern, str],
+    errors: list[str],
+    warnings: list[str],
+) -> None:
+    """Append every style diagnostic for one file to errors/warnings. The one
+    per-file scan main() and diagnostics_for() share, so the CLI and the
+    celebrimbor known-bad probe cannot diverge on what a rule catches."""
+
+    text = path.read_text(encoding="utf-8")
+    lines = text.splitlines()
+    code_flags = in_fenced_code(lines)
+    for number, (line, in_code) in enumerate(zip(lines, code_flags), start=1):
+        where = f"{relative}:{number}"
+        if line.rstrip() != line:
+            errors.append(f"{where}: trailing whitespace")
+        if in_code:
+            continue
+        check_forbidden(line, where, errors)
+        if in_book:
+            check_book_prose(line, where, banned, errors)
+        check_heading(line, where, in_book, errors, warnings)
+    check_paragraph_length(text, relative, in_book, errors, warnings)
+
+
+def diagnostics_for(path: Path) -> list[str]:
+    """Every style *error* for one file, book-free (in_book=True, the house
+    banned patterns): the in-process seam celebrimbor's known-bad gate calls
+    per fixture, substring-matching the declared diagnostic. Warnings are
+    dropped -- a known-bad fixture proves an error fires, not a suggestion."""
+
+    errors: list[str] = []
+    warnings: list[str] = []
+    # No book, so no per-book banned-patterns ({}); the universal typographic
+    # and phrase rules (FORBIDDEN_CHARS/FORBIDDEN_PATTERNS) are built into the
+    # check_* functions and fire regardless -- which is every rule a packaged
+    # known-bad fixture proves.
+    _scan_file(
+        Path(path),
+        Path(path),
+        in_book=True,
+        banned={},
+        errors=errors,
+        warnings=warnings,
+    )
+    return errors
+
+
 def main(argv: list[str] | None = None) -> int:
     explicit = list(argv if argv is not None else sys.argv[1:])
     explicit_mode = bool(explicit)
@@ -230,23 +282,8 @@ def main(argv: list[str] | None = None) -> int:
             relative = path.relative_to(root)
         except ValueError:
             relative = path
-        text = path.read_text(encoding="utf-8")
-        lines = text.splitlines()
-        code_flags = in_fenced_code(lines)
         in_book = explicit_mode or book_dir in path.parents
-
-        for number, (line, in_code) in enumerate(zip(lines, code_flags), start=1):
-            where = f"{relative}:{number}"
-            if line.rstrip() != line:
-                errors.append(f"{where}: trailing whitespace")
-            if in_code:
-                continue
-            check_forbidden(line, where, errors)
-            if in_book:
-                check_book_prose(line, where, banned, errors)
-            check_heading(line, where, in_book, errors, warnings)
-
-        check_paragraph_length(text, relative, in_book, errors, warnings)
+        _scan_file(path, relative, in_book=in_book, banned=banned, errors=errors, warnings=warnings)
 
     return report(explicit, errors, warnings)
 

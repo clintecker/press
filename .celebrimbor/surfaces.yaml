@@ -336,7 +336,7 @@ modules:
   jargon_lint:
     overrides:
       line_and_column: pure
-    pin: "f6e1d3328161"
+    pin: "e1292b8a37d9"
     role: verifier
     status: ratified
   migrate:
@@ -532,7 +532,7 @@ modules:
       in_fenced_code: pure
       looks_title_cased: pure
       markdown_files: adapter
-    pin: "2d084b5d4353"
+    pin: "02ce40e58c61"
     role: verifier
     status: ratified
   verify_archives:

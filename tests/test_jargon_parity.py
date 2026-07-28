@@ -167,10 +167,11 @@ def test_shared_logic_is_byte_identical() -> None:
     import ast
 
     def shared_defs(source: str) -> dict[str, str]:
+        skip = {"parse_args", "diagnostics_for"}
         out: dict[str, str] = {}
         for node in ast.parse(source).body:
             named = isinstance(node, (ast.FunctionDef, ast.ClassDef))
-            if named and node.name != "parse_args":
+            if named and node.name not in skip:
                 out[node.name] = ast.get_source_segment(source, node) or ""
         return out
 

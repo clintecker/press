@@ -331,6 +331,26 @@ def should_fail(findings: Sequence[Finding], fail_on: str) -> bool:
     return any(STATUS_LEVEL[finding.status] >= threshold for finding in findings)
 
 
+def diagnostics_for(path: Path) -> list[str]:
+    """Every watchlist finding for one file, book-free (the default packaged
+    watchlist, no per-book allow list): the in-process seam celebrimbor's
+    known-bad gate calls per fixture, substring-matching the declared
+    diagnostic. Each line carries the ``jargon`` label the fixtures declare."""
+
+    default_watchlist = instruments.SKILLS / "overused-jargon" / "references" / "watchlist.csv"
+    rules = load_rules(default_watchlist)
+    text = Path(path).read_text(encoding="utf-8")
+    findings = scan_text(
+        path=str(path),
+        text=text,
+        rules=rules,
+        allowed_terms=set(),
+        include_quotes=True,
+        remaining=1_000_000,
+    )
+    return [f"jargon: {finding.term!r} ({finding.status})" for finding in findings]
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the checker."""
 

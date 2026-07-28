@@ -10,10 +10,15 @@ policy_roles = ["verifier", "parser", "producer", "adapter", "orchestrator"]
 import_check = true
 
 # press's own domain checks (the book/publishing verifiers celebrimbor cannot
-# know about). The CLI imports this module so `celebrimbor gate` runs all 28
+# know about). The CLI imports this module so `celebrimbor gate` runs all the
 # press.* checks alongside the builtins -- no hand-rolled wrapper. A module that
 # will not import is a hard, fail-closed error (celebrimbor 0.7.0, #7).
 check_modules = ["press.quality_checks"]
+
+# The known-bad fixtures live in the package data dir; expected.yaml there names
+# the checker + diagnostic each proves. This is the parity replacement for
+# press's own check_the_checkers / check_fixture_provenance.
+known_bad = "src/press/data/known-bad"
 
 [paths]
 surfaces = ".celebrimbor/surfaces.yaml"
@@ -21,3 +26,15 @@ invariants = ".celebrimbor/invariants.yaml"
 producers = ".celebrimbor/producers.yaml"
 coverage_baseline = ".celebrimbor/baselines/coverage.yaml"
 mutation_baseline = ".celebrimbor/baselines/mutation.yaml"
+
+# press's editorial linters are book-context-bound and emit human phrases, so
+# they run in-process (callable) with substring matching (celebrimbor 0.9.0, #10)
+# -- diagnostics_for(path) returns the diagnostic lines; the declared phrase must
+# appear inside one.
+[known_bad_checkers.style_audit]
+callable = "press.style_audit:diagnostics_for"
+match = "substring"
+
+[known_bad_checkers.jargon_lint]
+callable = "press.jargon_lint:diagnostics_for"
+match = "substring"
