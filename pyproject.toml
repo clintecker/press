@@ -55,13 +55,22 @@ dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
     "pytest-cov>=5.0",
+    "pytest-xdist>=3.6",
     "hypothesis>=6.100",
     "textual>=8,<9",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+# Parallel by default: the suite's wall-clock is dominated by independent,
+# isolated renders (LuaLaTeX PDFs, headless-Chrome layout checks) that each
+# write to their own tmp_path, so they fan out across cores cleanly -- ~4.5min
+# serial drops to ~1.5min. `auto` scales to the host (a 2-core CI runner takes
+# 2 workers, a 10-core dev box takes 10); pass `-n0` to force serial for
+# debugging. The invariant-collection footer prints per-worker counts under
+# xdist (cosmetic), but the ledger-completeness gate scans the test sources
+# statically (selftest._invariants_with_pytest_proof), so it stays correct.
+addopts = "-q -n auto"
 asyncio_mode = "auto"
 # Function scope matches the suite's test-isolation law: each async test
 # gets its own event loop, so no task, timer, or loop-bound fixture outlives

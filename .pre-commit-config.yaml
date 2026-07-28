@@ -3,6 +3,17 @@
 # `pre-commit run --all-files`). Install once:
 #   pip install -e '.[dev]' && pre-commit install
 #
+# This is the FAST (static) commit tier only: linters and the type
+# check, seconds not minutes. The heavy test tiers -- `press selftest`
+# (invariants + doc drift) and the full pytest suite (~4.5 min, wheel
+# build included) -- are deliberately NOT commit hooks; they run in CI's
+# `selftest` matrix job (`press selftest` + `python -m pytest` across
+# every supported interpreter) and again on the installed wheel. A
+# commit gate that costs 4.5 minutes is the anti-pattern the celebrimbor
+# tiering exists to kill: prove statically at commit, prove behaviorally
+# in CI. Run the full suite locally before pushing with `python -m
+# pytest` (or `scripts/verify.sh`) when you want the belt-and-braces.
+#
 # JS (data/workflows/*.js) and CSS have no pip-installable linter;
 # their gates are the workflow runtime's own parser and the site
 # link-checker respectively, until a Node toolchain is deliberately
@@ -53,15 +64,5 @@ repos:
       - id: mypy
         name: mypy
         entry: python3 -m mypy src/press
-        language: system
-        pass_filenames: false
-      - id: selftest
-        name: press selftest (invariants + doc drift)
-        entry: env PYTHONPATH=src python3 -m press selftest
-        language: system
-        pass_filenames: false
-      - id: pytest
-        name: pytest (reusable invariant tests)
-        entry: python3 -m pytest
         language: system
         pass_filenames: false
