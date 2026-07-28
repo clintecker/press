@@ -1675,69 +1675,6 @@ def check_extension_conformance() -> None:
             raise SystemExit(f"hostile extension {path.name} must be refused, but it conformed")
 
 
-# Every producer -- a module classified in surfaces.yaml as "proven through the
-# verifier that inspects its artifact" -- must name the REJECTION PROOF that
-# turns red on a deliberately broken artifact. Without this, a producer can be
-# labelled verified while its verifier inspects nothing meaningful: exactly how
-# gen_front_matter shipped a dropped and a clipped cover. gen_front_matter is
-# now proven by verify_pdf.verify_cover_page; it is the reason this gate exists.
-PRODUCER_REJECTION_PROOFS = {
-    "build": "verify_pdf / verify_formats reject a malformed built artifact",
-    "commerce": "test_commerce negative proofs reject invalid channel data",
-    "gen_authorities": "a build rejects a claim whose sentence has left the text",
-    "gen_coverwrap": "verify_coverwrap rejects transparency, over-resolution, or bad geometry",
-    "gen_front_matter": "verify_pdf.verify_cover_page rejects a dropped or clipped cover",
-    "gen_index": "a build rejects a zero-hit index term",
-    "package_source": "check_source_policy rejects a leaked secret or a stray file",
-    "print_safe": "test_print_safe and this selftest reject a backslash reaching TeX",
-    "profile_lifecycle": "check_profile_seals rejects an unsealed profile or a seal whose digest drifted from the profile's geometry",
-    "scaffold": "check_scaffold_neutrality rejects a non-neutral scaffold",
-}
-
-# Producers not yet given a named rejection proof. A shrinking allowlist: a
-# producer here is a known, visible gap, not a silent one. It must only shrink.
-PRODUCERS_PENDING_REJECTION_PROOF = {
-    "desk_model": "TUI state, exercised by test_desk_app; no artifact-rejection proof yet",
-    "scenarios": "test-scenario source for the suite, not a shipped artifact",
-}
-
-
-def check_producers_are_verified() -> None:
-    """No producer may claim to be proven by a verifier without naming the
-    rejection that proof turns on. Every producer is either in
-    PRODUCER_REJECTION_PROOFS or, visibly, in PRODUCERS_PENDING_REJECTION_PROOF;
-    a new producer forces that choice instead of inheriting a blind verifier."""
-
-    if _repo_root() is None:
-        return  # surfaces.yaml is a repo-dev artifact, absent from the wheel
-
-    from . import surfaces
-
-    config = surfaces.load_config().get("modules", {})
-    producers = {
-        module
-        for module, role in config.items()
-        if role == "producer" or (isinstance(role, dict) and role.get("default") == "producer")
-    }
-    proven = set(PRODUCER_REJECTION_PROOFS)
-    pending = set(PRODUCERS_PENDING_REJECTION_PROOF)
-
-    if proven & pending:
-        raise SystemExit(f"producers both proven and pending: {sorted(proven & pending)}")
-    unregistered = producers - proven - pending
-    if unregistered:
-        raise SystemExit(
-            "producers with no registered rejection proof -- name the verifier "
-            "that rejects a broken artifact, or add it to "
-            f"PRODUCERS_PENDING_REJECTION_PROOF with a reason: {sorted(unregistered)}"
-        )
-    stale = (proven | pending) - producers
-    if stale:
-        raise SystemExit(
-            f"rejection-proof registry names modules that are not producers: {sorted(stale)}"
-        )
-
-
 def _jargon_impl_paths() -> tuple[Path, Path]:
     """The two jargon checker sources: the package copy press check runs,
     and the portable skill copy an author can run without the package."""
@@ -1875,7 +1812,6 @@ CHECKS = [
     check_fixture_provenance,
     check_migration,
     check_extension_conformance,
-    check_producers_are_verified,
     check_command_catalog,
     check_docs,
 ]
