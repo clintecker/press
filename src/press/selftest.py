@@ -1457,15 +1457,6 @@ def check_docs() -> None:
         )
 
 
-def check_fixture_provenance() -> None:
-    """Every checked-in regression fixture carries a provenance manifest
-    entry, and no entry names a fixture that has left the tree."""
-
-    from . import fixture_provenance
-
-    fixture_provenance.check()
-
-
 def check_migration() -> None:
     """The v1->v2 migration keeps its two promises on a real scaffolded book:
     a dry-run plan reports the repin and changes nothing on disk
@@ -1702,7 +1693,6 @@ CHECKS = [
     check_coverwrap_detectors,
     check_aesthetic_schema,
     check_contract_mirror,
-    check_fixture_provenance,
     check_migration,
     check_extension_conformance,
     check_command_catalog,

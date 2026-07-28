@@ -264,10 +264,6 @@ modules:
     pin: "1c42fadc4ebb"
     role: parser
     status: ratified
-  fixture_provenance:
-    pin: "459dfac72179"
-    role: verifier
-    status: ratified
   gen_authorities:
     overrides:
       chapter_label: pure
@@ -522,7 +518,7 @@ modules:
       main: presenter
       modules: pure
       render_reference: producer
-    pin: "edbdd464ae16"
+    pin: "22f02db4d702"
     role: verifier
     status: ratified
   style_audit:

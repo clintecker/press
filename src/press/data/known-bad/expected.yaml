@@ -1,7 +1,7 @@
 # Known-bad provenance for celebrimbor's known_bad gate: each fixture ->
 # the checker that must reject it and the diagnostic (substring) it emits.
 # Generated from quality/fixtures.yaml; the same facts press's own
-# check_fixture_provenance enforces, in celebrimbor's schema.
+# celebrimbor.known_bad enforces, replacing press's retired fixture auditor,'s schema.
 
 em-dash.md:
   checker: style_audit

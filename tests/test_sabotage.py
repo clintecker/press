@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import pytest
 
-from press import fixture_provenance, invariants, receipts, surfaces
+from press import invariants, receipts, surfaces
 
 
 def test_sabotage_unclassified_function_reddens_surface_gate(monkeypatch):
@@ -49,20 +49,6 @@ def test_sabotage_dangling_invariant_proof_reddens_ledger():
     ]
     with pytest.raises(SystemExit, match="no selftest"):
         invariants.validate(bad)
-
-
-def test_sabotage_orphan_fixture_reddens_provenance(tmp_path):
-    """A fixture on disk with no manifest entry must be caught."""
-
-    from pathlib import Path
-    import shutil
-
-    src = Path(fixture_provenance.__file__).resolve().parent / "data" / "known-bad"
-    d = tmp_path / "known-bad"
-    shutil.copytree(src, d)
-    (d / "orphan-sabotage.docx").write_bytes(b"not manifested")
-    problems = fixture_provenance.audit(fixture_provenance.load(), d, invariants.load())
-    assert any("orphan-sabotage.docx" in p for p in problems)
 
 
 def test_sabotage_removed_graph_edge_reddens_state_model():
@@ -137,7 +123,6 @@ def test_sabotage_bad_tool_output_is_visible_through_the_fake():
 SABOTAGE_INDEX = {
     "surface-classification": "test_sabotage_unclassified_function_reddens_surface_gate",
     "invariant-ledger": "test_sabotage_dangling_invariant_proof_reddens_ledger",
-    "fixture-provenance": "test_sabotage_orphan_fixture_reddens_provenance",
     "graph-edges": "test_sabotage_removed_graph_edge_reddens_state_model",
     "release-receipts": "test_sabotage_mismatched_release_receipt_reddens_chain",
     "adapter-fakes": "test_sabotage_bad_tool_output_is_visible_through_the_fake",
