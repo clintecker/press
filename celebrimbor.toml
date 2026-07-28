@@ -1,0 +1,10 @@
+source = "src/press"
+exclude = ["src/press/data/**", "src/press/surfaces.py"]
+policy_roles = ["verifier", "parser", "producer", "adapter", "orchestrator"]
+
+[paths]
+surfaces = ".celebrimbor/surfaces.yaml"
+invariants = ".celebrimbor/invariants.yaml"
+producers = ".celebrimbor/producers.yaml"
+coverage_baseline = ".celebrimbor/baselines/coverage.yaml"
+mutation_baseline = ".celebrimbor/baselines/mutation.yaml"

@@ -1,0 +1,7 @@
+# Migrated from press's quality/ by contrib/migrate_press.py. Review before committing.
+environment: ci
+survivors:
+- 52:48:intconst:7
+- 54:57:intconst:13
+tool: mutmut (migrated from press)
+version: 1

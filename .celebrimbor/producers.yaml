@@ -1,0 +1,102 @@
+# reconciled
+pending:
+  aesthetic:write_tex_overrides:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  art_commission:commission:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  art_enhance:enhance:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  build:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  catalog:render_command_help:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  catalog:render_global_help:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  catalog:render_usage:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  commerce:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  desk_model:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  edition:build:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  gen_authorities:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  gen_coverwrap:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  gen_front_matter:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  gen_index:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  impact:render:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  invariants:render:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  migrate:apply:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  migrate:rollback:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  package_source:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  print_safe:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  profile_lifecycle:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  profiles:write_geometry_tex:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  qualification:render:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  qualification:render_packaged:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  receipts:assemble_release:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  receipts:build_full_chain:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  receipts:build_release_receipt:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  receipts:emit:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  scaffold:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  scenarios:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  selftest:render_reference:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  yamlio:dump:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  yamlio:write:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+version: 1

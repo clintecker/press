@@ -1,0 +1,77 @@
+# Migrated from press's quality/ by contrib/migrate_press.py. Review before committing.
+at-its-core.md:
+  checker: press
+  diagnostic: expect-marker
+  why: prose fixture; provenance proven by press's domain checker
+curly-quotes.md:
+  checker: press
+  diagnostic: expect-marker
+  why: prose fixture; provenance proven by press's domain checker
+em-dash.md:
+  checker: press
+  diagnostic: expect-marker
+  why: prose fixture; provenance proven by press's domain checker
+emoji.md:
+  checker: press
+  diagnostic: expect-marker
+  why: prose fixture; provenance proven by press's domain checker
+en-dash.md:
+  checker: press
+  diagnostic: expect-marker
+  why: prose fixture; provenance proven by press's domain checker
+in-conclusion.md:
+  checker: press
+  diagnostic: expect-marker
+  why: prose fixture; provenance proven by press's domain checker
+jargon.md:
+  checker: press
+  diagnostic: expect-marker
+  why: prose fixture; provenance proven by press's domain checker
+lets-dive.md:
+  checker: press
+  diagnostic: expect-marker
+  why: prose fixture; provenance proven by press's domain checker
+long-paragraph.md:
+  checker: press
+  diagnostic: expect-marker
+  why: prose fixture; provenance proven by press's domain checker
+negative-parallelism.md:
+  checker: press
+  diagnostic: expect-marker
+  why: prose fixture; provenance proven by press's domain checker
+numbered-heading.md:
+  checker: press
+  diagnostic: expect-marker
+  why: prose fixture; provenance proven by press's domain checker
+real-question.md:
+  checker: press
+  diagnostic: expect-marker
+  why: prose fixture; provenance proven by press's domain checker
+testament.md:
+  checker: press
+  diagnostic: expect-marker
+  why: prose fixture; provenance proven by press's domain checker
+throat-clearing-important.md:
+  checker: press
+  diagnostic: expect-marker
+  why: prose fixture; provenance proven by press's domain checker
+throat-clearing-worth.md:
+  checker: press
+  diagnostic: expect-marker
+  why: prose fixture; provenance proven by press's domain checker
+title-case.md:
+  checker: press
+  diagnostic: expect-marker
+  why: prose fixture; provenance proven by press's domain checker
+trailing-whitespace.md:
+  checker: press
+  diagnostic: expect-marker
+  why: prose fixture; provenance proven by press's domain checker
+vibrant-tapestry.md:
+  checker: press
+  diagnostic: expect-marker
+  why: prose fixture; provenance proven by press's domain checker
+without-further-ado.md:
+  checker: press
+  diagnostic: expect-marker
+  why: prose fixture; provenance proven by press's domain checker

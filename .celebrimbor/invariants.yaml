@@ -1,0 +1,593 @@
+# reconciled enforcers
+invariants:
+  INV-archive-site-bytes:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: verify_archives:verify_site_zip
+    layers:
+    - selftest
+    owner: verify_archives
+    risk: The downloadable reader disagrees with the site that was verified.
+    statement: The reader zip is byte-for-byte the verified site directory.
+  INV-archive-source-policy:
+    ci_tier: quality
+    critical: true
+    criticality: critical
+    enforced_by: package_source:publication_members
+    layers:
+    - selftest
+    - pytest
+    negative_proof: src/press/selftest.py::check_source_policy
+    owner: package_source
+    risk: A public source archive leaks a secret or a file outside the repo.
+    statement: 'The source zip holds exactly what the publication policy admits: tracked
+      files only, symlinks never dereferenced, secret files abort, no member escapes
+      its prefix.'
+  INV-authorities-claims:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: gen_authorities:generate
+    layers:
+    - selftest
+    - pytest
+    owner: gen_authorities
+    risk: A citation outlives the sentence it attributed, rotting silently.
+    statement: Every authorities claim appears in the manuscript exactly once in its
+      declared file; malformed, duplicate, missing, moved, and ambiguous entries are
+      each named.
+  INV-authorities-printsafe:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: gen_authorities:print_safe
+    layers:
+    - selftest
+    owner: gen_authorities
+    risk: A citation carrying a backslash reaches the TeX engine as a command.
+    statement: Researched source text is print-safe and TeX-safe.
+  INV-cli-exit-code:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: __main__:console
+    layers:
+    - selftest
+    - pytest
+    owner: __main__
+    risk: A pandoc or TeX failure ends in a Python traceback, not the tool's message.
+    statement: A failing tool's exit code passes through the console, never a traceback.
+  INV-commerce-config:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: commerce:validate
+    layers:
+    - selftest
+    - pytest
+    owner: commerce
+    risk: A book site advertises ordering with an insecure or broken link, leaks a
+      credential into a public page, or hides who the seller is.
+    statement: The print-order CTA is generated only for an enabled, valid config;
+      verification refuses a non-HTTPS storefront or policy link, an unnamed seller
+      of record, an embedded secret, or an unknown key. A policy link the publisher
+      omits is generated as an honest page on the site that discloses the seller of
+      record; the rendered landing page carries the CTA exactly when ordering is enabled,
+      every generated policy page exists, and no page leaks a secret.
+  INV-commerce-release-gate:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: commerce:release_problems
+    layers:
+    - selftest
+    - pytest
+    owner: commerce
+    risk: A book publishes an "order a print copy" link for an edition no one has
+      verified a provider can actually print.
+    statement: A book that advertises print ordering may not ship a release unless
+      its config is valid and its exact edition passed a physical qualification; a
+      missing, invalid, or unqualified edition fails the release gate closed, while
+      a book that sells nothing ships freely.
+  INV-config-locatable:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: booklib:load_config_mapping
+    layers:
+    - selftest
+    owner: booklib
+    risk: An author faces a parser traceback instead of a fixable diagnostic.
+    statement: Config defects are collected and reported with file and key; YAML errors
+      are located; a non-mapping config file is refused.
+  INV-config-registrations:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: barcode:validate
+    layers:
+    - selftest
+    - pytest
+    owner: registrations
+    risk: A malformed identifier reaches a retail channel or the barcode.
+    statement: ISBN and ISSN check digits are computed, never trusted; retail mode
+      fails on a pending number.
+  INV-config-release-witness:
+    ci_tier: integration
+    criticality: standard
+    enforced_by: booklib:require_release_witnesses
+    layers:
+    - integration
+    owner: booklib
+    risk: A release is cut that no rendered artifact can be proven to be.
+    statement: Release builds refuse vacuous witnesses (fewer than two sentinels,
+      page floor under twenty-four) when PRESS_RELEASE is set.
+  INV-config-slug:
+    ci_tier: quality
+    critical: true
+    criticality: critical
+    enforced_by: booklib:validate_slug
+    layers:
+    - selftest
+    - pytest
+    negative_proof: src/press/selftest.py::check_slug_invariant
+    owner: booklib
+    risk: A crafted slug escapes the dist directory or breaks a filename.
+    statement: A slug is strict lowercase kebab, safe as an artifact basename.
+  INV-config-trim:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: bookmodel:load
+    layers:
+    - selftest
+    owner: bookmodel
+    risk: A book ships at a size the interior geometry was never laid out for.
+    statement: Trim comes from the selected design profile, never a hand-entered number;
+      a metadata trim that disagrees with the profile is refused.
+  INV-contract-mirror:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: selftest:check_contract_mirror
+    layers:
+    - selftest
+    owner: selftest
+    risk: The two contributor contracts drift apart and disagree.
+    statement: AGENTS.md is a byte-for-byte mirror of CLAUDE.md below the heading.
+  INV-coverwrap-barcode:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: verify_coverwrap:scanline
+    layers:
+    - selftest
+    - pytest
+    owner: verify_coverwrap
+    risk: An unscannable or ink-fouled barcode ships on the retail cover.
+    statement: The barcode panel has its white card, enough bar transitions, and clean
+      quiet zones.
+  INV-coverwrap-geometry:
+    ci_tier: integration
+    criticality: standard
+    enforced_by: verify_coverwrap:main
+    layers:
+    - integration
+    owner: gen_coverwrap
+    risk: A wrong-sized retail cover is produced and blessed.
+    statement: The wrap is one page at exactly trim plus bleed plus spine, the spine
+      recomputed from the built interior, never restated.
+  INV-design-layout-stable:
+    ci_tier: integration
+    criticality: standard
+    enforced_by: build:build_target
+    layers:
+    - integration
+    owner: build
+    risk: The house design drifts silently -- a margin shifts, a font is swapped,
+      a plate is displaced -- changing a valid book's typography or layout without
+      the major-version decision the contract requires.
+    statement: A valid v1 book renders at the committed house geometry -- page count,
+      embedded fonts, and per-page trim and ink bounds within tolerance -- so the
+      house typography and layout cannot change within a major without a deliberate,
+      reasoned baseline decision.
+  INV-docs-no-drift:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: selftest:check_docs
+    layers:
+    - selftest
+    owner: selftest
+    risk: The documentation quietly diverges from what the code does.
+    statement: Usage and README name every target, REFERENCE.md and INVARIANTS.md
+      equal their generated text, and the aesthetics skill documents every consumed
+      key.
+  INV-dropcap-opening:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: dropcaps:split_initial
+    layers:
+    - unit
+    - property
+    - integration
+    owner: dropcaps
+    risk: A drop cap lands on the wrong block (an epigraph, a second paragraph), leaks
+      LaTeX or CSS into the manuscript, or a book that never asked for the feature
+      has its output altered.
+    statement: 'When a design enables a chapter-opening drop cap, the initial is placed
+      on the first eligible prose paragraph after each chapter heading and nowhere
+      else: an epigraph or other non-prose opener is skipped to the real opening paragraph,
+      only the first paragraph is capped, and the manuscript carries no renderer markup.
+      Any leading punctuation a chapter opening on dialogue carries -- an opening
+      quote or a dash -- is set beside the initial at its size (through lettrine''s
+      ante, or its own floated span on the web), never scaled up into the initial
+      and stranded above it. When the style is off, the filter changes nothing, so
+      a book that does not opt in renders unchanged; and a book whose chapters open
+      on ordinary words compiles to the same lettrine call whatever style it uses.'
+  INV-edition-manifest:
+    ci_tier: quality
+    critical: true
+    criticality: critical
+    enforced_by: edition:verify_facts
+    layers:
+    - selftest
+    - pytest
+    negative_proof: src/press/selftest.py::check_edition_manifest
+    owner: edition
+    risk: An order ships bytes that differ from the release-approved edition, or a
+      manifest leaks a price, secret, or customer datum.
+    statement: 'An edition manifest is immutable identity: any production-affecting
+      fact mints a new edition_id, and verification refuses a forged identity, an
+      interior or cover byte or page mismatch, an ill-formed or mutable reference,
+      a forbidden price/secret/customer field, a manifest with no receipt chain or
+      built from a dirty tree, and a provider qualification proven against a different
+      edition.'
+  INV-editorial-banned-regex:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: style_audit:banned_book_patterns
+    layers:
+    - selftest
+    owner: style_audit
+    risk: An author's regex slip becomes a parser traceback mid-audit.
+    statement: A malformed book-supplied banned regex is refused by name.
+  INV-editorial-battery:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: style_audit:main
+    layers:
+    - selftest
+    - integration
+    owner: style_audit
+    risk: Synthetic or print-unsafe prose reaches a published book.
+    statement: The universal prose battery refuses dashes, curly quotes, out-of-font
+      glyphs, throat-clearing, bad headings, and long paragraphs.
+  INV-editorial-checkers:
+    ci_tier: quality
+    critical: true
+    criticality: critical
+    enforced_by: check_the_checkers:main
+    layers:
+    - selftest
+    - integration
+    negative_proof: src/press/selftest.py::check_editorial_checkers
+    owner: check_the_checkers
+    risk: A checker silently stops catching what it was built to catch.
+    statement: Every known-bad fixture trips its declared rule; known-good passes
+      clean.
+  INV-editorial-jargon:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: jargon_lint:main
+    layers:
+    - selftest
+    owner: jargon_lint
+    risk: Overused jargon the author outlawed survives into the book.
+    statement: Watchlist terms at rewrite severity fail the run.
+  INV-editorial-jargon-parity:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: selftest:check_jargon_parity
+    layers:
+    - selftest
+    - pytest
+    owner: jargon_lint
+    risk: A matching, normalization, or allowlist fix lands in one checker and authors
+      running the standalone skill get different accept/reject results than press
+      check.
+    statement: The package jargon checker and the portable skill copy return equivalent
+      findings and refusals for the same text and watchlist, and default to the same
+      watchlist.
+  INV-extension-conformance:
+    ci_tier: quality
+    critical: true
+    criticality: critical
+    enforced_by: extensions:conformance
+    layers:
+    - selftest
+    - pytest
+    negative_proof: src/press/selftest.py::check_extension_conformance
+    owner: extensions
+    risk: A third-party extension shadows a core artifact or command, or a manifest
+      written for a future contract loads and behaves unpredictably, because collisions
+      and version mismatches were discovered at build time instead of refused up front.
+    statement: An extension declaration is refused before execution when it collides
+      with a core name, targets an extension-contract major this press does not implement,
+      is structurally malformed, or names an unknown dependency. Discovery is declarative
+      and deterministic; nothing runs on the strength of import order or an ambient
+      entry point.
+  INV-extension-seal:
+    ci_tier: quality
+    critical: true
+    criticality: critical
+    enforced_by: extensions:conformance
+    layers:
+    - selftest
+    - pytest
+    negative_proof: src/press/selftest.py::check_extension_conformance
+    owner: extensions
+    risk: A plugin silently weakens or stands in for core verification, or ships a
+      guarantee nothing enforces, so a book carries an invariant that is never checked.
+    statement: An extension may depend on the mandatory verification, path containment,
+      artifact graph, config validation, and release gate, but it may never declare
+      that it provides or replaces one, and it may not carry an invariant it does
+      not prove. A manifest that claims a sealed capability or an unproven obligation
+      is refused.
+  INV-format-agreement:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: verify_formats:verify_editions_agree
+    layers:
+    - selftest
+    - pytest
+    - integration
+    owner: verify_formats
+    risk: A single format loses a chapter -- a broken pandoc filter, a truncated export
+      -- and ships, because each edition was only ever checked for one witness line
+      and the formats were never cross-checked against each other.
+    statement: Every chapter's content appears in every built edition; an edition
+      that silently drops a chapter (or most of it) disagrees with the editions that
+      kept it and is refused, not passed.
+  INV-format-site-identity:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: verify_formats:verify_site
+    layers:
+    - selftest
+    owner: verify_formats
+    risk: A duplicated or missing chapter page passes on file count alone.
+    statement: Each chapter's witness appears exactly once across the reader site.
+  INV-format-structure:
+    ci_tier: integration
+    criticality: standard
+    enforced_by: build:build_target
+    layers:
+    - integration
+    - unit
+    owner: build
+    risk: An edition silently loses its structure -- a chapter document dropped from
+      the EPUB spine, a nav entry gone, a house DOCX style removed -- and ships, because
+      only the PDF's shape was ever pinned.
+    statement: 'A valid v1 book''s non-PDF editions keep their committed structural
+      shape: the EPUB''s chapter-document count exactly, its spine and nav and the
+      reader site''s pages and links no smaller than the reviewed baseline, and the
+      DOCX still declaring every house style.'
+  INV-format-witness:
+    ci_tier: quality
+    critical: true
+    criticality: critical
+    enforced_by: verify_formats:require_witnesses
+    layers:
+    - selftest
+    - pytest
+    negative_proof: src/press/selftest.py::check_format_witnesses
+    owner: verify_formats
+    risk: A format silently drops the manuscript and still verifies.
+    statement: Title and a derived manuscript witness appear in every format; a book
+      yielding no witness is refused, not passed.
+  INV-graph-acyclic:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: registry:build_order
+    layers:
+    - selftest
+    - pytest
+    owner: registry
+    risk: A build order cycles or an artifact has no real output.
+    statement: The artifact graph is acyclic, outputs unique, every published artifact
+      a concrete filename.
+  INV-graph-escaping:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: build:cover_fragment_html
+    layers:
+    - selftest
+    - property
+    owner: build
+    risk: A title with markup corrupts the single-file HTML or injects TeX.
+    statement: Metadata interpolated into HTML and TeX is escaped.
+  INV-graph-no-stale:
+    ci_tier: integration
+    critical: true
+    criticality: critical
+    enforced_by: __main__:main
+    layers:
+    - integration
+    negative_proof: src/press/selftest.py::check_arithmetic
+    owner: __main__
+    risk: A verifier passes an old artifact that no longer matches the source.
+    statement: Verify targets rebuild before verifying; a stale artifact cannot be
+      blessed.
+  INV-migration-preview:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: migrate:plan
+    layers:
+    - selftest
+    - pytest
+    owner: migrate
+    risk: An author applies a major upgrade blind and discovers the design or pin
+      changes only after the fact.
+    statement: A migration dry run reports every change it would make and every design
+      consequence to weigh, and writes nothing; a book learns exactly what moving
+      majors does before a byte changes.
+  INV-migration-safe:
+    ci_tier: quality
+    critical: true
+    criticality: critical
+    enforced_by: migrate:apply
+    layers:
+    - selftest
+    - pytest
+    negative_proof: src/press/selftest.py::check_migration
+    owner: migrate
+    risk: An upgrade silently rewrites prose or art, or leaves a book stranded on
+      a half-changed pin with no way back.
+    statement: Migrating a book between press majors moves only the pin, in requirements.txt
+      and the CI workflow; the manuscript, config, and accepted art come out byte-for-byte
+      identical, and rollback restores the exact pre-migration pin from a backup written
+      before any file is changed.
+  INV-pages-refs:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: verify_pages:check_refs
+    layers:
+    - selftest
+    - pytest
+    owner: verify_pages
+    risk: The public site ships dead links or a stylesheet pointing at nothing.
+    statement: Every local reference and stylesheet url resolves; fragments resolve
+      to real anchors.
+  INV-pdf-detector:
+    ci_tier: quality
+    critical: true
+    criticality: critical
+    enforced_by: verify_pdf:self_test_detector
+    layers:
+    - selftest
+    - pytest
+    negative_proof: src/press/selftest.py::check_coverwrap_detectors
+    owner: verify_pdf
+    risk: A miscalibrated detector passes blank pages or fails inked ones.
+    statement: The blank-page detector is proven against fixtures before it judges.
+  INV-pdf-ink:
+    ci_tier: integration
+    criticality: standard
+    enforced_by: verify_pdf:verify_page_ink
+    layers:
+    - integration
+    owner: verify_pdf
+    risk: A blank or clipped page ships in the interior.
+    statement: Every rendered page carries ink and keeps it off the edge.
+  INV-pkg-import-inventory:
+    ci_tier: quality
+    critical: true
+    criticality: critical
+    enforced_by: selftest:check_imports
+    layers:
+    - selftest
+    - pytest
+    - integration
+    negative_proof: src/press/selftest.py::check_imports
+    owner: selftest
+    risk: A nested runtime module ships unimportable in a wheel while the selftest,
+      inventorying only top-level files, stays green; or a module quietly phones home
+      or writes to disk at import, making the pipeline non-deterministic and unsafe
+      to run in a sandbox.
+    statement: Every distributable runtime module in the installed press package imports
+      exactly once in deterministic order, discovered recursively from the package
+      itself so nested adapters, providers, and desk modules are covered, not only
+      top-level files; a held-out module is named with a reason and a stale exception
+      fails the gate; and each module's import runs free of forbidden side effects
+      -- no network connection, no spawned subprocess, no filesystem write while the
+      body executes.
+  INV-profile-geometry:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: profiles:geometry_tex
+    layers:
+    - pytest
+    owner: profiles
+    risk: A profile silently renders at the wrong trim, or a sealed design value drifts
+      while its visual baseline still reads as valid.
+    statement: Selecting a design profile renders the interior at that profile's declared
+      trim, and an unknown profile is refused before any rendering. A profile's design-affecting
+      data has a stable digest, so a sealed value cannot change without the key that
+      scopes its visual baseline moving too.
+  INV-provider-contract:
+    ci_tier: quality
+    critical: true
+    criticality: critical
+    enforced_by: selftest:check_provider_contract
+    layers:
+    - selftest
+    - pytest
+    negative_proof: src/press/selftest.py::check_provider_contract
+    owner: providers
+    risk: A provider coupling leaks SDK types into the domain, a lost response prints
+      a second copy, an unknown status is guessed, or a forged webhook is trusted.
+    statement: 'Every print-provider adapter maps its own vocabulary to the neutral
+      contract: money is integer minor units parsed without binary float, an unrecognized
+      status quarantines to UNKNOWN, a submission timeout is an unknown outcome that
+      forces a lookup before any resubmission (never a hidden retry or a fabricated
+      acceptance), an unsupported capability is a typed refusal rather than a simulation,
+      and a webhook is authentic only when its signature matches the raw body.'
+  INV-provider-qualification:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: qualification:qualify
+    layers:
+    - selftest
+    - pytest
+    owner: qualification
+    risk: A book is sold as printable by a provider that cannot produce the exact
+      object, or a qualification survives a production-affecting change to the edition.
+    statement: The provider record declares every capability explicitly (an omitted
+      capability is a forbidden implicit claim) and the full physical checklist; a
+      provider is qualified for an edition only by a physical inspection with every
+      checklist point passed, scoped to that edition's identity, so a marketing claim,
+      a failed point, a not-fit provider, and an inspection of a different edition
+      are all refused.
+  INV-release-contract:
+    ci_tier: integration
+    criticality: standard
+    enforced_by: selftest:check_release_grammar
+    layers:
+    - integration
+    owner: selftest
+    risk: A pinned book resolves a different pipeline than the tag promises.
+    statement: A three-part tag pins its own action ref and an existing immutable
+      toolchain image, proven before the major floats.
+  INV-release-receipt-chain:
+    ci_tier: integration
+    critical: true
+    criticality: critical
+    enforced_by: receipts:verify_release
+    layers:
+    - selftest
+    - pytest
+    - integration
+    negative_proof: src/press/selftest.py::check_receipt_chain
+    owner: receipts
+    risk: A release ships objects that differ from the ones the tests proved.
+    statement: A release chain refuses a missing, tampered, reordered, or input-mismatched
+      prerequisite, a dirty-tree receipt, a terminal receipt whose package or toolchain
+      does not match the built and pinned objects, an incomplete chain that skips
+      any trust layer or breaks a layer's extension of its predecessor, and, when
+      assembled from per-job receipts, a missing CI tier (a job that did not run leaves
+      no receipt) or receipts that disagree on the source commit.
+  INV-release-tag-grammar:
+    ci_tier: quality
+    critical: true
+    criticality: critical
+    enforced_by: selftest:check_release_grammar
+    layers:
+    - selftest
+    - pytest
+    negative_proof: src/press/selftest.py::check_release_grammar
+    owner: selftest
+    risk: A malformed tag or an injected command reaches the release path.
+    statement: A release tag is strict SemVer and the composite action refuses shell
+      syntax in its command input.
+  INV-scaffold-neutral:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: selftest:check_scaffold_neutrality
+    layers:
+    - selftest
+    - pytest
+    - integration
+    owner: scaffold
+    risk: A new book inherits another book's name, person, or imprint.
+    statement: No original-book identity leaks into a clean scaffold.
+version: 1
