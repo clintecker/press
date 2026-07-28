@@ -90,29 +90,21 @@ def keep_block(text: str, name: str, keep: bool) -> str:
     return pattern.sub(lambda m: m.group(1) if keep else "", text)
 
 
-def generate(include_cover: bool = True) -> Path | None:
-    """Write build/front-matter.tex; None when the book does not opt in.
+def _fresh_output(root: Path) -> Path:
+    """The build/front-matter.tex path, cleared of any leftover.
 
-    The print interior drops the cover plate (the cover lives on the
-    wrap); the reading PDF leads with it when the asset exists.
+    Never trust a leftover from a prior run; a crash later must not leave a
+    stale page for the next build to ship.
     """
 
-    root = booklib.root()
     out = root / "build" / "front-matter.tex"
     if out.exists():
-        # Never trust a leftover from a prior run; a crash below must not
-        # leave a stale page for the next build to ship.
         out.unlink()
-    config = root / "config" / "front-matter.yaml"
-    cover_exists = include_cover and (root / "assets" / "cover.jpg").is_file()
-    # A book opts into generated front matter with a config/front-matter.yaml,
-    # and also whenever it has a cover for the reading PDF to lead with -- even
-    # with no other front matter, so the cover is never dropped for want of a
-    # dedication. A hand-authored tex/title-page.tex overrides both.
-    if (root / "tex" / "title-page.tex").is_file():
-        return None
-    if not config.is_file() and not cover_exists:
-        return None
+    return out
+
+
+def _load_front_config(root: Path, config: Path) -> dict:
+    """Load and shape-check config/front-matter.yaml (empty when absent)."""
 
     front = (yamlio.loads(config.read_text(encoding="utf-8")) or {}) if config.is_file() else {}
 
@@ -124,8 +116,12 @@ def generate(include_cover: bool = True) -> Path | None:
     from . import config_schema
 
     config_schema.enforce_file(root, config_schema.FRONT_MATTER, front)
+    return front
 
-    meta = booklib.metadata()
+
+def _require_metadata(meta) -> None:
+    """Fail loudly when metadata omits a key the front matter must print."""
+
     missing = [
         key
         for key in ("title", "author", "copyright", "publisher", "publisher-place")
@@ -136,33 +132,49 @@ def generate(include_cover: bool = True) -> Path | None:
             "front matter needs these config/metadata.yaml keys: " + ", ".join(missing)
         )
 
-    title = str(meta["title"]).upper()
-    if not title.endswith((".", "!", "?")):
-        title += "."
-    authors = list(booklib.book().authors)
-    date = str(meta.get("date") or "")
-    numeric_year = booklib.year()
-    year = roman(int(numeric_year)) if numeric_year else escape(date.lower())
-    edition = escape(
+
+def _registration_lines() -> list[str]:
+    """The ISBN/LCCN lines the colophon prints, in order, skipping blanks."""
+
+    from . import registrations
+
+    lines = []
+    for isbn_edition, label in (("print", "ISBN (print)"), ("epub", "ISBN (ebook)")):
+        display = registrations.isbn_display(isbn_edition)
+        if display:
+            lines.append(f"{label} {display}")
+    if registrations.lccn_display():
+        lines.append(f"LCCN {registrations.lccn_display()}")
+    return lines
+
+
+def _masthead_year(numeric_year, date: str) -> str:
+    """Roman numerals when a year is known, else the lowercased date."""
+
+    return roman(int(numeric_year)) if numeric_year else escape(date.lower())
+
+
+def _edition_note(front, date: str) -> str:
+    """The edition line: an explicit note, else the date's year fragment."""
+
+    return escape(
         str(front.get("edition-note") or "").lower()
         or (date.split(",")[0] if "," in date else date).lower()
     )
 
-    cover_on_page = include_cover and (root / "assets" / "cover.jpg").is_file()
-    logo = root / "assets" / "press-logo.png"
-    epigraph = front.get("epigraph") or {}
 
-    from . import registrations
+def _title_line(meta) -> str:
+    """The uppercased title, terminated with a period when it lacks one."""
 
-    registration_lines = []
-    for isbn_edition, label in (("print", "ISBN (print)"), ("epub", "ISBN (ebook)")):
-        display = registrations.isbn_display(isbn_edition)
-        if display:
-            registration_lines.append(f"{label} {display}")
-    if registrations.lccn_display():
-        registration_lines.append(f"LCCN {registrations.lccn_display()}")
+    title = str(meta["title"]).upper()
+    if not title.endswith((".", "!", "?")):
+        title += "."
+    return title
 
-    text = (booklib.DATA / "tex" / "front-matter.tex").read_text(encoding="utf-8")
+
+def _apply_keep_blocks(text, *, meta, front, cover_on_page, registration_lines, logo, epigraph):
+    """Resolve every %<<if NAME>> conditional block in the template."""
+
     for name, keep in [
         ("cover", cover_on_page),
         ("nocover", not cover_on_page),
@@ -182,14 +194,19 @@ def generate(include_cover: bool = True) -> Path | None:
         ("epigraph", bool(epigraph.get("quote"))),
     ]:
         text = keep_block(text, name, keep)
+    return text
 
-    values = {
-        "{{TITLE}}": escape(title),
+
+def _build_values(*, meta, front, authors, date, epigraph, registration_lines, include_cover):
+    """The {{PLACEHOLDER}} -> escaped-value map the template substitutes."""
+
+    return {
+        "{{TITLE}}": escape(_title_line(meta)),
         "{{SUBTITLE_STACK}}": subtitle_stack(str(meta.get("subtitle") or "")),
         "{{AUTHOR}}": escape(", ".join(authors)),
         "{{PLACE}}": escape(str(meta["publisher-place"]).lower()),
-        "{{YEAR}}": year,
-        "{{EDITION}}": edition,
+        "{{YEAR}}": _masthead_year(booklib.year(), date),
+        "{{EDITION}}": _edition_note(front, date),
         "{{RIGHTS_NOTICE}}": escape(front.get("rights-notice", "")),
         "{{COPYRIGHT}}": escape(meta["copyright"]),
         "{{PUBLISHER}}": escape(meta["publisher"]),
@@ -212,6 +229,59 @@ def generate(include_cover: bool = True) -> Path | None:
             "assets/press-logo.png" if include_cover else "build/print-assets/assets/press-logo.png"
         ),
     }
+
+
+def generate(include_cover: bool = True) -> Path | None:
+    """Write build/front-matter.tex; None when the book does not opt in.
+
+    The print interior drops the cover plate (the cover lives on the
+    wrap); the reading PDF leads with it when the asset exists.
+    """
+
+    root = booklib.root()
+    out = _fresh_output(root)
+    config = root / "config" / "front-matter.yaml"
+    cover_on_page = include_cover and (root / "assets" / "cover.jpg").is_file()
+
+    # A book opts into generated front matter with a config/front-matter.yaml,
+    # and also whenever it has a cover for the reading PDF to lead with -- even
+    # with no other front matter, so the cover is never dropped for want of a
+    # dedication. A hand-authored tex/title-page.tex overrides both.
+    if (root / "tex" / "title-page.tex").is_file():
+        return None
+    if not config.is_file() and not cover_on_page:
+        return None
+
+    front = _load_front_config(root, config)
+    meta = booklib.metadata()
+    _require_metadata(meta)
+
+    authors = list(booklib.book().authors)
+    date = str(meta.get("date") or "")
+    epigraph = front.get("epigraph") or {}
+    logo = root / "assets" / "press-logo.png"
+    registration_lines = _registration_lines()
+
+    text = (booklib.DATA / "tex" / "front-matter.tex").read_text(encoding="utf-8")
+    text = _apply_keep_blocks(
+        text,
+        meta=meta,
+        front=front,
+        cover_on_page=cover_on_page,
+        registration_lines=registration_lines,
+        logo=logo,
+        epigraph=epigraph,
+    )
+
+    values = _build_values(
+        meta=meta,
+        front=front,
+        authors=authors,
+        date=date,
+        epigraph=epigraph,
+        registration_lines=registration_lines,
+        include_cover=include_cover,
+    )
     for key, value in values.items():
         text = text.replace(key, value)
 

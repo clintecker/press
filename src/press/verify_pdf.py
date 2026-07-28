@@ -31,35 +31,53 @@ def sentinels() -> list[str]:
     return list(booklib.sentinels())
 
 
+def _find_list_page_index(reader, label: str) -> int | None:
+    """Index of the first page whose extracted text carries *label*, or None
+    when no such page is present (a book may carry only one list)."""
+
+    return next(
+        (i for i, page in enumerate(reader.pages) if label in (page.extract_text() or "")),
+        None,
+    )
+
+
+def _resolve_annotation_page(reader, obj, label: str) -> int | None:
+    """Page number the annotation's link destination lands on, or None when
+    the annotation carries no destination we can follow (no /Dest or /A/D, or
+    a named destination absent from the document). Raises when a destination
+    is present but resolves to no page."""
+
+    dest = obj.get("/Dest") or (obj.get("/A") or {}).get("/D")
+    if dest is None:
+        return None
+    dest = dest.get_object() if hasattr(dest, "get_object") else dest
+    if isinstance(dest, str):
+        named = reader.named_destinations.get(dest)
+        if named is None:
+            return None
+        target = reader.get_destination_page_number(named)
+    else:
+        target = reader.get_page_number(dest[0].get_object())
+    if target is None:
+        raise SystemExit(f"{label} link {dest!r} resolves to no page")
+    return target
+
+
 def _list_links_land_on_images(reader, label: str) -> None:
     """Every link on the illustration-list page named *label* must land on a
     page that holds an image. Both lists -- the unnumbered List of Plates and
     the numbered List of Figures -- are held to it; a list whose page is not
     present is simply skipped (a book may carry only one)."""
 
-    index = next(
-        (i for i, page in enumerate(reader.pages) if label in (page.extract_text() or "")),
-        None,
-    )
+    index = _find_list_page_index(reader, label)
     if index is None:
         return
     bad: list[int] = []
     checked = 0
     for annotation in reader.pages[index].get("/Annots") or []:
-        obj = annotation.get_object()
-        dest = obj.get("/Dest") or (obj.get("/A") or {}).get("/D")
-        if dest is None:
-            continue
-        dest = dest.get_object() if hasattr(dest, "get_object") else dest
-        if isinstance(dest, str):
-            named = reader.named_destinations.get(dest)
-            if named is None:
-                continue
-            target = reader.get_destination_page_number(named)
-        else:
-            target = reader.get_page_number(dest[0].get_object())
+        target = _resolve_annotation_page(reader, annotation.get_object(), label)
         if target is None:
-            raise SystemExit(f"{label} link {dest!r} resolves to no page")
+            continue
         checked += 1
         resources = reader.pages[target].get("/Resources") or {}
         if "/XObject" not in resources:

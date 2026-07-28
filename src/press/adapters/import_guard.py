@@ -30,30 +30,15 @@ class _ForbiddenImportSideEffect(Exception):
     file. Importing a runtime module must load code, not do work."""
 
 
-@contextlib.contextmanager
-def _import_sandbox():
-    """Trap the forbidden import-time side effects for the duration of the
-    block: a network connection, a spawned subprocess, or a filesystem
-    write. Constructing a socket or a Path is fine; *connecting* it,
-    *running* it, or *writing* through it is the side effect, so the guard
-    sits on the acting call, not the object. Bytecode caching writes go
-    through the import system's own low-level path (os.replace), not these
-    Python-level APIs, so a normal import does not trip the guard."""
-
-    import builtins
-    import os
-    import socket
-    import subprocess
+def _side_effect_patches(builtins, os, socket, subprocess):
+    """Build the patch table the sandbox installs: a list of
+    ``(owner, attribute, replacement)`` triples, one per acting call the
+    guard sits on. The replacements are closures that raise
+    ``_ForbiddenImportSideEffect``; ``guard_open`` alone delegates to the
+    real ``open`` for read modes, so it captures it here before patching."""
 
     write_modes = ("w", "a", "x", "+")
     real_open = builtins.open
-    real_connect = socket.socket.connect
-    real_connect_ex = socket.socket.connect_ex
-    real_create_connection = socket.create_connection
-    real_popen_init = subprocess.Popen.__init__
-    real_system = os.system
-    real_write_text = Path.write_text
-    real_write_bytes = Path.write_bytes
 
     def guard_open(file, mode="r", *args, **kwargs):
         if isinstance(mode, str) and any(flag in mode for flag in write_modes):
@@ -82,22 +67,39 @@ def _import_sandbox():
     def guard_write_bytes(self, *args, **kwargs):
         raise _ForbiddenImportSideEffect(f"wrote a file {str(self)!r} at import")
 
-    builtins.open = guard_open
-    socket.socket.connect = guard_connect
-    socket.socket.connect_ex = guard_connect_ex
-    socket.create_connection = guard_create_connection
-    subprocess.Popen.__init__ = guard_popen
-    os.system = guard_system
-    Path.write_text = guard_write_text
-    Path.write_bytes = guard_write_bytes
+    return [
+        (builtins, "open", guard_open),
+        (socket.socket, "connect", guard_connect),
+        (socket.socket, "connect_ex", guard_connect_ex),
+        (socket, "create_connection", guard_create_connection),
+        (subprocess.Popen, "__init__", guard_popen),
+        (os, "system", guard_system),
+        (Path, "write_text", guard_write_text),
+        (Path, "write_bytes", guard_write_bytes),
+    ]
+
+
+@contextlib.contextmanager
+def _import_sandbox():
+    """Trap the forbidden import-time side effects for the duration of the
+    block: a network connection, a spawned subprocess, or a filesystem
+    write. Constructing a socket or a Path is fine; *connecting* it,
+    *running* it, or *writing* through it is the side effect, so the guard
+    sits on the acting call, not the object. Bytecode caching writes go
+    through the import system's own low-level path (os.replace), not these
+    Python-level APIs, so a normal import does not trip the guard."""
+
+    import builtins
+    import os
+    import socket
+    import subprocess
+
+    patches = _side_effect_patches(builtins, os, socket, subprocess)
+    originals = [(owner, attr, getattr(owner, attr)) for owner, attr, _ in patches]
+    for owner, attr, replacement in patches:
+        setattr(owner, attr, replacement)
     try:
         yield
     finally:
-        builtins.open = real_open
-        socket.socket.connect = real_connect
-        socket.socket.connect_ex = real_connect_ex
-        socket.create_connection = real_create_connection
-        subprocess.Popen.__init__ = real_popen_init
-        os.system = real_system
-        Path.write_text = real_write_text
-        Path.write_bytes = real_write_bytes
+        for owner, attr, original in originals:
+            setattr(owner, attr, original)

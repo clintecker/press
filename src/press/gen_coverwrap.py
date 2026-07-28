@@ -247,9 +247,10 @@ def tex_safe_path(path: Path) -> Path:
     return path
 
 
-def generate(interior: Path, output: Path) -> Path:
-    root = booklib.root()
-    meta = booklib.metadata()
+def _require_metadata(meta: dict) -> None:
+    """Refuse to build a wrap missing an identity field the panels print,
+    naming every absent key at once."""
+
     missing = [
         key for key in ("title", "author", "publisher", "publisher-place") if not meta.get(key)
     ]
@@ -257,18 +258,17 @@ def generate(interior: Path, output: Path) -> Path:
         raise SystemExit(
             "the cover wrap needs these config/metadata.yaml keys: " + ", ".join(missing)
         )
-    trim = meta.get("trim") or {}
-    trim_w = float(trim.get("width", 6))
-    pages = interior_page_count(interior)
-    lay = layout(pages)
-    spine = lay.spine
-    wrap_w, wrap_h = lay.wrap_w, lay.wrap_h
 
-    # Print-safe cover assets: opaque, resolution-capped copies so the wrap
-    # trips neither the provider's transparency nor its PPI preflight. The
-    # front art prints at the full panel height, so its cap comes from the
-    # wrap geometry (keeping it under 600 PPI there); the logo is flattened
-    # onto the field colour it lies on, or white on a linen case with no field.
+
+def _resolve_cover_assets(root: Path, lay: WrapLayout, wrap_h: float) -> tuple[Path, Path]:
+    """Print-safe cover art and imprint logo, TeX-safe paths both.
+
+    Opaque, resolution-capped copies so the wrap trips neither the provider's
+    transparency nor its PPI preflight. The front art prints at the full panel
+    height, so its cap comes from the wrap geometry (keeping it under 600 PPI
+    there); the logo is flattened onto the field colour it lies on, or white on
+    a linen case with no field."""
+
     from . import print_safe
 
     field_bg = _CLOTH_FIELD_RGB if lay.cloth_field else (255, 255, 255)
@@ -281,6 +281,57 @@ def generate(interior: Path, output: Path) -> Path:
         raise SystemExit("coverwrap needs assets/cover.jpg (the front board art)")
     cover = tex_safe_path(safe["cover"])
     logo = tex_safe_path(safe.get("logo", root / "assets" / "press-logo.png"))
+    return cover, logo
+
+
+def _compile_wrap(build: Path) -> None:
+    """Compile the wrap TeX in ``build`` with latexmk/lualatex; on failure,
+    raise with the log tail so the fault is diagnosable."""
+
+    compiled = adapters.process_runner.run(
+        ["latexmk", "-lualatex", "-interaction=nonstopmode", "coverwrap.tex"],
+        cwd=build,
+        capture=True,
+    )
+    if compiled.returncode != 0:
+        log = build / "coverwrap.log"
+        if log.is_file():
+            tail = log.read_text(encoding="utf-8", errors="replace")[-2000:]
+        else:
+            # ProcessResult.stdout is bytes (the runner never sets text=True);
+            # decode before slicing so the diagnostic carries the real log tail.
+            tail = compiled.stdout.decode("utf-8", errors="replace")[-2000:]
+        raise SystemExit(f"coverwrap TeX failed; log tail:\n{tail}")
+
+
+def _verify_wrap_size(output: Path, wrap_w: float, wrap_h: float) -> None:
+    """The wrap is verified as an object before it is blessed: one page,
+    exactly the computed size."""
+
+    from pypdf import PdfReader
+
+    page = PdfReader(str(output)).pages[0]
+    width_in = float(page.mediabox.width) / 72
+    height_in = float(page.mediabox.height) / 72
+    if abs(width_in - wrap_w) > 0.01 or abs(height_in - wrap_h) > 0.01:
+        raise SystemExit(
+            f"coverwrap is {width_in:.3f} x {height_in:.3f} in; "
+            f"expected {wrap_w:.3f} x {wrap_h:.3f}"
+        )
+
+
+def generate(interior: Path, output: Path) -> Path:
+    root = booklib.root()
+    meta = booklib.metadata()
+    _require_metadata(meta)
+    trim = meta.get("trim") or {}
+    trim_w = float(trim.get("width", 6))
+    pages = interior_page_count(interior)
+    lay = layout(pages)
+    spine = lay.spine
+    wrap_w, wrap_h = lay.wrap_w, lay.wrap_h
+
+    cover, logo = _resolve_cover_assets(root, lay, wrap_h)
     authors = list(booklib.book().authors)
 
     def esc(value: str) -> str:
@@ -356,35 +407,11 @@ def generate(interior: Path, output: Path) -> Path:
     build.mkdir(parents=True)
     source = build / "coverwrap.tex"
     source.write_text(tex, encoding="utf-8")
-    compiled = adapters.process_runner.run(
-        ["latexmk", "-lualatex", "-interaction=nonstopmode", "coverwrap.tex"],
-        cwd=build,
-        capture=True,
-    )
-    if compiled.returncode != 0:
-        log = build / "coverwrap.log"
-        if log.is_file():
-            tail = log.read_text(encoding="utf-8", errors="replace")[-2000:]
-        else:
-            # ProcessResult.stdout is bytes (the runner never sets text=True);
-            # decode before slicing so the diagnostic carries the real log tail.
-            tail = compiled.stdout.decode("utf-8", errors="replace")[-2000:]
-        raise SystemExit(f"coverwrap TeX failed; log tail:\n{tail}")
+    _compile_wrap(build)
     output.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(build / "coverwrap.pdf", output)
 
-    # The wrap is verified as an object before it is blessed: one page,
-    # exactly the computed size.
-    from pypdf import PdfReader
-
-    page = PdfReader(str(output)).pages[0]
-    width_in = float(page.mediabox.width) / 72
-    height_in = float(page.mediabox.height) / 72
-    if abs(width_in - wrap_w) > 0.01 or abs(height_in - wrap_h) > 0.01:
-        raise SystemExit(
-            f"coverwrap is {width_in:.3f} x {height_in:.3f} in; "
-            f"expected {wrap_w:.3f} x {wrap_h:.3f}"
-        )
+    _verify_wrap_size(output, wrap_w, wrap_h)
     print(
         f"coverwrap: {pages} pages -> {spine:.3f}in spine, "
         f"{wrap_w:.3f} x {wrap_h:.3f}in with bleed -> {output.relative_to(root)}"
