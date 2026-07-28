@@ -1,12 +1,21 @@
 """Register press's domain quality checks with celebrimbor.
 
-Calling :func:`register` installs every press-specific check -- the ones
+Importing this module installs every press-specific check -- the ones
 celebrimbor cannot know about: editorial rules, the book model, provider
 contracts, the render/PDF/EPUB verifiers -- into celebrimbor's default
-registry via ``@celebrimbor.check``, so ``celebrimbor.gate()`` runs them
-alongside the framework's own gates. Registration is explicit (the ``press
-gate`` entry calls it), never an import side effect: merely importing this
-module must not mutate the registry.
+registry via ``@celebrimbor.check``, so both ``celebrimbor.gate()`` and the
+``celebrimbor gate`` CLI (which imports this module through ``[tool.celebrimbor]
+check_modules``) run them alongside the framework's own gates.
+
+Registration-by-import is celebrimbor's one documented seam, the same way its
+own builtins register when ``load_builtin_checks`` imports them. It is a
+registry mutation, not an I/O side effect, so it does not offend press's
+import law (``_prove_no_import_side_effects`` forbids network/subprocess/file
+writes on import, nothing more). :func:`register` is idempotent so the
+side-effect probe -- which drops the module and re-imports it -- does not
+raise ``DuplicateCheckError`` on the second pass. celebrimbor is not a book
+runtime dependency, so ``selftest.IMPORT_OPTIONAL_DEPS`` skips this module when
+celebrimbor is absent rather than failing the import gate.
 
 This is the registration seam only: the check *bodies* stay in their home
 modules (``selftest.check_*`` delegates to ``verify_pdf``, ``jargon_lint``,
@@ -85,13 +94,12 @@ def register() -> tuple[str, ...]:
     """Register every domain check into celebrimbor's default registry and
     return the ids, so the load has an inspectable result.
 
-    Called explicitly -- from the ``press gate`` entry, not at import time.
-    Registering at import would make merely importing this module mutate the
-    global registry, a side effect press's own ``_prove_no_import_side_effects``
-    invariant forbids (and celebrimbor's own builtins register only when
-    ``load_builtin_checks`` is called, never on import). Idempotent: an id
-    already present is left alone, so a second call (a test that re-runs the
-    gate in one process) does not raise ``DuplicateCheckError``."""
+    Called at import (below) so ``check_modules`` and ``load_builtin_checks``
+    see the checks the moment they import this module -- celebrimbor's one
+    registration seam. Idempotent: an id already present is left alone, so the
+    import-side-effect probe (which drops the module and re-imports it) and any
+    test that re-runs the gate in one process do not raise
+    ``DuplicateCheckError``."""
 
     from celebrimbor.registry import default_registry
 
@@ -111,3 +119,6 @@ def register() -> tuple[str, ...]:
             )(_wrap(name, title))
         ids.append(check_id)
     return tuple(ids)
+
+
+register()

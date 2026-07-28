@@ -44,6 +44,7 @@ IMPORT_EXCEPTIONS: dict[str, str] = {
 # not a blanket exception. Keyed by the top-level import name of the extra.
 IMPORT_OPTIONAL_DEPS: dict[str, str] = {
     "textual": "the [tui] extra (press.desk.*, the operator desk)",
+    "celebrimbor": "the celebrimbor quality gate (dev/CI, via press.quality_checks)",
 }
 
 
