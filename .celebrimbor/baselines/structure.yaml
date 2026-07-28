@@ -85,7 +85,7 @@ breaches:
   complexity/registrations:failures:cyclomatic-complexity: 22
   complexity/results::cohesion: 2
   complexity/scaffold:main:cyclomatic-complexity: 12
-  complexity/selftest::file-lines: 1905
+  complexity/selftest::file-lines: 1906
   complexity/selftest::public-callables: 40
   complexity/selftest:_prove_no_import_side_effects:nesting-depth: 5
   complexity/selftest:check_book_model:cyclomatic-complexity: 14
@@ -113,5 +113,6 @@ breaches:
   complexity/webmeta:head_fragment:cyclomatic-complexity: 16
   complexity/webmeta:head_fragment:keyword-only-parameters: 15
 environment: ci
-reason: 'burndown wave 2: 12 files refactored'
+reason: 'selftest.py 1905->1906: one-line celebrimbor entry in IMPORT_OPTIONAL_DEPS (needed so a celebrimbor-less
+  env skips quality_checks); the module dissolves in Phase 4 of the adoption'
 version: 1

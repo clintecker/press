@@ -469,7 +469,7 @@ modules:
     role: verifier
     status: ratified
   quality_checks:
-    pin: "cf927ab49664"
+    pin: "8916446d0630"
     role: pure
     status: ratified
   receipts:
