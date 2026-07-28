@@ -2,6 +2,14 @@ source = "src/press"
 exclude = ["src/press/data/**", "src/press/surfaces.py"]
 policy_roles = ["verifier", "parser", "producer", "adapter", "orchestrator"]
 
+# import_check (celebrimbor's runtime import-health gate) is the intended
+# parity replacement for press's own check_imports / check_import_side_effects,
+# but it is BLOCKED on celebrimbor #8: its probe replaces the socket.socket
+# *class* with a function, so importing any module that pulls in ssl (via
+# urllib/http.client) dies with "function() argument 'code' must be code".
+# Re-enable and retire press's import checks once #8 ships.
+# import_check = true
+
 # press's own domain checks (the book/publishing verifiers celebrimbor cannot
 # know about). The CLI imports this module so `celebrimbor gate` runs all 28
 # press.* checks alongside the builtins -- no hand-rolled wrapper. A module that
