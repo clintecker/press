@@ -13,7 +13,7 @@ modules:
       console: adapter
       verify_built: orchestrator
       verify_formats_built: orchestrator
-    pin: 5468fc3c1883
+    pin: "5468fc3c1883"
     role: orchestrator
     status: ratified
   adapters.fakes:
@@ -26,18 +26,18 @@ modules:
       FakeImageClient.post_multipart: adapter
       FakeProcessRunner.run: adapter
       ScriptedRetrySource.poll: adapter
-    pin: 835cab608ebc
+    pin: "835cab608ebc"
     role: pure
     status: ratified
   adapters.http:
-    pin: 44d25eab0a65
+    pin: "44d25eab0a65"
     role: adapter
     status: ratified
   adapters.production:
     overrides:
       OsEnvironment.which: pure
       __init__: pure
-    pin: 0292a65b8d40
+    pin: "0292a65b8d40"
     role: adapter
     status: ratified
   adapters.protocols:
@@ -45,34 +45,34 @@ modules:
       HttpImageClient.post_json: pure
       HttpImageClient.post_multipart: pure
       SpawnedProcess.read_line: pure
-    pin: e06c7cf80557
+    pin: "e06c7cf80557"
     role: pure
     status: ratified
   adapters.retry:
     overrides:
       __post_init__: verifier
-    pin: 365221fcbff1
+    pin: "365221fcbff1"
     role: adapter
     status: ratified
   adapters.streaming:
-    pin: 47bac78e0931
+    pin: "47bac78e0931"
     role: adapter
     status: ratified
   add:
     overrides:
       main: presenter
       slugify: normalizer
-    pin: 9dbd36812216
+    pin: "9dbd36812216"
     role: pure
     status: ratified
   aesthetic:
     overrides:
       write_tex_overrides: producer
-    pin: bbd2c13c7427
+    pin: "bbd2c13c7427"
     role: normalizer
     status: ratified
   art:
-    pin: f8f148662d94
+    pin: "f8f148662d94"
     role: presenter
     status: ratified
   art_commission:
@@ -84,7 +84,7 @@ modules:
       normalize_reference: normalizer
       parse_commissions: parser
       shape_for: pure
-    pin: f9dfde645e48
+    pin: "f2f05e5d1d58"
     role: adapter
     status: ratified
   art_enhance:
@@ -93,18 +93,18 @@ modules:
       enhance: producer
       find_upscaler: adapter
       upscale: adapter
-    pin: 1f6d803299dc
+    pin: "1f6d803299dc"
     role: pure
     status: ratified
   artifact_status:
     overrides:
       artifact_state: adapter
       record_evidence: adapter
-    pin: 77d93eaa8ec2
+    pin: "77d93eaa8ec2"
     role: pure
     status: ratified
   barcode:
-    pin: f2d80959b9ec
+    pin: "f2d80959b9ec"
     role: pure
     status: ratified
   booklib:
@@ -112,15 +112,15 @@ modules:
       plate_files: pure
       require_release_witnesses: verifier
       validate_slug: pure
-    pin: 5276176bb854
+    pin: "5276176bb854"
     role: parser
     status: ratified
   bookmodel:
-    pin: 5454529099dd
+    pin: "5454529099dd"
     role: parser
     status: ratified
   brand:
-    pin: cbf039757bcd
+    pin: "cbf039757bcd"
     role: presenter
     status: ratified
   build:
@@ -130,7 +130,7 @@ modules:
       download_names: pure
       run: adapter
       subtitle_stack_html: pure
-    pin: cd95d19676e4
+    pin: "5198dabc975d"
     role: producer
     status: ratified
   catalog:
@@ -138,15 +138,15 @@ modules:
       render_command_help: producer
       render_global_help: producer
       render_usage: producer
-    pin: abae723b91c2
+    pin: "abae723b91c2"
     role: pure
     status: ratified
   check_source:
-    pin: cd8c333d15d3
+    pin: "cd8c333d15d3"
     role: verifier
     status: ratified
   check_the_checkers:
-    pin: 00ee4e79b875
+    pin: "00ee4e79b875"
     role: verifier
     status: ratified
   commerce:
@@ -154,17 +154,17 @@ modules:
       load: parser
       should_emit: pure
       validate: verifier
-    pin: 28bde4f878fd
+    pin: "9927e0a4b81f"
     role: producer
     status: ratified
   config_cli:
-    pin: 2c084d3885ed
+    pin: "2c084d3885ed"
     role: presenter
     status: ratified
   config_schema:
     overrides:
       validate_file: verifier
-    pin: 479710ded91a
+    pin: "479710ded91a"
     role: pure
     status: ratified
   config_store:
@@ -174,7 +174,7 @@ modules:
       split_path: parser
       write_atomic: adapter
       write_safe: pure
-    pin: 6b09442b1876
+    pin: "6b09442b1876"
     role: pure
     status: ratified
   cover:
@@ -182,11 +182,11 @@ modules:
       build_prompt: pure
       load_styles: adapter
       main: presenter
-    pin: bcb31f197de6
+    pin: "bcb31f197de6"
     role: pure
     status: ratified
   desk:
-    pin: b4f9e782eca7
+    pin: "b4f9e782eca7"
     role: presenter
     status: ratified
   desk.app:
@@ -197,21 +197,21 @@ modules:
       _capability_summary: pure
       _model: orchestrator
       command_names: pure
-    pin: d01a954bb8dc
+    pin: "d01a954bb8dc"
     role: presenter
     status: ratified
   desk.wizard:
     overrides:
       _display: pure
       _typed: parser
-    pin: f9574e782e49
+    pin: "f9574e782e49"
     role: presenter
     status: ratified
   desk_model:
     overrides:
       doctor_rows: pure
       progress_event: parser
-    pin: 9ed46925058f
+    pin: "9ed46925058f"
     role: producer
     status: ratified
   doctor:
@@ -219,13 +219,13 @@ modules:
       examine: adapter
       render_finding: pure
       tool_runs: parser
-    pin: ff417213d0ae
+    pin: "1501ee61beb9"
     role: presenter
     status: ratified
   dropcaps:
     overrides:
       settings: parser
-    pin: 2e2fbebda6c9
+    pin: "2e2fbebda6c9"
     role: pure
     status: ratified
   edition:
@@ -237,7 +237,7 @@ modules:
       is_sellable: pure
       observe: pure
       to_json: pure
-    pin: 356de4c2b1a6
+    pin: "356de4c2b1a6"
     role: verifier
     status: ratified
   events:
@@ -245,7 +245,7 @@ modules:
       Demux.feed: adapter
       emit_line: pure
       parse_line: parser
-    pin: d8a68d712c9e
+    pin: "d8a68d712c9e"
     role: pure
     status: ratified
   extensions:
@@ -254,18 +254,18 @@ modules:
       core_names: adapter
       load_manifest: parser
       load_manifest_file: parser
-    pin: 39356af5f5aa
+    pin: "39356af5f5aa"
     role: pure
     status: ratified
   figures:
     overrides:
       as_dict: pure
       main: presenter
-    pin: 1c42fadc4ebb
+    pin: "1c42fadc4ebb"
     role: parser
     status: ratified
   fixture_provenance:
-    pin: 459dfac72179
+    pin: "459dfac72179"
     role: verifier
     status: ratified
   gen_authorities:
@@ -275,7 +275,7 @@ modules:
       normalize: normalizer
       print_safe: normalizer
       taken_letters: adapter
-    pin: fecd06b01921
+    pin: "1b78f65030df"
     role: producer
     status: ratified
   gen_coverwrap:
@@ -286,23 +286,23 @@ modules:
       spine_width: pure
       tex_safe_path: pure
       wrap_geometry: pure
-    pin: 59d292e60f95
+    pin: "2e3b7b5c92c6"
     role: producer
     status: ratified
   gen_front_matter:
     overrides:
       escape: normalizer
-    pin: 6969bd7934e8
+    pin: "839b4bc2f9eb"
     role: producer
     status: ratified
   gen_index:
-    pin: 3b15fe3d8430
+    pin: "3b15fe3d8430"
     role: producer
     status: ratified
   idlookup:
     overrides:
       LookupResult.ok: pure
-    pin: 52fa0c8b868d
+    pin: "52fa0c8b868d"
     role: orchestrator
     status: ratified
   illustrate:
@@ -311,7 +311,7 @@ modules:
       find_figure: adapter
       load_styles: adapter
       main: presenter
-    pin: 951a278443ba
+    pin: "65a3b5e0c39f"
     role: pure
     status: ratified
   impact:
@@ -319,24 +319,24 @@ modules:
       changed_modules: parser
       main: presenter
       render: producer
-    pin: f9be5a929b33
+    pin: "f9be5a929b33"
     role: pure
     status: ratified
   instruments:
-    pin: 6ed70eda5cde
+    pin: "6ed70eda5cde"
     role: presenter
     status: ratified
   invariants:
     overrides:
       load: parser
       render: producer
-    pin: f8c04e94533a
+    pin: "f8c04e94533a"
     role: verifier
     status: ratified
   jargon_lint:
     overrides:
       line_and_column: pure
-    pin: f6e1d3328161
+    pin: "f6e1d3328161"
     role: verifier
     status: ratified
   migrate:
@@ -348,34 +348,34 @@ modules:
       render_plan: pure
       rollback: producer
       status: presenter
-    pin: 0c0e4fe1b6c2
+    pin: "0c0e4fe1b6c2"
     role: pure
     status: ratified
   onix:
-    pin: 844197dd4ac2
+    pin: "844197dd4ac2"
     role: pure
     status: ratified
   operator:
-    pin: 04de80aa4b23
+    pin: "04de80aa4b23"
     role: orchestrator
     status: ratified
   package_source:
     overrides:
       publication_members: adapter
       tracked_paths: parser
-    pin: d685e7d98700
+    pin: "d685e7d98700"
     role: producer
     status: ratified
   pcn:
-    pin: 18f4a543f27b
+    pin: "18f4a543f27b"
     role: pure
     status: ratified
   press:
-    pin: 34da1a40b1e4
+    pin: "34da1a40b1e4"
     role: pure
     status: ratified
   print_safe:
-    pin: 263ccd15fd5f
+    pin: "263ccd15fd5f"
     role: producer
     status: ratified
   process_control:
@@ -385,7 +385,7 @@ modules:
       ProcessController.poll: adapter
       ProcessController.run: adapter
       ProcessController.start: adapter
-    pin: 87da15e722d7
+    pin: "87da15e722d7"
     role: pure
     status: ratified
   profile_lifecycle:
@@ -393,7 +393,7 @@ modules:
       load_seals: parser
       main: presenter
       validate: verifier
-    pin: 0a592eb05092
+    pin: "d432efba2380"
     role: producer
     status: ratified
   profiles:
@@ -401,14 +401,14 @@ modules:
       active: parser
       load: parser
       write_geometry_tex: producer
-    pin: a807170578f4
+    pin: "a807170578f4"
     role: pure
     status: ratified
   provider_specs:
     overrides:
       active: parser
       load: parser
-    pin: e3c6e771f2b5
+    pin: "302d0b7d4b54"
     role: pure
     status: ratified
   providers.contract:
@@ -417,7 +417,7 @@ modules:
       PrintProvider.normalize_status: pure
       PrintProvider.parse_event: pure
       PrintProvider.validate_files: pure
-    pin: 448b838a2983
+    pin: "448b838a2983"
     role: pure
     status: ratified
   providers.fake:
@@ -429,7 +429,7 @@ modules:
       FakeProvider.sign: pure
       FakeProvider.submit: adapter
       FakeProvider.validate_files: pure
-    pin: 3c4efbe7a819
+    pin: "3c4efbe7a819"
     role: pure
     status: ratified
   providers.lulu:
@@ -443,19 +443,19 @@ modules:
       LuluProvider.validate_files: adapter
       _access_token: adapter
       _request: adapter
-    pin: 9082cf3e8122
+    pin: "9082cf3e8122"
     role: pure
     status: ratified
   providers.transport:
     overrides:
       Response.json: parser
-    pin: 286ff7f8d49b
+    pin: "286ff7f8d49b"
     role: pure
     status: ratified
   publish:
     overrides:
       verify_retail: orchestrator
-    pin: 7713ab7a70ab
+    pin: "7713ab7a70ab"
     role: orchestrator
     status: ratified
   qualification:
@@ -465,7 +465,7 @@ modules:
       qualify: pure
       render: producer
       render_packaged: producer
-    pin: 59537180f477
+    pin: "9fd2f914efad"
     role: verifier
     status: ratified
   receipts:
@@ -477,11 +477,11 @@ modules:
       emit: producer
       from_json: pure
       to_json: pure
-    pin: afbe588f1892
+    pin: "f8a911239b27"
     role: verifier
     status: ratified
   registrations:
-    pin: c4df24e27024
+    pin: "c4df24e27024"
     role: parser
     status: ratified
   registry:
@@ -489,15 +489,15 @@ modules:
       build_order: pure
       condition_holds: adapter
       download_names: pure
-    pin: ef19a141b2bd
+    pin: "ef19a141b2bd"
     role: orchestrator
     status: ratified
   results:
-    pin: 489f322233bc
+    pin: "489f322233bc"
     role: pure
     status: ratified
   scaffold:
-    pin: ad0e58101cf1
+    pin: "ad0e58101cf1"
     role: producer
     status: ratified
   scenarios:
@@ -508,7 +508,7 @@ modules:
       pairwise: pure
       scenario_id: pure
       surface_dimensions: pure
-    pin: 3a72ec2f5edf
+    pin: "6ad8765b4616"
     role: producer
     status: ratified
   selftest:
@@ -518,7 +518,7 @@ modules:
       main: presenter
       modules: pure
       render_reference: producer
-    pin: fd4cdfee0f73
+    pin: "fd4cdfee0f73"
     role: verifier
     status: ratified
   style_audit:
@@ -528,17 +528,17 @@ modules:
       in_fenced_code: pure
       looks_title_cased: pure
       markdown_files: adapter
-    pin: 2d084b5d4353
+    pin: "2d084b5d4353"
     role: verifier
     status: ratified
   verify_archives:
-    pin: 63484214dd66
+    pin: "63484214dd66"
     role: verifier
     status: ratified
   verify_coverwrap:
     overrides:
       render: adapter
-    pin: a135e3691865
+    pin: "79a54b18556c"
     role: verifier
     status: ratified
   verify_formats:
@@ -549,7 +549,7 @@ modules:
       normalized: normalizer
       plate_count: pure
       sentinel_present: pure
-    pin: 7481c92d3096
+    pin: "fd210683bb0f"
     role: verifier
     status: ratified
   verify_pages:
@@ -559,7 +559,7 @@ modules:
       check_refs: pure
       commerce_secret: pure
       scan_page: parser
-    pin: f513d7ad533a
+    pin: "2080ea5367e2"
     role: verifier
     status: ratified
   verify_pdf:
@@ -570,22 +570,22 @@ modules:
       parse_args: parser
       render_pages: verifier
       run_capture: parser
-    pin: 32f650c8bad5
+    pin: "32f650c8bad5"
     role: verifier
     status: ratified
   webmeta:
-    pin: cd528babda13
+    pin: "cd528babda13"
     role: pure
     status: ratified
   wordcount:
-    pin: 18c3b2a4e0e6
+    pin: "18c3b2a4e0e6"
     role: presenter
     status: ratified
   yamlio:
     overrides:
       dump: producer
       write: producer
-    pin: 65608d47effe
+    pin: "65608d47effe"
     role: parser
     status: ratified
 version: 1

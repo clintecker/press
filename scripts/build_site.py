@@ -148,6 +148,9 @@ NOT_PUBLISHED = {
     "docs/CELEBRIMBOR-SPEC.md": "clean-room build brief for the celebrimbor "
     "framework; lives in the repo and issues, not the "
     "docs site",
+    "docs/CELEBRIMBOR-INTEGRATION-PLAN.md": "internal staged plan for retiring "
+    "press's parallel quality machinery to lean entirely on celebrimbor; lives "
+    "in the repo and issues, not the docs site",
     "docs/PROVIDER-DATA.md": "contributor workflow for regenerating the packaged "
     "provider ledger; lives in the repo for maintainers, "
     "not on a site written for authors",
