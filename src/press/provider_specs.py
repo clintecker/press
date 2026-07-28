@@ -81,18 +81,26 @@ class ProviderSpec:
     ) -> float:
         kind = shape["shape"]
         if ink == "color":
-            stock = color_grade or shape.get("color-default")
-            if stock is None:
-                raise SystemExit(
-                    f"provider {self.id}: no color-interior caliper "
-                    "(spine.color-default); it does not print a color interior. "
-                    "Select a color-capable provider or a single-ink profile."
-                )
-            if kind == "constant":
-                return pages * self._stock(shape["calipers"], stock)
-            if kind == "ppi-table":
-                return pages / self._stock(shape["ppi"], stock)
-            raise SystemExit(f"provider {self.id}: a {kind!r} spine has no color caliper model")
+            return self._color_shape_width(shape, pages, kind, color_grade)
+        return self._paper_shape_width(shape, pages, kind, paper)
+
+    def _color_shape_width(
+        self, shape: dict, pages: int, kind: str, color_grade: str | None
+    ) -> float:
+        stock = color_grade or shape.get("color-default")
+        if stock is None:
+            raise SystemExit(
+                f"provider {self.id}: no color-interior caliper "
+                "(spine.color-default); it does not print a color interior. "
+                "Select a color-capable provider or a single-ink profile."
+            )
+        if kind == "constant":
+            return pages * self._stock(shape["calipers"], stock)
+        if kind == "ppi-table":
+            return pages / self._stock(shape["ppi"], stock)
+        raise SystemExit(f"provider {self.id}: a {kind!r} spine has no color caliper model")
+
+    def _paper_shape_width(self, shape: dict, pages: int, kind: str, paper: str | None) -> float:
         paper = paper or shape.get("default-paper", "cream")
         if kind == "constant":
             return pages * self._stock(shape["calipers"], paper)
@@ -101,11 +109,14 @@ class ProviderSpec:
         if kind == "ppi-table":
             return pages / self._stock(shape["ppi"], paper)
         if kind == "lookup":
-            for low, high, width in shape["table"]:
-                if int(low) <= pages <= int(high):
-                    return float(width)
-            raise SystemExit(f"provider {self.id}: no spine band covers {pages} pages")
+            return self._lookup_width(shape, pages)
         raise SystemExit(f"provider {self.id}: unknown spine shape {kind!r}")
+
+    def _lookup_width(self, shape: dict, pages: int) -> float:
+        for low, high, width in shape["table"]:
+            if int(low) <= pages <= int(high):
+                return float(width)
+        raise SystemExit(f"provider {self.id}: no spine band covers {pages} pages")
 
     def _stock(self, table: dict, paper: str) -> float:
         if paper not in table:
@@ -173,41 +184,48 @@ class ProviderSpec:
         problems: list[str] = []
         if ink == "color" and not self.supports_color(binding):
             problems.append(f"provider {self.id!r} does not print a color interior")
-        trims = self.data.get("trims")
-        if trims is not None:
-            match = next(
-                (
-                    t
-                    for t in trims
-                    if abs(float(t["width"]) - trim_w) < 0.01
-                    and abs(float(t["height"]) - trim_h) < 0.01
-                ),
-                None,
-            )
-            if match is None:
-                problems.append(
-                    f"provider {self.id!r} does not offer a {trim_w:g} x {trim_h:g} trim"
-                )
-            elif binding not in (match.get("bindings") or []):
-                offered = ", ".join(match.get("bindings") or [])
-                problems.append(
-                    f"provider {self.id!r} does not offer {trim_w:g} x {trim_h:g} "
-                    f"in {binding!r} (offers: {offered})"
-                )
+        problems.extend(self._check_trim(trim_w, trim_h, binding))
         if pages is not None:
-            bounds = (self.data.get("pages") or {}).get(binding)
-            if bounds:
-                low, high = bounds.get("min"), bounds.get("max")
-                if low is not None and pages < int(low):
-                    problems.append(
-                        f"provider {self.id!r}: {binding} needs at least {low} pages "
-                        f"({pages} is too few)"
-                    )
-                if high is not None and pages > int(high):
-                    problems.append(
-                        f"provider {self.id!r}: {binding} allows at most {high} pages "
-                        f"({pages} is too many)"
-                    )
+            problems.extend(self._check_pages(binding, pages))
+        return problems
+
+    def _check_trim(self, trim_w: float, trim_h: float, binding: str) -> list[str]:
+        trims = self.data.get("trims")
+        if trims is None:
+            return []
+        match = next(
+            (
+                t
+                for t in trims
+                if abs(float(t["width"]) - trim_w) < 0.01
+                and abs(float(t["height"]) - trim_h) < 0.01
+            ),
+            None,
+        )
+        if match is None:
+            return [f"provider {self.id!r} does not offer a {trim_w:g} x {trim_h:g} trim"]
+        if binding not in (match.get("bindings") or []):
+            offered = ", ".join(match.get("bindings") or [])
+            return [
+                f"provider {self.id!r} does not offer {trim_w:g} x {trim_h:g} "
+                f"in {binding!r} (offers: {offered})"
+            ]
+        return []
+
+    def _check_pages(self, binding: str, pages: int) -> list[str]:
+        bounds = (self.data.get("pages") or {}).get(binding)
+        if not bounds:
+            return []
+        problems: list[str] = []
+        low, high = bounds.get("min"), bounds.get("max")
+        if low is not None and pages < int(low):
+            problems.append(
+                f"provider {self.id!r}: {binding} needs at least {low} pages ({pages} is too few)"
+            )
+        if high is not None and pages > int(high):
+            problems.append(
+                f"provider {self.id!r}: {binding} allows at most {high} pages ({pages} is too many)"
+            )
         return problems
 
 

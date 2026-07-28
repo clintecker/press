@@ -45,6 +45,20 @@ REQUIRED_HIGH_RISK = frozenset(
 )
 
 
+def _validate_dimension(name: str, spec: Any) -> None:
+    """Raise ValueError unless ``spec`` is a well-formed dimension: a
+    mapping with at least two values, and (for a surface) an ``absent``
+    value drawn from that list."""
+
+    if not isinstance(spec, dict):
+        raise ValueError(f"dimension {name!r} must be a mapping")
+    values = spec.get("values")
+    if not isinstance(values, list) or len(values) < 2:
+        raise ValueError(f"dimension {name!r} needs at least two values")
+    if spec.get("kind") == "surface" and spec.get("absent") not in values:
+        raise ValueError(f"surface dimension {name!r} must name an 'absent' value from its values")
+
+
 def load(path: Path | None = None) -> dict[str, Any]:
     """The scenario ledger as a mapping, validated enough that a
     malformed dimension surfaces here and not deep in the generator."""
@@ -57,15 +71,7 @@ def load(path: Path | None = None) -> dict[str, Any]:
     if not isinstance(dims, dict) or not dims:
         raise ValueError("scenarios.yaml needs a non-empty 'dimensions' mapping")
     for name, spec in dims.items():
-        if not isinstance(spec, dict):
-            raise ValueError(f"dimension {name!r} must be a mapping")
-        values = spec.get("values")
-        if not isinstance(values, list) or len(values) < 2:
-            raise ValueError(f"dimension {name!r} needs at least two values")
-        if spec.get("kind") == "surface" and spec.get("absent") not in values:
-            raise ValueError(
-                f"surface dimension {name!r} must name an 'absent' value from its values"
-            )
+        _validate_dimension(name, spec)
     return config
 
 
@@ -104,6 +110,66 @@ def scenario_id(dimensions: dict[str, str]) -> str:
     return f"pw-{digest}"
 
 
+def _all_pairs(names: list[str], values: dict[str, list[str]]) -> set[tuple[str, str, str, str]]:
+    """Every (dimension_a=value, dimension_b=value) pair to cover, stored
+    canonically with the earlier-in-order dimension first so lookups and
+    discards agree."""
+
+    uncovered: set[tuple[str, str, str, str]] = set()
+    for i, ni in enumerate(names):
+        for nj in names[i + 1 :]:
+            for a in values[ni]:
+                for b in values[nj]:
+                    uncovered.add((ni, a, nj, b))
+    return uncovered
+
+
+def _pair_key(
+    order: dict[str, int], n1: str, v1: str, n2: str, v2: str
+) -> tuple[str, str, str, str]:
+    """A pair in canonical (earlier-dimension-first) form."""
+
+    if order[n1] <= order[n2]:
+        return (n1, v1, n2, v2)
+    return (n2, v2, n1, v1)
+
+
+def _best_fill(
+    name: str,
+    combo: dict[str, str],
+    values: dict[str, list[str]],
+    uncovered: set[tuple[str, str, str, str]],
+    order: dict[str, int],
+) -> str:
+    """The value for ``name`` covering the most currently-uncovered pairs
+    against the already-chosen dimensions, ties broken by value order."""
+
+    best_value = values[name][0]
+    best_gain = -1
+    for value in values[name]:
+        gain = sum(
+            1
+            for other, chosen in combo.items()
+            if _pair_key(order, name, value, other, chosen) in uncovered
+        )
+        if gain > best_gain:
+            best_gain = gain
+            best_value = value
+    return best_value
+
+
+def _discard_covered(
+    names: list[str],
+    combo: dict[str, str],
+    uncovered: set[tuple[str, str, str, str]],
+) -> None:
+    """Drop every pair the completed combination now covers."""
+
+    for i, ni in enumerate(names):
+        for nj in names[i + 1 :]:
+            uncovered.discard((ni, combo[ni], nj, combo[nj]))
+
+
 def pairwise(values: dict[str, list[str]]) -> list[dict[str, str]]:
     """A deterministic all-pairs covering set over the given dimensions.
 
@@ -117,21 +183,8 @@ def pairwise(values: dict[str, list[str]]) -> list[dict[str, str]]:
     """
 
     names = list(values)
-    # Every pair to cover, stored canonically with the earlier-in-order
-    # dimension first so lookups and discards agree.
-    uncovered: set[tuple[str, str, str, str]] = set()
-    for i, ni in enumerate(names):
-        for nj in names[i + 1 :]:
-            for a in values[ni]:
-                for b in values[nj]:
-                    uncovered.add((ni, a, nj, b))
-
+    uncovered = _all_pairs(names, values)
     order = {name: idx for idx, name in enumerate(names)}
-
-    def key(n1: str, v1: str, n2: str, v2: str) -> tuple[str, str, str, str]:
-        if order[n1] <= order[n2]:
-            return (n1, v1, n2, v2)
-        return (n2, v2, n1, v1)
 
     combinations: list[dict[str, str]] = []
     while uncovered:
@@ -140,21 +193,8 @@ def pairwise(values: dict[str, list[str]]) -> list[dict[str, str]]:
         for name in names:
             if name in combo:
                 continue
-            best_value = values[name][0]
-            best_gain = -1
-            for value in values[name]:
-                gain = sum(
-                    1
-                    for other, chosen in combo.items()
-                    if key(name, value, other, chosen) in uncovered
-                )
-                if gain > best_gain:
-                    best_gain = gain
-                    best_value = value
-            combo[name] = best_value
-        for i, ni in enumerate(names):
-            for nj in names[i + 1 :]:
-                uncovered.discard((ni, combo[ni], nj, combo[nj]))
+            combo[name] = _best_fill(name, combo, values, uncovered, order)
+        _discard_covered(names, combo, uncovered)
         combinations.append({name: combo[name] for name in names})
     return combinations
 

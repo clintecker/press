@@ -132,14 +132,10 @@ def _is_https(url: str) -> bool:
     return url.startswith("https://") and len(url) > len("https://")
 
 
-def validate(config: CommerceConfig | None) -> list[str]:
-    """Every defect in a commerce config. A disabled or absent block is
-    silent (no CTA is emitted); an enabled block must name an HTTPS
-    storefront, an explicit seller of record, and complete HTTPS policy
-    links, and may carry no secret and no unknown key."""
+def _required_field_problems(config: CommerceConfig) -> list[str]:
+    """Defects in the fields an enabled block must name: an edition, an
+    HTTPS storefront, and an explicit seller of record."""
 
-    if config is None or not config.enabled:
-        return []
     problems: list[str] = []
     if not config.edition:
         problems.append("commerce: enabled but no edition named")
@@ -152,26 +148,43 @@ def validate(config: CommerceConfig | None) -> list[str]:
             "commerce: seller-of-record must be named explicitly ("
             "a hosted checkout does not imply who the legal seller is)"
         )
-    # A policy url is optional: supply one to link your own hosted page, or
-    # omit it and press generates the page. When supplied it must be https.
+    return problems
+
+
+def _policy_https_problems(config: CommerceConfig) -> list[str]:
+    """A policy url is optional -- supply one to link your own hosted page,
+    or omit it and press generates the page -- but a supplied one must be
+    https."""
+
+    problems: list[str] = []
     for name in _POLICY_LINKS:
         value = getattr(config, name)
         if value and not _is_https(value):
             problems.append(f"commerce: {name.replace('_', '-')} must be https")
+    return problems
+
+
+def _unknown_policy_problems(config: CommerceConfig) -> list[str]:
+    """Defects from policy-text keys the schema does not recognize."""
+
     unknown_policies = set(config.policies) - _POLICY_TEXT_KEYS
-    if unknown_policies:
-        problems.append(
-            f"commerce: policies has unknown key(s) {sorted(unknown_policies)}; "
-            f"expected {sorted(_POLICY_TEXT_KEYS)}"
-        )
-    secret_fields = [
-        "storefront_url",
-        "support_url",
-        "privacy_url",
-        "refund_url",
-        "seller_of_record",
+    if not unknown_policies:
+        return []
+    return [
+        f"commerce: policies has unknown key(s) {sorted(unknown_policies)}; "
+        f"expected {sorted(_POLICY_TEXT_KEYS)}"
     ]
-    for name in secret_fields:
+
+
+_SECRET_FIELDS = ("storefront_url", "support_url", "privacy_url", "refund_url", "seller_of_record")
+
+
+def _secret_problems(config: CommerceConfig) -> list[str]:
+    """Fields and policy texts whose value carries a credential shape; a
+    book repository holds no credentials."""
+
+    problems: list[str] = []
+    for name in _SECRET_FIELDS:
         if _SECRET_MARKERS.search(getattr(config, name)):
             problems.append(
                 f"commerce: {name.replace('_', '-')} looks like it carries a "
@@ -180,6 +193,22 @@ def validate(config: CommerceConfig | None) -> list[str]:
     for kind, text in config.policies.items():
         if _SECRET_MARKERS.search(text):
             problems.append(f"commerce: policies.{kind} looks like it carries a secret")
+    return problems
+
+
+def validate(config: CommerceConfig | None) -> list[str]:
+    """Every defect in a commerce config. A disabled or absent block is
+    silent (no CTA is emitted); an enabled block must name an HTTPS
+    storefront, an explicit seller of record, and complete HTTPS policy
+    links, and may carry no secret and no unknown key."""
+
+    if config is None or not config.enabled:
+        return []
+    problems: list[str] = []
+    problems += _required_field_problems(config)
+    problems += _policy_https_problems(config)
+    problems += _unknown_policy_problems(config)
+    problems += _secret_problems(config)
     if config.extra_keys:
         problems.append(f"commerce: unknown key(s) {list(config.extra_keys)}")
     return problems

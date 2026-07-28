@@ -100,31 +100,34 @@ def _structural_problems(index: int, entry: object) -> list[str]:
     return problems
 
 
-def _locate(index: int, entry: dict, fragment: str, sources: list, by_relpath: dict):
-    """Where the claim lives, or the one diagnostic explaining why not:
-    unknown file, ambiguous (with counts), moved (with destination), or
-    missing entirely."""
+def _missing_diagnostic(index: int, claim: str) -> str:
+    """The claim matches nothing anywhere in the book."""
 
-    claim = entry["claim"]
-    hits = [
-        (path, label, text.count(fragment)) for path, label, text in sources if fragment in text
-    ]
-    missing = (
+    return (
         f'entry {index}: missing, "{claim}" matches nothing in the '
         "book (the text moved out from under its citation)"
     )
-    declared = entry.get("file")
-    if not declared:
-        total = sum(n for _, _, n in hits)
-        if total == 1:
-            return hits[0], None
-        if total == 0:
-            return None, missing
-        where = ", ".join(f"{p.relative_to(booklib.root())} x{n}" for p, _, n in hits)
-        return None, (
-            f'entry {index}: ambiguous, "{claim}" matches {total} '
-            f"times ({where}); lengthen the fragment or declare file:"
-        )
+
+
+def _locate_undeclared(index: int, claim: str, hits: list):
+    """Resolve a claim that names no file: it must match exactly once."""
+
+    total = sum(n for _, _, n in hits)
+    if total == 1:
+        return hits[0], None
+    if total == 0:
+        return None, _missing_diagnostic(index, claim)
+    where = ", ".join(f"{p.relative_to(booklib.root())} x{n}" for p, _, n in hits)
+    return None, (
+        f'entry {index}: ambiguous, "{claim}" matches {total} '
+        f"times ({where}); lengthen the fragment or declare file:"
+    )
+
+
+def _locate_declared(index: int, claim: str, fragment: str, declared, hits: list, by_relpath: dict):
+    """Resolve a claim pinned to a declared file: unknown, ambiguous,
+    moved (with destination), or missing entirely."""
+
     home = by_relpath.get(str(declared))
     if home is None:
         return None, f'entry {index}: declares unknown file "{declared}"'
@@ -142,29 +145,32 @@ def _locate(index: int, entry: dict, fragment: str, sources: list, by_relpath: d
             f'entry {index}: moved, "{claim}" is no longer in '
             f"{declared} but appears in {where}; update file:"
         )
-    return None, missing
+    return None, _missing_diagnostic(index, claim)
 
 
-def generate() -> Path | None:
-    ledger = booklib.root() / "config" / "authorities.yaml"
-    if not ledger.is_file():
-        return None
-    with ledger.open(encoding="utf-8") as handle:
-        entries = yamlio.loads(handle.read()) or []
+def _locate(index: int, entry: dict, fragment: str, sources: list, by_relpath: dict):
+    """Where the claim lives, or the one diagnostic explaining why not:
+    unknown file, ambiguous (with counts), moved (with destination), or
+    missing entirely."""
 
-    sources = [
-        (path, chapter_label(path), normalize(path.read_text(encoding="utf-8")))
-        for path in booklib.chapter_files()
+    claim = entry["claim"]
+    hits = [
+        (path, label, text.count(fragment)) for path, label, text in sources if fragment in text
     ]
+    declared = entry.get("file")
+    if not declared:
+        return _locate_undeclared(index, claim, hits)
+    return _locate_declared(index, claim, fragment, declared, hits, by_relpath)
+
+
+def _resolve_entries(entries: list, sources: list, by_relpath: dict):
+    """Walk the ledger once, collecting located claims and the diagnostics
+    for those that do not resolve (structural defect, duplicate, or a
+    location failure), in entry order."""
 
     diagnostics: list[str] = []
     located: list[tuple[str, str, dict]] = []
     seen: dict[str, int] = {}
-    if not isinstance(entries, list):
-        raise SystemExit("gen_authorities: config/authorities.yaml must be a list of entries")
-    by_relpath = {
-        str(path.relative_to(booklib.root())): (path, label, text) for path, label, text in sources
-    }
     for index, entry in enumerate(entries, start=1):
         problems = _structural_problems(index, entry)
         if problems:
@@ -183,6 +189,27 @@ def generate() -> Path | None:
             diagnostics.append(problem)
         else:
             located.append((home[0].name, home[1], entry))
+    return diagnostics, located
+
+
+def generate() -> Path | None:
+    ledger = booklib.root() / "config" / "authorities.yaml"
+    if not ledger.is_file():
+        return None
+    with ledger.open(encoding="utf-8") as handle:
+        entries = yamlio.loads(handle.read()) or []
+
+    sources = [
+        (path, chapter_label(path), normalize(path.read_text(encoding="utf-8")))
+        for path in booklib.chapter_files()
+    ]
+
+    if not isinstance(entries, list):
+        raise SystemExit("gen_authorities: config/authorities.yaml must be a list of entries")
+    by_relpath = {
+        str(path.relative_to(booklib.root())): (path, label, text) for path, label, text in sources
+    }
+    diagnostics, located = _resolve_entries(entries, sources, by_relpath)
 
     if diagnostics:
         raise SystemExit(

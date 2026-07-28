@@ -135,7 +135,9 @@ def providers(record: dict | None = None) -> dict[str, Provider]:
     return out
 
 
-def _validate_provider(name: str, prov: Provider) -> list[str]:
+def _validate_identity(name: str, prov: Provider) -> list[str]:
+    """Disposition, routes-presence, and evidence-completeness defects."""
+
     problems: list[str] = []
     if prov.disposition not in DISPOSITIONS:
         problems.append(f"{name}: unknown disposition {prov.disposition!r}")
@@ -143,8 +145,14 @@ def _validate_provider(name: str, prov: Provider) -> list[str]:
         problems.append(f"{name}: no routes recorded")
     if not prov.evidence or any(not e.get("claim") or not e.get("url") for e in prov.evidence):
         problems.append(f"{name}: every evidence entry needs a claim and a url")
-    # Capabilities must be exactly the required set, each an explicit value:
-    # an omitted capability is an implicit claim, which is forbidden.
+    return problems
+
+
+def _validate_capabilities(name: str, prov: Provider) -> list[str]:
+    """Capabilities must be exactly the required set, each an explicit value:
+    an omitted capability is an implicit claim, which is forbidden."""
+
+    problems: list[str] = []
     missing = REQUIRED_CAPABILITIES - set(prov.capabilities)
     extra = set(prov.capabilities) - REQUIRED_CAPABILITIES
     if missing:
@@ -156,8 +164,14 @@ def _validate_provider(name: str, prov: Provider) -> list[str]:
             problems.append(
                 f"{name}: capability {cap}={value!r} is not one of {sorted(CAPABILITY_VALUES)}"
             )
-    # A `- text: more` line is YAML for a mapping, not a string; catch that
-    # so an unknowns or routes entry cannot silently become a dict.
+    return problems
+
+
+def _validate_entry_types(name: str, prov: Provider) -> list[str]:
+    """A `- text: more` line is YAML for a mapping, not a string; catch that
+    so an unknowns or routes entry cannot silently become a dict."""
+
+    problems: list[str] = []
     if any(not isinstance(u, str) for u in prov.unknowns):
         problems.append(
             f"{name}: every 'unknowns' entry must be a string (a colon made one a mapping)"
@@ -167,22 +181,34 @@ def _validate_provider(name: str, prov: Provider) -> list[str]:
     return problems
 
 
-def validate(record: dict | None = None) -> list[str]:
-    """Every defect in the qualification record: a bad schema, a physical
-    checklist missing a required inspection point, or a provider with an
-    unknown disposition, no evidence, or an implicit capability."""
-
-    default_record = record is None
-    record = record if record is not None else load()
+def _validate_provider(name: str, prov: Provider) -> list[str]:
     problems: list[str] = []
-    if default_record and SOURCE_RECORD.is_file():
-        if not PACKAGED_RECORD.is_file():
-            problems.append("packaged provider record is missing: press/data/providers.yaml")
-        elif PACKAGED_RECORD.read_text(encoding="utf-8") != render_packaged():
-            problems.append(
-                "packaged provider record is stale: regenerate it byte-for-byte "
-                "from quality/providers.yaml with `press selftest --write-docs`"
-            )
+    problems.extend(_validate_identity(name, prov))
+    problems.extend(_validate_capabilities(name, prov))
+    problems.extend(_validate_entry_types(name, prov))
+    return problems
+
+
+def _validate_packaged_mirror() -> list[str]:
+    """Defects in the packaged wheel mirror of the canonical ledger, checked
+    only when the canonical source is present on disk."""
+
+    if not SOURCE_RECORD.is_file():
+        return []
+    if not PACKAGED_RECORD.is_file():
+        return ["packaged provider record is missing: press/data/providers.yaml"]
+    if PACKAGED_RECORD.read_text(encoding="utf-8") != render_packaged():
+        return [
+            "packaged provider record is stale: regenerate it byte-for-byte "
+            "from quality/providers.yaml with `press selftest --write-docs`"
+        ]
+    return []
+
+
+def _validate_schema_and_checklist(record: dict) -> list[str]:
+    """Schema-version and physical-checklist defects for the record."""
+
+    problems: list[str] = []
     if record.get("schema_version") != SCHEMA_VERSION:
         problems.append(
             f"unknown schema version {record.get('schema_version')} "
@@ -195,6 +221,20 @@ def validate(record: dict | None = None) -> list[str]:
     for point in checklist:
         if point not in CHECKLIST_HELP:
             problems.append(f"checklist point {point!r} has no description in CHECKLIST_HELP")
+    return problems
+
+
+def validate(record: dict | None = None) -> list[str]:
+    """Every defect in the qualification record: a bad schema, a physical
+    checklist missing a required inspection point, or a provider with an
+    unknown disposition, no evidence, or an implicit capability."""
+
+    default_record = record is None
+    record = record if record is not None else load()
+    problems: list[str] = []
+    if default_record:
+        problems.extend(_validate_packaged_mirror())
+    problems.extend(_validate_schema_and_checklist(record))
     for name, prov in providers(record).items():
         problems.extend(_validate_provider(name, prov))
     return problems

@@ -151,32 +151,99 @@ class _Args:
         self.list = False
 
 
+_TAKES = {"--style": "style", "--subject": "subject", "--from": "source"}
+
+
+def _consume_token(args: _Args, token: str, rest: list[str]) -> None:
+    """Fold one argv token into ``args``, consuming its value from ``rest`` when
+    the token is a value-taking flag."""
+    if token == "--list":
+        args.list = True
+    elif token == "--print":
+        args.print_only = True
+    elif token in _TAKES:
+        setattr(args, _TAKES[token], rest.pop(0) if rest else "")
+    elif not token.startswith("-") and args.name is None:
+        args.name = token
+    else:
+        raise SystemExit(f"press illustrate: unexpected argument {token!r}")
+
+
 def _parse(argv: list[str]) -> _Args:
     args = _Args()
-    takes = {"--style": "style", "--subject": "subject", "--from": "source"}
     rest = list(argv)
     while rest:
-        token = rest.pop(0)
-        if token == "--list":
-            args.list = True
-        elif token == "--print":
-            args.print_only = True
-        elif token in takes:
-            setattr(args, takes[token], rest.pop(0) if rest else "")
-        elif not token.startswith("-") and args.name is None:
-            args.name = token
-        else:
-            raise SystemExit(f"press illustrate: unexpected argument {token!r}")
+        _consume_token(args, rest.pop(0), rest)
     return args
+
+
+def _print_styles() -> int:
+    """The ``--list`` output: every known style with its note and source hint."""
+    for sid, style in sorted(load_styles(booklib.root()).items()):
+        mark = " (needs --from)" if style.get("source") == "required" else ""
+        print(f"  {sid:22} {style.get('note', '')}{mark}")
+    return 0
+
+
+def _subject_and_style(name: str, style_arg: str | None) -> tuple[str, str | None]:
+    """Resolve the subject from the named figure's ``art:`` description when no
+    ``--subject`` was given; the figure may also supply the style."""
+    fig = find_figure(name)
+    subject = subject_from_figure(fig, name)
+    if style_arg is None and fig is not None:
+        style_arg = fig.style
+    return subject, style_arg
+
+
+def _load_references(source: str) -> list[tuple[bytes, str]]:
+    """The reference-image payload for ``--from <image>``, or a hard exit when the
+    path is not a file."""
+    path = Path(source)
+    if not path.is_file():
+        raise SystemExit(f"source image not found: {source}")
+    return [_load_source(path)]
+
+
+def _emit_prompt(style_id: str, source: str | None, prompt: str, print_only: bool) -> int:
+    """Print the prompt for running elsewhere -- the offline path taken with
+    ``--print`` or with no image-model key."""
+    if not print_only:
+        print("# no OPENAI_API_KEY set; emitting the prompt to run elsewhere.\n")
+    print(
+        f"# illustration style: {style_id}"
+        + (f"  (with reference {source})" if source else "")
+        + "\n"
+    )
+    print(prompt)
+    return 0
+
+
+def _commission(
+    root: Path,
+    name: str,
+    style_id: str,
+    prompt: str,
+    references: list[tuple[bytes, str]] | None,
+) -> int:
+    """Run the image model, stage the plate under ``build/illustrations/``, and
+    point at ``press art accept``."""
+    dest = root / "build" / "illustrations" / f"{name}.png"
+    print(f"commissioning a {style_id} illustration “{name}” …")
+    images = art_commission.generate_openai(prompt, _SPEC, 1, references)
+    if not images:
+        raise SystemExit("the image model returned no illustration")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(images[0])
+    print(f"wrote {dest.relative_to(root)}")
+    print("check it, then install it as a plate with:")
+    print(f"  press art accept {dest.relative_to(root)} --as plate:{name}")
+    return 0
 
 
 def main(argv: list[str]) -> int:
     args = _parse(argv)
     if args.list:
-        for sid, style in sorted(load_styles(booklib.root()).items()):
-            mark = " (needs --from)" if style.get("source") == "required" else ""
-            print(f"  {sid:22} {style.get('note', '')}{mark}")
-        return 0
+        return _print_styles()
     name, style_arg, subject = args.name, args.style, args.subject
     source, print_only = args.source, args.print_only
     if not name:
@@ -189,10 +256,7 @@ def main(argv: list[str]) -> int:
     # No --subject on the command line means the subject is the figure's own
     # art: description from the manuscript; the figure may also name the style.
     if not subject:
-        fig = find_figure(name)
-        subject = subject_from_figure(fig, name)
-        if style_arg is None and fig is not None:
-            style_arg = fig.style
+        subject, style_arg = _subject_and_style(name, style_arg)
 
     style_id = _resolve_style(styles, style_arg, aes)
     style = styles[style_id]
@@ -200,32 +264,9 @@ def main(argv: list[str]) -> int:
         raise SystemExit(f"the {style_id} style needs source material: --from <image>")
     prompt = build_prompt(style, context(aes), subject)
 
-    references = None
-    if source:
-        path = Path(source)
-        if not path.is_file():
-            raise SystemExit(f"source image not found: {source}")
-        references = [_load_source(path)]
+    references = _load_references(source) if source else None
 
     if print_only or not _has_key():
-        if not print_only:
-            print("# no OPENAI_API_KEY set; emitting the prompt to run elsewhere.\n")
-        print(
-            f"# illustration style: {style_id}"
-            + (f"  (with reference {source})" if source else "")
-            + "\n"
-        )
-        print(prompt)
-        return 0
+        return _emit_prompt(style_id, source, prompt, print_only)
 
-    dest = root / "build" / "illustrations" / f"{name}.png"
-    print(f"commissioning a {style_id} illustration “{name}” …")
-    images = art_commission.generate_openai(prompt, _SPEC, 1, references)
-    if not images:
-        raise SystemExit("the image model returned no illustration")
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_bytes(images[0])
-    print(f"wrote {dest.relative_to(root)}")
-    print("check it, then install it as a plate with:")
-    print(f"  press art accept {dest.relative_to(root)} --as plate:{name}")
-    return 0
+    return _commission(root, name, style_id, prompt, references)

@@ -117,6 +117,11 @@ def current_inputs(toolchain_digest: str = "unpinned") -> tuple[dict[str, str], 
     return inputs, commit, clean
 
 
+def _require_known_layer(layer: str) -> None:
+    if layer not in LAYERS and layer not in RELEASE_TIERS:
+        raise SystemExit(f"unknown trust layer: {layer!r} (a LAYERS layer or a RELEASE_TIERS tier)")
+
+
 def emit(
     layer: str,
     proofs: list[str],
@@ -128,8 +133,7 @@ def emit(
     """Build a receipt for one layer from the current inputs and the
     prerequisite receipts it extends."""
 
-    if layer not in LAYERS and layer not in RELEASE_TIERS:
-        raise SystemExit(f"unknown trust layer: {layer!r} (a LAYERS layer or a RELEASE_TIERS tier)")
+    _require_known_layer(layer)
     inputs, commit, clean = current_inputs(toolchain_digest)
     return Receipt(
         schema_version=SCHEMA_VERSION,
@@ -145,6 +149,56 @@ def emit(
     )
 
 
+def _placement_problems(receipt: Receipt, rank: int, last_rank: int) -> list[str]:
+    """Schema-version and accumulated-trust-order defects for one receipt,
+    given its rank and the highest rank seen so far."""
+
+    problems: list[str] = []
+    if receipt.schema_version != SCHEMA_VERSION:
+        problems.append(f"{receipt.layer}: unknown schema version {receipt.schema_version}")
+    if rank < 0:
+        problems.append(f"unknown layer {receipt.layer!r}")
+    elif rank < last_rank:
+        problems.append(f"{receipt.layer}: out of accumulated-trust order")
+    return problems
+
+
+def _prerequisite_problems(receipt: Receipt, prereq: Receipt) -> list[str]:
+    """Input-drift and source-commit defects between a receipt and one of
+    its resolved prerequisites."""
+
+    problems: list[str] = []
+    for key in ("toolchain", *MANIFESTS):
+        if receipt.inputs.get(key) != prereq.inputs.get(key):
+            problems.append(
+                f"{receipt.layer}: input {key!r} differs from prerequisite "
+                f"{prereq.layer!r} ({prereq.inputs.get(key, '?')[:8]} -> "
+                f"{receipt.inputs.get(key, '?')[:8]})"
+            )
+    if receipt.source_commit != prereq.source_commit:
+        problems.append(
+            f"{receipt.layer}: source commit differs from prerequisite {prereq.layer!r}"
+        )
+    return problems
+
+
+def _chain_prerequisite_problems(receipt: Receipt, by_digest: dict[str, Receipt]) -> list[str]:
+    """Every prerequisite defect for one receipt: a digest that resolves to
+    no receipt, and the input/commit drift of the ones that do resolve."""
+
+    problems: list[str] = []
+    for prereq_digest in receipt.prerequisites:
+        prereq = by_digest.get(prereq_digest)
+        if prereq is None:
+            problems.append(
+                f"{receipt.layer}: prerequisite {prereq_digest[:12]} is missing "
+                "or tampered (its digest resolves to no receipt in the chain)"
+            )
+            continue
+        problems += _prerequisite_problems(receipt, prereq)
+    return problems
+
+
 def verify_chain(chain: list[Receipt], require_clean: bool = False) -> list[str]:
     """Every defect in a receipt chain: a prerequisite whose digest is
     absent (missing or tampered), layers out of accumulated-trust order,
@@ -152,47 +206,19 @@ def verify_chain(chain: list[Receipt], require_clean: bool = False) -> list[str]
     invariant result dropped by a later layer, and, when required, a
     dirty-tree receipt in a release chain."""
 
-    problems: list[str] = []
     if not chain:
         return ["empty receipt chain"]
 
+    problems: list[str] = []
     by_digest = {r.digest(): r for r in chain}
     order = {layer: i for i, layer in enumerate(LAYERS)}
 
-    seen_proofs: set[str] = set()
     last_rank = -1
     for receipt in chain:
-        if receipt.schema_version != SCHEMA_VERSION:
-            problems.append(f"{receipt.layer}: unknown schema version {receipt.schema_version}")
         rank = order.get(receipt.layer, -1)
-        if rank < 0:
-            problems.append(f"unknown layer {receipt.layer!r}")
-        elif rank < last_rank:
-            problems.append(f"{receipt.layer}: out of accumulated-trust order")
+        problems += _placement_problems(receipt, rank, last_rank)
         last_rank = max(last_rank, rank)
-
-        for prereq_digest in receipt.prerequisites:
-            prereq = by_digest.get(prereq_digest)
-            if prereq is None:
-                problems.append(
-                    f"{receipt.layer}: prerequisite {prereq_digest[:12]} is missing "
-                    "or tampered (its digest resolves to no receipt in the chain)"
-                )
-                continue
-            for key in ("toolchain", *MANIFESTS):
-                if receipt.inputs.get(key) != prereq.inputs.get(key):
-                    problems.append(
-                        f"{receipt.layer}: input {key!r} differs from prerequisite "
-                        f"{prereq.layer!r} ({prereq.inputs.get(key, '?')[:8]} -> "
-                        f"{receipt.inputs.get(key, '?')[:8]})"
-                    )
-            if receipt.source_commit != prereq.source_commit:
-                problems.append(
-                    f"{receipt.layer}: source commit differs from prerequisite {prereq.layer!r}"
-                )
-        # Later layers extend, never drop, the invariant results proven.
-        seen_proofs |= set(receipt.proofs)
-
+        problems += _chain_prerequisite_problems(receipt, by_digest)
         if require_clean and not receipt.tree_clean:
             problems.append(
                 f"{receipt.layer}: built from a dirty tree; a release chain "
@@ -344,22 +370,55 @@ def verify_ci_release(chain: list[Receipt], package_digest: str) -> list[str]:
     if not chain:
         return ["empty release chain"]
     problems: list[str] = []
-    present = {r.layer for r in chain}
-    for tier in RELEASE_TIERS:
-        if tier not in present:
-            problems.append(f"missing tier receipt {tier!r}: its CI job did not run or upload")
-    commits = {r.source_commit for r in chain}
-    if len(commits) > 1:
-        problems.append(f"tier receipts disagree on source commit: {sorted(commits)}")
-    for receipt in chain:
-        if not receipt.tree_clean:
-            problems.append(
-                f"{receipt.layer}: built from a dirty tree; a release requires clean-tree receipts"
-            )
+    problems += _missing_tier_problems(chain)
+    problems += _commit_agreement_problems(chain)
+    problems += _dirty_tree_problems(chain)
     release = next((r for r in chain if r.layer == "release"), None)
     if release is None:
         problems.append("no terminal release receipt")
         return problems
+    problems += _release_receipt_problems(chain, release, package_digest)
+    return problems
+
+
+def _missing_tier_problems(chain: list[Receipt]) -> list[str]:
+    """A required tier absent from the chain fails closed: its CI job did
+    not run or did not upload its receipt."""
+
+    present = {r.layer for r in chain}
+    return [
+        f"missing tier receipt {tier!r}: its CI job did not run or upload"
+        for tier in RELEASE_TIERS
+        if tier not in present
+    ]
+
+
+def _commit_agreement_problems(chain: list[Receipt]) -> list[str]:
+    """Every tier receipt must name the same source commit."""
+
+    commits = {r.source_commit for r in chain}
+    if len(commits) > 1:
+        return [f"tier receipts disagree on source commit: {sorted(commits)}"]
+    return []
+
+
+def _dirty_tree_problems(chain: list[Receipt]) -> list[str]:
+    """A release requires clean-tree receipts; each dirty one is a refusal."""
+
+    return [
+        f"{receipt.layer}: built from a dirty tree; a release requires clean-tree receipts"
+        for receipt in chain
+        if not receipt.tree_clean
+    ]
+
+
+def _release_receipt_problems(
+    chain: list[Receipt], release: Receipt, package_digest: str
+) -> list[str]:
+    """The terminal release receipt must extend every tier and name the
+    built package and the pinned toolchain as artifacts."""
+
+    problems: list[str] = []
     tier_digests = {r.digest() for r in chain if r.layer != "release"}
     if tier_digests and not tier_digests.issubset(set(release.prerequisites)):
         problems.append("release receipt does not extend every tier receipt")

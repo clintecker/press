@@ -114,25 +114,34 @@ def _dispatch(ns: argparse.Namespace, root: Path) -> int:
 def _list(ns: argparse.Namespace) -> int:
     fields = [f for f in schema.REGISTRY if ns.file in (None, f.file)]
     if ns.json:
-        print(
-            json.dumps(
-                [
-                    {
-                        "path": f.path,
-                        "file": f.file,
-                        "kind": f.kind,
-                        "type": f.type if f.writable else None,
-                        "help": f.help,
-                        "required": f.required,
-                        "choices": list(f.choices) or None,
-                        "manager": f.manager or None,
-                    }
-                    for f in fields
-                ],
-                indent=2,
-            )
+        _list_json(fields)
+    else:
+        _list_text(fields)
+    return EXIT_OK
+
+
+def _list_json(fields: list[schema.Field]) -> None:
+    print(
+        json.dumps(
+            [
+                {
+                    "path": f.path,
+                    "file": f.file,
+                    "kind": f.kind,
+                    "type": f.type if f.writable else None,
+                    "help": f.help,
+                    "required": f.required,
+                    "choices": list(f.choices) or None,
+                    "manager": f.manager or None,
+                }
+                for f in fields
+            ],
+            indent=2,
         )
-        return EXIT_OK
+    )
+
+
+def _list_text(fields: list[schema.Field]) -> None:
     width = max((len(f.path) for f in fields), default=0)
     for f in fields:
         tag = f.type if f.writable else f.kind.upper()
@@ -140,7 +149,6 @@ def _list(ns: argparse.Namespace) -> int:
         print(f"  {f.path:<{width}}  {tag:<9} {f.help}{req}")
         if not f.writable and f.manager:
             print(f"  {'':<{width}}  {'':<9} -> {f.manager}")
-    return EXIT_OK
 
 
 # ---- get -------------------------------------------------------------
