@@ -24,48 +24,169 @@ modules (``selftest.check_*`` delegates to ``verify_pdf``, ``jargon_lint``,
 provenance, producers), so those are NOT registered here -- they are retired
 when press's parallel machinery is deleted.
 
-Each registration carries an ``Unproven`` falsifier with a review date: the
-check runs today, and the negative fixture that proves the gate bites is mapped
-in a follow-up (the same burn-down discipline as the producer pending list).
+Every registration names the falsifier that turns its check red -- the concrete
+negative that proves the gate bites, so celebrimbor's falsifier gate resolves a
+real proof rather than a dated promise. Most name a known-bad fixture or a
+pytest node that was *run* to confirm the rejection (see the map-falsifiers
+audit); the handful whose negatives live inline in the check body as ``else:
+raise`` witnesses point at that body (``selftest.py::check_<name>``), which is
+the "carry your own falsifier" case celebrimbor is built around.
 """
 
 from __future__ import annotations
 
-from celebrimbor import Unproven, check
+from celebrimbor import check
 from celebrimbor.result import CheckResult, Finding, Stage
 
-# The press domain checks celebrimbor should run, name -> (one-line title, tier).
+# The press domain checks celebrimbor should run:
+#   name -> (one-line title, tier, falsified_by).
 # The tier mirrors how heavy the check is: FAST = config/pure validation,
 # DEFAULT = reads the tree or a scaffolded book, FULL = toolchain/render paths.
-_DOMAIN: dict[str, tuple[str, Stage]] = {
-    "arithmetic": ("the canonical examples' arithmetic agrees", Stage.FAST),
-    "slug_invariant": ("book slugs stay valid and stable", Stage.FAST),
-    "jargon_parity": ("the jargon lint agrees across its corpus", Stage.DEFAULT),
-    "source_policy": ("the source package excludes what it must", Stage.FAST),
-    "pages_verifier": ("the reader-site verifier holds its promises", Stage.DEFAULT),
-    "scaffold_neutrality": ("a scaffolded book is neutral, no leaked identity", Stage.FAST),
-    "book_model": ("the book model validates its config", Stage.FAST),
-    "format_witnesses": ("every edition carries the manuscript witnesses", Stage.DEFAULT),
-    "editions_agree": ("the editions agree on the book's content", Stage.DEFAULT),
-    "editorial_checkers": ("every editorial checker rejects its known-bad", Stage.DEFAULT),
-    "site_identity": ("the docs site declares its identity correctly", Stage.FAST),
-    "authorities_ledger": ("the authorities ledger's claims still hold", Stage.DEFAULT),
-    "honest_refusals": ("the honest-refusal fixtures are refused", Stage.FAST),
-    "release_grammar": ("the release grammar is well-formed", Stage.FAST),
-    "receipt_chain": ("the receipt chain verifies end to end", Stage.DEFAULT),
-    "edition_manifest": ("the edition manifest is complete and consistent", Stage.FAST),
-    "provider_qualification": ("providers qualify against their spec", Stage.DEFAULT),
-    "profile_seals": ("every print profile matches its sealed geometry", Stage.FAST),
-    "commerce_config": ("the commerce config validates", Stage.FAST),
-    "commerce_release_gate": ("the commerce release gate holds", Stage.DEFAULT),
-    "provider_contract": ("providers honour the neutral contract", Stage.DEFAULT),
-    "coverwrap_detectors": ("the cover-wrap detectors fire on their fixtures", Stage.DEFAULT),
-    "aesthetic_schema": ("the aesthetic schema validates", Stage.FAST),
-    "contract_mirror": ("the action.yml contract mirrors the press", Stage.FAST),
-    "migration": ("the migration path is sound", Stage.DEFAULT),
-    "extension_conformance": ("extensions conform to the contract", Stage.FAST),
-    "command_catalog": ("the command catalogue is complete and parity-clean", Stage.FAST),
-    "docs": ("the docs suite names every target and page", Stage.FAST),
+# falsified_by is a repo-relative fixture path or a pytest node-id (file::node)
+# whose file part celebrimbor's falsifier gate resolves; each was verified to
+# redden its check by the map-falsifiers audit (running the negative test, or
+# mutating the fixture and watching the check go red).
+_DOMAIN: dict[str, tuple[str, Stage, str]] = {
+    "arithmetic": (
+        "the canonical examples' arithmetic agrees",
+        Stage.FAST,
+        "src/press/selftest.py::check_arithmetic",
+    ),
+    "slug_invariant": (
+        "book slugs stay valid and stable",
+        Stage.FAST,
+        "tests/test_selftest_checks.py::test_slug_invariant_rejects_bad",
+    ),
+    "jargon_parity": (
+        "the jargon lint agrees across its corpus",
+        Stage.DEFAULT,
+        "tests/test_jargon_parity.py::test_shared_logic_is_byte_identical",
+    ),
+    "source_policy": (
+        "the source package excludes what it must",
+        Stage.FAST,
+        "tests/test_properties_policy.py::test_secret_named_file_is_never_admitted",
+    ),
+    "pages_verifier": (
+        "the reader-site verifier holds its promises",
+        Stage.DEFAULT,
+        "src/press/selftest.py::check_pages_verifier",
+    ),
+    "scaffold_neutrality": (
+        "a scaffolded book is neutral, no leaked identity",
+        Stage.FAST,
+        "src/press/data/template/config/metadata.yaml",
+    ),
+    "book_model": (
+        "the book model validates its config",
+        Stage.FAST,
+        "src/press/selftest.py::check_book_model",
+    ),
+    "format_witnesses": (
+        "every edition carries the manuscript witnesses",
+        Stage.DEFAULT,
+        "tests/test_selftest_checks.py::test_invariant_check_passes[check_format_witnesses]",
+    ),
+    "editions_agree": (
+        "the editions agree on the book's content",
+        Stage.DEFAULT,
+        "tests/test_verify_editions.py::test_an_edition_that_drops_a_chapter_is_named_and_refused",
+    ),
+    "editorial_checkers": (
+        "every editorial checker rejects its known-bad",
+        Stage.DEFAULT,
+        "src/press/data/known-bad/em-dash.md",
+    ),
+    "site_identity": (
+        "the docs site declares its identity correctly",
+        Stage.FAST,
+        "tests/test_selftest_checks.py::test_invariant_check_passes[check_site_identity]",
+    ),
+    "authorities_ledger": (
+        "the authorities ledger's claims still hold",
+        Stage.DEFAULT,
+        "tests/test_selftest_checks.py::test_invariant_check_passes[check_authorities_ledger]",
+    ),
+    "honest_refusals": (
+        "the honest-refusal fixtures are refused",
+        Stage.FAST,
+        "src/press/selftest.py::check_honest_refusals",
+    ),
+    "release_grammar": (
+        "the release grammar is well-formed",
+        Stage.FAST,
+        "scripts/release.sh",
+    ),
+    "receipt_chain": (
+        "the receipt chain verifies end to end",
+        Stage.DEFAULT,
+        "tests/test_receipts.py::test_release_refuses_dirty_tree_receipt",
+    ),
+    "edition_manifest": (
+        "the edition manifest is complete and consistent",
+        Stage.FAST,
+        "tests/test_edition.py::test_forged_identity_is_refused",
+    ),
+    "provider_qualification": (
+        "providers qualify against their spec",
+        Stage.DEFAULT,
+        "tests/test_qualification.py::test_a_failed_point_cannot_qualify",
+    ),
+    "profile_seals": (
+        "every print profile matches its sealed geometry",
+        Stage.FAST,
+        "tests/test_profile_lifecycle.py::test_digest_drift_is_refused",
+    ),
+    "commerce_config": (
+        "the commerce config validates",
+        Stage.FAST,
+        "tests/test_commerce.py::test_an_embedded_secret_is_refused",
+    ),
+    "commerce_release_gate": (
+        "the commerce release gate holds",
+        Stage.DEFAULT,
+        "tests/test_commerce.py::test_release_gate_refuses_an_unqualified_edition",
+    ),
+    "provider_contract": (
+        "providers honour the neutral contract",
+        Stage.DEFAULT,
+        "tests/test_provider_conformance.py::test_an_unsupported_capability_is_declared_not_simulated",
+    ),
+    "coverwrap_detectors": (
+        "the cover-wrap detectors fire on their fixtures",
+        Stage.DEFAULT,
+        "src/press/selftest.py::check_coverwrap_detectors",
+    ),
+    "aesthetic_schema": (
+        "the aesthetic schema validates",
+        Stage.FAST,
+        "src/press/selftest.py::check_aesthetic_schema",
+    ),
+    "contract_mirror": (
+        "the action.yml contract mirrors the press",
+        Stage.FAST,
+        "tests/test_selftest_checks.py::test_contract_mirror_names_drift_between_agent_instructions",
+    ),
+    "migration": (
+        "the migration path is sound",
+        Stage.DEFAULT,
+        "tests/test_migrate.py::test_apply_then_rollback_is_exact",
+    ),
+    "extension_conformance": (
+        "extensions conform to the contract",
+        Stage.FAST,
+        "src/press/data/extensions/hostile/collision.yaml",
+    ),
+    "command_catalog": (
+        "the command catalogue is complete and parity-clean",
+        Stage.FAST,
+        "tests/test_catalog.py::test_every_catalog_command_is_dispatchable",
+    ),
+    "docs": (
+        "the docs suite names every target and page",
+        Stage.FAST,
+        "tests/test_selftest_checks.py::test_docs_check_names_a_drifted_provider_qualification_page",
+    ),
 }
 
 
@@ -105,17 +226,14 @@ def register() -> tuple[str, ...]:
 
     already = set(default_registry().ids())
     ids = []
-    for name, (title, stage) in _DOMAIN.items():
+    for name, (title, stage, falsified_by) in _DOMAIN.items():
         check_id = f"press.{name}"
         if check_id not in already:
             check(
                 id=check_id,
                 title=title,
                 stage=stage,
-                falsified_by=Unproven(
-                    f"press check_{name}: map the negative fixture that reddens it",
-                    review_by="2027-01-01",
-                ),
+                falsified_by=falsified_by,
             )(_wrap(name, title))
         ids.append(check_id)
     return tuple(ids)
