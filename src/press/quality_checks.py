@@ -82,6 +82,11 @@ _DOMAIN: dict[str, tuple[str, Stage, str]] = {
         Stage.FAST,
         "src/press/selftest.py::check_book_model",
     ),
+    "registry": (
+        "the build artifact graph is acyclic with unique, resolvable outputs",
+        Stage.FAST,
+        "tests/test_sabotage.py::test_sabotage_removed_graph_edge_reddens_state_model",
+    ),
     "format_witnesses": (
         "every edition carries the manuscript witnesses",
         Stage.DEFAULT,
