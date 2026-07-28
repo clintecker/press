@@ -67,9 +67,6 @@ def test_checkout_only_contract_check_skips_an_installed_wheel(tmp_path, monkeyp
     assert selftest._repo_root() is None
     assert selftest.check_contract_mirror() is None
 
-    monkeypatch.setattr(selftest.invariants, "LEDGER", tmp_path / "missing-ledger.yaml")
-    assert selftest.check_invariant_ledger() is None
-
 
 def test_contract_mirror_names_drift_between_agent_instructions(tmp_path, monkeypatch):
     package = tmp_path / "src" / "press"

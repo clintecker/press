@@ -522,7 +522,7 @@ modules:
       main: presenter
       modules: pure
       render_reference: producer
-    pin: "aa0d23ba8ef3"
+    pin: "edbdd464ae16"
     role: verifier
     status: ratified
   style_audit:
