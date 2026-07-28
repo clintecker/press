@@ -1,15 +1,26 @@
 # celebrimbor structure ratchet — grandfathered existing debt.
 # New or worsened breaches fail; these are the ones present at adoption.
 breaches:
+  capability/__main__:jargon_check:filesystem: 1
   capability/__main__:main:environment: 1
   capability/aesthetic:effective:filesystem: 1
+  capability/aesthetic:show:filesystem: 1
   capability/art:record_acceptance:clock: 1
   capability/art_commission:normalize_reference:filesystem: 1
+  capability/booklib:chapter_files:filesystem: 1
+  capability/booklib:root:filesystem: 1
   capability/edition:main:environment: 1
   capability/jargon_lint:main:environment: 1
   capability/jargon_lint:read_inputs:environment: 1
+  capability/operator:improve:filesystem: 1
+  capability/profile_lifecycle:load_seals:filesystem: 1
   capability/profile_lifecycle:write_seal:clock: 1
+  capability/profiles:load:filesystem: 1
+  capability/provider_specs:load:filesystem: 1
+  capability/publish:main:filesystem: 1
+  capability/publish:unverified_retail:filesystem: 1
   capability/publish:verify_retail:filesystem: 1
+  capability/qualification:load:filesystem: 1
   capability/receipts:main:environment: 1
   capability/registry:build:clock: 1
   capability/style_audit:main:environment: 1
@@ -136,5 +147,5 @@ breaches:
   complexity/webmeta:head_fragment:cyclomatic-complexity: 16
   complexity/webmeta:head_fragment:keyword-only-parameters: 15
 environment: ci
-reason: 'adopt: re-grandfather after deterministic ruff format'
+reason: 'adopt: re-grandfather after 0.3.1 improved capability detection'
 version: 1
