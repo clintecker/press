@@ -58,6 +58,12 @@ dev = [
     "pytest-xdist>=3.6",
     "hypothesis>=6.100",
     "textual>=8,<9",
+    # The quality framework press's gate runs (public repo, no token; the
+    # three-part tag is immutable by celebrimbor's release contract, so a
+    # pinned dev env resolves the same bytes). Dev/CI only -- never a book
+    # runtime dep; press.quality_checks is the only importer and is skipped
+    # when celebrimbor is absent (selftest.IMPORT_OPTIONAL_DEPS).
+    "celebrimbor @ git+https://github.com/clintecker/celebrimbor@v0.7.0",
 ]
 
 [tool.pytest.ini_options]
