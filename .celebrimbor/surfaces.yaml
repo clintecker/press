@@ -310,14 +310,6 @@ modules:
     pin: "65a3b5e0c39f"
     role: pure
     status: ratified
-  impact:
-    overrides:
-      changed_modules: parser
-      main: presenter
-      render: producer
-    pin: "f9be5a929b33"
-    role: pure
-    status: ratified
   instruments:
     pin: "6ed70eda5cde"
     role: presenter

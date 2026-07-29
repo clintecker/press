@@ -19,21 +19,24 @@ jobs:
       - run: pip install -e '.[dev]'
       - name: Every format's linter, exactly as the pre-commit hook runs them
         run: pre-commit run --all-files --show-diff-on-failure
-      - name: Changed policy code owes an invariant and a proof
-        if: github.event_name == 'pull_request'
+      - name: Quality gate (celebrimbor)
         run: |
-          # Impact selection is for acceleration, not for skipping release
-          # evidence: this only fails when changed policy code maps to no
-          # classified surface or no invariant, and runs on PRs only.
-          git fetch origin "${{ github.base_ref }}" --depth=1 || true
-          python3 -m press.impact "origin/${{ github.base_ref }}"
-      - name: No module's branch coverage regressed below its floor
-        run: |
-          # The ratchet hides the rendering toolchain internally and
-          # measures the deterministic floor, so this gate cannot swing
-          # with pandoc or LuaLaTeX being present; it goes red only on a
-          # real per-module coverage regression.
-          python3 scripts/coverage_ratchet.py
+          # celebrimbor gate runs press's own domain checks (via
+          # [tool.celebrimbor] check_modules) plus surface, invariants,
+          # producers, known-bad, imports, impact, and the coverage ratchet --
+          # the checks press used to keep as its own parallel machinery
+          # (check_imports, check_invariant_ledger, check_producers_are_verified,
+          # fixture provenance, press.impact, coverage_ratchet), now retired.
+          # celebrimbor.coverage measures a .coverage file rather than running
+          # the suite, so produce one first; impact wants the PR base for its
+          # diff.
+          python3 -m pytest -q -p no:cacheprovider --cov=press --cov-report=
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch origin "${{ github.base_ref }}" --depth=1 || true
+            celebrimbor gate --diff-base "origin/${{ github.base_ref }}"
+          else
+            celebrimbor gate
+          fi
       - name: The pure-logic modules still kill their mutants
         run: |
           # Deterministic mutation over the pure-computation modules: a
