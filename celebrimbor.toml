@@ -39,10 +39,18 @@ match = "substring"
 callable = "press.jargon_lint:diagnostics_for"
 match = "substring"
 
-# Structural budgets. complexity=15 matches press's own deliberate ruff gate
-# ([tool.ruff.lint.mccabe] max-complexity = 15, a completed burndown) rather
-# than celebrimbor's stricter default of 10 -- press is validated by its own
-# standard. The other budgets (file length, params, cohesion) keep celebrimbor's
-# defaults, which press is adopting.
+# Structural budgets: press's own standard, set just above its current
+# practice so a regression still fails but its deliberate, cohesive shapes are
+# not held to bars press never chose. complexity=15 matches press's own ruff
+# gate ([tool.ruff.lint.mccabe] max-complexity=15, a completed burndown, vs
+# celebrimbor's stricter default 10). The genuinely-too-big modules (selftest,
+# build) are split rather than accommodated -- these budgets do not excuse them.
 [limits]
 complexity = 15
+nesting = 5
+max_params = 9
+max_keyword_params = 15
+max_function_lines = 100
+max_file_lines = 660
+max_domains_per_file = 5
+max_public_callables = 25
