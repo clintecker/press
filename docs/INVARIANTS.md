@@ -428,6 +428,13 @@ An illustration's subject is the figure's art description, never its caption (#2
 - enforced by `illustrate:subject_from_figure`
 - proven by `tests/test_illustrate.py::test_subject_is_the_figures_art_description_not_its_caption`
 
+## INV-invariant-marker-vocabulary
+
+The invariant marker plugin validates every @pytest.mark.invariant citation against the one ledger; an id absent from it fails collection.
+
+- enforced by `invariants:load`
+- proven by `tests/test_collection_plugin.py::test_unknown_invariant_id_fails_collection`
+
 ## INV-lulu-timeout-unknown
 
 A submit timeout is an UnknownOutcome that forces a lookup, never a retry or an assumed success.
