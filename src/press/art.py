@@ -112,8 +112,10 @@ def _require_flat_ground(image: _Image.Image) -> None:
     # The fraction of border pixels that are light. A flat light ground is
     # almost all light; ink strokes that reach the edge are sparse, so they
     # barely move this -- but a dark, tonal, or textured ground pushes it down.
+    # tobytes() on an L-mode image is one byte per pixel in row order, the same
+    # sequence getdata() returned (getdata is deprecated in Pillow 14).
     border = (
-        list(top.getdata()) + list(bottom.getdata()) + list(left.getdata()) + list(right.getdata())
+        list(top.tobytes()) + list(bottom.tobytes()) + list(left.tobytes()) + list(right.tobytes())
     )
     light = sum(1 for v in border if v >= 200) / len(border)
     # A smooth gradient shows as a top-to-bottom or side-to-side drift in the

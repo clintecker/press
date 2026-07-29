@@ -69,44 +69,44 @@ pending:
     reason: verifier fixture not yet migrated from press
     review_by: '2026-10-01'
   reader_meta:
-    reason: reader metadata injected into the site; proven by verify_pages, 
+    reason: reader metadata injected into the site; proven by verify_pages,
       ledger entry pending
     review_by: '2027-01-01'
 version: 1
 producers:
   build:
     verifier: verify_pdf:verify_mirrored_margins
-    negative_fixture: 
+    negative_fixture:
       tests/test_verify_pdf_print_profile.py::test_a_missing_gutter_is_rejected
   commerce:
     verifier: verify_pages:check_commerce
-    negative_fixture: 
+    negative_fixture:
       tests/test_commerce.py::test_verifier_refuses_a_missing_cta_when_enabled
   gen_authorities:
     verifier: selftest_book:check_authorities_ledger
-    negative_fixture: 
+    negative_fixture:
       tests/test_selftest_checks.py::test_invariant_check_passes[check_authorities_ledger]
   gen_coverwrap:
     verifier: verify_coverwrap:check_print_safe
-    negative_fixture: 
+    negative_fixture:
       tests/test_coverwrap_layout.py::test_check_print_safe_rejects_a_transparent_image
   gen_front_matter:
     verifier: verify_pdf:verify_cover_page
-    negative_fixture: 
+    negative_fixture:
       tests/test_verify_pdf_cover.py::test_a_dropped_cover_is_rejected
   gen_index:
     verifier: config_schema:validate_file
-    negative_fixture: 
+    negative_fixture:
       tests/test_config_shapes.py::test_gen_index_self_guards_against_the_terms_wrapper
   package_source:
     verifier: check_source:main
-    negative_fixture: 
+    negative_fixture:
       tests/test_properties_policy.py::test_secret_named_file_is_never_admitted
   profile_lifecycle:
     verifier: profile_lifecycle:validate
-    negative_fixture: 
+    negative_fixture:
       tests/test_profile_lifecycle.py::test_digest_drift_is_refused
   scaffold:
     verifier: selftest_book:check_scaffold_neutrality
-    negative_fixture: 
+    negative_fixture:
       tests/test_selftest_checks.py::test_invariant_check_passes[check_scaffold_neutrality]
