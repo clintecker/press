@@ -38,7 +38,12 @@ jobs:
             git fetch origin "${{ github.base_ref }}" --depth=1 || true
             celebrimbor gate --diff-base "origin/${{ github.base_ref }}"
           else
-            celebrimbor gate
+            # On push, impact diffs against the commit the branch pointed to
+            # before this push. Without a base it fails closed -- it cannot
+            # tell what changed, and refuses rather than passing -- so fetch
+            # that SHA (shallow) and hand it over explicitly.
+            git fetch origin "${{ github.event.before }}" --depth=1 || true
+            celebrimbor gate --diff-base "${{ github.event.before }}"
           fi
       - name: Site builds from these docs
         run: |
