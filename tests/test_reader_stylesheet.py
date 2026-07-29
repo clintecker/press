@@ -10,8 +10,9 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-READER_CSS = (Path(__file__).resolve().parent.parent
-              / "src" / "press" / "data" / "web" / "reader.css")
+READER_CSS = (
+    Path(__file__).resolve().parent.parent / "src" / "press" / "data" / "web" / "reader.css"
+)
 
 
 def _rule_body(css: str, selector: str) -> str:
@@ -43,5 +44,6 @@ def test_plate_images_stay_within_the_column():
     """Whatever else changes, a plate never overflows the reading column."""
 
     body = _rule_body(READER_CSS.read_text(encoding="utf-8"), "figure img")
-    assert "max-width" in body and "100%" in body, \
+    assert "max-width" in body and "100%" in body, (
         "figure img must cap at max-width:100% so a wide plate cannot overflow"
+    )

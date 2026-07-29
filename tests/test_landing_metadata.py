@@ -14,9 +14,14 @@ from press import build
 
 
 def _book(**over):
-    base = dict(title="A Book", authors=("A. Author", "B. Author"),
-                publisher="Example Press", description="One honest sentence.",
-                year="2026", site_url="")
+    base = dict(
+        title="A Book",
+        authors=("A. Author", "B. Author"),
+        publisher="Example Press",
+        description="One honest sentence.",
+        year="2026",
+        site_url="",
+    )
     base.update(over)
     return SimpleNamespace(**base)
 
@@ -29,7 +34,7 @@ def _jsonld(head: str) -> dict:
 
 def test_without_a_site_url_no_canonical_or_url_is_claimed():
     head = build.landing_head_metadata(_book(), has_cover=True, format_names=["b.pdf"])
-    assert "rel=\"canonical\"" not in head
+    assert 'rel="canonical"' not in head
     assert "og:url" not in head
     node = _jsonld(head)
     assert node["@type"] == "Book" and node["name"] == "A Book"
@@ -42,7 +47,8 @@ def test_without_a_site_url_no_canonical_or_url_is_claimed():
 def test_with_a_site_url_canonical_url_image_and_formats_appear():
     book = _book(site_url="https://me.test/book")
     head = build.landing_head_metadata(
-        book, has_cover=True, format_names=["book.pdf", "book.epub", "book.txt"])
+        book, has_cover=True, format_names=["book.pdf", "book.epub", "book.txt"]
+    )
     assert 'rel="canonical" href="https://me.test/book/"' in head
     node = _jsonld(head)
     assert node["url"] == "https://me.test/book/"
@@ -52,8 +58,7 @@ def test_with_a_site_url_canonical_url_image_and_formats_appear():
 
 
 def test_absent_facts_are_omitted_not_invented():
-    book = _book(site_url="https://me.test/book", description="", authors=(),
-                 publisher="", year="")
+    book = _book(site_url="https://me.test/book", description="", authors=(), publisher="", year="")
     head = build.landing_head_metadata(book, has_cover=False, format_names=["b.pdf"])
     node = _jsonld(head)
     assert "description" not in node and "author" not in node
@@ -65,6 +70,7 @@ def test_absent_facts_are_omitted_not_invented():
 def _pages_with(tmp_path, jsonld_name="A Book", canonical=None):
     """A minimal dist/pages/index.html carrying a JSON-LD Book node."""
     import json as _json
+
     pages = tmp_path / "pages"
     pages.mkdir()
     node = {"@context": "https://schema.org", "@type": "Book", "name": jsonld_name}
@@ -74,21 +80,26 @@ def _pages_with(tmp_path, jsonld_name="A Book", canonical=None):
     if canonical:
         head = f'<link rel="canonical" href="{canonical}">'
     (pages / "index.html").write_text(
-        "<html><head>" + head
+        "<html><head>"
+        + head
         + '<script type="application/ld+json">\n'
-        + _json.dumps(node, indent=2) + "\n</script></head><body>x</body></html>",
-        encoding="utf-8")
+        + _json.dumps(node, indent=2)
+        + "\n</script></head><body>x</body></html>",
+        encoding="utf-8",
+    )
     return pages
 
 
 def test_verifier_accepts_matching_metadata(tmp_path):
     from press import verify_pages
+
     pages = _pages_with(tmp_path, "A Book", canonical="https://me.test/b/")
     assert verify_pages.check_landing_metadata(pages, "A Book", "https://me.test/b") == []
 
 
 def test_verifier_catches_a_stale_title(tmp_path):
     from press import verify_pages
+
     pages = _pages_with(tmp_path, "Old Title")
     fails = verify_pages.check_landing_metadata(pages, "A Book", "")
     assert any("Old Title" in f for f in fails)
@@ -96,6 +107,7 @@ def test_verifier_catches_a_stale_title(tmp_path):
 
 def test_verifier_catches_a_false_canonical(tmp_path):
     from press import verify_pages
+
     pages = _pages_with(tmp_path, "A Book", canonical="https://me.test/b/")
     fails = verify_pages.check_landing_metadata(pages, "A Book", "")  # no site-url
     assert any("no site-url" in f for f in fails)
@@ -103,6 +115,7 @@ def test_verifier_catches_a_false_canonical(tmp_path):
 
 def test_verifier_catches_a_missing_canonical(tmp_path):
     from press import verify_pages
+
     pages = _pages_with(tmp_path, "A Book")  # no canonical
     fails = verify_pages.check_landing_metadata(pages, "A Book", "https://me.test/b")
     assert any("no canonical" in f for f in fails)
@@ -110,11 +123,13 @@ def test_verifier_catches_a_missing_canonical(tmp_path):
 
 def test_verifier_refuses_a_page_without_jsonld(tmp_path):
     from press import verify_pages
+
     pages = tmp_path / "pages"
     pages.mkdir()
     (pages / "index.html").write_text("<html><body>no metadata</body></html>", encoding="utf-8")
     assert verify_pages.check_landing_metadata(pages, "A Book", "") == [
-        "landing page carries no JSON-LD structured metadata"]
+        "landing page carries no JSON-LD structured metadata"
+    ]
 
 
 def test_sources_companion_is_not_a_second_manuscript_edition():
@@ -125,7 +140,9 @@ def test_sources_companion_is_not_a_second_manuscript_edition():
 
     slug = "make-ready"
     assert build._edition_row(f"{slug}.md", slug, "6 by 9 inches")[0] == "Manuscript edition"
-    assert build._edition_row(f"{slug}-sources.md", slug, "6 by 9 inches")[0] == "Table of authorities"
+    assert (
+        build._edition_row(f"{slug}-sources.md", slug, "6 by 9 inches")[0] == "Table of authorities"
+    )
     # And the neighbouring collisions stay distinct.
     assert build._edition_row(f"{slug}-source.zip", slug, "x")[0] == "Source edition"
     assert build._edition_row(f"{slug}-site.zip", slug, "x")[0] == "Chapter edition, boxed"

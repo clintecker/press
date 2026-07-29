@@ -48,14 +48,14 @@ PREVIEW_DPI = "110"
 # not listed (or whose numbers fall out of range) falls back to an early
 # interior page and the last page. Page numbers are 1-based into the PDF.
 SHOWCASE_PAGES = {
-    "signal-and-noise-manual": [5, 11],   # a decision table, the subject index
-    "field-days-almanac": [5, 8],         # drop-cap season openings (Spring, Winter)
-    "hearthstone-cookbook": [7, 9],       # a recipe with its ingredient list, the index
-    "small-hours-chapbook": [7, 8],       # verse (Nocturnes, Streetlights)
-    "on-the-commons-monograph": [7, 8],   # footnoted scholarly prose
-    "the-long-field-essays": [5, 9],      # the epigraph, a subsectioned essay
-    "the-tinsmith-novella": [6, 8],       # a drop-cap chapter, the "Also by" page
-    "tidepool-field-notes": [7, 8],       # a boxed field note, zoned observations
+    "signal-and-noise-manual": [5, 11],  # a decision table, the subject index
+    "field-days-almanac": [5, 8],  # drop-cap season openings (Spring, Winter)
+    "hearthstone-cookbook": [7, 9],  # a recipe with its ingredient list, the index
+    "small-hours-chapbook": [7, 8],  # verse (Nocturnes, Streetlights)
+    "on-the-commons-monograph": [7, 8],  # footnoted scholarly prose
+    "the-long-field-essays": [5, 9],  # the epigraph, a subsectioned essay
+    "the-tinsmith-novella": [6, 8],  # a drop-cap chapter, the "Also by" page
+    "tidepool-field-notes": [7, 8],  # a boxed field note, zoned observations
 }
 
 
@@ -73,8 +73,19 @@ def _page_count(pdf: Path) -> int:
 
 def _render_page(pdf: Path, page: int, stem: Path) -> bool:
     result = _run(
-        ["pdftoppm", "-jpeg", "-r", PREVIEW_DPI, "-f", str(page), "-l", str(page),
-         "-singlefile", str(pdf), str(stem)],
+        [
+            "pdftoppm",
+            "-jpeg",
+            "-r",
+            PREVIEW_DPI,
+            "-f",
+            str(page),
+            "-l",
+            str(page),
+            "-singlefile",
+            str(pdf),
+            str(stem),
+        ],
         cwd=pdf.parent,
     )
     return result.returncode == 0 and stem.with_suffix(".jpg").is_file()
@@ -136,9 +147,9 @@ def build_example(book: Path) -> bool:
 def main(argv: list[str]) -> int:
     wanted = set(argv)
     books = sorted(
-        d for d in EXAMPLES.iterdir()
-        if (d / "config" / "metadata.yaml").is_file()
-        and (not wanted or d.name in wanted)
+        d
+        for d in EXAMPLES.iterdir()
+        if (d / "config" / "metadata.yaml").is_file() and (not wanted or d.name in wanted)
     )
     if not books:
         print("no matching example books under examples/")

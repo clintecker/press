@@ -21,6 +21,7 @@ pytestmark = pytest.mark.skipif(
 class _FakeProcess:
     def __init__(self, lines, returncode):
         from press.process_control import OutputChannel
+
         self._lines = deque((OutputChannel.STDOUT, ln) for ln in lines)
         self.returncode = returncode
 
@@ -40,6 +41,7 @@ class _FakeProcess:
 def _spawn_returning(lines, returncode):
     def spawn(argv, cwd, env=None):
         return _FakeProcess(lines, returncode)
+
     return spawn
 
 
@@ -57,8 +59,9 @@ async def test_run_view_streams_output_and_reports_success(tmp_path):
     with handle.use():
         app = DeskApp(root=handle.root)
         async with app.run_test() as pilot:
-            screen = RunScreen(handle.root, "wordcount",
-                               spawn=_spawn_returning(["61,204 words"], 0))
+            screen = RunScreen(
+                handle.root, "wordcount", spawn=_spawn_returning(["61,204 words"], 0)
+            )
             await app.push_screen(screen)
             await pilot.pause()
             await _drain(app)
@@ -79,8 +82,7 @@ async def test_run_view_reports_the_exact_failing_exit_code(tmp_path):
     with handle.use():
         app = DeskApp(root=handle.root)
         async with app.run_test() as pilot:
-            screen = RunScreen(handle.root, "check",
-                               spawn=_spawn_returning(["a violation"], 43))
+            screen = RunScreen(handle.root, "check", spawn=_spawn_returning(["a violation"], 43))
             await app.push_screen(screen)
             await pilot.pause()
             await _drain(app)
@@ -108,8 +110,7 @@ async def test_run_view_advances_the_stage_line_from_build_markers(tmp_path):
     with handle.use():
         app = DeskApp(root=handle.root)
         async with app.run_test() as pilot:
-            screen = RunScreen(handle.root, "all",
-                               spawn=_spawn_returning(lines, 0))
+            screen = RunScreen(handle.root, "all", spawn=_spawn_returning(lines, 0))
             await app.push_screen(screen)
             await pilot.pause()
             await _drain(app)

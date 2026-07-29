@@ -44,8 +44,13 @@ from PIL import Image, ImageDraw  # noqa: E402  (needs the src path factories se
 # is a declared capability in press.pytest_invariants._CAPABILITIES, so a
 # skip reason built from these satisfies the collection plugin.
 PDF_TOOLCHAIN = (
-    "pandoc", "lualatex", "latexmk",
-    "pdfinfo", "pdffonts", "pdftotext", "pdftoppm",
+    "pandoc",
+    "lualatex",
+    "latexmk",
+    "pdfinfo",
+    "pdffonts",
+    "pdftotext",
+    "pdftoppm",
 )
 
 
@@ -60,10 +65,7 @@ def skip_reason(tools: tuple[str, ...]) -> str:
     plugin can attribute the skip to a declared toolchain tool rather
     than an unexplained condition."""
 
-    return (
-        "integration runner needs these toolchain capabilities present: "
-        + " ".join(tools)
-    )
+    return "integration runner needs these toolchain capabilities present: " + " ".join(tools)
 
 
 def tool_version(tool: str) -> str:
@@ -80,7 +82,10 @@ def tool_version(tool: str) -> str:
     for flag in ("--version", "-v"):
         try:
             result = subprocess.run(
-                [tool, flag], capture_output=True, text=True, timeout=30,
+                [tool, flag],
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
         except (OSError, subprocess.SubprocessError):
             continue
@@ -113,7 +118,8 @@ def source_manifest_digest(root: Path) -> str:
 
     hasher = hashlib.sha256()
     files = sorted(
-        p for p in root.rglob("*")
+        p
+        for p in root.rglob("*")
         if p.is_file() and not any(part in _MANIFEST_SKIP for part in p.relative_to(root).parts)
     )
     for path in files:
@@ -135,10 +141,7 @@ def digest_outputs(dist: Path, names: list[str]) -> dict[str, str]:
         if path.is_file():
             digests[name] = file_digest(path)
         elif path.is_dir():
-            listing = sorted(
-                p.relative_to(path).as_posix()
-                for p in path.rglob("*") if p.is_file()
-            )
+            listing = sorted(p.relative_to(path).as_posix() for p in path.rglob("*") if p.is_file())
             hasher = hashlib.sha256("\n".join(listing).encode("utf-8"))
             digests[name + "/"] = "sha256-listing:" + hasher.hexdigest()
     return digests

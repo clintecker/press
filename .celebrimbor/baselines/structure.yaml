@@ -1,0 +1,7 @@
+# celebrimbor structure ratchet — grandfathered existing debt.
+# New or worsened breaches fail; these are the ones present at adoption.
+breaches: {}
+environment: ci
+reason: registry build timing routed through adapters.clock.monotonic; capability burndown COMPLETE, 0
+  breaches
+version: 1

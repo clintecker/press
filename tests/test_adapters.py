@@ -60,9 +60,11 @@ def test_default_spawn_streams_both_channels_and_reports_exit_code(tmp_path):
     # and completion comes from the stream's EOF sentinel plus the child's exit
     # code, never a clock.
     proc = adapters.default_spawn(
-        [sys.executable, "-c",
-         "import sys; print('out line'); "
-         "sys.stderr.write('err line\\n'); sys.exit(0)"],
+        [
+            sys.executable,
+            "-c",
+            "import sys; print('out line'); sys.stderr.write('err line\\n'); sys.exit(0)",
+        ],
         str(tmp_path),
     )
     lines = _drain_to_end(proc)
@@ -84,8 +86,7 @@ def test_default_spawn_replaces_the_environment_when_one_is_given(tmp_path):
     # A supplied env replaces the parent's wholesale (not merged), so the child
     # sees exactly what was passed.
     proc = adapters.default_spawn(
-        [sys.executable, "-c",
-         "import os; print(os.environ.get('PRESS_MARK', 'unset'))"],
+        [sys.executable, "-c", "import os; print(os.environ.get('PRESS_MARK', 'unset'))"],
         str(tmp_path),
         {"PRESS_MARK": "seen", "PATH": os.environ.get("PATH", "")},
     )
@@ -142,9 +143,7 @@ def test_fake_runner_answers_by_command_and_from_queue():
 
 
 def test_fake_runner_raises_programmed_exception():
-    fake = fakes.FakeProcessRunner(
-        by_command={"git": subprocess.CalledProcessError(1, "git")}
-    )
+    fake = fakes.FakeProcessRunner(by_command={"git": subprocess.CalledProcessError(1, "git")})
     with pytest.raises(subprocess.CalledProcessError):
         fake.run(["git", "ls-files"])
 
@@ -165,21 +164,55 @@ def test_os_environment_reads_live_values(monkeypatch):
 def test_os_environment_which_matches_shutil():
     env = production.OsEnvironment()
     assert env.which("python-no-such-xyz") is None
-    assert env.which(sys.executable.split("/")[-1]) == shutil.which(
-        sys.executable.split("/")[-1]
-    )
+    assert env.which(sys.executable.split("/")[-1]) == shutil.which(sys.executable.split("/")[-1])
 
 
 def test_fake_environment_answers_from_map_and_records_reads():
-    env = fakes.FakeEnvironment(
-        values={"OPENAI_API_KEY": "sk-test"}, present_tools=["claude"]
-    )
+    env = fakes.FakeEnvironment(values={"OPENAI_API_KEY": "sk-test"}, present_tools=["claude"])
     assert env.get("OPENAI_API_KEY") == "sk-test"
     assert env.get("MISSING", "fallback") == "fallback"
     assert env.which("claude") == "/usr/bin/claude"
     assert env.which("pandoc") is None
     assert env.reads == ["OPENAI_API_KEY", "MISSING"]
     assert env.which_calls == ["claude", "pandoc"]
+
+
+# --------------------------------------------------------------------------
+# Clock: production and fake against one interface
+# --------------------------------------------------------------------------
+
+
+def test_clock_contract_fake_pins_and_system_reads_today():
+    import datetime
+
+    pinned = datetime.date(2019, 4, 13)
+    fake = fakes.FakeClock(pinned)
+    assert fake.today() == pinned
+    # A second read is stable: the fake never advances the calendar.
+    assert fake.today() == pinned
+
+    system = production.SystemClock()
+    assert system.today() == datetime.date.today()
+
+
+def test_clock_contract_fake_pins_and_system_reads_now():
+    import datetime
+
+    # An explicit timestamp is returned verbatim.
+    pinned = datetime.datetime(2019, 4, 13, 9, 30, tzinfo=datetime.timezone.utc)
+    fake = fakes.FakeClock(pinned.date(), now=pinned)
+    assert fake.now() == pinned
+    assert fake.now() == pinned  # stable across reads
+
+    # With no explicit timestamp the fake derives midnight UTC on the day.
+    derived = fakes.FakeClock(datetime.date(2019, 4, 13))
+    assert derived.now() == datetime.datetime(2019, 4, 13, tzinfo=datetime.timezone.utc)
+
+    # Production reads the real, timezone-aware UTC moment.
+    system = production.SystemClock()
+    moment = system.now()
+    assert moment.tzinfo == datetime.timezone.utc
+    assert moment.date() == datetime.datetime.now(datetime.timezone.utc).date()
 
 
 # --------------------------------------------------------------------------
@@ -234,9 +267,7 @@ def test_fake_image_client_can_raise_http_error():
 
 def test_retry_resolves_on_first_terminal_state_and_stops_early():
     source = fakes.ScriptedRetrySource(states=["pending", "pending", "ready", "late"])
-    result = retry.resolve(
-        source, retry.RetryBudget(10), is_terminal=lambda s: s == "ready"
-    )
+    result = retry.resolve(source, retry.RetryBudget(10), is_terminal=lambda s: s == "ready")
     assert result == "ready"
     # it stopped as soon as "ready" arrived; "late" was never polled
     assert source.remaining() == 1
@@ -245,9 +276,7 @@ def test_retry_resolves_on_first_terminal_state_and_stops_early():
 def test_retry_exhausts_budget_before_source_and_raises_policyerror():
     source = fakes.ScriptedRetrySource(states=["pending"] * 5)
     with pytest.raises(PolicyError):
-        retry.resolve(
-            source, retry.RetryBudget(3), is_terminal=lambda s: s == "ready"
-        )
+        retry.resolve(source, retry.RetryBudget(3), is_terminal=lambda s: s == "ready")
     # only the budgeted number of polls happened
     assert source.remaining() == 2
 
@@ -255,9 +284,7 @@ def test_retry_exhausts_budget_before_source_and_raises_policyerror():
 def test_retry_source_past_end_is_policyerror_not_a_hang():
     source = fakes.ScriptedRetrySource(states=["pending"])
     with pytest.raises(PolicyError):
-        retry.resolve(
-            source, retry.RetryBudget(3), is_terminal=lambda s: s == "ready"
-        )
+        retry.resolve(source, retry.RetryBudget(3), is_terminal=lambda s: s == "ready")
 
 
 def test_retry_budget_must_permit_at_least_one_attempt():
@@ -282,3 +309,4 @@ def test_default_singletons_are_the_production_adapters():
     assert isinstance(adapters.process_runner, production.SubprocessRunner)
     assert isinstance(adapters.environment, production.OsEnvironment)
     assert isinstance(adapters.image_client, production.UrllibImageClient)
+    assert isinstance(adapters.clock, production.SystemClock)

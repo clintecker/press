@@ -26,7 +26,8 @@ from .verify_pdf import looks_blank, verify_fonts
 def render(wrap: Path, out_dir: Path) -> Image.Image:
     adapters.process_runner.run(
         ["pdftoppm", "-png", "-r", "150", str(wrap), str(out_dir / "wrap")],
-        check=True, capture=True,
+        check=True,
+        capture=True,
     )
     rendered = sorted(out_dir.glob("wrap*.png"))
     if len(rendered) != 1:
@@ -34,8 +35,7 @@ def render(wrap: Path, out_dir: Path) -> Image.Image:
     return Image.open(rendered[0])
 
 
-def check_front_panel(image: Image.Image, front_x_in: float,
-                      wrap_w: float) -> None:
+def check_front_panel(image: Image.Image, front_x_in: float, wrap_w: float) -> None:
     dpi = image.width / wrap_w
     front_x = int(front_x_in * dpi)
     front = image.crop((front_x, 0, image.width, image.height))
@@ -44,27 +44,28 @@ def check_front_panel(image: Image.Image, front_x_in: float,
     spread = ImageStat.Stat(front.convert("L")).stddev[0]
     if spread < 8:
         raise SystemExit(
-            f"coverwrap front panel is flat (stddev {spread:.1f}); "
-            "the cover art did not survive"
+            f"coverwrap front panel is flat (stddev {spread:.1f}); the cover art did not survive"
         )
 
 
-def scanline(image: Image.Image, back_right: float, margin: float,
-             wrap_w: float, isbn: str | None) -> None:
-    """The barcode panel, inspected structurally: a white card with
-    dark marks, and readable bar transitions plus quiet zones when an
-    ISBN is declared. ``back_right`` is the back panel's right edge and
-    ``margin`` its outer allowance, so the panel is found for any binding
-    (the barcode moves with the back panel on a hardcover)."""
+def _barcode_region(
+    image: Image.Image, back_right: float, anchor_y: float, dpi: float
+) -> tuple[Image.Image, int]:
+    """Crop the barcode panel to grayscale, returning the region and the
+    top pixel row it was cut at (``y0``, needed to place the scanline)."""
 
-    dpi = image.width / wrap_w
     anchor_x = back_right - 0.5
-    anchor_y = margin + 0.5
     x0 = max(0, int((anchor_x - 2.4) * dpi))
     x1 = int((anchor_x + 0.05) * dpi)
     y0 = image.height - int((anchor_y + 1.4) * dpi)
     y1 = image.height - int((anchor_y - 0.1) * dpi)
-    region = image.crop((x0, y0, x1, y1)).convert("L")
+    return image.crop((x0, y0, x1, y1)).convert("L"), y0
+
+
+def _check_card_present(region: Image.Image) -> None:
+    """A white card carrying dark marks: the minimum any barcode panel,
+    real symbol or honest placeholder, must show."""
+
     # tobytes() on an L-mode image is one byte per pixel in row order, the
     # same sequence getdata() returned (getdata is deprecated in Pillow 14).
     pixels = list(region.tobytes())
@@ -72,8 +73,14 @@ def scanline(image: Image.Image, back_right: float, margin: float,
         raise SystemExit("coverwrap barcode panel has no white card")
     if not any(value < 70 for value in pixels):
         raise SystemExit("coverwrap barcode panel carries no marks at all")
-    if isbn is None:
-        return
+
+
+def _check_bars_readable(
+    image: Image.Image, region: Image.Image, anchor_y: float, y0: int, dpi: float
+) -> None:
+    """With an ISBN declared, the symbol must show readable bar
+    transitions and clean quiet zones on a mid-bar scanline."""
+
     # Bars occupy local 0..0.9in above a card whose south edge sits
     # 0.32in below the anchor; sample mid-bar height.
     row_y = image.height - int((anchor_y + 0.32 + 0.45) * dpi) - y0
@@ -87,30 +94,41 @@ def scanline(image: Image.Image, back_right: float, margin: float,
     module = 0.0130
     symbol_right = int((2.4 - 0.15) * dpi)
     symbol_left = symbol_right - int(95 * module * dpi)
-    window = row[max(0, symbol_left - 2):symbol_right + 2]
+    window = row[max(0, symbol_left - 2) : symbol_right + 2]
     transitions = sum(1 for a, b in zip(window, window[1:]) if a != b)
     if transitions < 25:
         raise SystemExit(
             f"coverwrap barcode is not structurally readable "
             f"({transitions} bar transitions on the scanline; EAN-13 has 59)"
         )
-    left_zone = row[symbol_left - int(0.14 * dpi):symbol_left - int(0.02 * dpi)]
-    right_zone = row[symbol_right + int(0.02 * dpi):symbol_right + int(0.14 * dpi)]
+    left_zone = row[symbol_left - int(0.14 * dpi) : symbol_left - int(0.02 * dpi)]
+    right_zone = row[symbol_right + int(0.02 * dpi) : symbol_right + int(0.14 * dpi)]
     for zone, side in ((left_zone, "left"), (right_zone, "right")):
         if any(zone):
             raise SystemExit(f"coverwrap barcode {side} quiet zone carries ink")
 
 
-def check_print_safe(wrap: Path) -> None:
-    """The wrap carries no transparency and no image over 600 PPI, so a
-    print-on-demand preflight (Lulu, KDP) does not flag the cover the way it
-    flags a raw logo on transparency or a source scan at full resolution.
-    Transparency is read from the PDF itself; resolution needs pdfimages, and
-    its absence softens the PPI half to a note rather than a false pass."""
+def scanline(
+    image: Image.Image, back_right: float, margin: float, wrap_w: float, isbn: str | None
+) -> None:
+    """The barcode panel, inspected structurally: a white card with
+    dark marks, and readable bar transitions plus quiet zones when an
+    ISBN is declared. ``back_right`` is the back panel's right edge and
+    ``margin`` its outer allowance, so the panel is found for any binding
+    (the barcode moves with the back panel on a hardcover)."""
 
-    from pypdf import PdfReader
+    dpi = image.width / wrap_w
+    anchor_y = margin + 0.5
+    region, y0 = _barcode_region(image, back_right, anchor_y, dpi)
+    _check_card_present(region)
+    if isbn is None:
+        return
+    _check_bars_readable(image, region, anchor_y, y0, dpi)
 
-    reader = PdfReader(str(wrap))
+
+def _count_transparent_images(reader) -> int:
+    """Images embedded with a soft mask (transparency) across all pages."""
+
     with_mask = 0
     for page in reader.pages:
         xobjects = (page.get("/Resources") or {}).get("/XObject")
@@ -120,19 +138,17 @@ def check_print_safe(wrap: Path) -> None:
             obj = ref.get_object()
             if obj.get("/Subtype") == "/Image" and "/SMask" in obj:
                 with_mask += 1
-    if with_mask:
-        raise SystemExit(
-            f"coverwrap embeds {with_mask} image(s) with transparency (a soft "
-            "mask); a print preflight flags it. Cover assets must be flattened "
-            "onto their background (print_safe.prepare_cover)."
-        )
+    return with_mask
+
+
+def _check_image_resolution(wrap: Path) -> None:
+    """No embedded image over 600 PPI. Needs pdfimages; its absence
+    softens the check to a note rather than a false pass."""
 
     if adapters.environment.which("pdfimages") is None:
         print("  (pdfimages absent; cover image resolution not checked)")
         return
-    listing = adapters.process_runner.run(
-        ["pdfimages", "-list", str(wrap)], capture=True
-    )
+    listing = adapters.process_runner.run(["pdfimages", "-list", str(wrap)], capture=True)
     stdout = listing.stdout.decode("utf-8", errors="replace")
     over = []
     for line in stdout.splitlines()[2:]:
@@ -152,26 +168,42 @@ def check_print_safe(wrap: Path) -> None:
         )
 
 
-def main() -> int:
-    root = booklib.root()
-    slug = booklib.slug()
-    wrap = root / "dist" / f"{slug}-coverwrap.pdf"
-    interior = root / "dist" / f"{slug}-interior.pdf"
-    if not wrap.is_file() or not interior.is_file():
-        raise SystemExit("coverwrap or interior missing; build the print pack first")
+def check_print_safe(wrap: Path) -> None:
+    """The wrap carries no transparency and no image over 600 PPI, so a
+    print-on-demand preflight (Lulu, KDP) does not flag the cover the way it
+    flags a raw logo on transparency or a source scan at full resolution.
+    Transparency is read from the PDF itself; resolution needs pdfimages, and
+    its absence softens the PPI half to a note rather than a false pass."""
+
+    from pypdf import PdfReader
+
+    reader = PdfReader(str(wrap))
+    with_mask = _count_transparent_images(reader)
+    if with_mask:
+        raise SystemExit(
+            f"coverwrap embeds {with_mask} image(s) with transparency (a soft "
+            "mask); a print preflight flags it. Cover assets must be flattened "
+            "onto their background (print_safe.prepare_cover)."
+        )
+
+    _check_image_resolution(wrap)
+
+
+def _open_wrap_reader(wrap: Path):
+    """Open the wrap and prove it is the single page a wrap must be."""
 
     from pypdf import PdfReader
 
     reader = PdfReader(str(wrap))
     if len(reader.pages) != 1:
         raise SystemExit(f"coverwrap has {len(reader.pages)} pages; a wrap is one")
+    return reader
 
-    meta = booklib.metadata()
-    pages = gen_coverwrap.interior_page_count(interior)
-    # The generator's own geometry, so the verifier cannot disagree with it.
-    lay = gen_coverwrap.layout(pages)
-    wrap_w, wrap_h = lay.wrap_w, lay.wrap_h
-    page = reader.pages[0]
+
+def _check_wrap_size(page, wrap_w: float, wrap_h: float, pages: int) -> None:
+    """The rendered mediabox matches the geometry the generator computed
+    from the interior's page count."""
+
     got_w = float(page.mediabox.width) / 72
     got_h = float(page.mediabox.height) / 72
     if abs(got_w - wrap_w) > 0.01 or abs(got_h - wrap_h) > 0.01:
@@ -180,8 +212,9 @@ def main() -> int:
             f"{pages} pages compute {wrap_w:.3f} x {wrap_h:.3f}"
         )
 
-    verify_fonts(wrap)
-    check_print_safe(wrap)
+
+def _check_title(reader, meta) -> None:
+    """The title survives as extractable text on the wrap."""
 
     from .verify_formats import normalized
 
@@ -190,13 +223,42 @@ def main() -> int:
     if title not in text:
         raise SystemExit(f"coverwrap lost the title text: {meta['title']}")
 
+
+def _inspect_render(wrap: Path, lay, wrap_w: float) -> None:
+    """Render the wrap and inspect its ink: not blank, cover art on the
+    front panel, a structurally sound barcode panel."""
+
     with tempfile.TemporaryDirectory() as tmp:
         image = render(wrap, Path(tmp))
         if looks_blank(image):
             raise SystemExit("coverwrap rendered blank")
         check_front_panel(image, lay.front_x, wrap_w)
-        scanline(image, lay.back_x + lay.panel_w, lay.margin, wrap_w,
-                 gen_coverwrap.isbn_for_print())
+        scanline(
+            image, lay.back_x + lay.panel_w, lay.margin, wrap_w, gen_coverwrap.isbn_for_print()
+        )
+
+
+def main() -> int:
+    root = booklib.root()
+    slug = booklib.slug()
+    wrap = root / "dist" / f"{slug}-coverwrap.pdf"
+    interior = root / "dist" / f"{slug}-interior.pdf"
+    if not wrap.is_file() or not interior.is_file():
+        raise SystemExit("coverwrap or interior missing; build the print pack first")
+
+    reader = _open_wrap_reader(wrap)
+
+    meta = booklib.metadata()
+    pages = gen_coverwrap.interior_page_count(interior)
+    # The generator's own geometry, so the verifier cannot disagree with it.
+    lay = gen_coverwrap.layout(pages)
+    wrap_w, wrap_h = lay.wrap_w, lay.wrap_h
+    _check_wrap_size(reader.pages[0], wrap_w, wrap_h, pages)
+
+    verify_fonts(wrap)
+    check_print_safe(wrap)
+    _check_title(reader, meta)
+    _inspect_render(wrap, lay, wrap_w)
 
     isbn = gen_coverwrap.isbn_for_print()
     barcode_note = "EAN-13 readable with quiet zones" if isbn else "honest placeholder present"

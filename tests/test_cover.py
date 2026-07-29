@@ -9,10 +9,11 @@ import pytest
 
 from press import cover
 
-META = {"title": "Between the Tides", "author": ["Marisol Vance"],
-        "publisher": "Saltmeadow Press"}
-AES = {"web-palette": {"accent": "#2f8f7f", "paper": "#eef4f2"},
-       "cover": {"style": "swiss-international", "subject": "a rocky shore"}}
+META = {"title": "Between the Tides", "author": ["Marisol Vance"], "publisher": "Saltmeadow Press"}
+AES = {
+    "web-palette": {"accent": "#2f8f7f", "paper": "#eef4f2"},
+    "cover": {"style": "swiss-international", "subject": "a rocky shore"},
+}
 
 
 @pytest.mark.layer("unit")
@@ -29,7 +30,7 @@ def test_context_reads_title_author_and_palette():
     assert ctx["title"] == "Between the Tides"
     assert ctx["author"] == "Marisol Vance"
     assert ctx["imprint"] == "Saltmeadow Press"
-    assert ctx["initials"] == "SP"          # skips nothing here; two words
+    assert ctx["initials"] == "SP"  # skips nothing here; two words
     assert ctx["accent"] == "#2f8f7f"
     assert ctx["subject"] == "a rocky shore"
 
@@ -40,8 +41,8 @@ def test_build_prompt_fills_and_guards_baked_style():
     ctx = cover.context(META, AES)
     prompt = cover.build_prompt(styles["penguin-tri-band"], ctx)
     assert "Between the Tides" in prompt and "#2f8f7f" in prompt
-    assert "{" not in prompt                # every placeholder was filled
-    assert "EXACT TEXT" in prompt           # baked styles carry the guardrail
+    assert "{" not in prompt  # every placeholder was filled
+    assert "EXACT TEXT" in prompt  # baked styles carry the guardrail
 
 
 @pytest.mark.layer("unit")
@@ -59,19 +60,20 @@ def test_a_book_can_define_and_use_its_own_style(tmp_path):
     # writes their own art direction and selects it like any built-in.
     (tmp_path / "config").mkdir()
     (tmp_path / "config" / "cover-styles.yaml").write_text(
-        'styles:\n'
-        '  my-house:\n'
+        "styles:\n"
+        "  my-house:\n"
         '    name: "My house"\n'
         '    note: "mine"\n'
-        '    prompt: |\n'
+        "    prompt: |\n"
         '      A cover for "{title}" by {author} in {accent} on {paper}.\n',
-        encoding="utf-8")
+        encoding="utf-8",
+    )
     styles = cover.load_styles(tmp_path)
-    assert "my-house" in styles          # the custom style is available
+    assert "my-house" in styles  # the custom style is available
     assert "penguin-tri-band" in styles  # alongside the house set
     prompt = cover.build_prompt(styles["my-house"], cover.context(META, AES))
-    assert 'Between the Tides' in prompt and "#2f8f7f" in prompt
-    assert "EXACT TEXT" in prompt         # baked by default, so text is guarded
+    assert "Between the Tides" in prompt and "#2f8f7f" in prompt
+    assert "EXACT TEXT" in prompt  # baked by default, so text is guarded
 
 
 def test_subject_falls_back_to_the_book_description():

@@ -38,8 +38,7 @@ _GRANT_PHRASES = (
     "one-time read grant",
     "private toolchain",
 )
-_CONSUMER_DOCS = ("README.md", "docs/INSTALL.md", "docs/COMPATIBILITY.md",
-                  "docs/QUICKSTART.md")
+_CONSUMER_DOCS = ("README.md", "docs/INSTALL.md", "docs/COMPATIBILITY.md", "docs/QUICKSTART.md")
 
 
 @pytest.mark.parametrize("relpath", _CONSUMER_DOCS)
@@ -85,14 +84,17 @@ def test_runtime_dependencies_are_hash_pinned():
     assert deps, "no runtime dependencies parsed from pyproject.toml"
     locked = {_norm(ln) for ln in lock.splitlines() if ln[:1].isalpha()}
     for dep in deps:
-        assert _norm(dep) in locked, \
+        assert _norm(dep) in locked, (
             f"runtime dependency {dep!r} is not pinned in requirements-lock.txt"
+        )
 
     action = (ROOT / "action.yml").read_text(encoding="utf-8")
-    assert "--require-hashes" in action and "requirements-lock.txt" in action, \
+    assert "--require-hashes" in action and "requirements-lock.txt" in action, (
         "action.yml does not install runtime deps from the hash-pinned lock"
-    assert "--no-deps" in action, \
+    )
+    assert "--no-deps" in action, (
         "action.yml does not install press with --no-deps (deps could resolve fresh)"
+    )
 
 
 def _all_job_names() -> set[str]:
@@ -133,8 +135,9 @@ def test_every_action_is_pinned_by_full_commit_sha(workflow):
     runtime-deprecation bump is a reviewed, immutable change."""
 
     unpinned = _unpinned_actions(workflow.read_text(encoding="utf-8"))
-    assert not unpinned, "actions must be pinned by full commit SHA:\n  " + \
-        "\n  ".join(f"{workflow.name}: {u}" for u in unpinned)
+    assert not unpinned, "actions must be pinned by full commit SHA:\n  " + "\n  ".join(
+        f"{workflow.name}: {u}" for u in unpinned
+    )
 
 
 def test_unpinned_action_canary():
@@ -146,10 +149,8 @@ def test_unpinned_action_canary():
     ever stopped flagging a floating tag, the gate above would silently
     admit a supply-chain hole, and this catches that regression."""
 
-    assert _unpinned_actions("      - uses: actions/checkout@v4\n") == \
-        ["actions/checkout@v4"]
-    pinned = ("      - uses: actions/checkout@"
-              "3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n")
+    assert _unpinned_actions("      - uses: actions/checkout@v4\n") == ["actions/checkout@v4"]
+    pinned = "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n"
     assert _unpinned_actions(pinned) == []
     assert _unpinned_actions("      - uses: ./.github/actions/x@v1\n") == []
     assert _unpinned_actions("      - uses: clintecker/press@v2\n") == []
@@ -159,8 +160,9 @@ def test_no_pull_request_target_anywhere():
     """pull_request_target runs a fork's code with base-repo secrets; the
     press must never use it."""
 
-    offenders = [f.name for f in _workflow_files()
-                 if "pull_request_target" in f.read_text(encoding="utf-8")]
+    offenders = [
+        f.name for f in _workflow_files() if "pull_request_target" in f.read_text(encoding="utf-8")
+    ]
     assert not offenders, f"pull_request_target present in {offenders}"
 
 
@@ -177,8 +179,7 @@ def test_pages_deploys_only_from_main_via_the_pages_environment():
     docs = yamlio.loads((WORKFLOWS / "docs-site.yml").read_text(encoding="utf-8"))
     push = (docs.get("on") or {}).get("push") or {}
     assert list(push.get("branches") or []) == ["main"], (
-        "docs-site.yml must deploy only on a push to main; "
-        f"got branches={push.get('branches')!r}"
+        f"docs-site.yml must deploy only on a push to main; got branches={push.get('branches')!r}"
     )
 
     # No second, less-guarded path may deploy the press's OWN Pages. The only
@@ -287,8 +288,8 @@ def test_the_integration_gate_runs_privileged_in_the_container():
     assert "container" in consumer, "consumer does not run in the toolchain container"
     assert "credentials" in consumer["container"], "container pulls without credentials"
     # packages:read may be declared at the top level or on the job.
-    top = (data.get("permissions") or {})
-    job = (consumer.get("permissions") or {})
+    top = data.get("permissions") or {}
+    job = consumer.get("permissions") or {}
     assert top.get("packages") == "read" or job.get("packages") == "read", (
         "no packages:read privilege to pull the private toolchain"
     )

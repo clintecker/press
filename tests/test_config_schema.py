@@ -24,6 +24,7 @@ WHOLE_FILE_FILES = {f.file for f in schema.REGISTRY if f.whole_file and f.file}
 
 # ---- registry integrity ----------------------------------------------
 
+
 def test_paths_are_unique():
     paths = [f.path for f in schema.REGISTRY]
     assert len(paths) == len(set(paths))
@@ -50,6 +51,7 @@ def test_constraints_only_decorate_writable_string_fields():
 
 
 # ---- documentation drift: every documented field is covered ----------
+
 
 def _sections() -> list[tuple[str | None, str]]:
     """(config-file, body) for each `##` section of the reference."""

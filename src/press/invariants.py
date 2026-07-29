@@ -34,8 +34,16 @@ from typing import Any
 from . import yamlio
 
 REQUIRED = {
-    "id", "statement", "risk", "criticality", "owner", "enforcer",
-    "layers", "negative", "ci_tier", "limitations",
+    "id",
+    "statement",
+    "risk",
+    "criticality",
+    "owner",
+    "enforcer",
+    "layers",
+    "negative",
+    "ci_tier",
+    "limitations",
 }
 OPTIONAL = {"producer", "positive"}
 CRITICALITIES = {"critical", "standard"}
@@ -58,6 +66,7 @@ def _ledger_path() -> Path:
     if cwd_ledger.is_file():
         return cwd_ledger
     return LEDGER  # absent either way; let the caller's open() report it
+
 
 # A short human name for each invariant, shown alongside its id so the
 # generated reference reads as a scannable list of guarantees rather than
@@ -96,7 +105,6 @@ TITLES = {
     "INV-scaffold-neutral": "Neutral scaffold",
     "INV-docs-no-drift": "Docs never drift",
     "INV-contract-mirror": "AGENTS mirrors CLAUDE",
-    "INV-pkg-import-inventory": "Installed modules all import",
     "INV-release-receipt-chain": "Complete release chain",
     "INV-edition-manifest": "Immutable edition identity",
     "INV-provider-qualification": "Honest provider record",
@@ -206,8 +214,7 @@ def validate(invariants: list[dict[str, Any]]) -> None:
         problems.extend(_entry_problems(where, inv))
     if problems:
         raise SystemExit(
-            "invariant ledger does not hold:\n"
-            + "\n".join(f"  - {p}" for p in problems)
+            "invariant ledger does not hold:\n" + "\n".join(f"  - {p}" for p in problems)
         )
 
 
@@ -255,12 +262,14 @@ def render() -> str:
             inv["statement"],
             "",
         ]
-        lines += _field_table([
-            ("If it breaks", inv["risk"]),
-            ("Enforced by", f"`{inv['enforcer']}`"),
-            ("Tested by", proofs),
-            ("Known limit", inv["limitations"]),
-        ])
+        lines += _field_table(
+            [
+                ("If it breaks", inv["risk"]),
+                ("Enforced by", f"`{inv['enforcer']}`"),
+                ("Tested by", proofs),
+                ("Known limit", inv["limitations"]),
+            ]
+        )
         lines.append("")
     return "\n".join(lines)
 

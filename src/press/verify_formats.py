@@ -30,7 +30,6 @@ class VisibleText(html.parser.HTMLParser):
             self.parts.append(data)
 
 
-
 STRAIGHTEN = str.maketrans("\u2018\u2019\u201c\u201d", "''\"\"")
 
 
@@ -116,7 +115,7 @@ def _witness_fragments(witness: str) -> list[str]:
     starts = list(range(0, last + 1, _FRAGMENT_STEP))
     if starts[-1] != last:
         starts.append(last)  # always include the tail window
-    return [" ".join(words[i:i + _FRAGMENT_WORDS]) for i in starts]
+    return [" ".join(words[i : i + _FRAGMENT_WORDS]) for i in starts]
 
 
 def _chapter_present(witness: str, haystack: str) -> bool:
@@ -151,8 +150,7 @@ def verify_editions_agree(editions: dict[str, str], witnesses: dict[str, str]) -
     for label in sorted(editions):
         haystack = normalized(editions[label])
         missing = sorted(
-            chap for chap, witness in witnesses.items()
-            if not _chapter_present(witness, haystack)
+            chap for chap, witness in witnesses.items() if not _chapter_present(witness, haystack)
         )
         if missing:
             raise SystemExit(
@@ -217,9 +215,7 @@ def pdf_visible_text(path: Path) -> str:
 
     if adapters.environment.which("pdftotext") is None:
         raise SystemExit("pdftotext is not installed; cannot read the PDF edition")
-    result = adapters.process_runner.run(
-        ["pdftotext", str(path), "-"], capture=True, check=False
-    )
+    result = adapters.process_runner.run(["pdftotext", str(path), "-"], capture=True, check=False)
     if result.returncode != 0:
         stderr = result.stderr.decode("utf-8", errors="replace")
         raise SystemExit(f"pdftotext failed on {path} (exit {result.returncode}): {stderr}")
@@ -250,16 +246,16 @@ def gather_editions(
     """
 
     editions: dict[str, str] = {}
-    if html is not None and html.is_file():
-        editions["HTML"] = html_visible_text(html)
-    if epub is not None and epub.is_file():
-        editions["EPUB"] = epub_visible_text(epub)
-    if markdown is not None and markdown.is_file():
-        editions["markdown"] = plaintext_text(markdown)
-    if text is not None and text.is_file():
-        editions["text"] = plaintext_text(text)
-    if docx is not None and docx.is_file():
-        editions["docx"] = docx_file_text(docx)
+    file_editions = (
+        ("HTML", html, html_visible_text),
+        ("EPUB", epub, epub_visible_text),
+        ("markdown", markdown, plaintext_text),
+        ("text", text, plaintext_text),
+        ("docx", docx, docx_file_text),
+    )
+    for label, path, extract in file_editions:
+        if path is not None and path.is_file():
+            editions[label] = extract(path)
     if site is not None and site.is_dir():
         editions["reader site"] = site_visible_text(site)
     if pdf is not None and pdf.is_file() and adapters.environment.which("pdftotext"):
@@ -284,9 +280,7 @@ def require_witnesses(text: str, label: str) -> None:
             "cannot be proven (write one honest plain sentence)"
         )
     if witness not in haystack:
-        raise SystemExit(
-            f"{label} lost the manuscript witness line: {witness[:60]}..."
-        )
+        raise SystemExit(f"{label} lost the manuscript witness line: {witness[:60]}...")
 
 
 def plate_count() -> int:
@@ -305,40 +299,63 @@ def verify_html(path: Path) -> None:
     require_witnesses(text, "HTML")
 
 
-def verify_epub(path: Path) -> None:
+def _require_sentinels(text: str, label: str) -> None:
+    """Every configured sentinel present in ``text``, or a named refusal
+    keyed to ``label`` (matching each format's message)."""
+
+    for sentinel in booklib.sentinels():
+        if not sentinel_present(sentinel, text):
+            raise SystemExit(f"{label} missing sentinel: {sentinel}")
+
+
+def _epub_member_text(
+    archive: zipfile.ZipFile, names: list[str], suffixes: str | tuple[str, ...]
+) -> str:
+    """The decoded members whose names end with ``suffixes``, newline-joined
+    in namelist order (lossy decode, matching the archive's own reader)."""
+
+    return "\n".join(
+        archive.read(name).decode("utf-8", errors="ignore")
+        for name in names
+        if name.endswith(suffixes)
+    )
+
+
+def _epub_check_structure(archive: zipfile.ZipFile, names: list[str]) -> None:
+    """The EPUB container invariants: a valid mimetype and a container.xml."""
+
+    if "mimetype" not in names or archive.read("mimetype") != b"application/epub+zip":
+        raise SystemExit("EPUB has invalid mimetype")
+    if "META-INF/container.xml" not in names:
+        raise SystemExit("EPUB missing container.xml")
+
+
+def _epub_check_metadata(opf: str) -> None:
+    """The OPF metadata invariants: a non-empty dc:date and, if one is
+    registered, the EPUB ISBN present in the package document."""
+
     from . import registrations
 
+    if re.search(r"<dc:date[^>]*/>|<dc:date[^>]*>\s*</dc:date>", opf):
+        raise SystemExit(
+            "EPUB carries an empty dc:date (retail validators reject "
+            "it); the date field should contain a four-digit year"
+        )
+    epub_isbn = registrations.isbn("epub")
+    if epub_isbn and epub_isbn not in opf:
+        raise SystemExit(f"EPUB metadata is missing the registered ISBN {epub_isbn}")
+
+
+def verify_epub(path: Path) -> None:
     with zipfile.ZipFile(path) as archive:
         names = archive.namelist()
-        if "mimetype" not in names or archive.read("mimetype") != b"application/epub+zip":
-            raise SystemExit("EPUB has invalid mimetype")
-        if "META-INF/container.xml" not in names:
-            raise SystemExit("EPUB missing container.xml")
-        opf = "\n".join(
-            archive.read(name).decode("utf-8", errors="ignore")
-            for name in names if name.endswith(".opf")
-        )
-        if re.search(r"<dc:date[^>]*/>|<dc:date[^>]*>\s*</dc:date>", opf):
-            raise SystemExit(
-                "EPUB carries an empty dc:date (retail validators reject "
-                "it); the date field should contain a four-digit year"
-            )
-        epub_isbn = registrations.isbn("epub")
-        if epub_isbn and epub_isbn not in opf:
-            raise SystemExit(
-                f"EPUB metadata is missing the registered ISBN {epub_isbn}"
-            )
-        raw = "\n".join(
-            archive.read(name).decode("utf-8", errors="ignore")
-            for name in names
-            if name.endswith((".xhtml", ".html"))
-        )
+        _epub_check_structure(archive, names)
+        _epub_check_metadata(_epub_member_text(archive, names, ".opf"))
+        raw = _epub_member_text(archive, names, (".xhtml", ".html"))
         parser = VisibleText()
         parser.feed(raw)
         text = " ".join(" ".join(parser.parts).split())
-        for sentinel in booklib.sentinels():
-            if not sentinel_present(sentinel, text):
-                raise SystemExit(f"EPUB missing sentinel: {sentinel}")
+        _require_sentinels(text, "EPUB")
         require_witnesses(text, "EPUB")
 
 
@@ -367,23 +384,21 @@ def epubcheck(path: Path) -> None:
         )
         return
     try:
-        result = adapters.process_runner.run(
-            ["epubcheck", str(path)], capture=True
-        )
+        result = adapters.process_runner.run(["epubcheck", str(path)], capture=True)
     except OSError as exc:
         # A tool that exists but cannot execute (a container without
         # binfmt jar support, a broken wrapper) is a toolchain fault,
         # not an EPUB fault; say so instead of a traceback.
-        raise SystemExit(f"epubcheck is present but cannot run ({exc}); "
-                         "the toolchain image is broken") from exc
+        raise SystemExit(
+            f"epubcheck is present but cannot run ({exc}); the toolchain image is broken"
+        ) from exc
     if result.returncode != 0:
         # ProcessResult carries bytes (the runner never sets text=True);
         # decode so the diagnostic reproduces the captured epubcheck report.
         stdout = result.stdout.decode("utf-8", errors="replace")
         stderr = result.stderr.decode("utf-8", errors="replace")
         raise SystemExit(
-            f"epubcheck failed on {path} (exit {result.returncode}):\n"
-            f"{stdout}{stderr}"
+            f"epubcheck failed on {path} (exit {result.returncode}):\n{stdout}{stderr}"
         )
     print(f"epubcheck passed: {path.name}")
 
@@ -434,9 +449,11 @@ def verify_docx(path: Path) -> None:
         )
 
 
-def verify_site(path: Path) -> None:
-    index = path / "index.html"
-    if not index.is_file():
+def _verify_site_scaffold(path: Path) -> list[Path]:
+    """The reader-site scaffold: index.html, reader.css, and at least one
+    chapter page per source chapter. Returns the chapter pages."""
+
+    if not (path / "index.html").is_file():
         raise SystemExit("site missing index.html")
     if not (path / "reader.css").is_file():
         raise SystemExit("site missing reader.css")
@@ -446,9 +463,14 @@ def verify_site(path: Path) -> None:
         raise SystemExit(
             f"site has {len(chapter_pages)} chapter pages; expected at least {expected}"
         )
-    # Identity, chapter by chapter: each chapter's own witness line must
-    # appear exactly once across the site, so a missing chapter, a
-    # duplicated page, or another book's pages cannot pass on count.
+    return chapter_pages
+
+
+def _verify_site_chapter_identity(chapter_pages: list[Path]) -> None:
+    """Identity, chapter by chapter: each chapter's own witness line must
+    appear exactly once across the site, so a missing chapter, a duplicated
+    page, or another book's pages cannot pass on count."""
+
     page_texts: dict[str, str] = {}
     for page in chapter_pages:
         parser = VisibleText()
@@ -466,18 +488,24 @@ def verify_site(path: Path) -> None:
                 f"reader site duplicates {chapter}: its witness line "
                 f"appears on {len(carriers)} pages ({', '.join(sorted(carriers))})"
             )
+
+
+def _verify_site_plates(path: Path) -> None:
+    """Every source plate carried into the site's woodcuts directory."""
+
     source_plates = plate_count()
     if source_plates:
         woodcuts = booklib.plate_files(path / "assets" / "woodcuts")
         if len(woodcuts) < source_plates:
             raise SystemExit(f"site carries {len(woodcuts)} plates; expected {source_plates}")
-    aggregate = VisibleText()
-    for page in sorted(path.glob("*.html")):
-        aggregate.feed(page.read_text(encoding="utf-8", errors="replace"))
-    site_text = " ".join(" ".join(aggregate.parts).split())
-    for sentinel in booklib.sentinels():
-        if not sentinel_present(sentinel, site_text):
-            raise SystemExit(f"reader site missing sentinel: {sentinel}")
+
+
+def verify_site(path: Path) -> None:
+    chapter_pages = _verify_site_scaffold(path)
+    _verify_site_chapter_identity(chapter_pages)
+    _verify_site_plates(path)
+    site_text = site_visible_text(path)
+    _require_sentinels(site_text, "reader site")
     require_witnesses(site_text, "reader site")
 
 
@@ -517,8 +545,13 @@ def main(argv: list[str] | None = None) -> int:
     # PDF joins the set where pdftotext is present (the toolchain tier).
     witnesses = chapter_witnesses()
     editions = gather_editions(
-        html=args.html, epub=args.epub, markdown=args.markdown,
-        text=args.text, docx=args.docx, site=args.site, pdf=args.pdf,
+        html=args.html,
+        epub=args.epub,
+        markdown=args.markdown,
+        text=args.text,
+        docx=args.docx,
+        site=args.site,
+        pdf=args.pdf,
     )
     verify_editions_agree(editions, witnesses)
 

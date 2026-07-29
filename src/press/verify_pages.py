@@ -58,54 +58,61 @@ def scan_page(page: Path) -> PageScan:
     return scan
 
 
-def check_refs(origin: Path, refs: list[str], pages: Path,
-               ids_by_page: dict[Path, set[str]]) -> list[str]:
+def _ref_defect(
+    origin: Path, ref: str, pages: Path, ids_by_page: dict[Path, set[str]], where: Path
+) -> str | None:
+    """The single defect one local reference carries, or None if it resolves.
+    A same-page or in-target fragment naming no anchor is dead; an absolute,
+    broken, or site-escaping path is its own defect. External refs are skipped."""
+
+    parsed = urllib.parse.urlparse(ref)
+    if parsed.scheme or ref.startswith("//"):
+        return None
+    local = urllib.parse.unquote(parsed.path)
+    fragment = urllib.parse.unquote(parsed.fragment)
+    if not local:
+        if fragment and origin in ids_by_page and fragment not in ids_by_page[origin]:
+            return f"{where}: dead fragment {ref}"
+        return None
+    if local.startswith("/"):
+        return f"{where}: absolute reference {ref}"
+    target = (origin.parent / local).resolve()
+    if not target.exists():
+        return f"{where}: broken reference {ref}"
+    if not target.is_relative_to(pages):
+        return f"{where}: reference escapes the site: {ref}"
+    if fragment and target in ids_by_page and fragment not in ids_by_page[target]:
+        return f"{where}: dead fragment {ref}"
+    return None
+
+
+def check_refs(
+    origin: Path, refs: list[str], pages: Path, ids_by_page: dict[Path, set[str]]
+) -> list[str]:
     """Every local reference from one file resolves inside the site;
     fragments resolve to a real anchor in their target page."""
 
-    failures: list[str] = []
     where = origin.relative_to(pages)
+    failures: list[str] = []
     for ref in refs:
-        parsed = urllib.parse.urlparse(ref)
-        if parsed.scheme or ref.startswith("//"):
-            continue
-        local = urllib.parse.unquote(parsed.path)
-        fragment = urllib.parse.unquote(parsed.fragment)
-        if not local:
-            if fragment and origin in ids_by_page and fragment not in ids_by_page[origin]:
-                failures.append(f"{where}: dead fragment {ref}")
-            continue
-        if local.startswith("/"):
-            failures.append(f"{where}: absolute reference {ref}")
-            continue
-        target = (origin.parent / local).resolve()
-        if not target.exists():
-            failures.append(f"{where}: broken reference {ref}")
-            continue
-        if not target.is_relative_to(pages):
-            failures.append(f"{where}: reference escapes the site: {ref}")
-            continue
-        if fragment and target in ids_by_page and fragment not in ids_by_page[target]:
-            failures.append(f"{where}: dead fragment {ref}")
+        defect = _ref_defect(origin, ref, pages, ids_by_page, where)
+        if defect is not None:
+            failures.append(defect)
     return failures
 
 
-def check_downloads(index_refs: list[str], pages: Path,
-                    downloads: list[str]) -> list[str]:
+def check_downloads(index_refs: list[str], pages: Path, downloads: list[str]) -> list[str]:
     failures: list[str] = []
     for name in downloads:
         if not (pages / "downloads" / name).is_file():
             failures.append(f"declared download missing from downloads/: {name}")
         links = [r for r in index_refs if r == f"downloads/{name}"]
         if len(links) != 1:
-            failures.append(
-                f"landing page links {name} {len(links)} times (expected exactly once)"
-            )
+            failures.append(f"landing page links {name} {len(links)} times (expected exactly once)")
     return failures
 
 
-def check_reading_surface(pages: Path, sentinels: list[str],
-                          title: str) -> list[str]:
+def check_reading_surface(pages: Path, sentinels: list[str], title: str) -> list[str]:
     from .verify_formats import sentinel_present
 
     failures: list[str] = []
@@ -122,6 +129,44 @@ def check_reading_surface(pages: Path, sentinels: list[str],
     return failures
 
 
+def _check_cta_fields(config, index: str) -> list[str]:
+    """The rendered CTA carries the storefront, seller, and every policy link."""
+
+    fields = [
+        ("storefront", config.storefront_url),
+        ("seller-of-record", config.seller_of_record),
+        *config.policy_links(),
+    ]
+    return [
+        f"print-order CTA is missing the {label}" for label, value in fields if value not in index
+    ]
+
+
+def _check_generated_policies(config, pages: Path, commerce) -> list[str]:
+    """A policy the publisher did not host is generated on the site; it must
+    exist and honestly disclose the seller of record."""
+
+    failures: list[str] = []
+    for kind in config.generated_kinds():
+        filename = commerce.POLICY_KINDS[kind][3]
+        page_path = pages / filename
+        if not page_path.is_file():
+            failures.append(f"generated {kind} policy page {filename} is missing")
+        elif config.seller_of_record not in page_path.read_text(encoding="utf-8", errors="replace"):
+            failures.append(f"generated {kind} policy page does not disclose the seller of record")
+    return failures
+
+
+def _check_secret_leaks(pages: Path, commerce) -> list[str]:
+    """No rendered page leaks a credential-shaped secret."""
+
+    failures: list[str] = []
+    for page in sorted(pages.rglob("*.html")):
+        if commerce._SECRET_MARKERS.search(page.read_text(encoding="utf-8", errors="replace")):
+            failures.append(f"a rendered page appears to leak a secret: {page.name}")
+    return failures
+
+
 def check_commerce(pages: Path, config) -> list[str]:
     """The rendered print-order control matches the declared config: when
     ordering is enabled the landing page carries the CTA with the
@@ -130,37 +175,37 @@ def check_commerce(pages: Path, config) -> list[str]:
 
     from . import commerce
 
-    failures: list[str] = []
     index = (pages / "index.html").read_text(encoding="utf-8", errors="replace")
     has_cta = 'class="print-order"' in index
     if config is None or not config.enabled:
         if has_cta:
-            failures.append("landing page shows a print-order CTA but ordering is not enabled")
-        return failures
+            return ["landing page shows a print-order CTA but ordering is not enabled"]
+        return []
     if commerce.validate(config):
-        failures.append("ordering is enabled but the CTA was not rendered "
-                        "(config invalid; see press check)")
-        return failures
+        return [
+            "ordering is enabled but the CTA was not rendered (config invalid; see press check)"
+        ]
     if not has_cta:
-        failures.append("ordering is enabled but the landing page has no print-order CTA")
-        return failures
-    for label, value in [("storefront", config.storefront_url),
-                         ("seller-of-record", config.seller_of_record),
-                         *[(name, url) for name, url in config.policy_links()]]:
-        if value not in index:
-            failures.append(f"print-order CTA is missing the {label}")
-    # A policy the publisher did not host is generated on the site; it must
-    # exist and honestly disclose the seller of record.
-    for kind in config.generated_kinds():
-        filename = commerce.POLICY_KINDS[kind][3]
-        page_path = pages / filename
-        if not page_path.is_file():
-            failures.append(f"generated {kind} policy page {filename} is missing")
-        elif config.seller_of_record not in page_path.read_text(encoding="utf-8", errors="replace"):
-            failures.append(f"generated {kind} policy page does not disclose the seller of record")
-    for page in sorted(pages.rglob("*.html")):
-        if commerce._SECRET_MARKERS.search(page.read_text(encoding="utf-8", errors="replace")):
-            failures.append(f"a rendered page appears to leak a secret: {page.name}")
+        return ["ordering is enabled but the landing page has no print-order CTA"]
+
+    failures = _check_cta_fields(config, index)
+    failures += _check_generated_policies(config, pages, commerce)
+    failures += _check_secret_leaks(pages, commerce)
+    return failures
+
+
+def _check_landing_canonical(text: str, base: str, node) -> list[str]:
+    """A canonical link and the JSON-LD url agree with the configured site-url:
+    a canonical exists exactly when a site-url is set, and the url points at it."""
+
+    failures: list[str] = []
+    has_canonical = 'rel="canonical"' in text
+    if base and not has_canonical:
+        failures.append("site-url is set but the landing page has no canonical URL")
+    if not base and has_canonical:
+        failures.append("landing page claims a canonical URL but no site-url is configured")
+    if base and node.get("url") not in (base, base + "/"):
+        failures.append(f"landing JSON-LD url {node.get('url')!r} does not match the site-url")
     return failures
 
 
@@ -174,7 +219,6 @@ def check_landing_metadata(pages: Path, title: str, site_url: str) -> list[str]:
     import json
     import re
 
-    failures: list[str] = []
     text = (pages / "index.html").read_text(encoding="utf-8", errors="replace")
     m = re.search(r'<script type="application/ld\+json">\n(.*?)\n</script>', text, re.S)
     if not m:
@@ -183,19 +227,14 @@ def check_landing_metadata(pages: Path, title: str, site_url: str) -> list[str]:
         node = json.loads(m.group(1))
     except json.JSONDecodeError as exc:
         return [f"landing page JSON-LD is not valid JSON: {exc}"]
+
+    failures: list[str] = []
     if node.get("name") != html_mod.unescape(title):
         failures.append(
-            f"landing JSON-LD names {node.get('name')!r}, not the book "
-            f"{html_mod.unescape(title)!r}")
+            f"landing JSON-LD names {node.get('name')!r}, not the book {html_mod.unescape(title)!r}"
+        )
     base = (site_url or "").strip().rstrip("/")
-    has_canonical = 'rel="canonical"' in text
-    if base and not has_canonical:
-        failures.append("site-url is set but the landing page has no canonical URL")
-    if not base and has_canonical:
-        failures.append("landing page claims a canonical URL but no site-url is configured")
-    if base and node.get("url") not in (base, base + "/"):
-        failures.append(
-            f"landing JSON-LD url {node.get('url')!r} does not match the site-url")
+    failures += _check_landing_canonical(text, base, node)
     return failures
 
 
@@ -268,7 +307,7 @@ def _resolve_absolute(url: str, base: str, pages: Path) -> Path | None:
 
     if not base or not url.startswith(base):
         return None
-    rel = url[len(base):]
+    rel = url[len(base) :]
     if rel == "" or rel.endswith("/"):
         rel += "index.html"
     return (pages / rel).resolve()
@@ -305,46 +344,80 @@ def _check_jsonld_identity(where, nodes: list, want: str) -> list[str]:
     return out
 
 
-def _check_urls_resolve(where, nodes: list, head: str, base: str, pages: Path,
-                        download_set: set) -> list[str]:
+def _check_jsonld_url(where, url: str, base: str, pages: Path, download_set: set) -> list[str]:
+    """One JSON-LD url names no foreign edition and, if base-relative, resolves."""
+
+    out: list[str] = []
+    target = _resolve_absolute(url, base, pages)
+    if "/downloads/" in url and url.rsplit("/", 1)[-1] not in download_set:
+        out.append(
+            f"{where}: JSON-LD names a foreign edition "
+            f"{url.rsplit('/', 1)[-1]!r} that is not among this book's downloads"
+        )
+    if target is not None and not target.exists():
+        out.append(f"{where}: JSON-LD URL does not resolve: {url}")
+    return out
+
+
+def _check_og_image(where, head: str, base: str, pages: Path) -> list[str]:
+    """The og:image points at a cover that exists."""
+
+    img = re.search(r'property="og:image" content="([^"]*)"', head)
+    if not img:
+        return []
+    target = _resolve_absolute(img.group(1), base, pages)
+    if target is not None and not target.exists():
+        return [f"{where}: og:image points at a missing cover: {img.group(1)}"]
+    return []
+
+
+def _check_urls_resolve(
+    where, nodes: list, head: str, base: str, pages: Path, download_set: set
+) -> list[str]:
     """Every base-relative JSON-LD/image URL resolves, names no foreign
     edition, and the og:image points at a cover that exists."""
 
     out: list[str] = []
     for url in {u for node in nodes for u in _jsonld_urls(node)}:
-        target = _resolve_absolute(url, base, pages)
-        if "/downloads/" in url and url.rsplit("/", 1)[-1] not in download_set:
-            out.append(f"{where}: JSON-LD names a foreign edition "
-                       f"{url.rsplit('/', 1)[-1]!r} that is not among this book's downloads")
-        if target is not None and not target.exists():
-            out.append(f"{where}: JSON-LD URL does not resolve: {url}")
-    img = re.search(r'property="og:image" content="([^"]*)"', head)
-    if img:
-        target = _resolve_absolute(img.group(1), base, pages)
-        if target is not None and not target.exists():
-            out.append(f"{where}: og:image points at a missing cover: {img.group(1)}")
+        out += _check_jsonld_url(where, url, base, pages, download_set)
+    out += _check_og_image(where, head, base, pages)
     return out
 
 
-def _check_one_surface(page: Path, pages: Path, want: str, base: str,
-                       base_root: str, download_set: set) -> list[str]:
+def _check_social_cards(where, head: str) -> list[str]:
+    """The head carries an Open Graph title and a Twitter card."""
+
+    out: list[str] = []
+    if 'property="og:title"' not in head:
+        out.append(f"{where}: no Open Graph title")
+    if 'name="twitter:card"' not in head:
+        out.append(f"{where}: no Twitter card")
+    return out
+
+
+def _surface_jsonld_nodes(where, text: str) -> tuple[list, list[str]]:
+    """The page's JSON-LD nodes, or an empty list plus the parse-error line."""
+
     import json
 
+    try:
+        return _jsonld_nodes(text), []
+    except json.JSONDecodeError as exc:
+        return [], [f"{where}: JSON-LD is not valid JSON: {exc}"]
+
+
+def _check_one_surface(
+    page: Path, pages: Path, want: str, base: str, base_root: str, download_set: set
+) -> list[str]:
     where = page.relative_to(pages)
     text = page.read_text(encoding="utf-8", errors="replace")
     head_match = _HEAD.search(text)
     head = head_match.group(0) if head_match else text
 
     out = _check_canonical(where, head, base, base_root)
-    if 'property="og:title"' not in head:
-        out.append(f"{where}: no Open Graph title")
-    if 'name="twitter:card"' not in head:
-        out.append(f"{where}: no Twitter card")
-    try:
-        nodes = _jsonld_nodes(text)
-    except json.JSONDecodeError as exc:
-        out.append(f"{where}: JSON-LD is not valid JSON: {exc}")
-        nodes = []
+    out += _check_social_cards(where, head)
+    nodes, parse_errors = _surface_jsonld_nodes(where, text)
+    out += parse_errors
     out += _check_jsonld_identity(where, nodes, want)
     out += _check_urls_resolve(where, nodes, head, base, pages, download_set)
     if _PRIVATE_DATA.search(head) or commerce_secret(head):
@@ -352,8 +425,7 @@ def _check_one_surface(page: Path, pages: Path, want: str, base: str,
     return out
 
 
-def check_metadata(pages: Path, title: str, site_url: str,
-                   downloads: list[str]) -> list[str]:
+def check_metadata(pages: Path, title: str, site_url: str, downloads: list[str]) -> list[str]:
     """Every metadata surface declares honest identity (#158): a canonical URL
     exactly when a site-url is configured (and pointing at it), Open Graph and
     Twitter cards, valid JSON-LD that names this book (never a stale or foreign
@@ -397,25 +469,59 @@ def check_book_sitemap(pages: Path, site_url: str) -> list[str]:
     if not sitemap.is_file():
         return ["site-url is set but no sitemap.xml was emitted"]
     locs = re.findall(r"<loc>([^<]+)</loc>", sitemap.read_text(encoding="utf-8", errors="replace"))
-    loc_set = set(locs)
+    failures += _check_sitemap_locs(locs, base, pages)
+    failures += _check_canonicals_listed(pages, set(locs))
+    return failures
+
+
+def _check_sitemap_locs(locs: list[str], base: str, pages: Path) -> list[str]:
+    """Every declared <loc> is under the site-url and resolves to a real file."""
+
+    failures: list[str] = []
     for loc in locs:
         target = _resolve_absolute(loc, base, pages)
         if target is None:
             failures.append(f"sitemap <loc> is not under the site-url: {loc}")
         elif not target.exists():
             failures.append(f"sitemap <loc> does not resolve to a file: {loc}")
+    return failures
 
+
+def _check_canonicals_listed(pages: Path, loc_set: set) -> list[str]:
+    """Every metadata surface's canonical URL appears among the sitemap locs."""
+
+    failures: list[str] = []
     for page in _metadata_surfaces(pages):
         text = page.read_text(encoding="utf-8", errors="replace")
         m = re.search(r'<link rel="canonical" href="([^"]*)"', text)
         if m and m.group(1) not in loc_set:
             failures.append(
-                f"{page.relative_to(pages)}: canonical {m.group(1)!r} is absent from the sitemap")
+                f"{page.relative_to(pages)}: canonical {m.group(1)!r} is absent from the sitemap"
+            )
     return failures
 
 
-def crawl(pages: Path, sentinels: list[str], downloads: list[str],
-          title: str, commerce_config=None, site_url: str = "") -> list[str]:
+def _crawl_refs(scans: dict, pages: Path, ids_by_page: dict[Path, set[str]]) -> list[str]:
+    """Every local reference in every HTML page and every stylesheet
+    resolves inside the site."""
+
+    failures: list[str] = []
+    for page, scan in scans.items():
+        failures += check_refs(page, scan.refs, pages, ids_by_page)
+    for sheet in sorted(pages.rglob("*.css")):
+        refs = CSS_URL.findall(sheet.read_text(encoding="utf-8", errors="replace"))
+        failures += check_refs(sheet, refs, pages, ids_by_page)
+    return failures
+
+
+def crawl(
+    pages: Path,
+    sentinels: list[str],
+    downloads: list[str],
+    title: str,
+    commerce_config=None,
+    site_url: str = "",
+) -> list[str]:
     """Every defect found, as human-readable failure lines."""
 
     pages = pages.resolve()
@@ -425,12 +531,7 @@ def crawl(pages: Path, sentinels: list[str], downloads: list[str],
     scans = {page: scan_page(page) for page in sorted(pages.rglob("*.html"))}
     ids_by_page = {page: scan.ids for page, scan in scans.items()}
 
-    failures: list[str] = []
-    for page, scan in scans.items():
-        failures += check_refs(page, scan.refs, pages, ids_by_page)
-    for sheet in sorted(pages.rglob("*.css")):
-        refs = CSS_URL.findall(sheet.read_text(encoding="utf-8", errors="replace"))
-        failures += check_refs(sheet, refs, pages, ids_by_page)
+    failures = _crawl_refs(scans, pages, ids_by_page)
     failures += check_downloads(scans[pages / "index.html"].refs, pages, downloads)
     failures += check_reading_surface(pages, sentinels, title)
     failures += check_commerce(pages, commerce_config)

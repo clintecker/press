@@ -34,16 +34,20 @@ def jargon_check() -> int:
     (root / "build").mkdir(exist_ok=True)
     files = [str(path) for path in booklib.chapter_files()]
     command = [
-        sys.executable, "-m", "press.jargon_lint",
-        "--fail-on", "rewrite",
+        sys.executable,
+        "-m",
+        "press.jargon_lint",
+        "--fail-on",
+        "rewrite",
         *[arg for term in allow for arg in ("--allow", term)],
         *files,
     ]
     result = adapters.process_runner.run(command, cwd=root, capture=True)
     # ProcessResult carries bytes; decode before writing the report, or a
     # later reader/regex silently matches nothing on a non-ASCII manuscript.
-    output = (result.stdout.decode("utf-8", errors="replace")
-              + result.stderr.decode("utf-8", errors="replace"))
+    output = result.stdout.decode("utf-8", errors="replace") + result.stderr.decode(
+        "utf-8", errors="replace"
+    )
     report = root / "build" / "jargon-report.txt"
     report.write_text(output, encoding="utf-8")
     if result.returncode != 0:
@@ -76,12 +80,22 @@ def verify_formats_built() -> int:
 
     dist = booklib.root() / "dist"
     slug = booklib.slug()
-    return verify_formats.main([
-        str(dist / f"{slug}.html"), str(dist / f"{slug}.epub"),
-        "--markdown", str(dist / f"{slug}.md"), "--text", str(dist / f"{slug}.txt"),
-        "--docx", str(dist / f"{slug}.docx"), "--site", str(dist / "site"),
-        "--pdf", str(dist / f"{slug}.pdf"),
-    ])
+    return verify_formats.main(
+        [
+            str(dist / f"{slug}.html"),
+            str(dist / f"{slug}.epub"),
+            "--markdown",
+            str(dist / f"{slug}.md"),
+            "--text",
+            str(dist / f"{slug}.txt"),
+            "--docx",
+            str(dist / f"{slug}.docx"),
+            "--site",
+            str(dist / "site"),
+            "--pdf",
+            str(dist / f"{slug}.pdf"),
+        ]
+    )
 
 
 def _run_new(args: list[str]) -> int:
@@ -109,7 +123,7 @@ def _run_isbn(args: list[str]) -> int:
 
     from . import booklib, config_cli, registrations
 
-    sub = args[1:]   # drop the "isbn" command name
+    sub = args[1:]  # drop the "isbn" command name
     usage = "usage: press isbn status | press isbn assign print|epub"
     if not sub or sub[0] not in ("status", "assign"):
         print(usage)
@@ -135,8 +149,7 @@ def _run_isbn(args: list[str]) -> int:
     edition = sub[1]
     existing = registrations.raw_isbn(edition)
     if existing and existing.lower() != registrations.PENDING:
-        print(f"the {edition} edition already has an ISBN ({existing}); "
-              "unset it first to reassign")
+        print(f"the {edition} edition already has an ISBN ({existing}); unset it first to reassign")
         return 1
     try:
         isbn = registrations.next_isbn()
@@ -144,7 +157,8 @@ def _run_isbn(args: list[str]) -> int:
         print(str(exc))
         return 1
     preview = config_cli.preview_edits(
-        booklib.root(), "config/metadata.yaml",
+        booklib.root(),
+        "config/metadata.yaml",
         [(f"registrations.isbn.{edition}", isbn)],
     )
     if preview.problems:
@@ -190,8 +204,10 @@ def _run_migrate(args: list[str]) -> int:
     if action == "apply":
         receipt = migrate.apply(root, to_major)
         print(migrate.render_plan(migration))
-        print(f"\napplied. receipt at {receipt.relative_to(root)}; "
-              "`press migrate rollback` reverses it")
+        print(
+            f"\napplied. receipt at {receipt.relative_to(root)}; "
+            "`press migrate rollback` reverses it"
+        )
         return 0
     if action == "plan":
         print(migrate.render_plan(migration))
@@ -205,8 +221,6 @@ def _run_onix(args: list[str]) -> int:
     metadata a distributor ingests. A book with no ISBN still gets an honest
     record to inspect; a `--forthcoming` flag marks the publishing status."""
 
-    import datetime
-
     from . import onix, registrations
 
     book = booklib.book()
@@ -215,7 +229,7 @@ def _run_onix(args: list[str]) -> int:
     editions = onix.editions_for(book, print_isbn, epub_isbn)
     lang = booklib.metadata().get("lang")
     sender = book.publisher or "press"
-    sent = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M")
+    sent = adapters.clock.now().strftime("%Y%m%dT%H%M")
     status = "02" if "--forthcoming" in args else "04"
     xml = onix.build(book, editions, lang=lang, sent=sent, sender=sender, status=status)
 
@@ -284,8 +298,9 @@ def _run_lookup(args: list[str]) -> int:
     if number is None:
         configured = registrations.block().get(kind)
         if not configured or str(configured).strip().lower() == registrations.PENDING:
-            print(f"no registrations.{kind} configured; pass a number: "
-                  f"press lookup {kind} <number>")
+            print(
+                f"no registrations.{kind} configured; pass a number: press lookup {kind} <number>"
+            )
             return 2
         number = str(configured)
     lookup = idlookup.lookup_lccn if kind == "lccn" else idlookup.lookup_issn
@@ -412,8 +427,7 @@ def _run_verify_print(args: list[str]) -> int:
 
     registry.build("print")
     code = verify_pdf.main(
-        [str(booklib.root() / "dist" / f"{booklib.slug()}-interior.pdf"),
-         "--profile", "print"]
+        [str(booklib.root() / "dist" / f"{booklib.slug()}-interior.pdf"), "--profile", "print"]
     )
     if code:
         return code
@@ -493,8 +507,7 @@ def _commerce_gate() -> int:
         print(f"  - {problem}")
     if adapters.environment.get("PRESS_RELEASE"):
         return 1
-    print("(commerce gate is advisory here; a release build (PRESS_RELEASE=1) "
-          "enforces it)")
+    print("(commerce gate is advisory here; a release build (PRESS_RELEASE=1) enforces it)")
     return 0
 
 
@@ -505,8 +518,14 @@ def _run_render(args: list[str]) -> int:
     out = booklib.root() / "build" / "rendered-book"
     out.mkdir(parents=True, exist_ok=True)
     adapters.process_runner.run(
-        ["pdftoppm", "-png", "-r", "160",
-         str(booklib.root() / "dist" / f"{booklib.slug()}.pdf"), str(out / "page")],
+        [
+            "pdftoppm",
+            "-png",
+            "-r",
+            "160",
+            str(booklib.root() / "dist" / f"{booklib.slug()}.pdf"),
+            str(out / "page"),
+        ],
         check=True,
     )
     return 0

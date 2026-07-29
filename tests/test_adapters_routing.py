@@ -71,9 +71,7 @@ def test_build_run_drives_runner_with_book_env(scaffolded_book, fake_runner):
 def test_build_run_propagates_calledprocesserror(scaffolded_book, monkeypatch):
     from press import build
 
-    fake = fakes.FakeProcessRunner(
-        results=[subprocess.CalledProcessError(1, ["pandoc"])]
-    )
+    fake = fakes.FakeProcessRunner(results=[subprocess.CalledProcessError(1, ["pandoc"])])
     monkeypatch.setattr(adapters, "process_runner", fake)
     with pytest.raises(subprocess.CalledProcessError):
         build.run(["pandoc"])
@@ -97,9 +95,7 @@ def test_tracked_paths_parses_git_ls_files(tmp_path, fake_runner):
 def test_tracked_paths_returns_none_when_git_fails(tmp_path, monkeypatch):
     from press import package_source
 
-    fake = fakes.FakeProcessRunner(
-        by_command={"git": subprocess.CalledProcessError(128, "git")}
-    )
+    fake = fakes.FakeProcessRunner(by_command={"git": subprocess.CalledProcessError(128, "git")})
     monkeypatch.setattr(adapters, "process_runner", fake)
     assert package_source.tracked_paths(tmp_path) is None
 
@@ -219,6 +215,8 @@ def test_git_identity_none_when_git_absent(monkeypatch):
     fake = fakes.FakeProcessRunner(by_command={"git": OSError("no git")})
     monkeypatch.setattr(adapters, "process_runner", fake)
     assert scaffold.git_identity() is None
+
+
 # check_the_checkers.diagnostics drives the jargon lint through the runner
 # --------------------------------------------------------------------------
 
@@ -238,9 +236,7 @@ def test_diagnostics_runs_jargon_lint_through_runner(
 
     # A nonzero exit whose captured stdout names a rewrite the parser must
     # surface. Bytes on purpose: the runner never decodes.
-    fake_runner._queue.append(
-        ProcessResult(1, b"clean-prose.md:1: rewrite: avoid 'utilize'\n")
-    )
+    fake_runner._queue.append(ProcessResult(1, b"clean-prose.md:1: rewrite: avoid 'utilize'\n"))
 
     found = check_the_checkers.diagnostics(fixture)
 
@@ -278,6 +274,8 @@ def test_diagnostics_passes_jargon_allow_terms_to_runner(
     argv = fake_runner.runs[0].argv
     assert "--allow" in argv
     assert argv[argv.index("--allow") + 1] == "leverage"
+
+
 # gen_coverwrap.generate compiles the wrap through the process runner
 # --------------------------------------------------------------------------
 
@@ -308,9 +306,7 @@ def coverwrap_book(tmp_path, monkeypatch):
     monkeypatch.setattr(
         cw,
         "layout",
-        lambda pages: cw.wrap_geometry(
-            6.0, 9.0, 0.115, True, 0.125, 0.0, 0.0, 0.0, "paperback"
-        ),
+        lambda pages: cw.wrap_geometry(6.0, 9.0, 0.115, True, 0.125, 0.0, 0.0, 0.0, "paperback"),
     )
     monkeypatch.setattr(print_safe, "prepare_cover", lambda *a, **k: {"cover": cover})
     return handle
@@ -332,7 +328,10 @@ def test_coverwrap_generate_drives_latexmk_through_runner(coverwrap_book, monkey
     assert len(fake.runs) == 1, "the wrap must compile through the process runner"
     run = fake.runs[0]
     assert run.argv == (
-        "latexmk", "-lualatex", "-interaction=nonstopmode", "coverwrap.tex",
+        "latexmk",
+        "-lualatex",
+        "-interaction=nonstopmode",
+        "coverwrap.tex",
     )
     assert run.cwd == str(coverwrap_book.root / "build" / "coverwrap")
     assert run.capture is True
@@ -360,6 +359,8 @@ def test_coverwrap_generate_decodes_stdout_tail_on_failure(coverwrap_book, monke
     message = str(excinfo.value)
     assert marker in message
     assert message.endswith(f"coverwrap TeX failed; log tail:\n{marker}�")
+
+
 # verify_formats.epubcheck resolves the tool, the toolchain promise, and the
 # validator run through the adapters.
 # --------------------------------------------------------------------------
@@ -419,13 +420,13 @@ def test_epubcheck_oserror_is_toolchain_fault(fake_env, monkeypatch, tmp_path):
     from press import verify_formats
 
     fake_env(present_tools=["epubcheck"])
-    fake = fakes.FakeProcessRunner(
-        by_command={"epubcheck": OSError("Exec format error")}
-    )
+    fake = fakes.FakeProcessRunner(by_command={"epubcheck": OSError("Exec format error")})
     monkeypatch.setattr(adapters, "process_runner", fake)
     with pytest.raises(SystemExit) as excinfo:
         verify_formats.epubcheck(tmp_path / "book.epub")
     assert "present but cannot run" in str(excinfo.value)
+
+
 # verify_coverwrap.render + check_print_safe (issue #199)
 # --------------------------------------------------------------------------
 
@@ -459,15 +460,18 @@ def test_render_drives_runner_with_pdftoppm(tmp_path, fake_runner):
     assert len(fake_runner.runs) == 1
     recorded = fake_runner.runs[0]
     assert recorded.argv == (
-        "pdftoppm", "-png", "-r", "150", str(wrap), str(out_dir / "wrap"),
+        "pdftoppm",
+        "-png",
+        "-r",
+        "150",
+        str(wrap),
+        str(out_dir / "wrap"),
     )
     assert recorded.check is True
     assert recorded.capture is True
 
 
-def test_check_print_safe_parses_pdfimages_ppi_through_runner(
-    tmp_path, fake_runner, fake_env
-):
+def test_check_print_safe_parses_pdfimages_ppi_through_runner(tmp_path, fake_runner, fake_env):
     from press import verify_coverwrap
 
     wrap = _blank_pdf(tmp_path / "wrap.pdf")
@@ -497,9 +501,7 @@ def test_check_print_safe_parses_pdfimages_ppi_through_runner(
     assert run.capture is True
 
 
-def test_check_print_safe_softens_when_pdfimages_absent(
-    tmp_path, capsys, fake_runner, fake_env
-):
+def test_check_print_safe_softens_when_pdfimages_absent(tmp_path, capsys, fake_runner, fake_env):
     from press import verify_coverwrap
 
     wrap = _blank_pdf(tmp_path / "wrap.pdf")
@@ -511,6 +513,8 @@ def test_check_print_safe_softens_when_pdfimages_absent(
     assert "pdfimages" in env.which_calls
     assert not any(r.argv and r.argv[0] == "pdfimages" for r in fake_runner.runs)
     assert "pdfimages absent" in capsys.readouterr().out
+
+
 # verify_pdf: run_capture, tool probes, and page rendering
 # --------------------------------------------------------------------------
 
@@ -587,6 +591,8 @@ def test_render_pages_drives_pdftoppm_through_runner(tmp_path, fake_runner, monk
     recorded = fake_runner.runs[0]
     assert recorded.argv[0] == "pdftoppm"
     assert "-png" in recorded.argv
+
+
 # __main__.jargon_check runs the lint through the runner and DECODES its
 # bytes into the report -- the migration's decode landmine.
 # --------------------------------------------------------------------------
@@ -629,9 +635,7 @@ def test_commerce_gate_reads_press_release_through_environment(
     from press import __main__ as cli
     from press import commerce
 
-    monkeypatch.setattr(
-        commerce, "release_gate", lambda root, book: (["blocked"], "1 problem")
-    )
+    monkeypatch.setattr(commerce, "release_gate", lambda root, book: (["blocked"], "1 problem"))
     # booklib.root() now reads BOOK_ROOT through the same environment adapter,
     # so the fake must carry it too or root() falls back to cwd and refuses.
     env = fake_env(values={"PRESS_RELEASE": "1", "BOOK_ROOT": str(scaffolded_book)})
@@ -640,15 +644,11 @@ def test_commerce_gate_reads_press_release_through_environment(
     assert "PRESS_RELEASE" in env.reads
 
 
-def test_commerce_gate_advisory_when_press_release_unset(
-    scaffolded_book, fake_env, monkeypatch
-):
+def test_commerce_gate_advisory_when_press_release_unset(scaffolded_book, fake_env, monkeypatch):
     from press import __main__ as cli
     from press import commerce
 
-    monkeypatch.setattr(
-        commerce, "release_gate", lambda root, book: (["blocked"], "1 problem")
-    )
+    monkeypatch.setattr(commerce, "release_gate", lambda root, book: (["blocked"], "1 problem"))
     env = fake_env(values={"BOOK_ROOT": str(scaffolded_book)})
     # Same problems, no PRESS_RELEASE: advisory, exit 0.
     assert cli._commerce_gate() == 0
@@ -660,9 +660,7 @@ def test_commerce_gate_advisory_when_press_release_unset(
 # --------------------------------------------------------------------------
 
 
-def test_run_render_routes_pdftoppm_through_runner(
-    scaffolded_book, fake_runner, monkeypatch
-):
+def test_run_render_routes_pdftoppm_through_runner(scaffolded_book, fake_runner, monkeypatch):
     from press import __main__ as cli
     from press import build
 
@@ -672,6 +670,8 @@ def test_run_render_routes_pdftoppm_through_runner(
     recorded = fake_runner.runs[-1]
     assert recorded.argv[0] == "pdftoppm"
     assert recorded.check is True
+
+
 # booklib reads BOOK_ROOT and PRESS_RELEASE through the environment
 # --------------------------------------------------------------------------
 
@@ -699,9 +699,7 @@ def test_require_release_witnesses_early_returns_off_press_release(fake_env):
     assert "PRESS_RELEASE" in fake.reads
 
 
-def test_require_release_witnesses_honors_press_release_from_environment(
-    scaffolded_book, fake_env
-):
+def test_require_release_witnesses_honors_press_release_from_environment(scaffolded_book, fake_env):
     from press import booklib
 
     fake = fake_env(values={"BOOK_ROOT": str(scaffolded_book), "PRESS_RELEASE": "1"})
@@ -754,50 +752,6 @@ def test_borrow_book_restores_a_prior_book_root_through_environment(tmp_path, fa
 
 
 # --------------------------------------------------------------------------
-# selftest.check_import_side_effects spawns the fresh-interpreter probe
-# through the process runner and decodes its bytes on failure (issue #199).
-# --------------------------------------------------------------------------
-
-
-def test_check_import_side_effects_routes_probe_through_runner(fake_runner):
-    from press import selftest
-
-    # The default fake answers ProcessResult(0): a clean probe, no refusal.
-    selftest.check_import_side_effects()
-    assert len(fake_runner.runs) == 1
-    recorded = fake_runner.runs[0]
-    assert recorded.argv[0] == sys.executable
-    assert recorded.argv[1] == "-c"
-    assert "selftest._side_effect_probe" in recorded.argv[2]
-    assert recorded.capture is True
-    # It reads only the returncode/stdout; it must not raise on a nonzero exit
-    # itself, so check stays off.
-    assert recorded.check is False
-
-
-def test_check_import_side_effects_decodes_offender_bytes_on_failure(monkeypatch):
-    from press import selftest
-
-    # The runner returns BYTES (it never sets text=True); the diagnostic must
-    # decode them, not embed a bytes-repr. Fails before the migration, when the
-    # raw subprocess.run used text=True and this path never crossed the fake.
-    fake = fakes.FakeProcessRunner(
-        results=[ProcessResult(1, stdout=b"press.evil: wrote a file \xe2\x9c\x97", stderr=b"")]
-    )
-    monkeypatch.setattr(adapters, "process_runner", fake)
-    with pytest.raises(SystemExit) as excinfo:
-        selftest.check_import_side_effects()
-    message = str(excinfo.value)
-    assert "press.evil: wrote a file ✗" in message
-    assert "b'" not in message  # decoded text, never a bytes-repr
-
-
-# --------------------------------------------------------------------------
-# selftest.check_release_grammar drives the tag-grammar checks through the
-# process runner with bash release.sh --check-tag (issue #199).
-# --------------------------------------------------------------------------
-
-
 def test_check_release_grammar_routes_tag_checks_through_runner(monkeypatch):
     from press import selftest
 
@@ -852,7 +806,8 @@ def test_check_source_policy_runs_nested_git_with_env_none(monkeypatch):
     # (package_source's `git -C <root> ls-files` is a different repo probe and
     # is excluded by the second-word filter.)
     nested = [
-        (argv, env) for argv, env in recorded
+        (argv, env)
+        for argv, env in recorded
         if argv and argv[0] == "git" and len(argv) > 1 and argv[1] in ("init", "add", "-c")
     ]
     assert nested, "check_source_policy drove no nested git commands through the runner"

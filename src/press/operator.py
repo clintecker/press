@@ -19,8 +19,9 @@ from . import adapters, booklib, instruments
 TIMEOUT_SECONDS = 3600
 
 
-def run_workflow(name: str, args_obj: dict, full_bash: bool,
-                 extra_tools: list[str] | None = None) -> int:
+def run_workflow(
+    name: str, args_obj: dict, full_bash: bool, extra_tools: list[str] | None = None
+) -> int:
     """Drive a packaged workflow headlessly.
 
     Report/research modes get Bash scoped to press commands; --apply
@@ -34,7 +35,7 @@ def run_workflow(name: str, args_obj: dict, full_bash: bool,
         raise SystemExit(
             "the operator needs the Claude Code CLI on PATH "
             "(https://claude.com/claude-code); inside a session, run the "
-            f"workflow directly: Workflow({{name: \"{name}\", args: ...}})"
+            f'workflow directly: Workflow({{name: "{name}", args: ...}})'
         )
     path = instruments.workflow_paths().get(name)
     if path is None:
@@ -49,10 +50,18 @@ def run_workflow(name: str, args_obj: dict, full_bash: bool,
     print(f"operator: {name} on {args_obj['root']} (this runs agents; minutes, not seconds)")
     try:
         completed = adapters.process_runner.run(
-            ["claude", "-p", prompt,
-             "--allowedTools", "Workflow", *bash_grant,
-             "--permission-mode", "acceptEdits",
-             "--output-format", "text"],
+            [
+                "claude",
+                "-p",
+                prompt,
+                "--allowedTools",
+                "Workflow",
+                *bash_grant,
+                "--permission-mode",
+                "acceptEdits",
+                "--output-format",
+                "text",
+            ],
             cwd=booklib.root(),
             timeout=TIMEOUT_SECONDS,
         )
@@ -86,10 +95,12 @@ def improve(argv: list[str]) -> int:
     import argparse
 
     parser = argparse.ArgumentParser(prog="press improve")
-    parser.add_argument("--apply", action="store_true",
-                        help="apply the suggestions instead of writing the report")
-    parser.add_argument("--rounds", type=int, default=2,
-                        help="editorial rounds when applying (default 2)")
+    parser.add_argument(
+        "--apply", action="store_true", help="apply the suggestions instead of writing the report"
+    )
+    parser.add_argument(
+        "--rounds", type=int, default=2, help="editorial rounds when applying (default 2)"
+    )
     args = parser.parse_args(argv)
     root = booklib.root()
     workflow_args = {"root": str(root), "report": not args.apply}
@@ -110,9 +121,7 @@ def improve(argv: list[str]) -> int:
         if report.is_file():
             print(f"report: {report} (manuscript proven untouched)")
         else:
-            raise SystemExit(
-                "the workflow finished but wrote no report; read its output above"
-            )
+            raise SystemExit("the workflow finished but wrote no report; read its output above")
     return code
 
 
@@ -127,10 +136,10 @@ def aesthetic(argv: list[str]) -> int:
     if not argv:
         return aesthetic_config.show()
     parser = argparse.ArgumentParser(prog="press aesthetic")
-    parser.add_argument("brief", nargs="+",
-                        help="the look, in the author's words")
-    parser.add_argument("--overwrite", action="store_true",
-                        help="replace an existing config/aesthetic.yaml")
+    parser.add_argument("brief", nargs="+", help="the look, in the author's words")
+    parser.add_argument(
+        "--overwrite", action="store_true", help="replace an existing config/aesthetic.yaml"
+    )
     args = parser.parse_args(argv)
     workflow_args: dict = {
         "root": str(booklib.root()),
@@ -155,5 +164,9 @@ def research(argv: list[str]) -> int:
         workflow_args["maxClaimsPerFile"] = args.max_claims_per_file
     # Research is the one counsel workflow that must reach the web:
     # its whole job is finding and auditing real sources.
-    return run_workflow("authorities-research", workflow_args, full_bash=False,
-                        extra_tools=["WebSearch", "WebFetch"])
+    return run_workflow(
+        "authorities-research",
+        workflow_args,
+        full_bash=False,
+        extra_tools=["WebSearch", "WebFetch"],
+    )

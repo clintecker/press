@@ -12,8 +12,7 @@ from tests import factories
 
 def _report(failing_tools=()):
     findings = tuple(
-        doctor.Finding(name=t, category="tool", state="missing",
-                       detail="x", required=True)
+        doctor.Finding(name=t, category="tool", state="missing", detail="x", required=True)
         for t in failing_tools
     )
     return doctor.DoctorReport(findings)
@@ -88,21 +87,28 @@ def test_commands_come_from_the_catalog(tmp_path):
 
 
 def _finding(name, state, category="tool", required=True, detail="why"):
-    return doctor.Finding(name=name, category=category, state=state,
-                          detail=detail, required=required)
+    return doctor.Finding(
+        name=name, category=category, state=state, detail=detail, required=required
+    )
 
 
 def test_doctor_rows_project_every_finding_in_order():
-    report = doctor.DoctorReport((
-        _finding("pandoc", "ok"),
-        _finding("epubcheck", "absent", required=False),
-        _finding("lualatex", "missing"),
-        _finding("python", "warn", category="python", required=False),
-        _finding("python-deps", "ok", category="deps"),
-    ))
+    report = doctor.DoctorReport(
+        (
+            _finding("pandoc", "ok"),
+            _finding("epubcheck", "absent", required=False),
+            _finding("lualatex", "missing"),
+            _finding("python", "warn", category="python", required=False),
+            _finding("python-deps", "ok", category="deps"),
+        )
+    )
     rows = desk_model.doctor_rows(report)
     assert [r.name for r in rows] == [
-        "pandoc", "epubcheck", "lualatex", "python", "python-deps",
+        "pandoc",
+        "epubcheck",
+        "lualatex",
+        "python",
+        "python-deps",
     ]
     assert rows[0].glyph == "*" and rows[0].state_word == "ok"
     assert rows[2].glyph == "!" and rows[2].state_word == "missing"

@@ -132,9 +132,7 @@ def _trim(raw: dict, problems: list[str]) -> tuple[float, float]:
 
 def _verification_knobs(raw: dict, problems: list[str]) -> tuple[tuple[str, ...], int]:
     sentinels_raw = raw.get("verify-sentinels") or []
-    if not isinstance(sentinels_raw, list) or not all(
-        isinstance(s, str) for s in sentinels_raw
-    ):
+    if not isinstance(sentinels_raw, list) or not all(isinstance(s, str) for s in sentinels_raw):
         problems.append("verify-sentinels: expected a list of text fragments")
         sentinels_raw = []
     sentinels = tuple(s for s in sentinels_raw if s.strip())

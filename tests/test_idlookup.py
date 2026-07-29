@@ -45,26 +45,33 @@ class FakeTransport:
         self._responses = list(responses)
         self.calls: list[dict] = []
 
-    def __call__(self, method, url, *, headers=None, body=None, timeout=None,
-                 max_bytes=None):
+    def __call__(self, method, url, *, headers=None, body=None, timeout=None, max_bytes=None):
         self.calls.append(
-            {"method": method, "url": url, "headers": dict(headers or {}),
-             "timeout": timeout, "max_bytes": max_bytes})
+            {
+                "method": method,
+                "url": url,
+                "headers": dict(headers or {}),
+                "timeout": timeout,
+                "max_bytes": max_bytes,
+            }
+        )
         outcome = self._responses.pop(0)
         if isinstance(outcome, BaseException):
             raise outcome
         return outcome
 
 
-def xml_response(body: str, *, media: str = "application/xml", status: int = 200,
-                 headers: dict | None = None) -> Response:
+def xml_response(
+    body: str, *, media: str = "application/xml", status: int = 200, headers: dict | None = None
+) -> Response:
     hdrs = {"Content-Type": media}
     hdrs.update(headers or {})
     return Response(status, body.encode("utf-8"), hdrs)
 
 
-def json_response(body: str, *, media: str = "application/ld+json", status: int = 200,
-                  headers: dict | None = None) -> Response:
+def json_response(
+    body: str, *, media: str = "application/ld+json", status: int = 200, headers: dict | None = None
+) -> Response:
     hdrs = {"Content-Type": media}
     hdrs.update(headers or {})
     return Response(status, body.encode("utf-8"), hdrs)
@@ -143,7 +150,7 @@ def test_lccn_found_returns_typed_record_with_source_and_provenance():
     assert result.outcome is Outcome.FOUND
     assert result.ok
     assert result.kind == "lccn"
-    assert result.query == VALID_LCCN            # normalized before lookup
+    assert result.query == VALID_LCCN  # normalized before lookup
     assert result.identifier == VALID_LCCN
     assert result.title == "The Example Book"
     assert result.source_url == "https://lccn.loc.gov/2001012345/mods"
@@ -218,8 +225,7 @@ def test_lccn_wrong_media_type_fails_closed():
 
 def test_lccn_oversized_declared_length_fails_closed():
     huge = str(idlookup.MAX_BYTES + 1)
-    transport = FakeTransport(
-        [xml_response(MODS_FOUND, headers={"Content-Length": huge})])
+    transport = FakeTransport([xml_response(MODS_FOUND, headers={"Content-Length": huge})])
     result = idlookup.lookup_lccn(transport, VALID_LCCN)
     assert result.outcome is Outcome.UNAVAILABLE
 
@@ -244,7 +250,8 @@ def test_lccn_unexpected_status_is_unavailable():
 
 def test_a_timeout_is_retried_then_succeeds():
     transport = FakeTransport(
-        [TransportTimeout("lost"), TransportTimeout("lost"), xml_response(MODS_FOUND)])
+        [TransportTimeout("lost"), TransportTimeout("lost"), xml_response(MODS_FOUND)]
+    )
     result = idlookup.lookup_lccn(transport, VALID_LCCN)
     assert result.outcome is Outcome.FOUND
     assert len(transport.calls) == 3  # two retries, then the answer
@@ -264,8 +271,7 @@ def test_connection_failure_bounds_out_as_unavailable():
 
 
 def test_server_error_is_retried_then_bounds_out():
-    transport = FakeTransport(
-        [xml_response("", status=503)] * (idlookup.MAX_RETRIES + 1))
+    transport = FakeTransport([xml_response("", status=503)] * (idlookup.MAX_RETRIES + 1))
     result = idlookup.lookup_lccn(transport, VALID_LCCN)
     assert result.outcome is Outcome.UNAVAILABLE
     assert len(transport.calls) == idlookup.MAX_RETRIES + 1
@@ -464,13 +470,17 @@ def test_only_the_lookup_command_reaches_idlookup():
 def test_live_lccn_lookup_reaches_the_real_endpoint():
     if not os.environ.get("PRESS_LIVE_LOOKUP"):
         pytest.skip(
-            "set PRESS_LIVE_LOOKUP=1 to exercise the live LC endpoint "
-            "(opt-in, not a release gate)")
+            "set PRESS_LIVE_LOOKUP=1 to exercise the live LC endpoint (opt-in, not a release gate)"
+        )
     from press.adapters import http
 
     result = idlookup.lookup_lccn(http.urlopen_transport, VALID_LCCN)
     assert result.outcome in {
-        Outcome.FOUND, Outcome.NOT_FOUND, Outcome.MISMATCH, Outcome.UNAVAILABLE}
+        Outcome.FOUND,
+        Outcome.NOT_FOUND,
+        Outcome.MISMATCH,
+        Outcome.UNAVAILABLE,
+    }
     assert result.source_url.startswith("https://lccn.loc.gov/")
 
 

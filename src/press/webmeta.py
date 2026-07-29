@@ -55,15 +55,10 @@ def jsonld_script(node: Any, *, indent_prefix: str = "") -> str:
     extractor expects on every surface."""
 
     body = _json.dumps(node, ensure_ascii=False, indent=2)
-    return (
-        f'{indent_prefix}<script type="application/ld+json">\n'
-        f"{body}\n"
-        f"{indent_prefix}</script>"
-    )
+    return f'{indent_prefix}<script type="application/ld+json">\n{body}\n{indent_prefix}</script>'
 
 
-def _og_image_lines(image: str, width: int | None, height: int | None,
-                    alt: str) -> list[str]:
+def _og_image_lines(image: str, width: int | None, height: int | None, alt: str) -> list[str]:
     """The og:image family, emitted only for a real, dimensioned social card."""
 
     lines = [f'<meta property="og:image" content="{_esc(image)}">']
@@ -73,6 +68,52 @@ def _og_image_lines(image: str, width: int | None, height: int | None,
         lines.append(f'<meta property="og:image:height" content="{int(height)}">')
     if alt:
         lines.append(f'<meta property="og:image:alt" content="{_esc(alt)}">')
+    return lines
+
+
+def _og_lines(
+    *,
+    og_type: str,
+    title: str,
+    site_name: str,
+    description: str,
+    canonical: str,
+    extra_properties: list[tuple[str, str]] | None,
+    image: str,
+    image_width: int | None,
+    image_height: int | None,
+    image_alt: str,
+) -> list[str]:
+    """The Open Graph block, in emission order."""
+
+    lines = [
+        f'<meta property="og:type" content="{_esc(og_type)}">',
+        f'<meta property="og:title" content="{_esc(title)}">',
+    ]
+    if site_name:
+        lines.append(f'<meta property="og:site_name" content="{_esc(site_name)}">')
+    if description:
+        lines.append(f'<meta property="og:description" content="{_esc(description)}">')
+    if canonical:
+        lines.append(f'<meta property="og:url" content="{_esc(canonical)}">')
+    for prop, content in extra_properties or []:
+        lines.append(f'<meta property="{_esc(prop)}" content="{_esc(content)}">')
+    if image:
+        lines.extend(_og_image_lines(image, image_width, image_height, image_alt))
+    return lines
+
+
+def _twitter_lines(*, twitter_card: str, title: str, description: str, image: str) -> list[str]:
+    """The Twitter-card block, in emission order."""
+
+    lines = [
+        f'<meta name="twitter:card" content="{_esc(twitter_card)}">',
+        f'<meta name="twitter:title" content="{_esc(title)}">',
+    ]
+    if description:
+        lines.append(f'<meta name="twitter:description" content="{_esc(description)}">')
+    if image:
+        lines.append(f'<meta name="twitter:image" content="{_esc(image)}">')
     return lines
 
 
@@ -126,26 +167,24 @@ def head_fragment(
     if canonical:
         add(f'<link rel="canonical" href="{_esc(canonical)}">')
 
-    add(f'<meta property="og:type" content="{_esc(og_type)}">')
-    add(f'<meta property="og:title" content="{_esc(title)}">')
-    if site_name:
-        add(f'<meta property="og:site_name" content="{_esc(site_name)}">')
-    if description:
-        add(f'<meta property="og:description" content="{_esc(description)}">')
-    if canonical:
-        add(f'<meta property="og:url" content="{_esc(canonical)}">')
-    for prop, content in extra_properties or []:
-        add(f'<meta property="{_esc(prop)}" content="{_esc(content)}">')
-    if image:
-        for line in _og_image_lines(image, image_width, image_height, image_alt):
-            add(line)
+    for markup in _og_lines(
+        og_type=og_type,
+        title=title,
+        site_name=site_name,
+        description=description,
+        canonical=canonical,
+        extra_properties=extra_properties,
+        image=image,
+        image_width=image_width,
+        image_height=image_height,
+        image_alt=image_alt,
+    ):
+        add(markup)
 
-    add(f'<meta name="twitter:card" content="{_esc(twitter_card)}">')
-    add(f'<meta name="twitter:title" content="{_esc(title)}">')
-    if description:
-        add(f'<meta name="twitter:description" content="{_esc(description)}">')
-    if image:
-        add(f'<meta name="twitter:image" content="{_esc(image)}">')
+    for markup in _twitter_lines(
+        twitter_card=twitter_card, title=title, description=description, image=image
+    ):
+        add(markup)
 
     if jsonld is not None:
         lines.append(jsonld_script(jsonld, indent_prefix=indent))
@@ -173,8 +212,7 @@ _TAGS = _re.compile(r"<[^>]+>")
 def _cell_label(header_html: str) -> str:
     """The plain text of a header cell, safe to carry in an attribute."""
 
-    return _html.escape(
-        _html.unescape(_TAGS.sub("", header_html)).strip(), quote=True)
+    return _html.escape(_html.unescape(_TAGS.sub("", header_html)).strip(), quote=True)
 
 
 def label_table_cells(markup: str) -> str:
@@ -190,8 +228,9 @@ def label_table_cells(markup: str) -> str:
         head = _re.search(r"<thead>(.*?)</thead>", table, _re.S)
         if not head:
             return table
-        headers = [_cell_label(c) for c in
-                   _re.findall(r"<th\b[^>]*>(.*?)</th>", head.group(1), _re.S)]
+        headers = [
+            _cell_label(c) for c in _re.findall(r"<th\b[^>]*>(.*?)</th>", head.group(1), _re.S)
+        ]
         if not any(headers):
             return table
 

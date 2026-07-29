@@ -49,8 +49,7 @@ def slugify(name: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", name.strip().lower()).strip("-")
     if not slug or not booklib.SLUG_PATTERN.fullmatch(slug):
         raise SystemExit(
-            f"cannot make a filename from {name!r}: a part name needs at "
-            "least one letter or digit"
+            f"cannot make a filename from {name!r}: a part name needs at least one letter or digit"
         )
     return slug
 
@@ -83,17 +82,12 @@ def _next_appendix_letter(root: Path, front: bool) -> str:
     back-matter parts land at z, y, x and successive front ones at a, b, c.
     """
 
-    used = {
-        path.name[0]
-        for path in (root / "book" / "appendices").glob("[a-z]-*.md")
-    }
+    used = {path.name[0] for path in (root / "book" / "appendices").glob("[a-z]-*.md")}
     order = string.ascii_lowercase if front else string.ascii_lowercase[::-1]
     for letter in order:
         if letter not in used:
             return letter
-    raise SystemExit(
-        "the appendices are full: every single-letter prefix a-z is taken"
-    )
+    raise SystemExit("the appendices are full: every single-letter prefix a-z is taken")
 
 
 def _stub(name: str, unnumbered: bool) -> str:
@@ -152,8 +146,7 @@ def main(argv: list[str]) -> int:
         return 1
 
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(_stub(name, unnumbered=(kind == "chapter" and front)),
-                      encoding="utf-8")
+    target.write_text(_stub(name, unnumbered=(kind == "chapter" and front)), encoding="utf-8")
     print(f"created {relative}")
     return 0
 

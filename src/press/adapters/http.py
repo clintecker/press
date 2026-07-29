@@ -18,9 +18,15 @@ import urllib.request
 from ..providers.transport import Response, TransportError, TransportTimeout
 
 
-def urlopen_transport(method: str, url: str, *, headers: dict[str, str] | None = None,
-                      body: bytes | None = None, timeout: float = 30.0,
-                      max_bytes: int | None = None) -> Response:
+def urlopen_transport(
+    method: str,
+    url: str,
+    *,
+    headers: dict[str, str] | None = None,
+    body: bytes | None = None,
+    timeout: float = 30.0,
+    max_bytes: int | None = None,
+) -> Response:
     """Perform one request. ``max_bytes``, when given, bounds the body *as it
     is read* rather than after the fact.
 

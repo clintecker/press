@@ -116,6 +116,7 @@ def _no_sleep(_seconds: float) -> None:  # retries must not wait in tests
 
 # ---------------------------------------------------------------- no-op ----
 
+
 def test_reconcile_noop_makes_no_writes_and_reports_success(capsys):
     data = _registry(_milestone(4, title="v2"))
     fake = FakeGitHub({4: _milestone(4, title="v2")})
@@ -126,15 +127,18 @@ def test_reconcile_noop_makes_no_writes_and_reports_success(capsys):
 
 # ---------------------------------------------------------------- patch ----
 
+
 def test_reconcile_patches_only_drifted_fields_for_registry_numbers(capsys):
     data = _registry(
         _milestone(4, title="v2 — Composable press", state="open", description="new body"),
         _milestone(5, title="v3", state="open", description="same"),
     )
-    fake = FakeGitHub({
-        4: _milestone(4, title="v2 — old", state="closed", description="old body"),
-        5: _milestone(5, title="v3", state="open", description="same"),
-    })
+    fake = FakeGitHub(
+        {
+            4: _milestone(4, title="v2 — old", state="closed", description="old body"),
+            5: _milestone(5, title="v3", state="open", description="same"),
+        }
+    )
     rc = sr.github_drift(data, apply=True, api=fake, env={}, sleep=_no_sleep)
     assert rc == 0
     # milestone 4 drifted (title/state/description) and was PATCHed; 5 matched.
@@ -154,6 +158,7 @@ def test_apply_is_idempotent_second_run_is_a_noop():
 
 
 # ------------------------------------------------ partial failure / retry ----
+
 
 def test_transient_failure_is_retried_then_succeeds():
     data = _registry(_milestone(4, title="v2", description="body"))
@@ -179,10 +184,12 @@ def test_one_milestone_failing_does_not_abort_the_others():
         _milestone(4, title="v2", description="body"),
         _milestone(5, title="v3-new", description="body"),
     )
-    fake = FakeGitHub({
-        4: _milestone(4, title="stale", description="old"),
-        5: _milestone(5, title="v3-old", description="old"),
-    })
+    fake = FakeGitHub(
+        {
+            4: _milestone(4, title="stale", description="old"),
+            5: _milestone(5, title="v3-old", description="old"),
+        }
+    )
     fake.transient[4] = 99  # milestone 4 never recovers
     rc = sr.github_drift(data, apply=True, api=fake, env={}, sleep=_no_sleep, retries=1)
     assert rc == 1, "the run fails because milestone 4 could not be reconciled"
@@ -190,6 +197,7 @@ def test_one_milestone_failing_does_not_abort_the_others():
 
 
 # ---------------------------------------------------- unknown milestone ----
+
 
 def test_absent_milestone_is_skipped_never_created(capsys):
     data = _registry(
@@ -214,6 +222,7 @@ def test_absent_milestone_is_not_retried():
 
 
 # --------------------------------------------------- malicious registry ----
+
 
 def test_malicious_registry_is_refused_by_validation_before_any_network():
     """A crafted registry (extra field smuggling a create instruction) is
@@ -257,15 +266,18 @@ def test_reconcile_never_issues_a_create_delete_or_issue_write():
         _milestone(4, title="v2", description="new"),
         _milestone(5, title="v3", state="closed", description="new"),
     )
-    fake = FakeGitHub({
-        4: _milestone(4, title="old", description="old"),
-        5: _milestone(5, title="v3", state="open", description="old"),
-    })
+    fake = FakeGitHub(
+        {
+            4: _milestone(4, title="old", description="old"),
+            5: _milestone(5, title="v3", state="open", description="old"),
+        }
+    )
     sr.github_drift(data, apply=True, api=fake, env={}, sleep=_no_sleep)
     assert set(fake.methods()) <= {"GET", "PATCH"}
 
 
 # ------------------------------------------------------- durable summary ----
+
 
 def test_apply_emits_a_durable_summary_linking_commit_and_changes(tmp_path):
     summary = tmp_path / "summary.md"
@@ -343,7 +355,8 @@ def test_pull_request_path_has_no_milestone_write_authority():
     assert "permissions" not in projection or "write" not in str(projection["permissions"])
     # The only job that carries issues:write is reconcile (push-to-main gated).
     writers = [
-        name for name, job in data["jobs"].items()
+        name
+        for name, job in data["jobs"].items()
         if (job.get("permissions") or {}).get("issues") == "write"
     ]
     assert writers == ["reconcile"], writers

@@ -27,9 +27,7 @@ from tests.integration._harness import (
 )
 
 REQUIRED = ("pandoc",)
-requires_pandoc = pytest.mark.skipif(
-    bool(missing_tools(REQUIRED)), reason=skip_reason(REQUIRED)
-)
+requires_pandoc = pytest.mark.skipif(bool(missing_tools(REQUIRED)), reason=skip_reason(REQUIRED))
 
 
 def _book(root):

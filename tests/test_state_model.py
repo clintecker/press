@@ -29,6 +29,7 @@ from tests import damage, factories
 
 def _clean_env() -> dict:
     import os
+
     env = os.environ.copy()
     for key in ("GIT_DIR", "GIT_INDEX_FILE", "GIT_PREFIX", "GIT_WORK_TREE"):
         env.pop(key, None)
@@ -36,9 +37,11 @@ def _clean_env() -> dict:
 
 
 def _git_init(root: Path) -> None:
-    for cmd in (["git", "init", "-q"], ["git", "add", "-A"],
-                ["git", "-c", "user.email=t@t", "-c", "user.name=t",
-                 "commit", "-qm", "fixture"]):
+    for cmd in (
+        ["git", "init", "-q"],
+        ["git", "add", "-A"],
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "fixture"],
+    ):
         subprocess.run(cmd, cwd=root, check=True, env=_clean_env())
 
 
@@ -60,6 +63,7 @@ class SourceArchiveMachine:
     def clean(self) -> None:
         self.trace.append("clean")
         import shutil
+
         for name in ("build", "dist"):
             d = self.root / name
             if d.exists():
@@ -68,6 +72,7 @@ class SourceArchiveMachine:
     def build(self) -> None:
         self.trace.append("build")
         from press import package_source
+
         package_source.main()
 
     def mutate(self) -> None:
@@ -164,6 +169,7 @@ def _assert_absent(machine) -> None:
 
 # ---- graph-shape laws (pure, from the registry) ----
 
+
 def test_prerequisites_precede_dependents():
     for target in registry.ARTIFACTS:
         order = registry.build_order([target])
@@ -192,6 +198,7 @@ def test_both_root_modes(tmp_path):
     handle = factories.minimal().build(tmp_path)
     # cwd mode: chdir in, no BOOK_ROOT.
     from press import selftest
+
     selftest.clear_book_caches()
     previous = os.environ.pop("BOOK_ROOT", None)
     prev_cwd = Path.cwd()
@@ -199,6 +206,7 @@ def test_both_root_modes(tmp_path):
         os.chdir(handle.root)
         _git_init(handle.root)
         from press import package_source
+
         package_source.main()
         out = handle.root / "dist" / f"{handle.slug}-source.zip"
         assert verify_archives.verify_source_zip(out, handle.slug) == []
@@ -211,6 +219,7 @@ def test_both_root_modes(tmp_path):
     # BOOK_ROOT mode: the handle's own use() context.
     with handle.use():
         from press import package_source
+
         package_source.main()
         out = handle.root / "dist" / f"{handle.slug}-source.zip"
         assert verify_archives.verify_source_zip(out, handle.slug) == []

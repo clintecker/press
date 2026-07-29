@@ -45,10 +45,16 @@ PROD_BASE = "https://api.lulu.com"
 SANDBOX_BASE = "https://api.sandbox.lulu.com"
 _TOKEN_PATH = "/auth/realms/glasstree/protocol/openid-connect/token"
 
-_CAPABILITIES = frozenset({
-    Capability.QUOTE, Capability.FILE_VALIDATION, Capability.SUBMIT,
-    Capability.LOOKUP, Capability.CANCELLATION, Capability.WEBHOOKS,
-})
+_CAPABILITIES = frozenset(
+    {
+        Capability.QUOTE,
+        Capability.FILE_VALIDATION,
+        Capability.SUBMIT,
+        Capability.LOOKUP,
+        Capability.CANCELLATION,
+        Capability.WEBHOOKS,
+    }
+)
 
 # Lulu's print-job status vocabulary, normalized. UNPAID and
 # PAYMENT_IN_PROGRESS are pre-acceptance bookkeeping, so they map to
@@ -69,9 +75,16 @@ _STATUS = {
 }
 
 
-def pod_package_id(trim_width_in: float, trim_height_in: float, *, color: str = "BW",
-                   quality: str = "STD", binding: str = "PB", paper: str = "060UW444",
-                   finish: str = "MXX") -> str:
+def pod_package_id(
+    trim_width_in: float,
+    trim_height_in: float,
+    *,
+    color: str = "BW",
+    quality: str = "STD",
+    binding: str = "PB",
+    paper: str = "060UW444",
+    finish: str = "MXX",
+) -> str:
     """A Lulu SKU in the dotted form (live since 2026-03-31). The six
     segments are trim, ink, print quality, binding, paper, and cover
     finish. The trim is width x height in hundredths of an inch, so a 6x9
@@ -86,12 +99,20 @@ def pod_package_id(trim_width_in: float, trim_height_in: float, *, color: str = 
 class LuluProvider:
     name = "lulu"
 
-    def __init__(self, transport: Transport, *, client_key: str, client_secret: str,
-                 sandbox: bool = True, webhook_secret: str = "") -> None:
+    def __init__(
+        self,
+        transport: Transport,
+        *,
+        client_key: str,
+        client_secret: str,
+        sandbox: bool = True,
+        webhook_secret: str = "",
+    ) -> None:
         self._t = transport
         self._base = SANDBOX_BASE if sandbox else PROD_BASE
-        self._basic = base64.b64encode(
-            f"{client_key}:{client_secret}".encode("utf-8")).decode("ascii")
+        self._basic = base64.b64encode(f"{client_key}:{client_secret}".encode("utf-8")).decode(
+            "ascii"
+        )
         self._webhook_secret = webhook_secret.encode("utf-8")
         self._token: str | None = None
 
@@ -101,28 +122,40 @@ class LuluProvider:
         if self._token is not None:
             return self._token
         response = self._t(
-            "POST", self._base + _TOKEN_PATH,
-            headers={"Authorization": f"Basic {self._basic}",
-                     "Content-Type": "application/x-www-form-urlencoded"},
-            body=b"grant_type=client_credentials")
+            "POST",
+            self._base + _TOKEN_PATH,
+            headers={
+                "Authorization": f"Basic {self._basic}",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body=b"grant_type=client_credentials",
+        )
         self._token = str(response.json()["access_token"])
         return self._token
 
     def _request(self, method: str, path: str, payload: dict | None = None) -> Response:
         response = self._t(
-            method, self._base + path,
-            headers={"Authorization": f"Bearer {self._access_token()}",
-                     "Content-Type": "application/json"},
-            body=json.dumps(payload).encode("utf-8") if payload is not None else None)
+            method,
+            self._base + path,
+            headers={
+                "Authorization": f"Bearer {self._access_token()}",
+                "Content-Type": "application/json",
+            },
+            body=json.dumps(payload).encode("utf-8") if payload is not None else None,
+        )
         if response.status == 401:
             # The token expired; fetch a fresh one once and retry (this is
             # token renewal, not a hidden business retry).
             self._token = None
             response = self._t(
-                method, self._base + path,
-                headers={"Authorization": f"Bearer {self._access_token()}",
-                         "Content-Type": "application/json"},
-                body=json.dumps(payload).encode("utf-8") if payload is not None else None)
+                method,
+                self._base + path,
+                headers={
+                    "Authorization": f"Bearer {self._access_token()}",
+                    "Content-Type": "application/json",
+                },
+                body=json.dumps(payload).encode("utf-8") if payload is not None else None,
+            )
         return response
 
     @staticmethod
@@ -134,8 +167,9 @@ class LuluProvider:
         if isinstance(body, dict) and "detail" in body:
             return str(body["detail"])
         if isinstance(body, dict):
-            return "; ".join(f"{k}: {', '.join(v) if isinstance(v, list) else v}"
-                             for k, v in body.items())
+            return "; ".join(
+                f"{k}: {', '.join(v) if isinstance(v, list) else v}" for k, v in body.items()
+            )
         if isinstance(body, list):
             return "; ".join(str(x) for x in body)
         return f"HTTP {response.status}"
@@ -158,9 +192,12 @@ class LuluProvider:
 
     def _address_payload(self, address, *, with_name: bool) -> dict:
         data = {
-            "street1": address.street1, "city": address.city,
-            "country_code": address.country, "postcode": address.postcode,
-            "state_code": address.region, "phone_number": address.phone,
+            "street1": address.street1,
+            "city": address.city,
+            "country_code": address.country,
+            "postcode": address.postcode,
+            "state_code": address.region,
+            "phone_number": address.phone,
         }
         if with_name:
             data["name"] = address.name
@@ -168,8 +205,10 @@ class LuluProvider:
 
     def quote(self, request: QuoteRequest) -> Quote | TypedError:
         payload = {
-            "line_items": [{"page_count": i.page_count, "pod_package_id": i.product_id,
-                            "quantity": i.quantity} for i in request.line_items],
+            "line_items": [
+                {"page_count": i.page_count, "pod_package_id": i.product_id, "quantity": i.quantity}
+                for i in request.line_items
+            ],
             "shipping_address": self._address_payload(request.address, with_name=False),
             "shipping_option": request.shipping_level,
         }
@@ -181,9 +220,12 @@ class LuluProvider:
             return TypedError("quote_failed", self._error_detail(response))
         body = response.json()
         currency = str(body.get("currency", "USD"))
-        line = Money.parse(currency, _sum_decimal(body.get("line_item_costs", []),
-                                                  "total_cost_incl_tax"))
-        shipping = Money.parse(currency, body.get("shipping_cost", {}).get("total_cost_incl_tax", "0"))
+        line = Money.parse(
+            currency, _sum_decimal(body.get("line_item_costs", []), "total_cost_incl_tax")
+        )
+        shipping = Money.parse(
+            currency, body.get("shipping_cost", {}).get("total_cost_incl_tax", "0")
+        )
         tax = Money.parse(currency, body.get("total_tax", "0"))
         total = Money.parse(currency, body.get("total_cost_incl_tax", "0"))
         return Quote(currency, line, shipping, tax, total, "lulu-cost-calc", _CAPABILITIES)
@@ -219,7 +261,8 @@ class LuluProvider:
             # external_id before any resubmission. Never assume it failed.
             return UnknownOutcome(
                 f"timeout submitting {submission.external_id!r}; "
-                "look up by external reference before resubmitting")
+                "look up by external reference before resubmitting"
+            )
         except TransportError as exc:
             return UnknownOutcome(f"transport error, outcome unknown: {exc}")
         if response.status not in (200, 201):
@@ -241,8 +284,9 @@ class LuluProvider:
         # The spec declares PUT but every code sample uses POST; POST is the
         # safer bet. Cancellation is only valid pre-production.
         try:
-            response = self._request("POST", f"/print-jobs/{provider_ref}/status/",
-                                     {"name": "CANCELED"})
+            response = self._request(
+                "POST", f"/print-jobs/{provider_ref}/status/", {"name": "CANCELED"}
+            )
         except (TransportTimeout, TransportError) as exc:
             return TypedError("transport", str(exc), retryable=True)
         if response.status not in (200, 201):
@@ -269,8 +313,10 @@ class LuluProvider:
         return ProviderOrder(
             provider_ref=str(job.get("id", "")),
             external_id=str(job.get("external_id", "")),
-            status=self.normalize_status(raw), raw_status=raw,
-            tracking_urls=tuple(tracking))
+            status=self.normalize_status(raw),
+            raw_status=raw,
+            tracking_urls=tuple(tracking),
+        )
 
 
 def _sum_decimal(rows: list[dict], key: str) -> str:

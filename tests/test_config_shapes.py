@@ -24,6 +24,7 @@ ROOT = Path(".")
 
 # ---- index-terms: the reported bug -----------------------------------
 
+
 def test_index_terms_terms_wrapper_is_refused_by_shape():
     # The exact shape from the issue: a terms: key around bare strings.
     problems = schema.validate_file(ROOT, schema.INDEX_TERMS, {"terms": ["soup", "bread"]})
@@ -41,20 +42,24 @@ def test_index_terms_missing_match_is_refused():
 
 
 def test_index_terms_empty_term_is_refused():
-    problems = schema.validate_file(
-        ROOT, schema.INDEX_TERMS, [{"term": "  ", "match": ["soup"]}])
+    problems = schema.validate_file(ROOT, schema.INDEX_TERMS, [{"term": "  ", "match": ["soup"]}])
     assert any("term is missing or empty" in p for p in problems)
 
 
 def test_index_terms_non_string_match_alternative_is_refused():
     problems = schema.validate_file(
-        ROOT, schema.INDEX_TERMS, [{"term": "soup", "match": ["soup", 3]}])
+        ROOT, schema.INDEX_TERMS, [{"term": "soup", "match": ["soup", 3]}]
+    )
     assert any("match alternative" in p for p in problems)
 
 
 def test_a_well_formed_index_terms_list_passes():
-    assert schema.validate_file(
-        ROOT, schema.INDEX_TERMS, [{"term": "Soup", "match": ["soup", "soups"]}]) == []
+    assert (
+        schema.validate_file(
+            ROOT, schema.INDEX_TERMS, [{"term": "Soup", "match": ["soup", "soups"]}]
+        )
+        == []
+    )
 
 
 def test_an_absent_index_terms_file_passes():
@@ -63,6 +68,7 @@ def test_an_absent_index_terms_file_passes():
 
 
 # ---- authorities -----------------------------------------------------
+
 
 def test_authorities_mapping_top_level_is_refused():
     problems = schema.validate_file(ROOT, schema.AUTHORITIES, {"claim": "x"})
@@ -75,12 +81,16 @@ def test_authorities_entry_missing_authority_is_refused():
 
 
 def test_a_well_formed_authorities_list_passes_the_shape_check():
-    assert schema.validate_file(
-        ROOT, schema.AUTHORITIES,
-        [{"claim": "x", "authority": "Someone, A Book (1900)"}]) == []
+    assert (
+        schema.validate_file(
+            ROOT, schema.AUTHORITIES, [{"claim": "x", "authority": "Someone, A Book (1900)"}]
+        )
+        == []
+    )
 
 
 # ---- front-matter ----------------------------------------------------
+
 
 def test_front_matter_list_top_level_is_refused():
     problems = schema.validate_file(ROOT, schema.FRONT_MATTER, ["dedication"])
@@ -88,40 +98,43 @@ def test_front_matter_list_top_level_is_refused():
 
 
 def test_front_matter_scalar_epigraph_is_refused():
-    problems = schema.validate_file(
-        ROOT, schema.FRONT_MATTER, {"epigraph": "a bare string"})
+    problems = schema.validate_file(ROOT, schema.FRONT_MATTER, {"epigraph": "a bare string"})
     assert any("epigraph must be a mapping" in p for p in problems)
 
 
 def test_a_well_formed_front_matter_mapping_passes():
-    assert schema.validate_file(
-        ROOT, schema.FRONT_MATTER,
-        {"dedication": "For no one", "epigraph": {"quote": "Q"}}) == []
+    assert (
+        schema.validate_file(
+            ROOT, schema.FRONT_MATTER, {"dedication": "For no one", "epigraph": {"quote": "Q"}}
+        )
+        == []
+    )
 
 
 # ---- house-rules -----------------------------------------------------
 
+
 def test_house_rules_banned_patterns_as_a_list_is_refused_not_crashed():
     # dict(["a", "b"]) would raise a bare ValueError inside the regex
     # compiler; the shape guard turns it into a located diagnostic.
-    problems = schema.validate_file(
-        ROOT, schema.HOUSE_RULES, {"banned-patterns": ["a", "b"]})
+    problems = schema.validate_file(ROOT, schema.HOUSE_RULES, {"banned-patterns": ["a", "b"]})
     assert any("banned-patterns must be a mapping" in p for p in problems)
 
 
 def test_house_rules_jargon_allow_as_a_mapping_is_refused():
-    problems = schema.validate_file(
-        ROOT, schema.HOUSE_RULES, {"jargon-allow": {"a": 1}})
+    problems = schema.validate_file(ROOT, schema.HOUSE_RULES, {"jargon-allow": {"a": 1}})
     assert any("jargon-allow must be a list of strings" in p for p in problems)
 
 
 def test_a_bad_house_rules_regex_still_names_the_pattern():
     problems = schema.validate_file(
-        ROOT, schema.HOUSE_RULES, {"banned-patterns": {"([": "unbalanced"}})
+        ROOT, schema.HOUSE_RULES, {"banned-patterns": {"([": "unbalanced"}}
+    )
     assert any("valid regex" in p for p in problems)
 
 
 # ---- the integration proof: press check turns red --------------------
+
 
 def _write(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -181,6 +194,7 @@ def test_a_hand_broken_index_terms_is_also_caught_by_config_validate(scaffolded_
 # TypeError and gen_front_matter with a bare AttributeError; after it, each
 # raises a SystemExit that names the file. (#207)
 
+
 def test_gen_index_self_guards_against_the_terms_wrapper(scaffolded_book):
     import pytest
 
@@ -209,6 +223,49 @@ def test_gen_index_self_guards_against_an_entry_missing_match(scaffolded_book):
     with pytest.raises(SystemExit) as caught:
         gen_index.generate()
     assert "config/index-terms.yaml" in str(caught.value)
+
+
+def test_gen_index_resolves_hits_to_chapters_and_fails_on_a_zero_hit(scaffolded_book):
+    # The core contract of gen_index, not the shape guard: a curated term
+    # resolves to exactly the chapters whose text carries it, and a term that
+    # matches nothing anywhere fails the build by name (silence is refused).
+    import pytest
+
+    from press import gen_index, yamlio
+
+    chapters = scaffolded_book / "book" / "chapters"
+    _write(chapters / "01-alpha.md", "# Alpha\n\nThe telegraph clicked all night.\n")
+    _write(chapters / "02-beta.md", "# Beta\n\nThe railway carried the mail.\n")
+    terms = scaffolded_book / "config" / "index-terms.yaml"
+
+    # Both terms hit, each in its own chapter: label 1 for 01-alpha, 2 for
+    # 02-beta. The generated appendix must credit each to the right chapter.
+    _write(
+        terms,
+        yamlio.dump(
+            [
+                {"term": "Telegraph", "match": ["telegraph"]},
+                {"term": "Railway", "match": ["railway"]},
+            ]
+        ),
+    )
+    body = gen_index.generate().read_text(encoding="utf-8")
+    assert "**Telegraph** · 1" in body
+    assert "**Railway** · 2" in body
+
+    # Swap Railway for a term nobody wrote: the build must refuse, naming it.
+    _write(
+        terms,
+        yamlio.dump(
+            [
+                {"term": "Telegraph", "match": ["telegraph"]},
+                {"term": "Zeppelin", "match": ["zeppelin"]},
+            ]
+        ),
+    )
+    with pytest.raises(SystemExit) as caught:
+        gen_index.generate()
+    assert "Zeppelin" in str(caught.value)
 
 
 def test_gen_front_matter_self_guards_against_a_scalar_epigraph(scaffolded_book):
@@ -243,6 +300,7 @@ def test_gen_front_matter_self_guards_against_a_list_top_level(scaffolded_book):
 
 # ---- coverage of the shape-name helper and the guards it feeds -------
 
+
 def test_shape_name_names_every_yaml_top_level_shape():
     # The diagnostic tells an author what they wrote instead; every shape
     # has a name. (None cannot reach a validator -- it means an absent file --
@@ -274,10 +332,8 @@ def test_house_rules_that_is_not_a_mapping_is_refused():
 
 
 def test_index_terms_bare_scalar_names_the_shape():
-    assert any("a boolean" in p
-               for p in schema.validate_file(ROOT, schema.INDEX_TERMS, True))
-    assert any("a number" in p
-               for p in schema.validate_file(ROOT, schema.INDEX_TERMS, 5))
+    assert any("a boolean" in p for p in schema.validate_file(ROOT, schema.INDEX_TERMS, True))
+    assert any("a number" in p for p in schema.validate_file(ROOT, schema.INDEX_TERMS, 5))
 
 
 def test_authorities_whitespace_claim_is_refused():

@@ -44,18 +44,17 @@ def test_sanitize_composites_onto_a_given_background(tmp_path):
 @pytest.mark.layer("unit")
 def test_prepare_cover_makes_opaque_capped_assets(tmp_path):
     (tmp_path / "assets").mkdir()
-    Image.new("RGBA", (2000, 2000), (0, 0, 0, 0)).save(
-        tmp_path / "assets" / "press-logo.png")
+    Image.new("RGBA", (2000, 2000), (0, 0, 0, 0)).save(tmp_path / "assets" / "press-logo.png")
     Image.new("RGB", (5000, 7000), (10, 20, 30)).save(tmp_path / "assets" / "cover.jpg")
 
     made = print_safe.prepare_cover(
-        tmp_path, logo_background=(201, 191, 191), cover_max_edge=3000, logo_max_edge=640)
+        tmp_path, logo_background=(201, 191, 191), cover_max_edge=3000, logo_max_edge=640
+    )
     logo, cover = Image.open(made["logo"]), Image.open(made["cover"])
     # Logo: opaque, on the field colour, capped to its small cover placement.
     # (Saved as JPEG, so the flat field decodes within a unit or two.)
     assert logo.mode == "RGB" and max(logo.size) <= 640
-    assert all(abs(got - want) <= 3
-               for got, want in zip(logo.getpixel((0, 0)), (201, 191, 191)))
+    assert all(abs(got - want) <= 3 for got, want in zip(logo.getpixel((0, 0)), (201, 191, 191)))
     # Cover: opaque, downsampled under the wrap cap.
     assert cover.mode == "RGB" and max(cover.size) <= 3000
 

@@ -113,8 +113,7 @@ class _Pipe:
         self._buf = b""
         self._id = 0
 
-    def send(self, method: str, params: dict | None = None,
-             session: str | None = None) -> int:
+    def send(self, method: str, params: dict | None = None, session: str | None = None) -> int:
         self._id += 1
         msg: dict = {"id": self._id, "method": method, "params": params or {}}
         if session:
@@ -131,8 +130,7 @@ class _Pipe:
         raw, self._buf = self._buf.split(b"\0", 1)
         return json.loads(raw)
 
-    def call(self, method: str, params: dict | None = None,
-             session: str | None = None) -> dict:
+    def call(self, method: str, params: dict | None = None, session: str | None = None) -> dict:
         want = self.send(method, params, session)
         while True:
             msg = self._recv()
@@ -145,9 +143,7 @@ class _Pipe:
     def wait_event(self, method: str, session: str | None = None) -> None:
         while True:
             msg = self._recv()
-            if msg.get("method") == method and (
-                session is None or msg.get("sessionId") == session
-            ):
+            if msg.get("method") == method and (session is None or msg.get("sessionId") == session):
                 return
 
 
@@ -167,10 +163,17 @@ class Chrome:
         evt_r, evt_w = os.pipe()
         self._profile = tempfile.mkdtemp(prefix="press-layout-")
         args = [
-            self._exe, "--headless=new", "--remote-debugging-pipe",
-            "--no-first-run", "--no-default-browser-check", "--no-sandbox",
-            "--disable-gpu", "--hide-scrollbars", "--force-device-scale-factor=1",
-            f"--user-data-dir={self._profile}", "about:blank",
+            self._exe,
+            "--headless=new",
+            "--remote-debugging-pipe",
+            "--no-first-run",
+            "--no-default-browser-check",
+            "--no-sandbox",
+            "--disable-gpu",
+            "--hide-scrollbars",
+            "--force-device-scale-factor=1",
+            f"--user-data-dir={self._profile}",
+            "about:blank",
         ]
 
         def _preexec() -> None:  # pragma: no cover - runs in the forked child
@@ -178,8 +181,12 @@ class Chrome:
             os.dup2(evt_w, 4)
 
         self._proc = subprocess.Popen(
-            args, preexec_fn=_preexec, pass_fds=(3, 4), close_fds=True,
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            args,
+            preexec_fn=_preexec,
+            pass_fds=(3, 4),
+            close_fds=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
         os.close(cmd_r)
         os.close(evt_w)
@@ -202,9 +209,7 @@ class Chrome:
         assert pipe is not None
         result = pipe.call("Target.createTarget", {"url": "about:blank"})
         target = result["targetId"]
-        attached = pipe.call(
-            "Target.attachToTarget", {"targetId": target, "flatten": True}
-        )
+        attached = pipe.call("Target.attachToTarget", {"targetId": target, "flatten": True})
         self._session = attached["sessionId"]
         pipe.call("Page.enable", session=self._session)
 
@@ -212,8 +217,7 @@ class Chrome:
         assert self._pipe is not None
         self._pipe.call(
             "Emulation.setDeviceMetricsOverride",
-            {"width": width, "height": height,
-             "deviceScaleFactor": 1, "mobile": False},
+            {"width": width, "height": height, "deviceScaleFactor": 1, "mobile": False},
             session=self._session,
         )
 
@@ -226,8 +230,7 @@ class Chrome:
         assert self._pipe is not None
         result = self._pipe.call(
             "Runtime.evaluate",
-            {"expression": expression, "returnByValue": True,
-             "awaitPromise": True},
+            {"expression": expression, "returnByValue": True, "awaitPromise": True},
             session=self._session,
         )
         if "exceptionDetails" in result:
@@ -239,8 +242,13 @@ class Chrome:
         for kind in ("rawKeyDown", "keyUp"):
             self._pipe.call(
                 "Input.dispatchKeyEvent",
-                {"type": kind, "key": key, "code": code,
-                 "windowsVirtualKeyCode": vk, "nativeVirtualKeyCode": vk},
+                {
+                    "type": kind,
+                    "key": key,
+                    "code": code,
+                    "windowsVirtualKeyCode": vk,
+                    "nativeVirtualKeyCode": vk,
+                },
                 session=self._session,
             )
 
@@ -355,8 +363,9 @@ def _rects_intersect(a: dict, b: dict, epsilon: float = OVERLAP_EPSILON) -> bool
     )
 
 
-def _walk_focus(chrome: Chrome, last_id: str | None,
-                current_id: str | None) -> tuple[dict | None, dict | None]:
+def _walk_focus(
+    chrome: Chrome, last_id: str | None, current_id: str | None
+) -> tuple[dict | None, dict | None]:
     """Tab through the page from the top, opening a collapsed mobile nav when
     the toggle takes focus, until the last nav item is reached or the cap is
     hit. Returns the focus record for the current-page item and for the last
@@ -372,8 +381,12 @@ def _walk_focus(chrome: Chrome, last_id: str | None,
         if info["isToggle"]:
             chrome.space()  # reveal the CSS-only mobile disclosure
             continue
-        if (current_focus is None and info["inSiteNav"]
-                and info["ariaCurrent"] == "page" and info["navId"] == current_id):
+        if (
+            current_focus is None
+            and info["inSiteNav"]
+            and info["ariaCurrent"] == "page"
+            and info["navId"] == current_id
+        ):
             current_focus = info
         if info["navId"] and info["navId"] == last_id:
             last_focus = info
@@ -391,7 +404,8 @@ def measure(chrome: Chrome, url: str, css_w: int, css_h: int) -> dict:
     if not isinstance(geometry, dict):
         raise RuntimeError(f"{url}: page geometry script returned no object")
     current_focus, last_focus = _walk_focus(
-        chrome, geometry.get("lastId"), geometry.get("currentId"))
+        chrome, geometry.get("lastId"), geometry.get("currentId")
+    )
     return {
         "nav": geometry["nav"],
         "main": geometry["main"],
@@ -427,12 +441,14 @@ def _lockup_problems(m: dict) -> list[str]:
         problems.append(
             "the masthead lockup is clipped by its own box "
             f"(box {wordmark['height']:.1f}px high, logo "
-            f"{lockup['height']:.1f}px)")
+            f"{lockup['height']:.1f}px)"
+        )
     if wordmark["width"] + OVERLAP_EPSILON < lockup["width"]:
         problems.append(
             "the masthead lockup is cropped horizontally "
             f"(box {wordmark['width']:.1f}px wide, logo "
-            f"{lockup['width']:.1f}px)")
+            f"{lockup['width']:.1f}px)"
+        )
     return problems
 
 
@@ -450,11 +466,13 @@ def _stacked_table_problems(m: dict) -> list[str]:
         if t["scrollW"] > t["clientW"] + OVERLAP_EPSILON:
             problems.append(
                 f"stacked table {i} still scrolls sideways "
-                f"(scrollWidth {t['scrollW']} > clientWidth {t['clientW']})")
+                f"(scrollWidth {t['scrollW']} > clientWidth {t['clientW']})"
+            )
         if t.get("clippedCells"):
             problems.append(
                 f"stacked table {i} clips {t['clippedCells']} cell(s); "
-                "a reader cannot see the value")
+                "a reader cannot see the value"
+            )
     return problems
 
 
@@ -468,21 +486,20 @@ def assess_page(m: dict) -> list[str]:
     if not nav or not main:
         problems.append("nav or article region is missing from the page")
     elif _rects_intersect(nav, main):
-        problems.append(
-            "navigation and article rectangles overlap "
-            f"(nav {nav}, article {main})")
+        problems.append(f"navigation and article rectangles overlap (nav {nav}, article {main})")
 
     if m["doc_scroll_w"] > m["doc_client_w"] + OVERLAP_EPSILON:
         problems.append(
             "document overflows horizontally "
-            f"(scrollWidth {m['doc_scroll_w']} > clientWidth {m['doc_client_w']})")
+            f"(scrollWidth {m['doc_scroll_w']} > clientWidth {m['doc_client_w']})"
+        )
 
-    if m.get("nav_client_w", 0) and \
-            m["nav_scroll_w"] > m["nav_client_w"] + OVERLAP_EPSILON:
+    if m.get("nav_client_w", 0) and m["nav_scroll_w"] > m["nav_client_w"] + OVERLAP_EPSILON:
         problems.append(
             "navigation wrapped into a clipped second column "
             f"(nav scrollWidth {m['nav_scroll_w']} > clientWidth "
-            f"{m['nav_client_w']})")
+            f"{m['nav_client_w']})"
+        )
 
     problems += _lockup_problems(m)
     problems += _stacked_table_problems(m)
@@ -492,12 +509,12 @@ def assess_page(m: dict) -> list[str]:
         pass  # a page with no current-nav marker (e.g. a footer page) is fine
     elif cf is None:
         problems.append("current nav item never took keyboard focus")
-    elif not cf["focusVisible"] or cf["outlineWidth"] <= 0 \
-            or cf["outlineStyle"] == "none":
+    elif not cf["focusVisible"] or cf["outlineWidth"] <= 0 or cf["outlineStyle"] == "none":
         problems.append(
             "current nav item has no visible focus ring "
             f"(focus-visible {cf['focusVisible']}, "
-            f"outline {cf['outlineWidth']}px {cf['outlineStyle']})")
+            f"outline {cf['outlineWidth']}px {cf['outlineStyle']})"
+        )
 
     lf = m.get("last_focus")
     if m.get("last_id") is None:
@@ -507,15 +524,17 @@ def assess_page(m: dict) -> list[str]:
     elif not lf["onScreen"] or lf["area"] <= 0:
         problems.append(
             "last nav item is reachable but not on screen "
-            f"(on-screen {lf['onScreen']}, area {lf['area']})")
+            f"(on-screen {lf['onScreen']}, area {lf['area']})"
+        )
     return problems
 
 
 # --- orchestration -----------------------------------------------------------
 
 
-def check_site(site_dir: Path, chrome_path: str,
-               pages: tuple[str, ...] = DEFAULT_PAGES) -> list[str]:
+def check_site(
+    site_dir: Path, chrome_path: str, pages: tuple[str, ...] = DEFAULT_PAGES
+) -> list[str]:
     """Drive the built site through the full matrix and collect every
     violation, labelled with the page, viewport, and zoom it happened at."""
 
@@ -546,16 +565,14 @@ def run(site_dir: Path, required: bool | None = None) -> list[str]:
         required = os.environ.get("PRESS_REQUIRE_BROWSER_CHECK") == "1"
     chrome_path = find_chrome()
     if chrome_path is None:
-        message = ("no Chrome/Chromium found for the layout check "
-                   "(set PRESS_CHROME to its path)")
+        message = "no Chrome/Chromium found for the layout check (set PRESS_CHROME to its path)"
         if required:
             raise SystemExit(f"layout check required but {message}")
         print(f"~ layout check skipped: {message}")
         return []
     problems = check_site(site_dir, chrome_path)
     if problems:
-        raise SystemExit(
-            "documentation layout regressed:\n  - " + "\n  - ".join(problems))
+        raise SystemExit("documentation layout regressed:\n  - " + "\n  - ".join(problems))
     matrix = len(DEFAULT_PAGES) * len(VIEWPORTS) * len(ZOOMS)
     print(f"+ layout check passed ({matrix} page/viewport/zoom combinations)")
     return problems

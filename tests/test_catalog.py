@@ -16,8 +16,12 @@ def test_every_catalog_command_is_dispatchable():
     formats = set(cli.FORMATS) | {"print"}
     for command in catalog.COMMANDS:
         target = command.alias_of or command.name
-        assert (command.name in routes or command.name in formats
-                or target in routes or target in formats), command.name
+        assert (
+            command.name in routes
+            or command.name in formats
+            or target in routes
+            or target in formats
+        ), command.name
 
 
 def test_every_route_is_a_catalog_command():

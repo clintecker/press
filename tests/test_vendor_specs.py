@@ -58,8 +58,10 @@ def test_ingram_white_50_is_thinner_than_everyone_else():
 @pytest.mark.layer("unit")
 def test_kdp_has_no_dust_jacket_but_lulu_does():
     # [HCCOVER] KDP offers no dust jacket at 6x9; [SPEC] Lulu does.
-    assert any("dust-jacket" in p or "does not offer" in p
-               for p in provider_specs.load("kdp").check_selection(6, 9, "dust-jacket", 100))
+    assert any(
+        "dust-jacket" in p or "does not offer" in p
+        for p in provider_specs.load("kdp").check_selection(6, 9, "dust-jacket", 100)
+    )
     assert provider_specs.load("lulu").check_selection(6, 9, "dust-jacket", 100) == []
 
 

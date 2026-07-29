@@ -91,7 +91,9 @@ def test_the_anchor_commands_are_present_and_ordered():
 def _press(args: list[str], cwd: Path) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, "-m", "press", *args],
-        cwd=cwd, capture_output=True, text=True,
+        cwd=cwd,
+        capture_output=True,
+        text=True,
     )
 
 

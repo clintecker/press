@@ -20,7 +20,7 @@ PAPER = "250"
 DIM = "242"
 GREEN = "108"
 
-PILCROW = "¶"   # the press mark
+PILCROW = "¶"  # the press mark
 CHECK = "✓"
 
 

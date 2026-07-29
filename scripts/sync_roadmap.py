@@ -131,7 +131,9 @@ def validate_milestones(data: dict[str, Any], group_ids: set[str]) -> None:
         numbers.add(number)
         titles.add(title)
     if "complete" not in group_ids:
-        raise SystemExit("roadmap registry requires the 'complete' group; closed milestones present there")
+        raise SystemExit(
+            "roadmap registry requires the 'complete' group; closed milestones present there"
+        )
 
 
 def load_registry() -> dict[str, Any]:
@@ -159,10 +161,7 @@ def render(data: dict[str, Any]) -> str:
     repository = data["repository"]
     blocks = [START, ""]
     for group in data["groups"]:
-        members = [
-            item for item in data["milestones"]
-            if effective_group(item) == group["id"]
-        ]
+        members = [item for item in data["milestones"] if effective_group(item) == group["id"]]
         if not members:
             continue
         blocks.extend([f"## {group['heading']}", "", group["description"], ""])
@@ -197,7 +196,9 @@ def write_or_check(data: dict[str, Any], *, check: bool) -> int:
     current = ROADMAP.read_text(encoding="utf-8")
     if check:
         if current != projected:
-            print("ROADMAP.md is stale; run: python3 scripts/sync_roadmap.py --write", file=sys.stderr)
+            print(
+                "ROADMAP.md is stale; run: python3 scripts/sync_roadmap.py --write", file=sys.stderr
+            )
             return 1
         print("+ ROADMAP.md matches roadmap/milestones.json")
         return 0
@@ -354,7 +355,9 @@ def github_drift(
         payload = json.dumps({key: expected[key] for key in RECONCILED_FIELDS})
         try:
             _with_retry(
-                lambda: api("api", "--method", "PATCH", endpoint, "--input", "-", input_data=payload),
+                lambda: api(
+                    "api", "--method", "PATCH", endpoint, "--input", "-", input_data=payload
+                ),
                 retries=retries,
                 sleep=sleep,
             )
@@ -365,7 +368,9 @@ def github_drift(
         changed.append((number, title))
 
     if apply:
-        _write_summary(env, "\n".join(_summary_lines(repository, env.get("GITHUB_SHA"), changed, skipped)))
+        _write_summary(
+            env, "\n".join(_summary_lines(repository, env.get("GITHUB_SHA"), changed, skipped))
+        )
 
     if failures:
         print("GitHub reconcile failed:\n  - " + "\n  - ".join(failures), file=sys.stderr)

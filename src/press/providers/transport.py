@@ -50,10 +50,15 @@ class CannedTransport:
     calls: list[dict] = field(default_factory=list)
     fail_next: Exception | None = None
 
-    def __call__(self, method: str, url: str, *, headers: dict[str, str] | None = None,
-                 body: bytes | None = None) -> Response:
-        self.calls.append({"method": method, "url": url,
-                           "headers": headers or {}, "body": body})
+    def __call__(
+        self,
+        method: str,
+        url: str,
+        *,
+        headers: dict[str, str] | None = None,
+        body: bytes | None = None,
+    ) -> Response:
+        self.calls.append({"method": method, "url": url, "headers": headers or {}, "body": body})
         if self.fail_next is not None:
             error, self.fail_next = self.fail_next, None
             raise error

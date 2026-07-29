@@ -15,9 +15,13 @@ from PIL import Image, ImageDraw
 
 from press import verify_pdf
 
-_HEADER = ("page   num  type   width height color comp bpc  enc interp  object "
-           "ID x-ppi y-ppi size ratio\n" + "-" * 80 + "\n")
-_WITH_COVER = _HEADER + "   1     0 image    1000  1500  rgb     3   8  jpeg   no   4  0  267  267  397K\n"
+_HEADER = (
+    "page   num  type   width height color comp bpc  enc interp  object "
+    "ID x-ppi y-ppi size ratio\n" + "-" * 80 + "\n"
+)
+_WITH_COVER = (
+    _HEADER + "   1     0 image    1000  1500  rgb     3   8  jpeg   no   4  0  267  267  397K\n"
+)
 _NO_IMAGE = _HEADER
 
 
@@ -45,8 +49,9 @@ def test_a_baked_cover_passes(tmp_path, monkeypatch):
     monkeypatch.setattr(verify_pdf.shutil, "which", lambda _: "/pdfimages")
     monkeypatch.setattr(verify_pdf, "run_capture", lambda _: _WITH_COVER)
     root = _book(tmp_path, cover=True)
-    assert verify_pdf.verify_cover_page(tmp_path / "x.pdf", root,
-                                        _page(tmp_path, blank=False)) is None
+    assert (
+        verify_pdf.verify_cover_page(tmp_path / "x.pdf", root, _page(tmp_path, blank=False)) is None
+    )
 
 
 @pytest.mark.layer("unit")
@@ -73,12 +78,14 @@ def test_a_clipped_blank_cover_is_rejected(tmp_path, monkeypatch):
 def test_a_coverless_book_is_left_alone(tmp_path):
     root = _book(tmp_path, cover=False)
     # No cover asset: even a blank page 1 is fine (a plain title page).
-    assert verify_pdf.verify_cover_page(tmp_path / "x.pdf", root,
-                                        _page(tmp_path, blank=True)) is None
+    assert (
+        verify_pdf.verify_cover_page(tmp_path / "x.pdf", root, _page(tmp_path, blank=True)) is None
+    )
 
 
 @pytest.mark.layer("unit")
 def test_a_hand_authored_title_page_is_left_alone(tmp_path):
     root = _book(tmp_path, cover=True, title_tex=True)
-    assert verify_pdf.verify_cover_page(tmp_path / "x.pdf", root,
-                                        _page(tmp_path, blank=True)) is None
+    assert (
+        verify_pdf.verify_cover_page(tmp_path / "x.pdf", root, _page(tmp_path, blank=True)) is None
+    )

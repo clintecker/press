@@ -48,7 +48,7 @@ _WORKFLOW_DIRS = (".github/workflows",)
 # the major they are moving to.
 _OVERRIDES = {
     "tex/title-page.tex": "overrides the generated front matter entirely; "
-                          "verify it against your trim before shipping",
+    "verify it against your trim before shipping",
     "assets/web/reader.css": "replaces the house reader stylesheet outright",
     "assets/web/extra.css": "appends after the house stylesheet and wins the cascade",
     "config/aesthetic.yaml": "the book's visual identity, applied by every art commission",
@@ -63,9 +63,9 @@ RECEIPT = "migration-receipt.json"
 class PinSite:
     """One place the press major is pinned."""
 
-    path: str          # book-relative
+    path: str  # book-relative
     major: int
-    text: str          # the exact matched pin, e.g. "clintecker/press@v1"
+    text: str  # the exact matched pin, e.g. "clintecker/press@v1"
 
 
 @dataclass(frozen=True)
@@ -154,9 +154,7 @@ def diagnose(root: Path) -> Diagnosis:
                 f"the book is pinned to more than one major ({listed}); "
                 "reconcile them before migrating"
             )
-    overrides = tuple(
-        (rel, note) for rel, note in _OVERRIDES.items() if (root / rel).is_file()
-    )
+    overrides = tuple((rel, note) for rel, note in _OVERRIDES.items() if (root / rel).is_file())
     return Diagnosis(sites=sites, overrides=overrides, problems=tuple(problems))
 
 
@@ -167,8 +165,7 @@ def plan(root: Path, to_major: int) -> MigrationPlan:
 
     diagnosis = diagnose(root)
     if diagnosis.problems:
-        raise SystemExit("cannot migrate:\n" + "\n".join(
-            f"  - {p}" for p in diagnosis.problems))
+        raise SystemExit("cannot migrate:\n" + "\n".join(f"  - {p}" for p in diagnosis.problems))
     from_major = diagnosis.from_major
     assert from_major is not None  # guaranteed by the empty-problems check
     if to_major == from_major:
@@ -210,9 +207,7 @@ def apply(root: Path, to_major: int) -> Path:
 
     # Defensive: every file we are about to edit must be a known pin site.
     for rel in touched:
-        legitimate = rel in _PIN_FILES or any(
-            rel.startswith(f"{d}/") for d in _WORKFLOW_DIRS
-        )
+        legitimate = rel in _PIN_FILES or any(rel.startswith(f"{d}/") for d in _WORKFLOW_DIRS)
         if not legitimate:
             raise SystemExit(
                 f"refusing to edit {rel}: a press pin outside requirements.txt "
@@ -232,8 +227,9 @@ def apply(root: Path, to_major: int) -> Path:
         path = root / rel
         text = path.read_text(encoding="utf-8")
         rewritten = _PIN.sub(
-            lambda m: f"{m.group(1)}{to_major}" if int(m.group(2)) == migration.from_major
-            else m.group(0),
+            lambda m: (
+                f"{m.group(1)}{to_major}" if int(m.group(2)) == migration.from_major else m.group(0)
+            ),
             text,
         )
         path.write_text(rewritten, encoding="utf-8")

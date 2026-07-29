@@ -58,8 +58,7 @@ def test_no_module_imports_a_yaml_library_outside_the_one_door():
         for name in _yaml_imports(tree):
             offenders.append(f"{path.stem}: import {name}")
     assert not offenders, (
-        "YAML must be reached through press.yamlio, not a raw import:\n  "
-        + "\n  ".join(offenders)
+        "YAML must be reached through press.yamlio, not a raw import:\n  " + "\n  ".join(offenders)
     )
 
 

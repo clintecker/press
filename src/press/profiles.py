@@ -87,8 +87,8 @@ class Profile:
         value = str(self.data.get("ink", "single"))
         if value not in {"single", "color"}:
             raise SystemExit(
-                f"print profile {self.id!r}: ink must be 'single' or 'color', "
-                f"not {value!r}")
+                f"print profile {self.id!r}: ink must be 'single' or 'color', not {value!r}"
+            )
         return value
 
 

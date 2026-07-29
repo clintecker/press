@@ -40,7 +40,7 @@ DOCX = {
     "wrong-namespace.bin": b"<doc><para><run><text>words</text></run></para></doc>",
     "nested-deep.bin": b"<w:t>" + b"<x>" * 2000 + b"deep" + b"</x>" * 2000 + b"</w:t>",
     "null-bytes.bin": b"<w:t>a\x00b\x00c</w:t>",
-    "high-unicode.bin": "<w:t>\U0001F4A9 あ text</w:t>".encode("utf-8"),
+    "high-unicode.bin": "<w:t>\U0001f4a9 あ text</w:t>".encode("utf-8"),
 }
 
 HTML = {

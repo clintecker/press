@@ -145,6 +145,7 @@ def write_atomic(path: Path, data: Any) -> None:
 
 # ---- dotted-path navigation ------------------------------------------
 
+
 def split_path(dotted: str) -> list[str]:
     """A dotted config path into its segments, rejecting the malformed
     forms a shell makes easy to type: empty, leading/trailing/doubled
@@ -156,8 +157,7 @@ def split_path(dotted: str) -> list[str]:
     for segment in segments:
         if not segment:
             raise ConfigError(
-                f"malformed path {dotted!r}: empty segment "
-                "(no leading, trailing, or doubled dots)"
+                f"malformed path {dotted!r}: empty segment (no leading, trailing, or doubled dots)"
             )
         if segment != segment.strip() or " " in segment:
             raise ConfigError(f"malformed path {dotted!r}: whitespace in {segment!r}")
@@ -177,8 +177,7 @@ def get_path(data: Any, dotted: str) -> Any:
     for segment in split_path(dotted):
         if not isinstance(node, dict):
             raise ConfigError(
-                f"{'.'.join(walked) or '(root)'} is not a mapping; "
-                f"cannot read {dotted!r}"
+                f"{'.'.join(walked) or '(root)'} is not a mapping; cannot read {dotted!r}"
             )
         if segment not in node:
             raise ConfigError(f"{dotted}: not set")

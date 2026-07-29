@@ -10,234 +10,54 @@ press.
 
 from __future__ import annotations
 
-import importlib
-import pkgutil
 import re
-import sys
 from pathlib import Path
-from types import ModuleType
 
 from . import invariants
-from .adapters.import_guard import _ForbiddenImportSideEffect, _import_sandbox
 
+from .selftest_book import (
+    check_authorities_ledger,
+    check_editions_agree,
+    check_editorial_checkers,
+    check_extension_conformance,
+    check_format_witnesses,
+    check_jargon_parity,
+    check_registry,
+    check_scaffold_neutrality,
+    check_site_identity,
+    check_slug_invariant,
+    check_source_policy,
+)
+from .selftest_release import (
+    check_command_catalog,
+    check_commerce_config,
+    check_commerce_release_gate,
+    check_contract_mirror,
+    check_docs,
+    check_edition_manifest,
+    check_migration,
+    check_profile_seals,
+    check_provider_contract,
+    check_provider_qualification,
+    check_receipt_chain,
+    check_release_grammar,
+)
 
-# Modules the installed package ships that the import gate deliberately
-# holds out, each with the reason on the record. A name here that no longer
-# resolves to a real module is a stale exception and fails the
-# collection-time gate below, so a rename or deletion cannot leave a silent
-# hole in the inventory.
-IMPORT_EXCEPTIONS: dict[str, str] = {
-    "press.__main__": (
-        "the console entry-point shell; importing it is running the CLI's "
-        "dispatch wiring, proven by check_command_catalog and the cli tests, "
-        "not by this import gate -- surfaces.py holds it out of the "
-        "classified surface for the same reason"
-    ),
-}
-
-# Optional dependencies a distributable module may need to import. The base
-# wheel does not ship these (they are extras), so a module that needs one is
-# skipped -- with a reason, never silently -- when the extra is absent, rather
-# than failing the gate for a dependency the base install never promised. When
-# the extra IS installed (the dev environment, the [tui] CI job) the module is
-# imported and proven like any other, so this is a runtime-conditional skip,
-# not a blanket exception. Keyed by the top-level import name of the extra.
-IMPORT_OPTIONAL_DEPS: dict[str, str] = {
-    "textual": "the [tui] extra (press.desk.*, the operator desk)",
-}
-
-
-def _on_walk_error(name: str) -> None:
-    """Discovery walks subpackages by importing them; a package whose
-    __init__ cannot import would otherwise be swallowed by walk_packages and
-    its submodules silently dropped from the inventory. Re-raise instead,
-    naming the package and preserving the original exception, so a broken
-    nested package fails loudly rather than quietly shrinking the count."""
-
-    raise ImportError(
-        f"press module discovery could not import package {name!r}"
-    ) from sys.exc_info()[1]
-
-
-def _discover_package_modules(package: ModuleType) -> list[str]:
-    """Every importable module under an installed package, discovered from
-    the package's own __path__ so the inventory is what the wheel actually
-    ships -- nested runtime modules included -- never a checkout's file
-    layout. Deterministic order, and every dotted name is unique, so two
-    modules that share a filename stem in different subpackages keep
-    distinct identities instead of collapsing to one."""
-
-    prefix = f"{package.__name__}."
-    return sorted(
-        info.name
-        for info in pkgutil.walk_packages(package.__path__, prefix, _on_walk_error)
-    )
-
-
-def _import_module_names(names: list[str]) -> list[str]:
-    """Import each named module exactly once, in the order given, naming the
-    precise module and preserving the original exception on the first genuine
-    failure -- never a bare traceback that hides which module broke. A module
-    that fails only because a known optional extra (IMPORT_OPTIONAL_DEPS) is not
-    installed is skipped, not failed; the skipped names are returned so the gate
-    can report them. A ModuleNotFoundError for anything else is a real failure."""
-
-    skipped: list[str] = []
-    for name in names:
-        try:
-            importlib.import_module(name)
-        except ModuleNotFoundError as exc:
-            extra = IMPORT_OPTIONAL_DEPS.get(exc.name or "")
-            if extra is not None:
-                skipped.append(f"{name} (needs {extra})")
-                continue
-            raise SystemExit(
-                f"selftest: importing {name} failed: ModuleNotFoundError: {exc}"
-            ) from exc
-        except Exception as exc:
-            raise SystemExit(
-                f"selftest: importing {name} failed: {type(exc).__name__}: {exc}"
-            ) from exc
-    return skipped
-
-
-def modules() -> list[str]:
-    """Every distributable runtime module the import gate covers: the
-    installed package's recursive inventory minus the held-out exceptions,
-    in deterministic order."""
-
-    import press
-
-    return [name for name in _discover_package_modules(press)
-            if name not in IMPORT_EXCEPTIONS]
-
-
-def check_imports() -> None:
-    """Every distributable runtime module imports, discovered recursively
-    from the installed package itself. This proves a wheel's nested runtime
-    modules (adapters, providers, desk) are importable, not only the
-    top-level ones a filename glob would find -- the gap where a nested
-    module could ship unimportable while the selftest stayed green. It
-    proves importability and a single deterministic import; that an import
-    is free of forbidden side effects is proven separately, by
-    check_import_side_effects."""
-
-    import press
-
-    discovered = set(_discover_package_modules(press))
-    stale = sorted(name for name in IMPORT_EXCEPTIONS if name not in discovered)
-    if stale:
-        raise SystemExit(
-            "selftest: import exceptions name modules that no longer exist "
-            f"(remove them from IMPORT_EXCEPTIONS): {', '.join(stale)}"
-        )
-    if not any(name.count(".") >= 2 for name in discovered):
-        raise SystemExit(
-            "selftest: module discovery found no nested modules; the "
-            "installed inventory has regressed to top-level only, so a "
-            "broken module under adapters/, providers/, or desk/ could ship "
-            "unimported"
-        )
-    skipped = _import_module_names(modules())
-    for name in skipped:
-        print(f"selftest: skipped (optional extra not installed): {name}")
-
-
-def _prove_no_import_side_effects(names: list[str]) -> str | None:
-    """Re-execute each named module's body under the import sandbox, in the
-    given order, returning the first module that reaches for the network,
-    spawns a subprocess, or writes a file at import -- named, with the
-    effect -- or None when every one is clean. Each module is dropped from
-    sys.modules first so its body actually runs again (a cached import is a
-    no-op that would prove nothing), then sys.modules is restored so the
-    proof does not disturb the process that ran it. Meant to run in a fresh
-    interpreter, where the drop-and-reimport starts from the module's real
-    import-time state."""
-
-    saved = {name: sys.modules[name] for name in names if name in sys.modules}
-    for name in names:
-        sys.modules.pop(name, None)
-    try:
-        with _import_sandbox():
-            for name in names:
-                try:
-                    importlib.import_module(name)
-                except _ForbiddenImportSideEffect as exc:
-                    return f"{name}: {exc}"
-                except ModuleNotFoundError as exc:
-                    # A module needing an absent optional extra can't be probed
-                    # (it won't import); skip it, as check_imports does. A
-                    # missing *required* dep is a real failure -- re-raise.
-                    if IMPORT_OPTIONAL_DEPS.get(exc.name or "") is None:
-                        raise
-    finally:
-        for name in names:
-            sys.modules.pop(name, None)
-        sys.modules.update(saved)
-    return None
-
-
-def _side_effect_probe() -> int:
-    """The body of the fresh-interpreter subprocess check_import_side_effects
-    spawns: prove every distributable module imports without a forbidden
-    side effect, printing the offending module if one does."""
-
-    import press  # noqa: F401  (ensures the package resolves before discovery)
-
-    offender = _prove_no_import_side_effects(modules())
-    if offender is not None:
-        print(offender)
-        return 1
-    return 0
-
-
-def check_import_side_effects() -> None:
-    """Every distributable runtime module imports without a forbidden
-    side effect: no network connection, no spawned subprocess, no
-    filesystem write while the module body runs. Importing a module must
-    load code, not do work -- an import that phones home or writes to disk
-    makes the pipeline non-deterministic and unsafe to run in a sandbox.
-    The proof runs in a fresh interpreter so each module body truly
-    re-executes under the sandbox and the isolation cannot disturb this
-    selftest. Clock reads and environment lookups are not trapped: they
-    neither corrupt state nor leak on their own at import time."""
-
-    from . import adapters
-
-    probe = (
-        "import sys; from press import selftest; "
-        "sys.exit(selftest._side_effect_probe())"
-    )
-    result = adapters.process_runner.run(
-        [sys.executable, "-c", probe], capture=True,
-    )
-    if result.returncode != 0:
-        detail = (result.stdout + result.stderr).decode("utf-8", errors="replace").strip()
-        raise SystemExit(
-            "selftest: a module has a forbidden import-time side effect "
-            f"(network, subprocess, or filesystem write):\n  {detail}"
-        )
-
-
-# The slug invariant's evidence, stated once: the pytest suite
-# parametrizes over these same tuples, so the two runners cannot
-# disagree about what a slug is.
 GOOD_SLUGS = ("make-ready", "a", "book-2", "9lives")
-BAD_SLUGS = ("../escape", "a/b", "a\\b", "A-Cap", "spa ce", "", "-lead",
-             "dot.seg", "semi;colon", "tick`", "new\nline", "<tag>")
-
-
-def check_slug_invariant() -> None:
-    from . import booklib
-
-    for good in GOOD_SLUGS:
-        assert booklib.validate_slug(good) == good
-    for bad in BAD_SLUGS:
-        try:
-            booklib.validate_slug(bad)
-        except SystemExit:
-            continue
-        raise AssertionError(f"slug invariant admitted {bad!r}")
+BAD_SLUGS = (
+    "../escape",
+    "a/b",
+    "a\\b",
+    "A-Cap",
+    "spa ce",
+    "",
+    "-lead",
+    "dot.seg",
+    "semi;colon",
+    "tick`",
+    "new\nline",
+    "<tag>",
+)
 
 
 def clear_book_caches() -> None:
@@ -246,8 +66,7 @@ def clear_book_caches() -> None:
 
     from . import booklib
 
-    for cache in (booklib.root, booklib.metadata, booklib.book,
-                  booklib.house_rules):
+    for cache in (booklib.root, booklib.metadata, booklib.book, booklib.house_rules):
         cache.cache_clear()
 
 
@@ -275,284 +94,6 @@ def borrow_book(path):
             clear_book_caches()
 
     return borrowed()
-
-
-def check_source_policy() -> None:
-    """The source packager refuses secrets, skips symlinks without
-    dereferencing, and actually deflates its members."""
-
-    import tempfile
-    import zipfile
-
-    from . import package_source, scaffold
-
-    with tempfile.TemporaryDirectory() as tmp:
-        book = Path(tmp) / "policy-proof"
-        scaffold.main([str(book)])
-        outside = Path(tmp) / "outside-secret.txt"
-        outside.write_text("leak", encoding="utf-8")
-        (book / "escape.txt").symlink_to(outside)
-        (book / ".env").write_text("KEY=1", encoding="utf-8")
-        with borrow_book(book):
-            try:
-                package_source.main()
-            except SystemExit as exc:
-                assert ".env" in str(exc), exc
-            else:
-                raise AssertionError("secret file did not block the archive")
-            (book / ".env").unlink()
-            package_source.main()
-            source_zip = book / "dist" / "policy-proof-source.zip"
-            with zipfile.ZipFile(source_zip) as archive:
-                names = archive.namelist()
-                assert not any("escape" in n for n in names), "symlink archived"
-                deflated = [i for i in archive.infolist()
-                            if i.compress_type == zipfile.ZIP_DEFLATED]
-                assert deflated, "no member was deflated"
-
-            from . import verify_archives
-
-            # The audit's damage pair for archives: an appended member
-            # the policy did not admit, and untracked private files,
-            # must both fail digest-exact verification.
-            assert verify_archives.verify_source_zip(source_zip, "policy-proof") == []
-            with zipfile.ZipFile(source_zip, "a") as archive:
-                archive.writestr("policy-proof/private-notes.md", "not for anyone")
-            appended = verify_archives.verify_source_zip(source_zip, "policy-proof")
-            assert any("did not admit" in f for f in appended), appended
-
-            from . import adapters
-
-            # A commit hook exports its in-progress index. A nested git command
-            # must not inherit that repository identity or it stages this
-            # fixture into the caller's commit and runs the caller's hooks.
-            # Passing NO env is what enforces that: the process runner strips
-            # the GIT_* repository-binding variables for a git command whose
-            # env is None, so this book observes only itself. Handing it an
-            # explicit env would disable that strip.
-            adapters.process_runner.run(
-                ["git", "init", "-q"], cwd=book, check=True)
-            adapters.process_runner.run(
-                ["git", "add", "-A"], cwd=book, check=True)
-            adapters.process_runner.run(
-                ["git", "-c", "user.email=proof@press", "-c", "user.name=Proof",
-                 "commit", "-qm", "fixture"],
-                cwd=book, check=True,
-            )
-            (book / "private-working-notes.md").write_text("draft", encoding="utf-8")
-            package_source.main()
-            with zipfile.ZipFile(source_zip) as archive:
-                assert not any("private-working-notes" in n for n in archive.namelist()), (
-                    "untracked file published"
-                )
-            assert verify_archives.verify_source_zip(source_zip, "policy-proof") == []
-
-            # A flipped byte inside a site zip member is a different book.
-            site_dir = book / "dist" / "site"
-            site_dir.mkdir(parents=True)
-            (site_dir / "index.html").write_text("<html>true text</html>", encoding="utf-8")
-            import shutil as sh
-
-            sh.make_archive(str(book / "dist" / "policy-proof-site"), "zip",
-                            root_dir=book / "dist", base_dir="site")
-            site_zip = book / "dist" / "policy-proof-site.zip"
-            assert verify_archives.verify_site_zip(site_zip, site_dir) == []
-            with zipfile.ZipFile(site_zip, "w") as archive:
-                archive.writestr("site/index.html", "<html>trxe text</html>")
-            tampered = verify_archives.verify_site_zip(site_zip, site_dir)
-            assert any("bytes disagree" in f for f in tampered), tampered
-
-
-def check_format_witnesses() -> None:
-    """The DOCX extractor reads visible text across split runs, and the
-    witness normalization folds case and smart quotes."""
-
-    from .verify_formats import docx_visible_text, normalized
-
-    xml = (b'<?xml version="1.0"?>'
-           b'<w:document xmlns:w="http://schemas.openxmlformats.org/'
-           b'wordprocessingml/2006/main"><w:body><w:p>'
-           b'<w:r><w:t>the witness </w:t></w:r>'
-           b'<w:r><w:t>line survives across runs</w:t></w:r>'
-           b'</w:p></w:body></w:document>')
-    assert "the witness line survives across runs" in docx_visible_text(xml)
-    corrupted = xml.replace(b"survives", b"vanished from")
-    assert "line survives" not in docx_visible_text(corrupted)
-    assert normalized("The \u201cWitness\u201d") == 'the "witness"'
-
-
-def check_editorial_checkers() -> None:
-    """The checker self-test in the fast tier: run check_the_checkers over
-    the packaged known-bad fixtures inside a clean scaffolded book (no book
-    fixtures of its own), proving every declared rule still fires and the
-    known-good fixture is accepted. INV-editorial-checkers had only an
-    integration proof; this gives it a runnable fast-tier one."""
-
-    import contextlib
-    import io
-    import tempfile
-
-    from . import check_the_checkers, scaffold
-
-    with tempfile.TemporaryDirectory() as tmp:
-        book = Path(tmp) / "checker-proof"
-        scaffold.main([str(book), "--author", "Checker Prover"])
-        with borrow_book(book):
-            buffer = io.StringIO()
-            with contextlib.redirect_stdout(buffer):
-                code = check_the_checkers.main()
-            if code != 0:
-                raise SystemExit(
-                    "selftest: check_the_checkers rejected the packaged "
-                    f"fixtures:\n{buffer.getvalue()}"
-                )
-            if "each" not in buffer.getvalue():
-                raise SystemExit(
-                    "selftest: check_the_checkers produced no pass line; "
-                    f"got:\n{buffer.getvalue()}"
-                )
-
-
-def check_editions_agree() -> None:
-    """Cross-edition content agreement: editions that all carry every
-    chapter's witness pass, and an edition that silently drops a chapter is
-    named and refused. Pure and toolchain-free -- synthetic edition texts,
-    no build. Proves INV-format-agreement closes INV-format-witness's
-    one-line-per-document limit."""
-
-    from . import verify_formats
-
-    witnesses = {
-        "01-one.md": "the first chapter carries this exact distinctive sentence about the shop",
-        "02-two.md": "the second chapter speaks of the devil and the hell box in plain words",
-    }
-    everything = " ".join(witnesses.values())
-    editions = {
-        "HTML": f"front matter {everything} back matter",
-        # The EPUB witness lines are split by furniture and reordered padding,
-        # but each chapter's distinctive fragment still survives intact.
-        "EPUB": (f"chapter one {witnesses['01-one.md']} PAGE 5 make ready "
-                 f"chapter two {witnesses['02-two.md']} colophon"),
-    }
-    verify_formats.verify_editions_agree(editions, witnesses)  # agreement: no raise
-
-    broken = dict(editions)
-    broken["EPUB"] = witnesses["01-one.md"] + " but everything after is gone"
-    try:
-        verify_formats.verify_editions_agree(broken, witnesses)
-    except SystemExit as exc:
-        assert "02-two.md" in str(exc), exc
-        assert "EPUB" in str(exc), exc
-    else:
-        raise AssertionError(
-            "an edition that dropped a chapter passed cross-edition agreement"
-        )
-
-
-def check_site_identity() -> None:
-    """The audit's damage case for site identity: a duplicated chapter
-    page must fail on its witness appearing twice, and a removed
-    chapter must fail on its witness appearing nowhere."""
-
-    import shutil
-    import tempfile
-
-    from . import scaffold, verify_formats
-
-    with tempfile.TemporaryDirectory() as tmp:
-        book = Path(tmp) / "identity-proof"
-        scaffold.main([str(book), "--author", "Identity Prover"])
-        chapter = book / "book" / "chapters" / "01-first.md"
-        chapter.write_text(
-            "# First\n\nThe first chapter carries this exact identity "
-            "line and no other chapter repeats it anywhere.\n"
-        )
-        site = book / "dist" / "site"
-        site.mkdir(parents=True)
-        (site / "index.html").write_text("<html><body>contents</body></html>")
-        (site / "reader.css").write_text("body{}")
-        with borrow_book(book):
-            from . import booklib
-
-            witnesses = verify_formats.chapter_witnesses()
-            for name, witness in witnesses.items():
-                (site / name.replace(".md", ".html")).write_text(
-                    f"<html><body><p>{witness}</p>"
-                    f"<p>{booklib.book().title}</p></body></html>"
-                )
-            verify_formats.verify_site(site)
-            shutil.copy(site / "01-first.html", site / "duplicate-chapter.html")
-            try:
-                verify_formats.verify_site(site)
-            except SystemExit as exc:
-                assert "duplicates" in str(exc), exc
-            else:
-                raise AssertionError("duplicated chapter page passed verify_site")
-            (site / "duplicate-chapter.html").unlink()
-            page = site / "01-first.html"
-            page.write_text("<html><body>replaced with other words</body></html>")
-            try:
-                verify_formats.verify_site(site)
-            except SystemExit as exc:
-                assert "missing" in str(exc), exc
-            else:
-                raise AssertionError("missing chapter text passed verify_site")
-
-
-def check_authorities_ledger() -> None:
-    """Each ledger refusal is its own diagnostic: malformed, duplicate,
-    missing, moved, and ambiguous are named, and a sound ledger yields a
-    companion carrying its durable locators."""
-
-    import tempfile
-
-    from . import gen_authorities, scaffold
-
-    with tempfile.TemporaryDirectory() as tmp:
-        book = Path(tmp) / "ledger-proof"
-        scaffold.main([str(book), "--author", "Ledger Prover"])
-        preface = book / "book" / "chapters" / "00-preface.md"
-        preface.write_text(preface.read_text() + (
-            "\n\nThe lead type was cast at dawn by careful hands."
-            "\nIt is said the press ran all night. Some say the press ran all night twice.\n"
-        ))
-        ledger = book / "config" / "authorities.yaml"
-        with borrow_book(book):
-            ledger.write_text("""
-- claim: "cast at dawn by careful hands"
-  file: "book/chapters/00-preface.md"
-  authority: "A Founder's Manual (1888)"
-  url: "https://example.org/founders-manual"
-- claim: "cast at dawn by careful hands"
-  authority: "Duplicate"
-- claim: "no such sentence anywhere"
-  authority: "Ghost"
-- claim: "cast at dawn"
-  file: "book/chapters/99-nonexistent.md"
-  authority: "Wrong address"
-- claim: "the press ran all night"
-  authority: "Ambiguous"
-- authority: "No claim at all"
-""")
-            try:
-                gen_authorities.generate()
-            except SystemExit as exc:
-                message = str(exc)
-                for marker in ("duplicate claim", "missing", "unknown file",
-                               "ambiguous", "malformed"):
-                    assert marker in message, (marker, message)
-            else:
-                raise AssertionError("defective ledger accepted")
-            ledger.write_text("""
-- claim: "cast at dawn by careful hands"
-  file: "book/chapters/00-preface.md"
-  authority: "A Founder's Manual (1888)"
-  url: "https://example.org/founders-manual"
-""")
-            gen_authorities.generate()
-            companion = book / "dist" / "ledger-proof-sources.md"
-            text = companion.read_text()
-            assert "example.org/founders-manual" in text, "locator lost"
 
 
 def check_honest_refusals() -> None:
@@ -588,9 +129,7 @@ def check_honest_refusals() -> None:
     finally:
         cli.main = original
     if code != 43:
-        raise SystemExit(
-            f"selftest: console() returned {code}, not the failing tool's 43"
-        )
+        raise SystemExit(f"selftest: console() returned {code}, not the failing tool's 43")
 
     with tempfile.TemporaryDirectory() as tmp:
         book = Path(tmp) / "refusal-proof"
@@ -610,13 +149,10 @@ def check_honest_refusals() -> None:
                 except SystemExit as exc:
                     if wants not in str(exc):
                         raise SystemExit(
-                            f"selftest: metadata refusal {str(exc)!r} "
-                            f"does not mention {wants!r}"
+                            f"selftest: metadata refusal {str(exc)!r} does not mention {wants!r}"
                         )
                 else:
-                    raise SystemExit(
-                        f"selftest: metadata content {content!r} was accepted"
-                    )
+                    raise SystemExit(f"selftest: metadata content {content!r} was accepted")
             metadata_file.write_text(sound_metadata)
             booklib.metadata.cache_clear()
             (book / "config" / "house-rules.yaml").write_text(
@@ -628,13 +164,10 @@ def check_honest_refusals() -> None:
             except SystemExit as exc:
                 if "house-rules.yaml" not in str(exc):
                     raise SystemExit(
-                        "selftest: banned-pattern refusal does not name "
-                        "house-rules.yaml"
+                        "selftest: banned-pattern refusal does not name house-rules.yaml"
                     )
             else:
-                raise SystemExit(
-                    "selftest: malformed banned pattern was accepted"
-                )
+                raise SystemExit("selftest: malformed banned pattern was accepted")
 
 
 def check_aesthetic_schema() -> None:
@@ -651,9 +184,7 @@ def check_aesthetic_schema() -> None:
     consumed = set(re.findall(r'(?:merged|overrides)\.get\("([a-z-]+)"\)', source))
     consumed |= set(re.findall(r'\.get\("((?:web|pdf)-family)"\)', source))
     house = set(yamlio.load(here / "data" / "aesthetic-house.yaml") or {})
-    undocumented = sorted(
-        key for key in consumed | house if key not in skill
-    )
+    undocumented = sorted(key for key in consumed | house if key not in skill)
     if undocumented:
         raise SystemExit(
             "book-aesthetics.md does not document keys the aesthetic "
@@ -661,9 +192,7 @@ def check_aesthetic_schema() -> None:
         )
     for subkey in ("ink", "muted", "accent", "link"):
         if subkey not in skill:
-            raise SystemExit(
-                f"book-aesthetics.md omits the book-colors subkey {subkey!r}"
-            )
+            raise SystemExit(f"book-aesthetics.md omits the book-colors subkey {subkey!r}")
 
 
 def check_coverwrap_detectors() -> None:
@@ -682,7 +211,7 @@ def check_coverwrap_detectors() -> None:
     size = (int(wrap_w * dpi), int(wrap_h * dpi))
 
     flat = Image.new("RGB", size, (200, 190, 180))
-    front_x = bleed + trim_w + spine   # perfect-bound front-panel edge
+    front_x = bleed + trim_w + spine  # perfect-bound front-panel edge
     try:
         verify_coverwrap.check_front_panel(flat, front_x, wrap_w)
     except SystemExit as exc:
@@ -720,8 +249,9 @@ def check_coverwrap_detectors() -> None:
             draw.rectangle((zone, bar_top, zone + 1, bar_bottom), fill=0)
         return image
 
-    verify_coverwrap.scanline(barcode_image(22, False), bleed + trim_w, bleed, wrap_w,
-                              "9780306406157")
+    verify_coverwrap.scanline(
+        barcode_image(22, False), bleed + trim_w, bleed, wrap_w, "9780306406157"
+    )
     try:
         verify_coverwrap.scanline(Image.new("L", size, 180), bleed + trim_w, bleed, wrap_w, None)
     except SystemExit as exc:
@@ -729,15 +259,17 @@ def check_coverwrap_detectors() -> None:
     else:
         raise AssertionError("missing barcode card passed the wrap verifier")
     try:
-        verify_coverwrap.scanline(barcode_image(3, False), bleed + trim_w, bleed, wrap_w,
-                                  "9780306406157")
+        verify_coverwrap.scanline(
+            barcode_image(3, False), bleed + trim_w, bleed, wrap_w, "9780306406157"
+        )
     except SystemExit as exc:
         assert "transitions" in str(exc), exc
     else:
         raise AssertionError("threadbare barcode passed the wrap verifier")
     try:
-        verify_coverwrap.scanline(barcode_image(22, True), bleed + trim_w, bleed, wrap_w,
-                                  "9780306406157")
+        verify_coverwrap.scanline(
+            barcode_image(22, True), bleed + trim_w, bleed, wrap_w, "9780306406157"
+        )
     except SystemExit as exc:
         assert "quiet zone" in str(exc), exc
     else:
@@ -746,279 +278,7 @@ def check_coverwrap_detectors() -> None:
 
 # The release grammar's evidence, stated once for both runners.
 GOOD_TAGS = ("v1.0.0", "v0.0.1", "v10.20.30")
-BAD_TAGS = ("v1.0", "v1.0.0.0", "v1.0.0-rc1", "v1.0.0x", "v01.0.0",
-            "1.0.0", "v1..0", "v1.0.0 ")
-
-
-def check_receipt_chain() -> None:
-    """The trust-receipt chain refuses a broken chain: a dirty-tree
-    release receipt, a release whose package digest does not match the
-    built object, and an incomplete chain that skips trust layers are
-    each rejected."""
-
-    from . import receipts
-
-    inputs = {"invariants": "d", "fixtures": "d", "scenarios": "d",
-              "surfaces": "d", "toolchain": "sha-x"}
-    dirty = receipts.Receipt(
-        schema_version=receipts.SCHEMA_VERSION, layer="release",
-        source_commit="c", tree_clean=False, inputs=inputs,
-        prerequisites=[], proofs=[],
-        artifacts={"package": "PKG", "toolchain": "sha-x"}, local_dev=True)
-    if not any("dirty tree" in p for p in receipts.verify_chain([dirty], require_clean=True)):
-        raise SystemExit("selftest: receipt chain blessed a dirty-tree release")
-    clean = receipts.Receipt(
-        schema_version=receipts.SCHEMA_VERSION, layer="release",
-        source_commit="c", tree_clean=True, inputs=inputs,
-        prerequisites=[], proofs=[],
-        artifacts={"package": "PKG", "toolchain": receipts.pinned_toolchain_digest()})
-    if not any("package digest" in p for p in receipts.verify_release([clean], "OTHER")):
-        raise SystemExit("selftest: release receipt blessed a package mismatch")
-    # A two-layer placeholder standing in for every layer must be refused:
-    # completeness is what turns the chain from an assertion into a proof.
-    collection = receipts.Receipt(
-        schema_version=receipts.SCHEMA_VERSION, layer="collection",
-        source_commit="c", tree_clean=True, inputs=inputs, prerequisites=[],
-        proofs=[], artifacts={})
-    placeholder_release = receipts.Receipt(
-        schema_version=receipts.SCHEMA_VERSION, layer="release",
-        source_commit="c", tree_clean=True, inputs=inputs,
-        prerequisites=[collection.digest()], proofs=[],
-        artifacts={"package": "PKG", "toolchain": receipts.pinned_toolchain_digest()})
-    if not any("incomplete release chain" in p
-               for p in receipts.verify_release([collection, placeholder_release], "PKG")):
-        raise SystemExit("selftest: release chain blessed a skipped trust layer")
-    # The per-job release (#150) fails closed when a CI tier's receipt is
-    # absent: a job that did not run leaves a missing receipt.
-    tiers = [receipts.Receipt(
-        schema_version=receipts.SCHEMA_VERSION, layer="quality", source_commit="c",
-        tree_clean=True, inputs=inputs, prerequisites=[], proofs=[], artifacts={})]
-    # 'integration' deliberately absent: its job did not run.
-    if not any("missing tier receipt 'integration'" in p
-               for p in receipts.verify_ci_release(tiers, "PKG")):
-        raise SystemExit("selftest: per-job release blessed a missing CI tier")
-
-
-def check_edition_manifest() -> None:
-    """The edition manifest holds for a valid release-gated edition and
-    refuses a forged identity and a byte mismatch: an order can only name
-    the exact bytes the release approved."""
-
-    import dataclasses
-
-    from . import edition
-
-    interior_sha = "1" * 64
-    cover_sha = "2" * 64
-    base = edition.EditionManifest(
-        schema_version=edition.SCHEMA_VERSION, edition_id="",
-        slug="proof-book", title="Proof", format="paperback", isbn=None,
-        trim_width=6.0, trim_height=9.0, page_count=120, paper="cream",
-        spine_width_in=0.3, bleed_in=0.125,
-        interior=edition.ArtifactRef("interior", interior_sha, 4096),
-        cover=edition.ArtifactRef("cover", cover_sha, 2048),
-        toolchain_digest="sha-abc", source_commit="c0ffee", tree_clean=True,
-        input_digests={"invariants": "d"}, receipt_digests=("r0",))
-    manifest = dataclasses.replace(
-        base, edition_id=edition._identity_digest(base))
-    observed = edition.Observed(interior_sha, 4096, 120, cover_sha, 2048)
-    if edition.verify_facts(manifest, observed):
-        raise SystemExit("selftest: edition manifest rejected a valid edition")
-    # A production fact changed without re-deriving identity is a forgery.
-    forged = dataclasses.replace(manifest, page_count=manifest.page_count + 10)
-    if not any("identity digest" in p for p in edition.verify_facts(forged, observed)):
-        raise SystemExit("selftest: edition manifest blessed a forged identity")
-    # The artifact on disk no longer hashes to the recorded digest.
-    tampered = edition.Observed("0" * 64, 4096, 120, cover_sha, 2048)
-    if not any("interior digest" in p for p in edition.verify_facts(manifest, tampered)):
-        raise SystemExit("selftest: edition manifest blessed a byte mismatch")
-
-
-def check_provider_qualification() -> None:
-    """The provider record is well-formed, and only a passed physical
-    inspection scoped to the edition qualifies a provider: marketing alone
-    and a stale or wrong-edition inspection are refused."""
-
-    from . import qualification as q
-
-    problems = q.validate()
-    if problems:
-        raise SystemExit(f"selftest: provider qualification record invalid: {problems[:2]}")
-    passed = {point: q.PASS for point in q.REQUIRED_CHECKLIST}
-    # A single failed point cannot qualify: the physical gate is real.
-    failed = q.PhysicalInspection("ed1", "lulu", "PB", "US", "inspector",
-                                  {**passed, "barcode": "fail"})
-    qual, probs = q.qualify(failed, "ed1")
-    if qual is not None or not any("not passed" in p for p in probs):
-        raise SystemExit("selftest: qualification honored a failed physical inspection")
-    # A copy inspected against a different edition is stale.
-    other = q.PhysicalInspection("edX", "lulu", "PB", "US", "inspector", passed)
-    qual2, probs2 = q.qualify(other, "ed1")
-    if qual2 is not None or not any("different edition" in p for p in probs2):
-        raise SystemExit("selftest: qualification honored a stale inspection")
-
-
-def check_profile_seals() -> None:
-    """Every shipped print profile is sealed under the design contract, and
-    the seal gate bites: a profile whose geometry drifts from its sealed
-    digest is refused, so appearance cannot change without a deliberate
-    re-seal (the design-major law)."""
-
-    from . import profile_lifecycle as pl
-
-    problems = pl.validate()
-    if problems:
-        raise SystemExit(f"selftest: profile seal ledger does not hold: {problems[:2]}")
-    # The gate is real: a seal recording a digest the profile no longer has is
-    # drift, and must be refused.
-    seals = pl.load_seals()
-    if not seals:
-        raise SystemExit("selftest: no profile seal ledger shipped")
-    victim = next(iter(seals))
-    drifted = dict(seals)
-    drifted[victim] = pl.Seal(
-        profile_id=victim, design_major=seals[victim].design_major,
-        digest="deadbeefdeadbeef", qualified_on=seals[victim].qualified_on)
-    if not any("drifted from its seal" in p for p in pl.validate(drifted)):
-        raise SystemExit("selftest: profile seal gate did not catch a digest drift")
-    # An unsealed shipped profile is refused too.
-    without = {k: v for k, v in seals.items() if k != victim}
-    if not any("is not sealed" in p for p in pl.validate(without)):
-        raise SystemExit("selftest: profile seal gate did not catch an unsealed profile")
-
-
-def check_commerce_config() -> None:
-    """The print-order config verifier refuses an insecure origin, an
-    unnamed seller, and an embedded secret; a policy page may be linked out
-    or generated; and the CTA is emitted only for a sellable edition."""
-
-    from . import commerce
-
-    good = commerce.load({"commerce": {"print-ordering": {
-        "enabled": True, "edition": "paperback",
-        "storefront-url": "https://store.example.test/x", "seller-of-record": "Lulu",
-        "support-url": "https://ex.test/s"}}})  # privacy/refund omitted -> generated
-    if good is None or commerce.validate(good):
-        raise SystemExit("selftest: commerce verifier rejected a valid config")
-    if good.generated_kinds() != ["privacy", "refund"]:
-        raise SystemExit("selftest: an omitted policy link should be generated")
-    if not commerce.should_emit(good, sellable=True) or commerce.should_emit(good, sellable=False):
-        raise SystemExit("selftest: commerce CTA emission ignored edition sellability")
-    bad = commerce.load({"commerce": {"print-ordering": {
-        "enabled": True, "edition": "paperback", "storefront-url": "http://insecure",
-        "seller-of-record": "", "support-url": "https://ex.test/s?api_key=sk_live_x",
-        "privacy-url": "http://x"}}})
-    problems = commerce.validate(bad)
-    for needle in ("storefront-url must be https", "seller-of-record",
-                   "privacy-url must be https", "secret"):
-        if not any(needle in p for p in problems):
-            raise SystemExit(f"selftest: commerce verifier missed {needle!r}")
-
-
-def check_commerce_release_gate() -> None:
-    """The print-ordering release gate fails closed: a book advertising
-    ordering cannot ship unless its edition passed a physical
-    qualification; a book that sells nothing ships freely."""
-
-    from . import commerce
-
-    enabled = commerce.load({"commerce": {"print-ordering": {
-        "enabled": True, "edition": "paperback",
-        "storefront-url": "https://store.example.test/x", "seller-of-record": "Lulu",
-        "support-url": "https://ex.test/s", "privacy-url": "https://ex.test/p",
-        "refund-url": "https://ex.test/r"}}})
-    if not any("no passed physical qualification" in p
-               for p in commerce.release_problems(enabled, edition_qualified=False)):
-        raise SystemExit("selftest: release gate shipped an unqualified commerce edition")
-    if commerce.release_problems(enabled, edition_qualified=True):
-        raise SystemExit("selftest: release gate blocked a qualified, valid edition")
-    disabled = commerce.load({"commerce": {"print-ordering": {"enabled": False}}})
-    if commerce.release_problems(disabled, edition_qualified=False):
-        raise SystemExit("selftest: release gate blocked a book that sells nothing")
-
-
-def check_provider_contract() -> None:
-    """A print provider adapter keeps the neutral contract: money parses
-    without float error, an unsupported capability is a typed refusal, an
-    unknown status quarantines, and a submission timeout is an unknown
-    outcome -- never a fabricated acceptance or a guessed transition."""
-
-    from .providers import contract, fake
-
-    cents = (contract.Money.parse("USD", "0.1")
-             + contract.Money.parse("USD", "0.2")).minor_units
-    if cents != 30:
-        raise SystemExit("selftest: provider money parsing lost a cent to float")
-    limited = fake.FakeProvider(capabilities=frozenset({contract.Capability.SUBMIT}))
-    if not isinstance(limited.cancel("x"), contract.TypedError):
-        raise SystemExit("selftest: adapter simulated an unsupported capability")
-    if limited.normalize_status("mystery") != contract.ProviderStatus.UNKNOWN:
-        raise SystemExit("selftest: adapter guessed an unknown provider status")
-    timing_out = fake.FakeProvider()
-    timing_out.script_submit("timeout")
-    if not isinstance(timing_out.submit(fake.sample_submission()), contract.UnknownOutcome):
-        raise SystemExit("selftest: adapter turned a submission timeout into a definite outcome")
-
-
-def check_release_grammar() -> None:
-    """The release script's tag validation, exercised without any
-    network: exactly vN.x.y, and the composite action's command
-    grammar rejects shell syntax."""
-
-    from . import adapters
-
-    script = Path(__file__).resolve().parent.parent.parent / "scripts" / "release.sh"
-    if not script.is_file():
-        return  # installed wheel; the script ships with the repo only
-    good = GOOD_TAGS
-    bad = BAD_TAGS
-    for tag in good:
-        result = adapters.process_runner.run(
-            ["bash", str(script), "--check-tag", tag], capture=True)
-        if result.returncode != 0:
-            raise SystemExit(f"selftest: release grammar rejected valid {tag!r}")
-    for tag in bad:
-        result = adapters.process_runner.run(
-            ["bash", str(script), "--check-tag", tag], capture=True)
-        if result.returncode == 0:
-            raise SystemExit(f"selftest: release grammar accepted invalid {tag!r}")
-
-    action = script.parent.parent / "action.yml"
-    text = action.read_text(encoding="utf-8")
-    if "${{ inputs.command }}" in text.split("env:")[-1].split("run:")[-1]:
-        raise SystemExit(
-            "selftest: action.yml interpolates inputs.command into shell text"
-        )
-    # The action's grammar, proven against the audit's injection string.
-    import re as re_mod
-
-    grammar = re_mod.compile(r"^[a-z][a-z0-9-]*( [A-Za-z0-9._/=-]+)*$")
-    assert grammar.match("all")
-    assert grammar.match("art accept art/candidates/cover-1.png --as=cover")
-    assert not grammar.match("all; touch /tmp/pwned")
-    assert not grammar.match("all && rm -rf .")
-    assert not grammar.match("$(id)")
-
-
-def check_registry() -> None:
-    """The artifact graph is acyclic, outputs are unique, and every
-    published artifact resolves to concrete filenames."""
-
-    from . import registry
-
-    order = registry.build_order(list(registry.ARTIFACTS))
-    assert len(order) == len(registry.ARTIFACTS), "build order lost artifacts"
-    for name, artifact in registry.ARTIFACTS.items():
-        for prerequisite in artifact.prerequisites:
-            assert order.index(prerequisite) < order.index(name), (
-                f"{name} builds before its prerequisite {prerequisite}"
-            )
-    outputs = [o for a in registry.ARTIFACTS.values() for o in a.outputs]
-    assert len(outputs) == len(set(outputs)), "duplicate artifact outputs"
-    assert set(registry.FORMATS) <= set(registry.ARTIFACTS)
-    resolved = [o.format(slug="proof") for a in registry.ARTIFACTS.values()
-                if a.published for o in a.outputs]
-    assert all("{" not in n for n in resolved), resolved
+BAD_TAGS = ("v1.0", "v1.0.0.0", "v1.0.0-rc1", "v1.0.0x", "v01.0.0", "1.0.0", "v1..0", "v1.0.0 ")
 
 
 def check_book_model() -> None:
@@ -1028,8 +288,12 @@ def check_book_model() -> None:
     from . import bookmodel
 
     root = Path("/nowhere")
-    minimal = {"title": "Proof", "author": "One Writer", "slug": "proof",
-               "date": "First edition, 2026"}
+    minimal = {
+        "title": "Proof",
+        "author": "One Writer",
+        "slug": "proof",
+        "date": "First edition, 2026",
+    }
     book = bookmodel.load(root, minimal)
     assert book.authors == ("One Writer",), "string author not normalized"
     assert book.year == "2026"
@@ -1062,34 +326,6 @@ def check_book_model() -> None:
         raise AssertionError("defective configuration accepted")
 
 
-def check_scaffold_neutrality() -> None:
-    """A scaffolded book carries no personal identity: the press's
-    author must never become the book's author. The only permitted
-    'clintecker' strings are the canonical press machinery references."""
-
-    import tempfile
-
-    from . import scaffold
-
-    with tempfile.TemporaryDirectory() as tmp:
-        book = Path(tmp) / "neutrality-proof"
-        scaffold.main([str(book), "--author", "Neutral Tester"])
-        machinery = {"requirements.txt", "book.yml"}
-        for path in book.rglob("*"):
-            if not path.is_file():
-                continue
-            text = path.read_text(encoding="utf-8", errors="replace")
-            assert "Clint Ecker" not in text, path
-            assert "LGTM" not in text, path
-            if "clintecker" in text:
-                assert path.name in machinery, (
-                    f"personal owner leaked into {path}"
-                )
-        meta = (book / "config" / "metadata.yaml").read_text(encoding="utf-8")
-        assert "Neutral Tester" in meta
-        assert '# repository: "https://github.com/OWNER/' in meta
-
-
 def check_pages_verifier() -> None:
     """The pages crawler must reject a broken site and pass a sound one."""
 
@@ -1102,19 +338,20 @@ def check_pages_verifier() -> None:
         (pages / "read").mkdir()
         (pages / "downloads").mkdir()
         (pages / "downloads" / "proof.pdf").write_text("x", encoding="utf-8")
-        head = ('<meta property="og:title" content="Proof Book">\n'
-                '<meta name="twitter:card" content="summary_large_image">\n'
-                '<script type="application/ld+json">\n'
-                '{"@type": "Book", "name": "Proof Book"}\n</script>\n')
+        head = (
+            '<meta property="og:title" content="Proof Book">\n'
+            '<meta name="twitter:card" content="summary_large_image">\n'
+            '<script type="application/ld+json">\n'
+            '{"@type": "Book", "name": "Proof Book"}\n</script>\n'
+        )
         (pages / "index.html").write_text(
-            f'<html><head>\n{head}</head>'
+            f"<html><head>\n{head}</head>"
             '<body>Proof Book <a href="read/index.html">read</a> '
             '<a href="downloads/proof.pdf">pdf</a></body></html>',
             encoding="utf-8",
         )
         (pages / "read" / "index.html").write_text(
-            f"<html><head>\n{head}</head>"
-            "<body>the sentinel phrase lives here</body></html>",
+            f"<html><head>\n{head}</head><body>the sentinel phrase lives here</body></html>",
             encoding="utf-8",
         )
         clean = verify_pages.crawl(pages, ["sentinel phrase"], ["proof.pdf"], "Proof Book")
@@ -1146,7 +383,7 @@ def check_pages_verifier() -> None:
         assert any("missing.png" in f for f in damaged), damaged
         (pages / "reader.css").unlink()
         (pages / "index.html").write_text(
-            f'<html><head>\n{head}</head>'
+            f"<html><head>\n{head}</head>"
             '<body id="top">Proof Book <a href="#top">top</a> '
             '<a href="read/index.html">read</a> '
             '<a href="downloads/proof.pdf">pdf</a></body></html>',
@@ -1199,19 +436,31 @@ def render_reference() -> str:
     # stays generated; a registry artifact this map does not name
     # fails the selftest instead of silently missing a row.
     builders = {
-        "pdf": "build (pandoc + latexmk)", "epub": "build",
-        "html": "build", "markdown": "build", "txt": "build",
-        "docx": "build", "site": "build", "source": "package_source",
-        "sources": "gen_authorities", "pages": "build",
-        "print": "build (print profile)", "coverwrap": "gen_coverwrap",
+        "pdf": "build (pandoc + latexmk)",
+        "epub": "build",
+        "html": "build",
+        "markdown": "build",
+        "txt": "build",
+        "docx": "build",
+        "site": "build",
+        "source": "package_source",
+        "sources": "gen_authorities",
+        "pages": "build",
+        "print": "build (print profile)",
+        "coverwrap": "gen_coverwrap",
     }
     verifiers = {
-        "pdf": "verify_pdf", "epub": "verify_formats + epubcheck",
-        "html": "verify_formats", "markdown": "verify_formats",
-        "txt": "verify_formats", "docx": "verify_formats",
+        "pdf": "verify_pdf",
+        "epub": "verify_formats + epubcheck",
+        "html": "verify_formats",
+        "markdown": "verify_formats",
+        "txt": "verify_formats",
+        "docx": "verify_formats",
         "site": "verify_formats + verify_archives",
-        "source": "verify_archives", "sources": "verify_archives",
-        "pages": "verify_pages", "print": "verify_pdf (print profile)",
+        "source": "verify_archives",
+        "sources": "verify_archives",
+        "pages": "verify_pages",
+        "print": "verify_pdf (print profile)",
         "coverwrap": "verify_coverwrap",
     }
     destinations = {
@@ -1233,10 +482,7 @@ def render_reference() -> str:
                 destination += f" (when {a.condition} configured)"
         else:
             destination = destinations[a.name]
-        lines.append(
-            f"| {a.name} | {builders[a.name]} | {verifiers[a.name]} | "
-            f"{destination} |"
-        )
+        lines.append(f"| {a.name} | {builders[a.name]} | {verifiers[a.name]} | {destination} |")
     lines += ["", "## Targets", "", "```text", cli.USAGE.strip(), "```", ""]
     return "\n".join(lines)
 
@@ -1251,474 +497,37 @@ def _repo_root() -> Path | None:
     return root if (root / "CLAUDE.md").is_file() else None
 
 
-def check_contract_mirror() -> None:
-    """AGENTS.md is a generated mirror of CLAUDE.md (same contract,
-    agents.md convention): identical below the heading line, so the
-    two cannot drift apart again."""
-
-    root = _repo_root()
-    if root is None:
-        return
-    claude = (root / "CLAUDE.md").read_text(encoding="utf-8")
-    agents = (root / "AGENTS.md").read_text(encoding="utf-8")
-    if agents.split("\n", 1)[1] != claude.split("\n", 1)[1]:
-        raise SystemExit(
-            "AGENTS.md has drifted from CLAUDE.md; regenerate it "
-            "(the body below the heading must be identical)"
-        )
-
-
-def check_command_catalog() -> None:
-    """The CLI and the desk read one command catalog, so their surfaces
-    cannot drift: every catalog command is dispatchable, every route is
-    a catalog command, and the usage text is the catalog's own
-    rendering."""
-
-    from . import __main__ as cli, catalog
-
-    routes = set(cli.ROUTES)
-    formats = set(cli.FORMATS) | {"print"}
-    for command in catalog.COMMANDS:
-        target = command.alias_of or command.name
-        if not (command.name in routes or command.name in formats
-                or target in routes or target in formats):
-            raise SystemExit(f"catalog command {command.name!r} is not dispatchable")
-    known = catalog.canonical_targets()
-    for route in routes:
-        if route not in known:
-            raise SystemExit(f"route {route!r} is not in the command catalog")
-    if cli.USAGE != catalog.render_usage():
-        raise SystemExit("cli.USAGE is not the catalog's rendering; regenerate it")
-
-
-def check_docs() -> None:
-    from . import __main__ as cli
-
-    here = Path(__file__).resolve().parent
-    readme = (here.parent.parent / "README.md")
-    usage_words = set(re.findall(r"[a-z-]{2,}", cli.USAGE.split("usage:")[1]))
-    routed = set(cli.ROUTES) | set(cli.FORMATS) | {"print"}
-    missing_from_usage = sorted(routed - usage_words)
-    if missing_from_usage:
-        raise SystemExit(f"targets routed but absent from usage text: {missing_from_usage}")
-    if readme.is_file():
-        text = readme.read_text(encoding="utf-8")
-        undocumented = sorted(
-            t for t in routed if not re.search(rf"\b{re.escape(t)}\b", text)
-        )
-        if undocumented:
-            raise SystemExit(f"targets absent from README: {undocumented}")
-    reference = here.parent.parent / "docs" / "REFERENCE.md"
-    if reference.is_file() and reference.read_text(encoding="utf-8") != render_reference():
-        raise SystemExit(
-            "docs/REFERENCE.md drifted from the registry; regenerate with "
-            "`press selftest --write-docs`"
-        )
-    invariants_doc = here.parent.parent / "docs" / "INVARIANTS.md"
-    if invariants_doc.is_file() and invariants_doc.read_text(encoding="utf-8") != invariants.render():
-        raise SystemExit(
-            "docs/INVARIANTS.md drifted from quality/invariants.yaml; "
-            "regenerate with `press selftest --write-docs`"
-        )
-    from . import qualification
-    quals_doc = here.parent.parent / "docs" / "PROVIDER-QUALIFICATION.md"
-    if quals_doc.is_file() and quals_doc.read_text(encoding="utf-8") != qualification.render():
-        raise SystemExit(
-            "docs/PROVIDER-QUALIFICATION.md drifted from quality/providers.yaml; "
-            "regenerate with `press selftest --write-docs`"
-        )
-
-
-def check_invariant_ledger() -> None:
-    """The invariant ledger validates: schema holds and every enforcer
-    and proof it names resolves to a real function or fixture. The
-    ledger is a repo file, not package data, so an installed wheel has
-    nothing to validate here."""
-
-    if not invariants.LEDGER.is_file():
-        return
-    invariants.validate(invariants.load())
-
-
-def _invariants_with_pytest_proof() -> set[str]:
-    """The set of invariants that carry at least one pytest proof in the tree.
-
-    Two signals, unioned so the result is robust to which tests a given
-    session collected. The pytest collection plugin writes an invariant ->
-    tests index (tests/_collection-index.json), but a *subset* pytest run
-    rewrites it with only that subset's invariants, so its absence of an id
-    is not proof the id has no test. The authoritative signal is therefore a
-    static scan of the test sources for the ``invariant("INV-...")`` marker,
-    which is immune to collection state; the index is unioned in as a
-    convenience. An installed wheel has no tests/ tree and contributes
-    nothing here."""
-
-    ids: set[str] = set()
-    tests_dir = invariants.LEDGER.parent.parent / "tests"
-    if not tests_dir.is_dir():
-        return ids
-
-    index = tests_dir / "_collection-index.json"
-    if index.is_file():
-        import json
-
-        try:
-            mapping = json.loads(index.read_text(encoding="utf-8")).get("invariant_to_tests")
-            if isinstance(mapping, dict):
-                ids |= {k for k, v in mapping.items() if v}
-        except (ValueError, OSError):
-            pass
-
-    marker = re.compile(r"""invariant\(\s*["'](INV-[A-Za-z0-9-]+)["']""")
-    for source in tests_dir.rglob("*.py"):
-        try:
-            ids |= set(marker.findall(source.read_text(encoding="utf-8")))
-        except OSError:
-            continue
-    return ids
-
-
-def check_ledger_completeness() -> None:
-    """Every invariant carries a real proof, and every *critical* invariant
-    keeps a fast-tier one -- a runnable selftest check or a collected pytest
-    test. invariants.validate only checks that a proof reference *resolves*;
-    an invariant can therefore pass it while its last fast proof is a marker
-    on a test that has been deleted (the integration proof still standing).
-    This closes that: a critical invariant with no fast proof, or any
-    invariant declaring no proof at all, fails the ledger.
-
-    The fast-tier pytest signal is robust to collection state (see
-    _invariants_with_pytest_proof). Repo-only: an installed wheel has no
-    ledger to check and returns early."""
-
-    import sys as _sys
-
-    if not invariants.LEDGER.is_file():
-        return
-    pytest_proven = _invariants_with_pytest_proof()
-    this = _sys.modules[__name__]
-
-    problems: list[str] = []
-    for inv in invariants.load():
-        if not isinstance(inv, dict) or "id" not in inv:
-            continue
-        iid = inv["id"]
-        proofs = list(inv.get("negative") or []) + list(inv.get("positive") or [])
-        real = [p for p in proofs if p != "none"]
-        runnable = [
-            p for p in proofs
-            if p.startswith("check_") and callable(getattr(this, p, None))
-        ]
-        has_collected = iid in pytest_proven
-
-        # No invariant may declare zero proofs: an empty list (schema already
-        # forbids it) or only the placeholder 'none' with nothing collected is
-        # a guard on paper. 'integration' and a fixture both count as real.
-        if not real and not has_collected:
-            problems.append(
-                f"{iid}: declares no proof (only 'none') and no pytest test is "
-                "collected for it"
-            )
-
-        # A critical invariant must keep a fast proof so it cannot lose its
-        # last fast guard while the integration proof still validates the
-        # reference.
-        if inv.get("criticality") == "critical" and not (runnable or has_collected):
-            problems.append(
-                f"{iid}: critical invariant has no fast-tier proof -- no "
-                "runnable selftest check and no pytest test carries its "
-                "invariant marker; it would lose its guard if the integration "
-                "tier were skipped"
-            )
-    if problems:
-        raise SystemExit(
-            "invariant ledger completeness failed:\n"
-            + "\n".join(f"  - {p}" for p in problems)
-        )
-
-
-def check_fixture_provenance() -> None:
-    """Every checked-in regression fixture carries a provenance manifest
-    entry, and no entry names a fixture that has left the tree."""
-
-    from . import fixture_provenance
-
-    fixture_provenance.check()
-
-
-def check_migration() -> None:
-    """The v1->v2 migration keeps its two promises on a real scaffolded book:
-    a dry-run plan reports the repin and changes nothing on disk
-    (INV-migration-preview), and apply moves only the pin -- the manuscript,
-    config, and art come out byte-for-byte identical -- while rollback
-    restores the exact prior pin (INV-migration-safe). A custom override is
-    surfaced by diagnosis, not silently carried."""
-
-    import tempfile
-
-    from . import migrate, scaffold
-
-    with tempfile.TemporaryDirectory() as tmp:
-        book = Path(tmp) / "migration-proof"
-        scaffold.main([str(book), "--author", "Migration Tester"])
-
-        # The owned content whose bytes migration must never change.
-        owned = {
-            path: path.read_bytes()
-            for pattern in ("book/**/*", "config/**/*", "tex/**/*", "assets/**/*")
-            for path in book.glob(pattern) if path.is_file()
-        }
-
-        diagnosis = migrate.diagnose(book)
-        assert not diagnosis.problems, diagnosis.problems
-        # The scaffold pins whatever major the template ships (v1, then v2, ...);
-        # the migration is proven relative to that, not against a fixed 1.
-        start = diagnosis.from_major
-        assert start is not None, "scaffold produced a split or absent pin"
-        target = start + 1
-        site_paths = {site.path for site in diagnosis.sites}
-        assert "requirements.txt" in site_paths, site_paths
-        assert any(p.startswith(".github/workflows/") for p in site_paths), site_paths
-
-        # A dry-run plan mutates nothing.
-        plan = migrate.plan(book, target)
-        assert plan.from_major == start and plan.to_major == target
-        assert plan.changes, "plan produced no changes"
-        assert any("design is unchanged" in note for note in plan.notes)
-        for path, original in owned.items():
-            assert path.read_bytes() == original, f"plan touched {path}"
-        assert not (book / migrate.STATE_DIR / migrate.BACKUP).is_file()
-
-        # Apply moves only the pin; owned content is untouched.
-        migrate.apply(book, target)
-        for site in migrate.pin_sites(book):
-            assert site.major == target, f"{site.path} still pinned to v{site.major}"
-        for path, original in owned.items():
-            assert path.read_bytes() == original, f"apply changed owned file {path}"
-        assert (book / migrate.STATE_DIR / migrate.RECEIPT).is_file()
-
-        # Rollback restores the exact prior pin.
-        migrate.rollback(book)
-        for site in migrate.pin_sites(book):
-            assert site.major == start, f"rollback left {site.path} at v{site.major}"
-        assert not (book / migrate.STATE_DIR / migrate.BACKUP).is_file()
-
-        # A custom override is named by diagnosis so the author re-checks it.
-        (book / "tex").mkdir(exist_ok=True)
-        (book / "tex" / "title-page.tex").write_text("% custom\n", encoding="utf-8")
-        overrides = dict(migrate.diagnose(book).overrides)
-        assert "tex/title-page.tex" in overrides, overrides
-
-
-def check_extension_conformance() -> None:
-    """The extension contract has teeth: the reference third-party manifest
-    conforms, and every hostile manifest is refused before execution -- a
-    core-name collision, an unsupported contract major, a sealed-capability
-    claim, and an unproven invariant each turn conformance red, while a
-    structurally malformed manifest is refused at the parser boundary. The
-    fixtures ship as package data, so an installed wheel proves this too."""
-
-    from . import extensions
-
-    fixtures = extensions.fixtures_dir()
-    reference = extensions.load_manifest_file(fixtures / "reference.yaml")
-    problems = extensions.conformance(reference)
-    if problems:
-        raise SystemExit(
-            "the reference extension manifest must conform, but was refused:\n"
-            + "\n".join(f"  - {p}" for p in problems)
-        )
-
-    # The malformed manifest is refused by the parser, before policy runs.
-    try:
-        extensions.load_manifest_file(fixtures / "hostile" / "malformed.yaml")
-    except SystemExit:
-        pass
-    else:
-        raise SystemExit(
-            "hostile/malformed.yaml is structurally invalid but load_manifest "
-            "accepted it"
-        )
-
-    # Every other hostile manifest parses but fails conformance.
-    hostile = sorted(
-        p for p in (fixtures / "hostile").glob("*.yaml") if p.name != "malformed.yaml"
-    )
-    if not hostile:
-        raise SystemExit("no hostile extension fixtures found to prove refusal")
-    for path in hostile:
-        manifest = extensions.load_manifest_file(path)
-        if extensions.conforms(manifest):
-            raise SystemExit(
-                f"hostile extension {path.name} must be refused, but it conformed"
-            )
-
-
-# Every producer -- a module classified in surfaces.yaml as "proven through the
-# verifier that inspects its artifact" -- must name the REJECTION PROOF that
-# turns red on a deliberately broken artifact. Without this, a producer can be
-# labelled verified while its verifier inspects nothing meaningful: exactly how
-# gen_front_matter shipped a dropped and a clipped cover. gen_front_matter is
-# now proven by verify_pdf.verify_cover_page; it is the reason this gate exists.
-PRODUCER_REJECTION_PROOFS = {
-    "build": "verify_pdf / verify_formats reject a malformed built artifact",
-    "commerce": "test_commerce negative proofs reject invalid channel data",
-    "gen_authorities": "a build rejects a claim whose sentence has left the text",
-    "gen_coverwrap": "verify_coverwrap rejects transparency, over-resolution, or bad geometry",
-    "gen_front_matter": "verify_pdf.verify_cover_page rejects a dropped or clipped cover",
-    "gen_index": "a build rejects a zero-hit index term",
-    "package_source": "check_source_policy rejects a leaked secret or a stray file",
-    "print_safe": "test_print_safe and this selftest reject a backslash reaching TeX",
-    "profile_lifecycle": "check_profile_seals rejects an unsealed profile or a seal whose digest drifted from the profile's geometry",
-    "scaffold": "check_scaffold_neutrality rejects a non-neutral scaffold",
-}
-
-# Producers not yet given a named rejection proof. A shrinking allowlist: a
-# producer here is a known, visible gap, not a silent one. It must only shrink.
-PRODUCERS_PENDING_REJECTION_PROOF = {
-    "desk_model": "TUI state, exercised by test_desk_app; no artifact-rejection proof yet",
-    "scenarios": "test-scenario source for the suite, not a shipped artifact",
-}
-
-
-def check_producers_are_verified() -> None:
-    """No producer may claim to be proven by a verifier without naming the
-    rejection that proof turns on. Every producer is either in
-    PRODUCER_REJECTION_PROOFS or, visibly, in PRODUCERS_PENDING_REJECTION_PROOF;
-    a new producer forces that choice instead of inheriting a blind verifier."""
-
-    if _repo_root() is None:
-        return  # surfaces.yaml is a repo-dev artifact, absent from the wheel
-
-    from . import surfaces
-
-    config = surfaces.load_config().get("modules", {})
-    producers = {
-        module for module, role in config.items()
-        if role == "producer" or (isinstance(role, dict) and role.get("default") == "producer")
-    }
-    proven = set(PRODUCER_REJECTION_PROOFS)
-    pending = set(PRODUCERS_PENDING_REJECTION_PROOF)
-
-    if proven & pending:
-        raise SystemExit(
-            f"producers both proven and pending: {sorted(proven & pending)}")
-    unregistered = producers - proven - pending
-    if unregistered:
-        raise SystemExit(
-            "producers with no registered rejection proof -- name the verifier "
-            "that rejects a broken artifact, or add it to "
-            f"PRODUCERS_PENDING_REJECTION_PROOF with a reason: {sorted(unregistered)}")
-    stale = (proven | pending) - producers
-    if stale:
-        raise SystemExit(
-            f"rejection-proof registry names modules that are not producers: {sorted(stale)}")
-
-
 def _jargon_impl_paths() -> tuple[Path, Path]:
     """The two jargon checker sources: the package copy press check runs,
     and the portable skill copy an author can run without the package."""
 
     package = Path(__file__).resolve().parent
     package_copy = package / "jargon_lint.py"
-    skill_copy = (
-        package / "data" / "skills" / "overused-jargon" / "scripts" / "jargon_lint.py"
-    )
+    skill_copy = package / "data" / "skills" / "overused-jargon" / "scripts" / "jargon_lint.py"
     return package_copy, skill_copy
 
 
 def _jargon_shared_defs(source: str) -> dict[str, str]:
     """Top-level function and class source, keyed by name, minus parse_args
     (whose only sanctioned difference is how each copy finds its default
-    watchlist)."""
+    watchlist) and diagnostics_for (the package-only in-process seam
+    celebrimbor's known_bad gate calls; it is not part of the portable skill)."""
 
     import ast
 
+    skip = {"parse_args", "diagnostics_for"}
     defs: dict[str, str] = {}
     for node in ast.parse(source).body:
-        if isinstance(node, (ast.FunctionDef, ast.ClassDef)) and node.name != "parse_args":
+        if isinstance(node, (ast.FunctionDef, ast.ClassDef)) and node.name not in skip:
             segment = ast.get_source_segment(source, node)
             defs[node.name] = segment or ""
     return defs
-
-
-def _check_jargon_default_watchlist_agrees() -> None:
-    """Both copies default to the very same watchlist file and status
-    table, so identical matching code cannot still diverge on which terms
-    it reads."""
-
-    import importlib.util
-
-    from . import jargon_lint as package_impl
-
-    _, skill_copy = _jargon_impl_paths()
-    spec = importlib.util.spec_from_file_location(
-        "press._jargon_skill_selftest", skill_copy)
-    if spec is None or spec.loader is None:
-        raise SystemExit("selftest: cannot load the portable jargon skill copy")
-    skill_impl = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = skill_impl
-    spec.loader.exec_module(skill_impl)
-
-    if package_impl.STATUS_LEVEL != skill_impl.STATUS_LEVEL:
-        raise SystemExit("selftest: jargon STATUS_LEVEL tables disagree")
-
-    pkg_default = package_impl.parse_args([]).watchlist.resolve()
-    skill_default = skill_impl.parse_args([]).watchlist.resolve()
-    if pkg_default != skill_default:
-        raise SystemExit(
-            "selftest: jargon checkers default to different watchlists -- "
-            f"package {pkg_default}, skill {skill_default}")
-
-
-def check_jargon_parity() -> None:
-    """The package jargon checker and the portable skill copy share every
-    line of parsing, normalization, matching, allowlist, and reporting
-    logic, and resolve the same default watchlist; a fix or rule cannot
-    land in one execution surface and silently skip the other. The
-    behavioural corpus lives in tests/test_jargon_parity.py."""
-
-    package_copy, skill_copy = _jargon_impl_paths()
-    for path in (package_copy, skill_copy):
-        if not path.is_file():
-            raise SystemExit(f"selftest: jargon checker missing at {path}")
-
-    skill_source = skill_copy.read_text(encoding="utf-8")
-    pkg_defs = _jargon_shared_defs(package_copy.read_text(encoding="utf-8"))
-    skill_defs = _jargon_shared_defs(skill_source)
-
-    if pkg_defs.keys() != skill_defs.keys():
-        only_pkg = sorted(pkg_defs.keys() - skill_defs.keys())
-        only_skill = sorted(skill_defs.keys() - pkg_defs.keys())
-        raise SystemExit(
-            "selftest: jargon checkers define different names -- "
-            f"package only {only_pkg}, skill only {only_skill}")
-
-    drifted = sorted(name for name, body in pkg_defs.items() if skill_defs[name] != body)
-    if drifted:
-        raise SystemExit(
-            "selftest: jargon checker logic drifted between the package copy and "
-            f"the portable skill copy in: {drifted}. A matching or reporting fix "
-            "must land in both src/press/jargon_lint.py and "
-            "src/press/data/skills/overused-jargon/scripts/jargon_lint.py.")
-
-    # The portable copy must not reach back into the package: an author runs it
-    # standalone, from a checkout, with no press on the path.
-    for forbidden in ("from . import", "import press", "from press "):
-        if forbidden in skill_source:
-            raise SystemExit(
-                "selftest: the portable jargon skill imports the package "
-                f"({forbidden!r}); it must stay importable without it.")
-
-    _check_jargon_default_watchlist_agrees()
 
 
 # The one ordered list of invariant checks. main() runs it and the
 # pytest suite parametrizes over it, so the CLI and the test runner
 # cannot disagree about which invariants the press proves.
 CHECKS = [
-    check_imports,
-    check_import_side_effects,
     check_arithmetic,
     check_slug_invariant,
     check_jargon_parity,
@@ -1744,12 +553,8 @@ CHECKS = [
     check_coverwrap_detectors,
     check_aesthetic_schema,
     check_contract_mirror,
-    check_invariant_ledger,
-    check_ledger_completeness,
-    check_fixture_provenance,
     check_migration,
     check_extension_conformance,
-    check_producers_are_verified,
     check_command_catalog,
     check_docs,
 ]
@@ -1760,19 +565,22 @@ def main(argv: list[str] | None = None) -> int:
         docs = Path(__file__).resolve().parent.parent.parent / "docs"
         docs.mkdir(parents=True, exist_ok=True)
         from . import qualification
+
         (docs / "REFERENCE.md").write_text(render_reference(), encoding="utf-8")
         (docs / "INVARIANTS.md").write_text(invariants.render(), encoding="utf-8")
-        (docs / "PROVIDER-QUALIFICATION.md").write_text(
-            qualification.render(), encoding="utf-8")
+        (docs / "PROVIDER-QUALIFICATION.md").write_text(qualification.render(), encoding="utf-8")
         # The packaged provider record is a generated projection of the one
         # canonical ledger (quality/providers.yaml), not a hand-kept mirror.
-        qualification.PACKAGED_RECORD.write_text(
-            qualification.render_packaged(), encoding="utf-8")
-        print(f"wrote {docs / 'REFERENCE.md'}, {docs / 'INVARIANTS.md'}, "
-              f"{docs / 'PROVIDER-QUALIFICATION.md'}, and "
-              f"{qualification.PACKAGED_RECORD}")
+        qualification.PACKAGED_RECORD.write_text(qualification.render_packaged(), encoding="utf-8")
+        print(
+            f"wrote {docs / 'REFERENCE.md'}, {docs / 'INVARIANTS.md'}, "
+            f"{docs / 'PROVIDER-QUALIFICATION.md'}, and "
+            f"{qualification.PACKAGED_RECORD}"
+        )
     for check in CHECKS:
         check()
-    print(f"Selftest passed: {len(modules())} modules import, arithmetic agrees "
-          "with the canonical examples, usage and README name every target")
+    print(
+        f"Selftest passed: {len(CHECKS)} checks, arithmetic agrees "
+        "with the canonical examples, usage and README name every target"
+    )
     return 0

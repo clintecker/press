@@ -72,14 +72,13 @@ def test_tex_setup_defines_the_macro_with_the_settings():
     assert "\\usepackage{lettrine}" in tex
     assert "\\newcommand{\\PressDropCap}" in tex
     assert "lines=3,depth=1" in tex
-    assert "\\scshape" in tex               # small-caps remainder on by default
-    assert "\\Needspace*{5\\baselineskip}" in tex   # lines + depth + 1 reserved
+    assert "\\scshape" in tex  # small-caps remainder on by default
+    assert "\\Needspace*{5\\baselineskip}" in tex  # lines + depth + 1 reserved
 
 
 @pytest.mark.layer("unit")
 def test_tex_setup_without_small_caps():
-    tex = dropcaps.tex_setup(
-        dropcaps.Settings(style="drop-cap", small_caps_remainder=False))
+    tex = dropcaps.tex_setup(dropcaps.Settings(style="drop-cap", small_caps_remainder=False))
     assert "\\scshape" not in tex
 
 
@@ -95,8 +94,7 @@ def test_tex_setup_routes_the_lead_through_ante_only_when_present():
     assert "\\ifx\\PressDropLead\\empty" in tex
     assert "ante={\\smash{\\llap{\\normalfont\\normalsize #1\\kern0.1em}}}" in tex
     # The empty-lead branch is byte-identical to the pre-fix lettrine call.
-    assert ("\\lettrine[lines=3,depth=0,findent=2pt,nindent=0pt]{#2}"
-            "{\\scshape #3}") in tex
+    assert ("\\lettrine[lines=3,depth=0,findent=2pt,nindent=0pt]{#2}{\\scshape #3}") in tex
 
 
 @pytest.mark.layer("unit")
@@ -144,7 +142,7 @@ def test_leading_em_dash_is_kept():
 
 @pytest.mark.layer("unit")
 def test_precomposed_accented_initial_is_whole():
-    o = dropcaps.split_initial("Évidence is not verification.")   # É
+    o = dropcaps.split_initial("Évidence is not verification.")  # É
     assert o.initial == "É" and o.word_remainder == "vidence"
 
 
@@ -154,7 +152,7 @@ def test_decomposed_accented_initial_stays_a_grapheme():
     text = "Évidence is not verification."
     o = dropcaps.split_initial(text)
     assert o.initial == "É"
-    assert unicodedata.combining(o.initial[-1])   # the accent rode along
+    assert unicodedata.combining(o.initial[-1])  # the accent rode along
     assert o.word_remainder == "vidence"
 
 

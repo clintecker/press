@@ -13,11 +13,10 @@ from __future__ import annotations
 
 import argparse
 import re
-from datetime import date
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
-from . import booklib
+from . import adapters, booklib
 
 if TYPE_CHECKING:
     from PIL import Image as _Image
@@ -113,8 +112,11 @@ def _require_flat_ground(image: _Image.Image) -> None:
     # The fraction of border pixels that are light. A flat light ground is
     # almost all light; ink strokes that reach the edge are sparse, so they
     # barely move this -- but a dark, tonal, or textured ground pushes it down.
-    border = (list(top.getdata()) + list(bottom.getdata())
-              + list(left.getdata()) + list(right.getdata()))
+    # tobytes() on an L-mode image is one byte per pixel in row order, the same
+    # sequence getdata() returned (getdata is deprecated in Pillow 14).
+    border = (
+        list(top.tobytes()) + list(bottom.tobytes()) + list(left.tobytes()) + list(right.tobytes())
+    )
     light = sum(1 for v in border if v >= 200) / len(border)
     # A smooth gradient shows as a top-to-bottom or side-to-side drift in the
     # border means (sparse edge ink does not drift one side against the other).
@@ -212,7 +214,7 @@ def accept(source: Path, target: str) -> Path:
             )
         destination = root / "assets" / "cover.jpg"
     elif target.startswith("plate:"):
-        name = target[len("plate:"):].strip()
+        name = target[len("plate:") :].strip()
         if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", name):
             raise SystemExit(
                 "plate names are kebab-case ([a-z0-9-]): --as plate:<name>; "
@@ -224,9 +226,7 @@ def accept(source: Path, target: str) -> Path:
     elif target == "portrait":
         destination = root / "assets" / "author.jpg"
     else:
-        raise SystemExit(
-            f"unknown target {target!r}: cover, plate:<name>, logomark, portrait"
-        )
+        raise SystemExit(f"unknown target {target!r}: cover, plate:<name>, logomark, portrait")
 
     destination.parent.mkdir(parents=True, exist_ok=True)
     if target == "logomark":
@@ -235,8 +235,7 @@ def accept(source: Path, target: str) -> Path:
         # A plate is kept as an alpha master, not a baked-white JPEG, so one
         # graphic composites onto any surface. Single ink greys the ink here;
         # the print verifier proves the interior is one ink from the pages.
-        _plate_master(image, single_ink=_single_ink_plates()).save(
-            destination, optimize=True)
+        _plate_master(image, single_ink=_single_ink_plates()).save(destination, optimize=True)
     else:
         # Cover and portrait are opaque rasters: alpha flattens to paper
         # white, never to the default black.
@@ -257,7 +256,7 @@ def record_acceptance(root: Path, target: str, source: Path, image, destination:
     record = root / "art" / "commissions.md"
     record.parent.mkdir(parents=True, exist_ok=True)
     line = (
-        f"- Accepted {date.today().isoformat()}: `{target}` <- {source.name}, "
+        f"- Accepted {adapters.clock.today().isoformat()}: `{target}` <- {source.name}, "
         f"{image.width}x{image.height}px, placed at {destination.relative_to(root)}"
     )
     if record.is_file():
@@ -270,7 +269,8 @@ def record_acceptance(root: Path, target: str, source: Path, image, destination:
     if RECORD_HEADING not in text:
         text = text.rstrip("\n") + f"\n\n{RECORD_HEADING}\n"
     lines = [
-        kept for kept in text.splitlines()
+        kept
+        for kept in text.splitlines()
         if not (kept.startswith("- Accepted ") and f"`{target}`" in kept)
     ]
     heading_at = lines.index(RECORD_HEADING)
@@ -296,18 +296,29 @@ def main(argv: list[str]) -> int:
     sub.add_parser("commission", help="submit commissions.md prompts to image models")
     accept_cmd.add_argument("file", type=Path)
     accept_cmd.add_argument(
-        "--as", dest="target", required=True,
+        "--as",
+        dest="target",
+        required=True,
         help="cover | plate:<name> | logomark | portrait",
     )
     enhance_cmd = sub.add_parser(
-        "enhance", help="upscale, quantize, and losslessly compress plate art")
+        "enhance", help="upscale, quantize, and losslessly compress plate art"
+    )
     enhance_cmd.add_argument(
-        "file", type=Path, nargs="?",
-        help="one image to finish; omit to finish every committed plate")
-    enhance_cmd.add_argument("--colors", type=int, default=None,
-                             help="palette size (default from the aesthetic medium)")
-    enhance_cmd.add_argument("--max-edge", type=int, default=None,
-                             help="target long edge in px (default 2400, print-grade)")
+        "file",
+        type=Path,
+        nargs="?",
+        help="one image to finish; omit to finish every committed plate",
+    )
+    enhance_cmd.add_argument(
+        "--colors", type=int, default=None, help="palette size (default from the aesthetic medium)"
+    )
+    enhance_cmd.add_argument(
+        "--max-edge",
+        type=int,
+        default=None,
+        help="target long edge in px (default 2400, print-grade)",
+    )
     args = parser.parse_args(argv)
     if args.command == "enhance":
         return _enhance(args)
@@ -334,8 +345,10 @@ def _enhance(args) -> int:
     grayscale = profiles.active().ink != "color"
 
     if art_enhance.find_upscaler() is None:
-        print("no Real-ESRGAN upscaler found (Upscayl or realesrgan-ncnn-vulkan); "
-              "quantizing and compressing without an AI upscale")
+        print(
+            "no Real-ESRGAN upscaler found (Upscayl or realesrgan-ncnn-vulkan); "
+            "quantizing and compressing without an AI upscale"
+        )
 
     if args.file is not None:
         targets = [args.file]
@@ -349,10 +362,13 @@ def _enhance(args) -> int:
         if not src.is_file():
             raise SystemExit(f"no such file: {src}")
         dst = src.with_suffix(".png")
-        result = art_enhance.enhance(src, dst, model=default_model, colors=colors,
-                                     max_edge=max_edge, grayscale=grayscale)
+        result = art_enhance.enhance(
+            src, dst, model=default_model, colors=colors, max_edge=max_edge, grayscale=grayscale
+        )
         how = "upscaled" if result.upscaled else "resampled"
         tone = "grays" if grayscale else "colors"
-        print(f"enhanced {src.name} -> {dst.name}: {result.width}x{result.height}, "
-              f"{result.colors} {tone}, {how}")
+        print(
+            f"enhanced {src.name} -> {dst.name}: {result.width}x{result.height}, "
+            f"{result.colors} {tone}, {how}"
+        )
     return 0

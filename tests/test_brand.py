@@ -12,7 +12,7 @@ from press import brand
 @pytest.mark.layer("unit")
 def test_no_color_env_wins(monkeypatch):
     monkeypatch.setenv("NO_COLOR", "1")
-    monkeypatch.setenv("FORCE_COLOR", "1")   # NO_COLOR must still win
+    monkeypatch.setenv("FORCE_COLOR", "1")  # NO_COLOR must still win
     assert brand.use_color() is False
     assert brand.paint("x", brand.VERMILION) == "x"
 
@@ -32,7 +32,7 @@ def test_banner_names_version_and_tagline_without_ansi_when_plain(monkeypatch):
     out = brand.banner("9.9.9")
     assert "v9.9.9 · MIT · run press all" in out
     assert "markdown → a finished book" in out
-    assert "\033[" not in out   # no ANSI when color is off
+    assert "\033[" not in out  # no ANSI when color is off
 
 
 @pytest.mark.layer("unit")

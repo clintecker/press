@@ -55,8 +55,9 @@ class ToolError(PressError):
     source -- failed or answered with an error. Carries what the boundary
     reported so the CLI can relay it verbatim."""
 
-    def __init__(self, message: str, *, source: str = "", code: int | None = None,
-                 detail: str = "") -> None:
+    def __init__(
+        self, message: str, *, source: str = "", code: int | None = None, detail: str = ""
+    ) -> None:
         super().__init__(message)
         self.source = source
         self.code = code

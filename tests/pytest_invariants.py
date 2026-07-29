@@ -27,7 +27,7 @@ mechanically rather than re-deriving it from marker scraping.
 
 This module deliberately exposes no public module-level callable: the
 hooks live on a class and every helper is underscore-prefixed, so the
-public-surface inventory (``press.surfaces``) has nothing here to
+public-surface inventory (celebrimbor's surface gate) has nothing here to
 classify. ``tests/conftest.py`` (and each malformed-suite sub-session)
 installs it by calling ``_install`` from its ``pytest_configure``.
 """
@@ -53,23 +53,40 @@ _POLARITIES = frozenset({"positive", "negative"})
 # external tools the press shells out to (see press.doctor); an
 # environment-dependent skip must name one of them, so a skip can never
 # hide an untested tier behind an unexplained condition.
-_CAPABILITIES = frozenset({
-    "pandoc", "lualatex", "latexmk", "pdftoppm", "pdffonts",
-    "pdfinfo", "pdftotext", "git", "epubcheck", "claude",
-    # The packaging tool, a real capability the distribution tests need.
-    "build",
-    # The optional operator-desk interface.
-    "textual",
-})
+_CAPABILITIES = frozenset(
+    {
+        "pandoc",
+        "lualatex",
+        "latexmk",
+        "pdftoppm",
+        "pdffonts",
+        "pdfinfo",
+        "pdftotext",
+        "git",
+        "epubcheck",
+        "claude",
+        # The packaging tool, a real capability the distribution tests need.
+        "build",
+        # The optional operator-desk interface.
+        "textual",
+    }
+)
 
 _INV_ID = re.compile(r"INV-[A-Za-z0-9-]+")
 # Call names that count as an assertion when a test carries no bare
 # `assert`: pytest's expected-exception/warning contexts and helpers, and
 # unittest-style assert* helpers. A bare expect() (a common assertion
 # spelling) counts; expect*-prefixed value helpers do not.
-_ASSERT_CALLS = frozenset({
-    "raises", "warns", "deprecated_call", "fail", "xfail", "approx",
-})
+_ASSERT_CALLS = frozenset(
+    {
+        "raises",
+        "warns",
+        "deprecated_call",
+        "fail",
+        "xfail",
+        "approx",
+    }
+)
 
 _PLUGIN_NAME = "press-invariants"
 
@@ -79,11 +96,7 @@ def _load_ledger() -> dict[str, dict[str, Any]]:
 
     from press import invariants
 
-    return {
-        inv["id"]: inv
-        for inv in invariants.load()
-        if isinstance(inv, dict) and "id" in inv
-    }
+    return {inv["id"]: inv for inv in invariants.load() if isinstance(inv, dict) and "id" in inv}
 
 
 def _marker(item: pytest.Item, name: str) -> tuple[bool, Any]:
@@ -143,7 +156,9 @@ def _has_assertion(tree: ast.AST) -> bool:
     return False
 
 
-def _cited_limitation(reason: str, invariant: str | None, ledger: dict[str, dict[str, Any]]) -> bool:
+def _cited_limitation(
+    reason: str, invariant: str | None, ledger: dict[str, dict[str, Any]]
+) -> bool:
     """True if the reason or invariant marker names an INV id whose
     ledger entry declares a limitation."""
 
@@ -160,10 +175,7 @@ def _named_capabilities(reason: str) -> list[str]:
     by bare word."""
 
     reason = reason or ""
-    return sorted(
-        cap for cap in _CAPABILITIES
-        if re.search(rf"\b{re.escape(cap)}\b", reason)
-    )
+    return sorted(cap for cap in _CAPABILITIES if re.search(rf"\b{re.escape(cap)}\b", reason))
 
 
 def _item_problems(
@@ -186,13 +198,11 @@ def _item_problems(
             problems.append(f"{nid}: invariant marker carries no id")
         elif invariant not in ledger:
             problems.append(
-                f"{nid}: unknown invariant {invariant!r}; "
-                "not in quality/invariants.yaml"
+                f"{nid}: unknown invariant {invariant!r}; not in quality/invariants.yaml"
             )
         if not has_layer:
             problems.append(
-                f"{nid}: invariant marker requires a layer marker "
-                "(missing proof metadata)"
+                f"{nid}: invariant marker requires a layer marker (missing proof metadata)"
             )
         if not has_proof:
             problems.append(
@@ -201,13 +211,9 @@ def _item_problems(
             )
 
     if has_layer and layer not in _LAYERS:
-        problems.append(
-            f"{nid}: unknown layer {layer!r}; expected one of {sorted(_LAYERS)}"
-        )
+        problems.append(f"{nid}: unknown layer {layer!r}; expected one of {sorted(_LAYERS)}")
     if has_proof and proof not in _POLARITIES:
-        problems.append(
-            f"{nid}: unknown proof {proof!r}; expected positive or negative"
-        )
+        problems.append(f"{nid}: unknown proof {proof!r}; expected positive or negative")
 
     xfail = item.get_closest_marker("xfail")
     if xfail is not None:
@@ -308,14 +314,9 @@ class _InvariantCollectionPlugin:
     ) -> None:
         tr = terminalreporter
         tr.write_sep("-", "invariant collection")
-        tr.write_line(
-            "declared capabilities: " + ", ".join(sorted(_CAPABILITIES))
-        )
+        tr.write_line("declared capabilities: " + ", ".join(sorted(_CAPABILITIES)))
         if self._capabilities:
-            tr.write_line(
-                "capabilities named by skips: "
-                + ", ".join(sorted(self._capabilities))
-            )
+            tr.write_line("capabilities named by skips: " + ", ".join(sorted(self._capabilities)))
         tr.write_line(
             f"tests carrying an invariant: {len(self._test_to_inv)}; "
             f"invariants with a collected proof: {len(self._inv_to_tests)}"

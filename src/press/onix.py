@@ -31,9 +31,19 @@ _HARDCOVER = frozenset({"casewrap", "dust-jacket"})
 # Small on purpose: an unmapped language omits the element rather than emit an
 # invalid code.
 _LANG3 = {
-    "en": "eng", "fr": "fre", "es": "spa", "de": "ger", "it": "ita",
-    "pt": "por", "nl": "dut", "sv": "swe", "la": "lat", "ja": "jpn",
-    "zh": "chi", "ru": "rus", "ar": "ara",
+    "en": "eng",
+    "fr": "fre",
+    "es": "spa",
+    "de": "ger",
+    "it": "ita",
+    "pt": "por",
+    "nl": "dut",
+    "sv": "swe",
+    "la": "lat",
+    "ja": "jpn",
+    "zh": "chi",
+    "ru": "rus",
+    "ar": "ara",
 }
 
 
@@ -42,8 +52,8 @@ class Edition:
     """One sellable edition to describe: its ONIX product form and the clean
     13-digit ISBN, or ``None`` when the book has not been assigned one yet."""
 
-    label: str        # "print" | "epub"
-    form: str         # ONIX ProductForm: BB | BC | EA
+    label: str  # "print" | "epub"
+    form: str  # ONIX ProductForm: BB | BC | EA
     isbn: str | None
 
 
@@ -79,41 +89,41 @@ def _contributors(parent: ET.Element, book: Book) -> None:
     for seq, name in enumerate(book.authors, 1):
         contributor = _el(parent, "Contributor")
         _el(contributor, "SequenceNumber", str(seq))
-        _el(contributor, "ContributorRole", "A01")   # by (author)
+        _el(contributor, "ContributorRole", "A01")  # by (author)
         _el(contributor, "PersonName", name)
 
 
 def _product(book: Book, edition: Edition, lang: str | None, status: str) -> ET.Element:
     product = ET.Element(f"{{{NS}}}Product")
     _el(product, "RecordReference", _record_reference(book, edition.label))
-    _el(product, "NotificationType", "03")   # confirmed record
+    _el(product, "NotificationType", "03")  # confirmed record
     if edition.isbn:
         identifier = _el(product, "ProductIdentifier")
-        _el(identifier, "ProductIDType", "15")   # ISBN-13
+        _el(identifier, "ProductIDType", "15")  # ISBN-13
         _el(identifier, "IDValue", edition.isbn)
 
     descriptive = _el(product, "DescriptiveDetail")
-    _el(descriptive, "ProductComposition", "00")   # single-component
+    _el(descriptive, "ProductComposition", "00")  # single-component
     _el(descriptive, "ProductForm", edition.form)
     _title_detail(descriptive, book)
     _contributors(descriptive, book)
     code3 = _LANG3.get((lang or "").split("-")[0].lower())
     if code3:
         language = _el(descriptive, "Language")
-        _el(language, "LanguageRole", "01")   # language of text
+        _el(language, "LanguageRole", "01")  # language of text
         _el(language, "LanguageCode", code3)
 
     publishing = _el(product, "PublishingDetail")
     if book.publisher:
         publisher = _el(publishing, "Publisher")
-        _el(publisher, "PublishingRole", "01")   # publisher
+        _el(publisher, "PublishingRole", "01")  # publisher
         _el(publisher, "PublisherName", book.publisher)
     if book.publisher_place:
         _el(publishing, "CityOfPublication", book.publisher_place)
     _el(publishing, "PublishingStatus", status)
     if book.year:
         date = _el(publishing, "PublishingDate")
-        _el(date, "PublishingDateRole", "01")   # publication date
+        _el(date, "PublishingDateRole", "01")  # publication date
         # dateformat 05 = year only; the press knows the year, not the day.
         _el(date, "Date", book.year).set("dateformat", "05")
     # No <ProductSupply>/<Price>: a book repository holds no price, by design.

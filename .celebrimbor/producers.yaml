@@ -1,0 +1,112 @@
+pending:
+  aesthetic:write_tex_overrides:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  art_commission:commission:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  art_enhance:enhance:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  catalog:render_command_help:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  catalog:render_global_help:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  catalog:render_usage:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  desk_model:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  edition:build:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  invariants:render:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  migrate:apply:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  migrate:rollback:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  print_safe:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  profiles:write_geometry_tex:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  qualification:render:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  qualification:render_packaged:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  receipts:assemble_release:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  receipts:build_full_chain:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  receipts:build_release_receipt:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  receipts:emit:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  scenarios:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  selftest:render_reference:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  yamlio:dump:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  yamlio:write:
+    reason: verifier fixture not yet migrated from press
+    review_by: '2026-10-01'
+  reader_meta:
+    reason: reader metadata injected into the site; proven by verify_pages,
+      ledger entry pending
+    review_by: '2027-01-01'
+version: 1
+producers:
+  build:
+    verifier: verify_pdf:verify_mirrored_margins
+    negative_fixture:
+      tests/test_verify_pdf_print_profile.py::test_a_missing_gutter_is_rejected
+  commerce:
+    verifier: verify_pages:check_commerce
+    negative_fixture:
+      tests/test_commerce.py::test_verifier_refuses_a_missing_cta_when_enabled
+  gen_authorities:
+    verifier: selftest_book:check_authorities_ledger
+    negative_fixture:
+      tests/test_selftest_checks.py::test_invariant_check_passes[check_authorities_ledger]
+  gen_coverwrap:
+    verifier: verify_coverwrap:check_print_safe
+    negative_fixture:
+      tests/test_coverwrap_layout.py::test_check_print_safe_rejects_a_transparent_image
+  gen_front_matter:
+    verifier: verify_pdf:verify_cover_page
+    negative_fixture:
+      tests/test_verify_pdf_cover.py::test_a_dropped_cover_is_rejected
+  gen_index:
+    verifier: config_schema:validate_file
+    negative_fixture:
+      tests/test_config_shapes.py::test_gen_index_self_guards_against_the_terms_wrapper
+  package_source:
+    verifier: check_source:main
+    negative_fixture:
+      tests/test_properties_policy.py::test_secret_named_file_is_never_admitted
+  profile_lifecycle:
+    verifier: profile_lifecycle:validate
+    negative_fixture:
+      tests/test_profile_lifecycle.py::test_digest_drift_is_refused
+  scaffold:
+    verifier: selftest_book:check_scaffold_neutrality
+    negative_fixture:
+      tests/test_selftest_checks.py::test_invariant_check_passes[check_scaffold_neutrality]

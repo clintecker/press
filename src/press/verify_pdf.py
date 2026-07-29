@@ -31,36 +31,53 @@ def sentinels() -> list[str]:
     return list(booklib.sentinels())
 
 
+def _find_list_page_index(reader, label: str) -> int | None:
+    """Index of the first page whose extracted text carries *label*, or None
+    when no such page is present (a book may carry only one list)."""
+
+    return next(
+        (i for i, page in enumerate(reader.pages) if label in (page.extract_text() or "")),
+        None,
+    )
+
+
+def _resolve_annotation_page(reader, obj, label: str) -> int | None:
+    """Page number the annotation's link destination lands on, or None when
+    the annotation carries no destination we can follow (no /Dest or /A/D, or
+    a named destination absent from the document). Raises when a destination
+    is present but resolves to no page."""
+
+    dest = obj.get("/Dest") or (obj.get("/A") or {}).get("/D")
+    if dest is None:
+        return None
+    dest = dest.get_object() if hasattr(dest, "get_object") else dest
+    if isinstance(dest, str):
+        named = reader.named_destinations.get(dest)
+        if named is None:
+            return None
+        target = reader.get_destination_page_number(named)
+    else:
+        target = reader.get_page_number(dest[0].get_object())
+    if target is None:
+        raise SystemExit(f"{label} link {dest!r} resolves to no page")
+    return target
+
+
 def _list_links_land_on_images(reader, label: str) -> None:
     """Every link on the illustration-list page named *label* must land on a
     page that holds an image. Both lists -- the unnumbered List of Plates and
     the numbered List of Figures -- are held to it; a list whose page is not
     present is simply skipped (a book may carry only one)."""
 
-    index = next(
-        (i for i, page in enumerate(reader.pages)
-         if label in (page.extract_text() or "")),
-        None,
-    )
+    index = _find_list_page_index(reader, label)
     if index is None:
         return
     bad: list[int] = []
     checked = 0
     for annotation in reader.pages[index].get("/Annots") or []:
-        obj = annotation.get_object()
-        dest = obj.get("/Dest") or (obj.get("/A") or {}).get("/D")
-        if dest is None:
-            continue
-        dest = dest.get_object() if hasattr(dest, "get_object") else dest
-        if isinstance(dest, str):
-            named = reader.named_destinations.get(dest)
-            if named is None:
-                continue
-            target = reader.get_destination_page_number(named)
-        else:
-            target = reader.get_page_number(dest[0].get_object())
+        target = _resolve_annotation_page(reader, annotation.get_object(), label)
         if target is None:
-            raise SystemExit(f"{label} link {dest!r} resolves to no page")
+            continue
         checked += 1
         resources = reader.pages[target].get("/Resources") or {}
         if "/XObject" not in resources:
@@ -111,7 +128,8 @@ def verify_cover_page(pdf: Path, root: Path, first_page: Path) -> None:
     if looks_blank(Image.open(first_page)):
         raise SystemExit(
             "assets/cover.jpg exists but page 1 of the reading PDF renders "
-            "blank -- the cover plate was clipped off the page")
+            "blank -- the cover plate was clipped off the page"
+        )
     # And page 1 must be the cover, not a text title page: the cover raster is
     # a large embedded image (the source is ~1000px wide).
     if adapters.environment.which("pdfimages") is None:
@@ -122,7 +140,8 @@ def verify_cover_page(pdf: Path, root: Path, first_page: Path) -> None:
     if not any(w >= 600 for w in widths):
         raise SystemExit(
             "assets/cover.jpg exists but page 1 of the reading PDF carries no "
-            "cover image -- the generated front matter dropped it")
+            "cover image -- the generated front matter dropped it"
+        )
 
 
 def looks_blank(image: Image.Image) -> bool:
@@ -153,9 +172,7 @@ def edge_has_ink(image: Image.Image, border: int = 2) -> bool:
         gray.crop((0, 0, border, height)),
         gray.crop((width - border, 0, width, height)),
     ]
-    return any(
-        cast("tuple[int, int]", strip.getextrema())[0] < 245 for strip in strips
-    )
+    return any(cast("tuple[int, int]", strip.getextrema())[0] < 245 for strip in strips)
 
 
 def ink_bbox(image: Image.Image) -> tuple[int, int, int, int] | None:
@@ -205,9 +222,7 @@ def verify_black_ink(images: list[Path], ink: str = "single") -> None:
     for index, path in enumerate(images, start=1):
         with Image.open(path) as image:
             r, g, b = image.convert("RGB").split()
-            spread = ImageChops.lighter(
-                ImageChops.difference(r, g), ImageChops.difference(g, b)
-            )
+            spread = ImageChops.lighter(ImageChops.difference(r, g), ImageChops.difference(g, b))
         if sum(spread.histogram()[48:]) > 200:
             offenders.append(index)
     if offenders:
@@ -288,10 +303,7 @@ def verify_info(pdf: Path, trim_width: float, trim_height: float, min_pages: int
             f"(expected {trim_width:g} x {trim_height:g} inches)"
         )
     if expected_pages < min_pages:
-        raise SystemExit(
-            f"suspiciously short PDF: {expected_pages} pages "
-            f"(minimum {min_pages})"
-        )
+        raise SystemExit(f"suspiciously short PDF: {expected_pages} pages (minimum {min_pages})")
     return expected_pages
 
 
@@ -352,10 +364,9 @@ def drop_structural_blank(blank_pages: list[int]) -> list[int]:
     # from a plate that silently failed to ship.
     blank_set = set(blank_pages)
     structural = [
-        page for page in blank_pages
-        if page % 2 == 0
-        and (page - 1) not in blank_set
-        and (page + 1) not in blank_set
+        page
+        for page in blank_pages
+        if page % 2 == 0 and (page - 1) not in blank_set and (page + 1) not in blank_set
     ][:1]
     return [page for page in blank_pages if page not in structural]
 
@@ -421,13 +432,15 @@ def main(argv: list[str] | None = None) -> int:
         ink = profiles.active().ink
         verify_black_ink(images, ink)
         profile_note = ", mirrored margins, " + (
-            "black ink only" if ink == "single" else "colour interior")
+            "black ink only" if ink == "single" else "colour interior"
+        )
     else:
         # The reading PDF leads with the cover; the print interior drops it
         # (the cover lives on the wrap), so this is a reading-profile check.
         verify_cover_page(pdf, root, images[0])
-        if (root / "assets" / "cover.jpg").is_file() \
-                and not (root / "tex" / "title-page.tex").is_file():
+        if (root / "assets" / "cover.jpg").is_file() and not (
+            root / "tex" / "title-page.tex"
+        ).is_file():
             profile_note = ", cover on page 1"
 
     print(

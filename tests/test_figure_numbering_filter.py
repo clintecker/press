@@ -14,16 +14,30 @@ from pathlib import Path
 
 import pytest
 
-FILTER = Path(__file__).resolve().parent.parent / "src" / "press" / "data" / \
-    "lua" / "figure-numbering.lua"
+FILTER = (
+    Path(__file__).resolve().parent.parent
+    / "src"
+    / "press"
+    / "data"
+    / "lua"
+    / "figure-numbering.lua"
+)
 
-pytestmark = pytest.mark.skipif(shutil.which("pandoc") is None,
-                                reason="requires capability: pandoc")
+pytestmark = pytest.mark.skipif(
+    shutil.which("pandoc") is None, reason="requires capability: pandoc"
+)
 
 
 def _render(markdown: str, to: str = "latex", filtered: bool = True) -> str:
-    args = ["pandoc", "-f", "markdown+smart", "-t", to,
-            "--top-level-division=chapter", "--number-sections"]
+    args = [
+        "pandoc",
+        "-f",
+        "markdown+smart",
+        "-t",
+        to,
+        "--top-level-division=chapter",
+        "--number-sections",
+    ]
     if filtered:
         args.append(f"--lua-filter={FILTER}")
     result = subprocess.run(args, input=markdown, capture_output=True, text=True)
@@ -45,8 +59,8 @@ _MIXED = (
 @pytest.mark.proof("positive")
 def test_declared_informative_kinds_are_numbered_by_chapter():
     out = _render(_MIXED)
-    assert "\\textbf{Figure~1.1.}" in out          # figure, chapter 1
-    assert "\\textbf{Figure~2.1.}" in out          # chart, chapter 2, resets
+    assert "\\textbf{Figure~1.1.}" in out  # figure, chapter 1
+    assert "\\textbf{Figure~2.1.}" in out  # chart, chapter 2, resets
     assert "\\addcontentsline{lof2}{figure}{\\protect\\numberline{1.1}" in out
     assert "\\addcontentsline{lof2}{figure}{\\protect\\numberline{2.1}" in out
 
@@ -66,7 +80,8 @@ def test_plates_and_bare_images_are_never_numbered():
 def test_list_of_figures_is_emitted_only_when_numbered_figures_exist():
     assert "\\PressListOfFigures" in _render(_MIXED)
     plates_only = _render(
-        "# One\n\n![A plate](assets/w/x.png)\n\n![Another](assets/w/y.png){.plate}\n")
+        "# One\n\n![A plate](assets/w/x.png)\n\n![Another](assets/w/y.png){.plate}\n"
+    )
     assert "\\PressListOfFigures" not in plates_only
 
 
@@ -107,9 +122,7 @@ def test_a_decorative_image_carries_no_descriptive_alt():
     # A decorative ornament must not announce its words to a screen reader:
     # the alt is emptied (pandoc renders an empty alt as no alt attribute at
     # all, which is the same "skip me" signal) and never the caption text.
-    html = _render(
-        "# One\n\n![An ornament](assets/deco.png){.figure decorative=true}\n",
-        to="html")
+    html = _render("# One\n\n![An ornament](assets/deco.png){.figure decorative=true}\n", to="html")
     assert 'alt="An ornament"' not in html and "data-decorative" not in html
     # Decorative wins over numbering: it earns no "Figure N".
     assert "Figure 1.1" not in html and "Figure~1.1" not in html

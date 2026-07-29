@@ -14,11 +14,13 @@ from pathlib import Path
 
 import pytest
 
-FILTER = Path(__file__).resolve().parent.parent / "src" / "press" / "data" / "lua" / \
-    "scene-break.lua"
+FILTER = (
+    Path(__file__).resolve().parent.parent / "src" / "press" / "data" / "lua" / "scene-break.lua"
+)
 
 _needs_pandoc = pytest.mark.skipif(
-    shutil.which("pandoc") is None, reason="requires capability: pandoc")
+    shutil.which("pandoc") is None, reason="requires capability: pandoc"
+)
 
 # A chapter with one thematic break -- Alice's shrink/grow marker.
 _MD = "# A chapter\n\nBefore the shift.\n\n---\n\nAfter the shift.\n"
@@ -91,6 +93,6 @@ def test_fairy_dust_in_html():
 def test_default_leaves_the_rule_unchanged():
     # No ornament metadata (the 'rule' default): the thematic break stays a
     # horizontal rule in both formats, exactly as before the filter existed.
-    assert "\\rule" in _render(_MD)                     # latex
+    assert "\\rule" in _render(_MD)  # latex
     html = _render(_MD, to="html")
     assert "<hr" in html and 'class="asterism"' not in html

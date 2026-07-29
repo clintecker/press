@@ -25,6 +25,7 @@ import re
 import shutil
 import subprocess
 import sys
+
 # `escape` by name, not the module: build_page binds a local named `html`.
 from html import escape
 from pathlib import Path
@@ -55,42 +56,63 @@ SITE_URL = "https://clintecker.github.io/press/"
 # The sidebar, grouped into small scannable sections rather than one long
 # "Guide". Order within and across sections is the reading order.
 NAV_GROUPS = [
-    ("Start", [
-        ("site/landing.md", "index.html", "press"),
-        ("docs/QUICKSTART.md", "quickstart.html", "quickstart"),
-        ("docs/INSTALL.md", "install.html", "install"),
-    ]),
-    ("Author", [
-        ("docs/CONFIGURATION.md", "configuration.html", "configuration"),
-        ("docs/BOOK-PARTS.md", "book-parts.html", "book parts"),
-    ]),
-    ("Design", [
-        ("docs/GALLERY.md", "gallery.html", "gallery"),
-        ("docs/COVER-STYLES.md", "cover-styles.html", "cover styles"),
-        ("docs/ILLUSTRATIONS.md", "illustrations.html", "illustrations"),
-    ]),
-    ("Print & sell", [
-        ("docs/PRINT-FORMATS.md", "print-formats.html", "trim & binding"),
-        ("docs/PRINT-ORDERING.md", "print-ordering.html", "print ordering"),
-        ("docs/LULU.md", "lulu.html", "printing at lulu"),
-    ]),
-    ("Operate", [
-        ("docs/DESK.md", "desk.html", "desk"),
-        ("docs/WORKFLOWS.md", "workflows.html", "workflows & skills"),
-    ]),
-    ("Reference", [
-        ("docs/REFERENCE.md", "reference.html", "reference"),
-        ("docs/ARCHITECTURE.md", "architecture.html", "architecture"),
-        ("docs/INVARIANTS.md", "invariants.html", "invariants"),
-        ("docs/PROVIDER-QUALIFICATION.md", "provider-qualification.html", "providers"),
-        ("docs/COMPATIBILITY.md", "compatibility.html", "compatibility"),
-        ("docs/NON-GOALS.md", "non-goals.html", "non-goals"),
-        ("docs/MIGRATION.md", "migration.html", "migration"),
-    ]),
-    ("Project", [
-        ("ROADMAP.md", "roadmap.html", "roadmap"),
-        ("CHANGELOG.md", "changelog.html", "changelog"),
-    ]),
+    (
+        "Start",
+        [
+            ("site/landing.md", "index.html", "press"),
+            ("docs/QUICKSTART.md", "quickstart.html", "quickstart"),
+            ("docs/INSTALL.md", "install.html", "install"),
+        ],
+    ),
+    (
+        "Author",
+        [
+            ("docs/CONFIGURATION.md", "configuration.html", "configuration"),
+            ("docs/BOOK-PARTS.md", "book-parts.html", "book parts"),
+        ],
+    ),
+    (
+        "Design",
+        [
+            ("docs/GALLERY.md", "gallery.html", "gallery"),
+            ("docs/COVER-STYLES.md", "cover-styles.html", "cover styles"),
+            ("docs/ILLUSTRATIONS.md", "illustrations.html", "illustrations"),
+        ],
+    ),
+    (
+        "Print & sell",
+        [
+            ("docs/PRINT-FORMATS.md", "print-formats.html", "trim & binding"),
+            ("docs/PRINT-ORDERING.md", "print-ordering.html", "print ordering"),
+            ("docs/LULU.md", "lulu.html", "printing at lulu"),
+        ],
+    ),
+    (
+        "Operate",
+        [
+            ("docs/DESK.md", "desk.html", "desk"),
+            ("docs/WORKFLOWS.md", "workflows.html", "workflows & skills"),
+        ],
+    ),
+    (
+        "Reference",
+        [
+            ("docs/REFERENCE.md", "reference.html", "reference"),
+            ("docs/ARCHITECTURE.md", "architecture.html", "architecture"),
+            ("docs/INVARIANTS.md", "invariants.html", "invariants"),
+            ("docs/PROVIDER-QUALIFICATION.md", "provider-qualification.html", "providers"),
+            ("docs/COMPATIBILITY.md", "compatibility.html", "compatibility"),
+            ("docs/NON-GOALS.md", "non-goals.html", "non-goals"),
+            ("docs/MIGRATION.md", "migration.html", "migration"),
+        ],
+    ),
+    (
+        "Project",
+        [
+            ("ROADMAP.md", "roadmap.html", "roadmap"),
+            ("CHANGELOG.md", "changelog.html", "changelog"),
+        ],
+    ),
 ]
 
 # (source, output name, navigation label) — flat, for the build loop and
@@ -106,7 +128,7 @@ FOOTER_PAGES = [
 # Repo Markdown that deliberately stays off the site, with the reason.
 NOT_PUBLISHED = {
     "README.md": "the repository's front page; the site's home is site/landing.md, "
-                 "written for a first-time author rather than a browsing developer",
+    "written for a first-time author rather than a browsing developer",
     "CODE_OF_CONDUCT.md": "GitHub community-profile file, surfaced by GitHub itself",
     "GOVERNANCE.md": "GitHub community-profile file, surfaced by GitHub itself",
     "CLAUDE.md": "agent working instructions for this repo, not documentation",
@@ -115,29 +137,32 @@ NOT_PUBLISHED = {
     "docs/DIRECT-ORDERING-PLAN.md": "internal PRD/TRD; lives in the repo and issues, not the docs site",
     "docs/PRINT-PROFILES-PLAN.md": "internal v2 design record; lives in the repo and issues, not the docs site",
     "docs/EDITION-PARITY-PLAN.md": "internal implementation plan for matching the "
-                                   "PDF layout across HTML/EPUB/DOCX; lives in the "
-                                   "repo and issues, not the docs site",
+    "PDF layout across HTML/EPUB/DOCX; lives in the "
+    "repo and issues, not the docs site",
     "docs/LUA-QUALITY-PLAN.md": "internal engineering plan for the Lua filters' "
-                                "tests, coverage, lint, and formatting; lives in "
-                                "the repo and issues, not the docs site",
+    "tests, coverage, lint, and formatting; lives in "
+    "the repo and issues, not the docs site",
     "docs/CELEBRIMBOR-PLAN.md": "internal analysis of extracting the app-agnostic "
-                                "quality harness into a reusable framework; lives "
-                                "in the repo and issues, not the docs site",
+    "quality harness into a reusable framework; lives "
+    "in the repo and issues, not the docs site",
     "docs/CELEBRIMBOR-SPEC.md": "clean-room build brief for the celebrimbor "
-                                "framework; lives in the repo and issues, not the "
-                                "docs site",
+    "framework; lives in the repo and issues, not the "
+    "docs site",
+    "docs/CELEBRIMBOR-INTEGRATION-PLAN.md": "internal staged plan for retiring "
+    "press's parallel quality machinery to lean entirely on celebrimbor; lives "
+    "in the repo and issues, not the docs site",
     "docs/PROVIDER-DATA.md": "contributor workflow for regenerating the packaged "
-                             "provider ledger; lives in the repo for maintainers, "
-                             "not on a site written for authors",
+    "provider ledger; lives in the repo for maintainers, "
+    "not on a site written for authors",
     "docs/PROFILE-LIFECYCLE.md": "contributor workflow for adding, proving, and "
-                                 "sealing a print profile; lives in the repo for "
-                                 "maintainers, not on a site written for authors",
+    "sealing a print profile; lives in the repo for "
+    "maintainers, not on a site written for authors",
     "docs/EXTENSION-CONTRACT.md": "implementer-facing spec for extending the press "
-                                  "itself; lives in the repo for the few who write an "
-                                  "extension, not on a site written for authors",
+    "itself; lives in the repo for the few who write an "
+    "extension, not on a site written for authors",
     "docs/THIRD-PARTY-EXTENSIONS-PLAN.md": "internal decision record for the v3 "
-                                           "extension contract; lives in the repo and "
-                                           "issues, not the docs site",
+    "extension contract; lives in the repo and "
+    "issues, not the docs site",
 }
 
 
@@ -149,9 +174,7 @@ def check_completeness() -> None:
     published = {source for source, _, _ in PAGES + FOOTER_PAGES}
     candidates = [p.name for p in ROOT.glob("*.md")]
     candidates += [f"docs/{p.name}" for p in (ROOT / "docs").glob("*.md")]
-    unaccounted = [
-        c for c in candidates if c not in published and c not in NOT_PUBLISHED
-    ]
+    unaccounted = [c for c in candidates if c not in published and c not in NOT_PUBLISHED]
     if unaccounted:
         raise SystemExit(
             "docs absent from the site and not consciously excluded:\n"
@@ -189,7 +212,7 @@ def nav_html(current: str) -> str:
         '  <a class="wordmark" href="index.html" aria-label="press">'
         '<img class="wm-lockup wm-light" src="brand/press-lockup.svg" alt="">'
         '<img class="wm-lockup wm-dark" src="brand/press-lockup-dark.svg" alt="">'
-        '</a>\n'
+        "</a>\n"
         '  <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Toggle menu">\n'
         '  <label for="nav-toggle" class="nav-burger" title="Menu" aria-hidden="true">'
         "<span></span><span></span><span></span></label>\n"
@@ -267,8 +290,8 @@ def page_description(source: str) -> str:
         if not block or block.startswith(("#", "```", "|", "-", "*", ">", "<!--")):
             continue
         one = " ".join(block.split())
-        one = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", one)   # link text only
-        one = re.sub(r"[`*_]", "", one)                        # drop md marks
+        one = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", one)  # link text only
+        one = re.sub(r"[`*_]", "", one)  # drop md marks
         if len(one) > 157:
             one = one[:157].rsplit(" ", 1)[0] + "..."
         return html_mod.escape(one)
@@ -312,14 +335,20 @@ def head_metadata(name: str, title: str, description: str) -> str:
     node: dict[str, object]
     if is_index:
         node = {
-            "@context": "https://schema.org", "@type": "WebSite",
-            "name": "press", "url": SITE_URL, "description": desc,
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "press",
+            "url": SITE_URL,
+            "description": desc,
             "inLanguage": "en",
         }
     else:
         node = {
-            "@context": "https://schema.org", "@type": "TechArticle",
-            "headline": title, "url": canonical, "description": desc,
+            "@context": "https://schema.org",
+            "@type": "TechArticle",
+            "headline": title,
+            "url": canonical,
+            "description": desc,
             "inLanguage": "en",
             "isPartOf": {"@type": "WebSite", "name": "press", "url": SITE_URL},
         }
@@ -390,24 +419,48 @@ ILLUSTRATION_STYLES_MARKER = "<!--ILLUSTRATION-STYLES-->"
 FROM_DEMO_IMAGES = ROOT / "site" / "from-demo"
 FROM_DEMO_MARKER = "<!--FROM-DEMO-->"
 FROM_DEMO = [
-    ("insect.jpg", "insect--botanical-plate.jpg", "a macro photograph of a fly",
-     "botanical plate",
-     'USGS Bee Inventory &amp; Monitoring Lab, <em>Calliphora vicina</em> — public domain'),
-    ("aerial.jpg", "aerial--engraved-map.jpg", "an aerial image of an island coastline",
-     "engraved map",
-     'NASA WorldWind / USGS imagery, Acker Island, California — public domain'),
-    ("people.jpg", "people--figure-from-photo.jpg", "a documentary photograph of a family",
-     "figure engraving",
-     'Dorothea Lange, FSA, near Tracy, California, 1937 — public domain'),
-    ("skyline.jpg", "skyline--wood-engraving.jpg", "a photograph of a city skyline",
-     "wood engraving",
-     'Chicago lakefront skyline, 2025 — CC0'),
-    ("nuclear.jpg", "nuclear--wood-engraving.jpg", "a photograph of nuclear cooling towers",
-     "wood engraving",
-     'Sequoyah Nuclear Plant cooling towers, TVA — public domain'),
-    ("tractor.jpg", "tractor--line-diagram.jpg", "a photograph of a tractor and plough",
-     "line diagram",
-     'Gravely tractor and plough attachment, U.S. National Archives — public domain'),
+    (
+        "insect.jpg",
+        "insect--botanical-plate.jpg",
+        "a macro photograph of a fly",
+        "botanical plate",
+        "USGS Bee Inventory &amp; Monitoring Lab, <em>Calliphora vicina</em> — public domain",
+    ),
+    (
+        "aerial.jpg",
+        "aerial--engraved-map.jpg",
+        "an aerial image of an island coastline",
+        "engraved map",
+        "NASA WorldWind / USGS imagery, Acker Island, California — public domain",
+    ),
+    (
+        "people.jpg",
+        "people--figure-from-photo.jpg",
+        "a documentary photograph of a family",
+        "figure engraving",
+        "Dorothea Lange, FSA, near Tracy, California, 1937 — public domain",
+    ),
+    (
+        "skyline.jpg",
+        "skyline--wood-engraving.jpg",
+        "a photograph of a city skyline",
+        "wood engraving",
+        "Chicago lakefront skyline, 2025 — CC0",
+    ),
+    (
+        "nuclear.jpg",
+        "nuclear--wood-engraving.jpg",
+        "a photograph of nuclear cooling towers",
+        "wood engraving",
+        "Sequoyah Nuclear Plant cooling towers, TVA — public domain",
+    ),
+    (
+        "tractor.jpg",
+        "tractor--line-diagram.jpg",
+        "a photograph of a tractor and plough",
+        "line diagram",
+        "Gravely tractor and plough attachment, U.S. National Archives — public domain",
+    ),
 ]
 
 # The figure-placement showcase: for each `place=` value, the exact source that
@@ -418,41 +471,59 @@ FROM_DEMO = [
 PLACEMENT_DEMO_IMAGES = ROOT / "site" / "placement-demo"
 PLACEMENT_DEMO_MARKER = "<!--PLACEMENT-DEMO-->"
 PLACEMENT_DEMO = [
-    ("inline.png", "place=inline",
-     "![Inline, at the full measure.](crystal-set.png){.figure\n"
-     "    width=full-measure place=inline}",
-     "Runs the figure in the text column at the chosen measure, its caption "
-     "beneath — what a bare image already does, made explicit.",
-     "A full-measure figure centred in the column, caption below."),
-    ("wrap-inner.png", "place=wrap-inner",
-     "![Wrapped, inner side.](crystal-set.png){.figure\n"
-     "    width=half-measure place=wrap-inner outset=1em}",
-     "Sets the figure on the binding-aware inner side and runs the text around "
-     "it; <code>outset</code> is the runaround gap. On a recto the figure sits "
-     "left; on a verso, right — the press works it out from the page parity.",
-     "A half-measure figure on the left, text wrapping around it on the right."),
-    ("wrap-outer.png", "place=wrap-outer",
-     "![Wrapped, outer side.](crystal-set.png){.figure\n"
-     "    width=half-measure place=wrap-outer outset=1em}",
-     "The mirror of wrap-inner: the figure hangs toward the outer edge, the "
-     "running text filling the binding side.",
-     "A half-measure figure on the right, text wrapping around it on the left."),
-    ("plate.png", "place=plate",
-     "![A plate: unnumbered, pinned in place.](crystal-set.png){.plate place=plate}",
-     "The literary woodcut idiom: an unnumbered figure with a quiet italic "
-     "caption and no “Figure N.”. A bare <code>![…](…)</code> with no declared "
-     "kind is a plate too, so this is the house default.",
-     "An unnumbered plate centred in the column with an italic caption."),
-    ("full-bleed.png", "place=full-bleed",
-     "![Full bleed: the figure takes its own page.](crystal-set.png){.figure place=full-bleed}",
-     "Gives the figure its own cleared leaf and fills it — never a floating "
-     "figure that defers a page late — with the caption on the same leaf.",
-     "A figure filling its own page, caption beneath, no running head."),
-    ("frontispiece.png", "place=frontispiece",
-     "![Frontispiece, facing the next chapter.](crystal-set.png){.figure place=frontispiece}",
-     "Like full-bleed, but clears to the verso so the plate faces the next "
-     "chapter's opening recto across the gutter.",
-     "A frontispiece plate on its own leaf, facing the next chapter."),
+    (
+        "inline.png",
+        "place=inline",
+        "![Inline, at the full measure.](crystal-set.png){.figure\n"
+        "    width=full-measure place=inline}",
+        "Runs the figure in the text column at the chosen measure, its caption "
+        "beneath — what a bare image already does, made explicit.",
+        "A full-measure figure centred in the column, caption below.",
+    ),
+    (
+        "wrap-inner.png",
+        "place=wrap-inner",
+        "![Wrapped, inner side.](crystal-set.png){.figure\n"
+        "    width=half-measure place=wrap-inner outset=1em}",
+        "Sets the figure on the binding-aware inner side and runs the text around "
+        "it; <code>outset</code> is the runaround gap. On a recto the figure sits "
+        "left; on a verso, right — the press works it out from the page parity.",
+        "A half-measure figure on the left, text wrapping around it on the right.",
+    ),
+    (
+        "wrap-outer.png",
+        "place=wrap-outer",
+        "![Wrapped, outer side.](crystal-set.png){.figure\n"
+        "    width=half-measure place=wrap-outer outset=1em}",
+        "The mirror of wrap-inner: the figure hangs toward the outer edge, the "
+        "running text filling the binding side.",
+        "A half-measure figure on the right, text wrapping around it on the left.",
+    ),
+    (
+        "plate.png",
+        "place=plate",
+        "![A plate: unnumbered, pinned in place.](crystal-set.png){.plate place=plate}",
+        "The literary woodcut idiom: an unnumbered figure with a quiet italic "
+        "caption and no “Figure N.”. A bare <code>![…](…)</code> with no declared "
+        "kind is a plate too, so this is the house default.",
+        "An unnumbered plate centred in the column with an italic caption.",
+    ),
+    (
+        "full-bleed.png",
+        "place=full-bleed",
+        "![Full bleed: the figure takes its own page.](crystal-set.png){.figure place=full-bleed}",
+        "Gives the figure its own cleared leaf and fills it — never a floating "
+        "figure that defers a page late — with the caption on the same leaf.",
+        "A figure filling its own page, caption beneath, no running head.",
+    ),
+    (
+        "frontispiece.png",
+        "place=frontispiece",
+        "![Frontispiece, facing the next chapter.](crystal-set.png){.figure place=frontispiece}",
+        "Like full-bleed, but clears to the verso so the plate faces the next "
+        "chapter's opening recto across the gutter.",
+        "A frontispiece plate on its own leaf, facing the next chapter.",
+    ),
 ]
 
 # How the width measure changes each placement, shown as labelled rows of shots
@@ -460,20 +531,43 @@ PLACEMENT_DEMO = [
 # Each group is (heading, [(image, width label, alt), ...]).
 PLACEMENT_MEASURES_MARKER = "<!--PLACEMENT-MEASURES-->"
 PLACEMENT_MEASURES = [
-    ("<code>place=inline</code> (and <code>plate</code>): the figure sits at the "
-     "measure, centred in the column.",
-     [("measure-inline-full.png", "width=full-measure",
-       "A figure filling the full column width."),
-      ("measure-inline-half.png", "width=half-measure",
-       "The same figure at half the measure, centred."),
-      ("measure-inline-third.png", "width=third-measure",
-       "The same figure at a third of the measure, centred.")]),
-    ("<code>place=wrap-inner</code> / <code>wrap-outer</code>: the measure sizes "
-     "the figure column, so the text column widens as the figure shrinks.",
-     [("measure-wrap-half.png", "width=half-measure",
-       "A half-measure figure with text wrapping in a narrow column beside it."),
-      ("measure-wrap-third.png", "width=third-measure",
-       "A third-measure figure with text wrapping in a wider column beside it.")]),
+    (
+        "<code>place=inline</code> (and <code>plate</code>): the figure sits at the "
+        "measure, centred in the column.",
+        [
+            (
+                "measure-inline-full.png",
+                "width=full-measure",
+                "A figure filling the full column width.",
+            ),
+            (
+                "measure-inline-half.png",
+                "width=half-measure",
+                "The same figure at half the measure, centred.",
+            ),
+            (
+                "measure-inline-third.png",
+                "width=third-measure",
+                "The same figure at a third of the measure, centred.",
+            ),
+        ],
+    ),
+    (
+        "<code>place=wrap-inner</code> / <code>wrap-outer</code>: the measure sizes "
+        "the figure column, so the text column widens as the figure shrinks.",
+        [
+            (
+                "measure-wrap-half.png",
+                "width=half-measure",
+                "A half-measure figure with text wrapping in a narrow column beside it.",
+            ),
+            (
+                "measure-wrap-third.png",
+                "width=third-measure",
+                "A third-measure figure with text wrapping in a wider column beside it.",
+            ),
+        ],
+    ),
 ]
 
 # How a wrap behaves against real running text: full-page scenarios (same
@@ -481,53 +575,83 @@ PLACEMENT_MEASURES = [
 # two-image card shows a page foot and the next page's head, for the guard.
 WRAP_BEHAVIOURS_MARKER = "<!--WRAP-BEHAVIOURS-->"
 WRAP_BEHAVIOURS = [
-    ("Ample text closes the runaround",
-     [("behav-ample.png",
-       "A wrap whose paragraph runs the full height of the figure and closes "
-       "beneath it, the next paragraph resuming at the full measure.")],
-     "Give a wrap a paragraph long enough to run the figure's height and it "
-     "closes cleanly; once the figure ends the text returns to the full measure, "
-     "and later paragraphs set as ordinary prose."),
-    ("Short text: the next block rides up",
-     [("behav-short.png",
-       "A short paragraph beside a wrap, with the following heading and its "
-       "paragraph riding up into the space still open beside the figure.")],
-     "When the paragraph beside a wrap is too short to reach the figure's foot, "
-     "the next heading or paragraph draws up into the space still open beside it "
-     "rather than starting fresh below. Feed the wrap more prose for a clean "
-     "break."),
-    ("Where later paragraphs draw",
-     [("behav-several.png",
-       "Several paragraphs beside a wrap: narrow while the figure is beside "
-       "them, opening to the full measure mid-paragraph the moment it ends.")],
-     "The first paragraphs run narrow beside the figure; the moment it ends the "
-     "text opens to the full measure in the same paragraph, and everything "
-     "downstream is ordinary full-width prose again — a wrap costs only its own "
-     "height, in its own margin."),
-    ("Near a page foot: the guard carries the whole wrap over",
-     [("behav-guard-a.png", "A full page of prose with no figure at its foot."),
-      ("behav-guard-b.png",
-       "The same figure carried to the top of the next page with its "
-       "paragraph, closing beneath it.")],
-     "When fewer lines remain than the figure is tall, the whole wrap — figure "
-     "and paragraph together — is carried to the top of the next page rather "
-     "than stranded at the foot with no room to close. The page above keeps a "
-     "little quiet space; the reader never sees a broken runaround."),
+    (
+        "Ample text closes the runaround",
+        [
+            (
+                "behav-ample.png",
+                "A wrap whose paragraph runs the full height of the figure and closes "
+                "beneath it, the next paragraph resuming at the full measure.",
+            )
+        ],
+        "Give a wrap a paragraph long enough to run the figure's height and it "
+        "closes cleanly; once the figure ends the text returns to the full measure, "
+        "and later paragraphs set as ordinary prose.",
+    ),
+    (
+        "Short text: the next block rides up",
+        [
+            (
+                "behav-short.png",
+                "A short paragraph beside a wrap, with the following heading and its "
+                "paragraph riding up into the space still open beside the figure.",
+            )
+        ],
+        "When the paragraph beside a wrap is too short to reach the figure's foot, "
+        "the next heading or paragraph draws up into the space still open beside it "
+        "rather than starting fresh below. Feed the wrap more prose for a clean "
+        "break.",
+    ),
+    (
+        "Where later paragraphs draw",
+        [
+            (
+                "behav-several.png",
+                "Several paragraphs beside a wrap: narrow while the figure is beside "
+                "them, opening to the full measure mid-paragraph the moment it ends.",
+            )
+        ],
+        "The first paragraphs run narrow beside the figure; the moment it ends the "
+        "text opens to the full measure in the same paragraph, and everything "
+        "downstream is ordinary full-width prose again — a wrap costs only its own "
+        "height, in its own margin.",
+    ),
+    (
+        "Near a page foot: the guard carries the whole wrap over",
+        [
+            ("behav-guard-a.png", "A full page of prose with no figure at its foot."),
+            (
+                "behav-guard-b.png",
+                "The same figure carried to the top of the next page with its "
+                "paragraph, closing beneath it.",
+            ),
+        ],
+        "When fewer lines remain than the figure is tall, the whole wrap — figure "
+        "and paragraph together — is carried to the top of the next page rather "
+        "than stranded at the foot with no room to close. The page above keeps a "
+        "little quiet space; the reader never sees a broken runaround.",
+    ),
 ]
 
 # The whole vocabulary at work on real, dense pages from a build (same
 # site/placement-demo/ images). Each is (image, what it shows).
 REAL_PAGES_MARKER = "<!--REAL-PAGES-->"
 REAL_PAGES = [
-    ("realpage-open.png",
-     "A chapter opens with a half-measure inner wrap worked into the running "
-     "text — the figure earns its place in the column instead of interrupting it."),
-    ("realpage-thick.png",
-     "Figures come thick: an outer-side wrap and a third-measure inner wrap on "
-     "one full page, the prose flowing around both."),
-    ("realpage-inline.png",
-     "A full-measure inline figure between paragraphs, the page dense with prose "
-     "above and below it."),
+    (
+        "realpage-open.png",
+        "A chapter opens with a half-measure inner wrap worked into the running "
+        "text — the figure earns its place in the column instead of interrupting it.",
+    ),
+    (
+        "realpage-thick.png",
+        "Figures come thick: an outer-side wrap and a third-measure inner wrap on "
+        "one full page, the prose flowing around both.",
+    ),
+    (
+        "realpage-inline.png",
+        "A full-measure inline figure between paragraphs, the page dense with prose "
+        "above and below it.",
+    ),
 ]
 
 # The card shows the physical trim size, not the internal profile name.
@@ -536,18 +660,18 @@ PROFILE_LABELS = {"novella-5x8": "5×8", "house-6x9": "6×9"}
 
 def _yaml_scalar(text: str, key: str, indent: str = "") -> str | None:
     """A single-line `key: value`, with optional quotes, at a given indent."""
-    match = re.search(rf'^{indent}{key}:[ \t]*(.+?)[ \t]*$', text, re.M)
+    match = re.search(rf"^{indent}{key}:[ \t]*(.+?)[ \t]*$", text, re.M)
     if not match:
         return None
     value = match.group(1).strip()
-    if value in (">-", "|", ">", "|-"):     # a block scalar, not a value
+    if value in (">-", "|", ">", "|-"):  # a block scalar, not a value
         return None
     return value.strip('"').strip("'")
 
 
 def _yaml_block(text: str, key: str) -> str | None:
     """A folded block scalar (`key: >-`) joined back into one line."""
-    match = re.search(rf'^{key}:[ \t]*[>|]-?[ \t]*\n((?:[ \t]+.*\n?)+)', text, re.M)
+    match = re.search(rf"^{key}:[ \t]*[>|]-?[ \t]*\n((?:[ \t]+.*\n?)+)", text, re.M)
     if not match:
         return None
     return " ".join(line.strip() for line in match.group(1).splitlines() if line.strip())
@@ -555,7 +679,7 @@ def _yaml_block(text: str, key: str) -> str | None:
 
 def _yaml_first_item(text: str, key: str) -> str | None:
     """The first entry of a simple `key:` / `  - value` list."""
-    match = re.search(rf'^{key}:[ \t]*\n[ \t]+-[ \t]*(.+?)[ \t]*$', text, re.M)
+    match = re.search(rf"^{key}:[ \t]*\n[ \t]+-[ \t]*(.+?)[ \t]*$", text, re.M)
     return match.group(1).strip('"').strip("'") if match else None
 
 
@@ -576,8 +700,8 @@ class Example(NamedTuple):
     accent: str
     chapters: int
     exercises: list[str]
-    pages: int          # PDF page count, 0 when no PDF was built
-    pdf: str            # served PDF filename, "" when absent
+    pages: int  # PDF page count, 0 when no PDF was built
+    pdf: str  # served PDF filename, "" when absent
     previews: list[str]  # served preview-image filenames, in order
 
 
@@ -618,10 +742,7 @@ def _example_facts(book: Path) -> Example:
         raise SystemExit(f"gallery: {book.name} has no description to show")
 
     # The book's own colours, so the card is printed in the book's palette.
-    palette = [
-        _yaml_scalar(aesthetic, name, indent="  ")
-        for name in ("paper", "ink", "accent")
-    ]
+    palette = [_yaml_scalar(aesthetic, name, indent="  ") for name in ("paper", "ink", "accent")]
     if not all(palette):
         raise SystemExit(f"gallery: {book.name} has no web-palette paper/ink/accent")
 
@@ -641,15 +762,18 @@ def _example_facts(book: Path) -> Example:
     if (book / "assets" / "web" / "extra.css").exists():
         exercises.append("custom web CSS")
     if appendices:
-        exercises.append(f"{len(appendices)} appendix" if len(appendices) == 1
-                         else f"{len(appendices)} appendices")
+        exercises.append(
+            f"{len(appendices)} appendix"
+            if len(appendices) == 1
+            else f"{len(appendices)} appendices"
+        )
     if any("[^" in c.read_text(encoding="utf-8") for c in chapters):
         exercises.append("footnotes")
     if profile:
         exercises.append("non-default trim")
     opening = re.search(
-        r'^chapter-opening:[ \t]*\n(?:[ \t]+.*\n)*?[ \t]+style:[ \t]*["\']?([a-z-]+)',
-        meta, re.M)
+        r'^chapter-opening:[ \t]*\n(?:[ \t]+.*\n)*?[ \t]+style:[ \t]*["\']?([a-z-]+)', meta, re.M
+    )
     if opening and opening.group(1) in ("drop-cap", "raised-cap"):
         exercises.append(f"{opening.group(1)} openings")
     binding = _yaml_scalar(meta, "binding", indent="  ")
@@ -666,13 +790,16 @@ def _example_facts(book: Path) -> Example:
         publisher=_yaml_scalar(meta, "publisher") or "",
         genre=_yaml_first_item(meta, "keywords") or "",
         summary=summary,
-        register=(_yaml_block(aesthetic, "register")
-                  or _yaml_scalar(aesthetic, "register") or ""),
+        register=(_yaml_block(aesthetic, "register") or _yaml_scalar(aesthetic, "register") or ""),
         trim=PROFILE_LABELS.get(profile or "house-6x9", profile or "6×9"),
-        paper=palette[0] or "", ink=palette[1] or "", accent=palette[2] or "",
+        paper=palette[0] or "",
+        ink=palette[1] or "",
+        accent=palette[2] or "",
         chapters=len(numbered),
         exercises=exercises,
-        pages=pages, pdf=pdf, previews=previews,
+        pages=pages,
+        pdf=pdf,
+        previews=previews,
     )
 
 
@@ -685,8 +812,7 @@ def gallery_cards_html() -> str:
     for book in books:
         ex = _example_facts(book)
         chips = "".join(f"<li>{escape(e)}</li>" for e in ex.exercises)
-        register = (f'<p class="ex-register">{escape(ex.register)}</p>'
-                    if ex.register else "")
+        register = f'<p class="ex-register">{escape(ex.register)}</p>' if ex.register else ""
         # The built pages, when this build has them: real page images from the
         # book's own PDF, on the book's own paper colour, and a link to the
         # whole file. The interior prints in a single ink, so the pages show
@@ -701,14 +827,17 @@ def gallery_cards_html() -> str:
             interior = ["An early interior page of", "A later interior page of"]
             alts = [f"Cover of {ex.title}"] + [
                 f"{interior[i] if i < len(interior) else 'An interior page of'} {ex.title}"
-                for i in range(len(ex.previews) - 1)]
+                for i in range(len(ex.previews) - 1)
+            ]
             imgs = "".join(
                 f'<img src="{GALLERY_DIR}/{ex.dir}/{escape(name)}" loading="lazy"'
                 f' alt="{escape(alt)}">'
                 for name, alt in zip(ex.previews, alts)
             )
-            preview = (f'<a class="ex-pages" href="{GALLERY_DIR}/{ex.dir}/{escape(ex.pdf)}"'
-                       f' aria-label="Open {escape(ex.title)} (PDF)">{imgs}</a>')
+            preview = (
+                f'<a class="ex-pages" href="{GALLERY_DIR}/{ex.dir}/{escape(ex.pdf)}"'
+                f' aria-label="Open {escape(ex.title)} (PDF)">{imgs}</a>'
+            )
         swatches = "".join(
             f'<li style="--sw:{colour}">{label}</li>'
             for colour, label in ((ex.paper, "paper"), (ex.ink, "ink"), (ex.accent, "accent"))
@@ -716,9 +845,11 @@ def gallery_cards_html() -> str:
         pdf_link = ""
         if ex.pdf:
             span = f" · {ex.pages} pp" if ex.pages else ""
-            pdf_link = (f'<a class="ex-pdf" href="{GALLERY_DIR}/{ex.dir}/{escape(ex.pdf)}"'
-                        f' aria-label="Read {escape(ex.title)} as a PDF">'
-                        f'Read the PDF{span} ↓</a>')
+            pdf_link = (
+                f'<a class="ex-pdf" href="{GALLERY_DIR}/{ex.dir}/{escape(ex.pdf)}"'
+                f' aria-label="Read {escape(ex.title)} as a PDF">'
+                f"Read the PDF{span} ↓</a>"
+            )
         chapter_word = "chapter" if ex.chapters == 1 else "chapters"
         cards.append(f"""
 <article class="ex" style="--ex-accent:{ex.accent};--ex-paper:{ex.paper};--ex-ink:{ex.ink}">
@@ -741,15 +872,14 @@ def gallery_cards_html() -> str:
     return f'<section class="gallery">{"".join(cards)}\n</section>'
 
 
-def _style_catalogue(data_file: Path, image_dir: Path, url_prefix: str,
-                     alt_tail: str) -> str:
+def _style_catalogue(data_file: Path, image_dir: Path, url_prefix: str, alt_tail: str) -> str:
     """A catalogue of one card per style in a style library (cover or
     illustration): its name, era (if any), and note read from the YAML and
     paired with the committed sample image. Generated, so the page cannot
     drift; a style with no sample image is simply skipped."""
     text = data_file.read_text(encoding="utf-8")
     # Split on the 2-space-indented style ids, keeping the id and its block.
-    parts = re.split(r'\n  ([a-z0-9-]+):\n', text)
+    parts = re.split(r"\n  ([a-z0-9-]+):\n", text)
     cards = []
     for i in range(1, len(parts), 2):
         sid, body = parts[i], parts[i + 1]
@@ -765,11 +895,11 @@ def _style_catalogue(data_file: Path, image_dir: Path, url_prefix: str,
         cards.append(f"""
 <figure class="cs">
   <img src="{url_prefix}/{sid}.jpg" loading="lazy"
-       alt="A {escape(field('name'))} {alt_tail}">
+       alt="A {escape(field("name"))} {alt_tail}">
   <figcaption>
-    <span class="cs-name">{escape(field('name'))}</span>
+    <span class="cs-name">{escape(field("name"))}</span>
     {era_html}
-    <span class="cs-note">{escape(field('note'))}</span>
+    <span class="cs-note">{escape(field("note"))}</span>
     <code class="cs-id">{sid}</code>
   </figcaption>
 </figure>""")
@@ -779,13 +909,13 @@ def _style_catalogue(data_file: Path, image_dir: Path, url_prefix: str,
 
 
 def cover_styles_html() -> str:
-    return _style_catalogue(COVER_STYLES_DATA, COVER_STYLES_IMAGES,
-                            "cover-styles", "sample cover")
+    return _style_catalogue(COVER_STYLES_DATA, COVER_STYLES_IMAGES, "cover-styles", "sample cover")
 
 
 def illustration_styles_html() -> str:
-    return _style_catalogue(ILLUSTRATION_STYLES_DATA, ILLUSTRATION_STYLES_IMAGES,
-                            "illustration-styles", "sample plate")
+    return _style_catalogue(
+        ILLUSTRATION_STYLES_DATA, ILLUSTRATION_STYLES_IMAGES, "illustration-styles", "sample plate"
+    )
 
 
 def from_demo_html() -> str:
@@ -857,7 +987,8 @@ def placement_measures_html() -> str:
             groups.append(
                 f'\n  <div class="measure-group">\n    <p class="measure-head">'
                 f'{heading}</p>\n    <div class="measure-row">{"".join(figs)}\n'
-                f'    </div>\n  </div>')
+                f"    </div>\n  </div>"
+            )
     if not groups:
         raise SystemExit(f"placement-measures: no images under {PLACEMENT_DEMO_IMAGES}")
     return f'<section class="measure-demo">{"".join(groups)}\n</section>'
@@ -877,8 +1008,8 @@ def wrap_behaviours_html() -> str:
             if parts:
                 parts.append('<span class="behav-arrow" aria-hidden="true">&rarr;</span>')
             parts.append(
-                f'<img src="placement-demo/{escape(img)}" loading="lazy" '
-                f'alt="{escape(alt)}">')
+                f'<img src="placement-demo/{escape(img)}" loading="lazy" alt="{escape(alt)}">'
+            )
         if not parts:
             continue
         pair = " behav-pair" if len(shots) > 1 else ""
@@ -966,7 +1097,9 @@ def build_page(source: str, name: str, label: str) -> None:
         html = html.replace(COVER_STYLES_MARKER, cover_styles_html(), 1)
     if name == "illustrations.html":
         if ILLUSTRATION_STYLES_MARKER not in html:
-            raise SystemExit(f"illustrations: {source} lost its {ILLUSTRATION_STYLES_MARKER} marker")
+            raise SystemExit(
+                f"illustrations: {source} lost its {ILLUSTRATION_STYLES_MARKER} marker"
+            )
         html = html.replace(ILLUSTRATION_STYLES_MARKER, illustration_styles_html(), 1)
         if FROM_DEMO_MARKER not in html:
             raise SystemExit(f"illustrations: {source} lost its {FROM_DEMO_MARKER} marker")
@@ -987,22 +1120,21 @@ def build_page(source: str, name: str, label: str) -> None:
     # toolbar and the colophon, so the whole column is a single centered
     # container and no element can detach from it. The toolbar and footer
     # stay full-width outside it.
-    html = html.replace("</header>",
-                        '</header>\n<main class="prose" id="main-content">', 1)
-    html = html.replace('<footer class="colophon">',
-                        '</main>\n<footer class="colophon">', 1)
+    html = html.replace("</header>", '</header>\n<main class="prose" id="main-content">', 1)
+    html = html.replace('<footer class="colophon">', '</main>\n<footer class="colophon">', 1)
     # A skip link is the first focusable element, so a keyboard or screen
     # reader user can jump past the nav straight to the content (#157).
     html = re.sub(
         r"(<body[^>]*>)",
         r'\1\n<a class="skip-link" href="#main-content">Skip to content</a>',
-        html, count=1)
+        html,
+        count=1,
+    )
     html = webmeta.label_table_cells(html)
     html = rewrite_internal_links(html)
     # The one script: a progressive-enhancement copy button on code blocks.
     # Deferred and optional; the page is complete without it.
-    html = html.replace(
-        "</body>", '<script src="copy.js" defer></script>\n</body>', 1)
+    html = html.replace("</body>", '<script src="copy.js" defer></script>\n</body>', 1)
     body_class = BODY_CLASSES.get(name)
     if body_class:
         html = html.replace("<body>", f'<body class="{body_class}">', 1)
@@ -1030,10 +1162,7 @@ def check_links() -> None:
             if not candidate.is_file():
                 problems.append(f"{origin.name}: {target}")
     if problems:
-        raise SystemExit(
-            "site links do not resolve:\n"
-            + "\n".join(f"  - {p}" for p in problems)
-        )
+        raise SystemExit("site links do not resolve:\n" + "\n".join(f"  - {p}" for p in problems))
 
 
 def check_internal_links() -> None:
@@ -1062,7 +1191,7 @@ def check_accessibility() -> None:
 
     required = {
         'lang="en"': "a declared document language",
-        '<main ': "a main landmark",
+        "<main ": "a main landmark",
         'class="skip-link"': "a skip-to-content link",
         'id="main-content"': "a skip-link target",
         'rel="canonical"': "a canonical URL",
@@ -1077,8 +1206,7 @@ def check_accessibility() -> None:
                 problems.append(f"{page.name}: missing {what}")
     if problems:
         raise SystemExit(
-            "site pages lack accessibility landmarks:\n"
-            + "\n".join(f"  - {p}" for p in problems)
+            "site pages lack accessibility landmarks:\n" + "\n".join(f"  - {p}" for p in problems)
         )
 
 
@@ -1094,10 +1222,11 @@ def write_sitemap_and_robots() -> None:
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         f"{entries}\n</urlset>\n",
-        encoding="utf-8")
+        encoding="utf-8",
+    )
     (OUT / "robots.txt").write_text(
-        f"User-agent: *\nAllow: /\nSitemap: {SITE_URL}sitemap.xml\n",
-        encoding="utf-8")
+        f"User-agent: *\nAllow: /\nSitemap: {SITE_URL}sitemap.xml\n", encoding="utf-8"
+    )
 
 
 def main() -> int:

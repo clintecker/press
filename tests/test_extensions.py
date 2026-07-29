@@ -13,9 +13,7 @@ from press import extensions
 
 @pytest.mark.layer("unit")
 def test_reference_manifest_conforms():
-    manifest = extensions.load_manifest_file(
-        extensions.fixtures_dir() / "reference.yaml"
-    )
+    manifest = extensions.load_manifest_file(extensions.fixtures_dir() / "reference.yaml")
     assert extensions.conformance(manifest) == []
     assert extensions.conforms(manifest)
 
@@ -35,9 +33,7 @@ def test_collision_with_core_name_is_refused():
 @pytest.mark.invariant("INV-extension-conformance")
 @pytest.mark.proof("negative")
 def test_unsupported_contract_major_is_refused():
-    manifest = extensions.load_manifest_file(
-        extensions.fixtures_dir() / "hostile" / "version.yaml"
-    )
+    manifest = extensions.load_manifest_file(extensions.fixtures_dir() / "hostile" / "version.yaml")
     problems = extensions.conformance(manifest)
     assert any("contract major 99" in p for p in problems)
 
@@ -46,9 +42,7 @@ def test_unsupported_contract_major_is_refused():
 @pytest.mark.invariant("INV-extension-seal")
 @pytest.mark.proof("negative")
 def test_sealed_capability_claim_is_refused():
-    manifest = extensions.load_manifest_file(
-        extensions.fixtures_dir() / "hostile" / "sealed.yaml"
-    )
+    manifest = extensions.load_manifest_file(extensions.fixtures_dir() / "hostile" / "sealed.yaml")
     problems = extensions.conformance(manifest)
     assert any("sealed capability" in p and "core-verification" in p for p in problems)
 
@@ -69,9 +63,7 @@ def test_unproven_invariant_is_refused():
 @pytest.mark.proof("negative")
 def test_malformed_manifest_is_refused_at_the_parser():
     with pytest.raises(SystemExit):
-        extensions.load_manifest_file(
-            extensions.fixtures_dir() / "hostile" / "malformed.yaml"
-        )
+        extensions.load_manifest_file(extensions.fixtures_dir() / "hostile" / "malformed.yaml")
 
 
 @pytest.mark.layer("unit")
@@ -97,8 +89,13 @@ def test_list_valued_key_must_be_strings():
 @pytest.mark.layer("unit")
 def test_publication_must_be_a_known_string():
     manifest = extensions.load_manifest(
-        {"name": "x", "kind": "artifact", "contract-major": 2,
-         "provides": ["x"], "publication": "semi-public"}
+        {
+            "name": "x",
+            "kind": "artifact",
+            "contract-major": 2,
+            "provides": ["x"],
+            "publication": "semi-public",
+        }
     )
     assert any("publication" in p for p in extensions.conformance(manifest))
 

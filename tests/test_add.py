@@ -21,21 +21,30 @@ unit = pytest.mark.layer("unit")
 
 # ---- slugify (normalizer: folding and idempotence) -------------------
 
+
 @unit
-@pytest.mark.parametrize("raw, expected", [
-    ("about-the-author", "about-the-author"),
-    ("The Long Winter's End", "the-long-winter-s-end"),
-    ("  Also, By  ", "also-by"),
-    ("A Chapter -- Two", "a-chapter-two"),
-])
+@pytest.mark.parametrize(
+    "raw, expected",
+    [
+        ("about-the-author", "about-the-author"),
+        ("The Long Winter's End", "the-long-winter-s-end"),
+        ("  Also, By  ", "also-by"),
+        ("A Chapter -- Two", "a-chapter-two"),
+    ],
+)
 def test_slugify_folds_to_a_filename_safe_slug(raw, expected):
     assert add.slugify(raw) == expected
 
 
 @unit
-@pytest.mark.parametrize("raw", [
-    "The Long Winter's End", "about-the-author", "Also, By!!",
-])
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "The Long Winter's End",
+        "about-the-author",
+        "Also, By!!",
+    ],
+)
 def test_slugify_is_idempotent(raw):
     once = add.slugify(raw)
     assert add.slugify(once) == once
@@ -50,6 +59,7 @@ def test_slugify_refuses_a_name_with_no_letter_or_digit(raw):
 
 # ---- heading ---------------------------------------------------------
 
+
 @unit
 def test_heading_keeps_a_human_title_verbatim():
     assert add.heading("The Long Winter's End") == "The Long Winter's End"
@@ -62,6 +72,7 @@ def test_heading_sentence_cases_a_bare_slug():
 
 # ---- placement: the prefixes the command owns ------------------------
 
+
 @integration
 def test_appendices_take_descending_back_matter_letters(scaffolded_book):
     root = scaffolded_book
@@ -70,7 +81,9 @@ def test_appendices_take_descending_back_matter_letters(scaffolded_book):
     assert add.main(["appendix", "glossary"]) == 0
     names = sorted(p.name for p in (root / "book" / "appendices").glob("*.md"))
     assert names == [
-        "x-glossary.md", "y-also-by.md", "z-about-the-author.md",
+        "x-glossary.md",
+        "y-also-by.md",
+        "z-about-the-author.md",
     ]
 
 
@@ -99,8 +112,7 @@ def test_plain_chapter_takes_the_next_numbered_slot(scaffolded_book):
     assert first.is_file()
     # An apostrophe in the title never reaches the shell or the filename,
     # and it is preserved verbatim in the heading.
-    assert first.read_text(encoding="utf-8").startswith(
-        "# The Long Winter's End\n")
+    assert first.read_text(encoding="utf-8").startswith("# The Long Winter's End\n")
     assert add.main(["chapter", "After The Thaw"]) == 0
     assert (root / "book" / "chapters" / "02-after-the-thaw.md").is_file()
 
@@ -109,13 +121,13 @@ def test_plain_chapter_takes_the_next_numbered_slot(scaffolded_book):
 def test_the_stub_is_valid_non_empty_markdown(scaffolded_book):
     root = scaffolded_book
     assert add.main(["appendix", "glossary"]) == 0
-    body = (root / "book" / "appendices" / "z-glossary.md").read_text(
-        encoding="utf-8")
+    body = (root / "book" / "appendices" / "z-glossary.md").read_text(encoding="utf-8")
     assert body.startswith("# Glossary\n")
     assert body.strip().count("\n") >= 1  # heading plus a placeholder line
 
 
 # ---- the known-bad: it must refuse to clobber ------------------------
+
 
 @integration
 def test_add_refuses_to_overwrite_an_existing_file(scaffolded_book, capsys):
@@ -136,12 +148,16 @@ def test_add_refuses_to_overwrite_an_existing_file(scaffolded_book, capsys):
 
 # ---- usage errors ----------------------------------------------------
 
+
 @integration
-@pytest.mark.parametrize("argv", [
-    [],
-    ["chapter"],
-    ["nonsense", "x"],
-    ["chapter", "one", "--bogus"],
-])
+@pytest.mark.parametrize(
+    "argv",
+    [
+        [],
+        ["chapter"],
+        ["nonsense", "x"],
+        ["chapter", "one", "--bogus"],
+    ],
+)
 def test_bad_invocation_is_a_usage_error(scaffolded_book, argv):
     assert add.main(argv) == 2

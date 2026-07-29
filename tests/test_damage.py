@@ -55,18 +55,21 @@ def _valid_source_zip(book_root: Path, slug: str, tmp: Path) -> bytes:
     import subprocess
 
     env = {"GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_SYSTEM": "/dev/null"}
-    for cmd in (["git", "init", "-q"], ["git", "add", "-A"],
-                ["git", "-c", "user.email=t@t", "-c", "user.name=t",
-                 "commit", "-qm", "fixture"]):
-        subprocess.run(cmd, cwd=book_root, check=True,
-                       env={**_clean_env(), **env})
+    for cmd in (
+        ["git", "init", "-q"],
+        ["git", "add", "-A"],
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "fixture"],
+    ):
+        subprocess.run(cmd, cwd=book_root, check=True, env={**_clean_env(), **env})
     from press import package_source
+
     package_source.main()
     return (book_root / "dist" / f"{slug}-source.zip").read_bytes()
 
 
 def _clean_env() -> dict:
     import os
+
     env = os.environ.copy()
     for key in ("GIT_DIR", "GIT_INDEX_FILE", "GIT_PREFIX", "GIT_WORK_TREE"):
         env.pop(key, None)
@@ -87,14 +90,20 @@ def source_zip(tmp_path):
 @pytest.mark.invariant("INV-archive-source-policy")
 @pytest.mark.layer("integration")
 @pytest.mark.proof("negative")
-@pytest.mark.parametrize("operator", [
-    damage.add_member, damage.remove_member, damage.escaping_member,
-    damage.store_uncompressed,
-])
+@pytest.mark.parametrize(
+    "operator",
+    [
+        damage.add_member,
+        damage.remove_member,
+        damage.escaping_member,
+        damage.store_uncompressed,
+    ],
+)
 def test_source_archive_damage_is_caught(operator, source_zip, tmp_path):
     data, handle = source_zip
-    mutated, record = operator(data, prefix=handle.slug) if operator is damage.add_member \
-        else operator(data)
+    mutated, record = (
+        operator(data, prefix=handle.slug) if operator is damage.add_member else operator(data)
+    )
     expected = damage.DAMAGE_INVARIANTS[record.mutation_id]["diagnostic"]
     broken = tmp_path / "broken.zip"
     broken.write_bytes(mutated)
@@ -113,7 +122,9 @@ def valid_site(tmp_path):
         factories.BookFactory(slug="site-damage")
         .with_sentinels("the reader site stands whole")
         .with_chapter("01-one.md", "# One\n\nThe reader site stands whole in chapter one here.\n")
-        .with_chapter("02-two.md", "# Two\n\nChapter two carries its own distinct witness line here.\n")
+        .with_chapter(
+            "02-two.md", "# Two\n\nChapter two carries its own distinct witness line here.\n"
+        )
         .build(tmp_path)
     )
     with handle.use():
@@ -179,8 +190,9 @@ def test_site_zip_byte_flip_is_caught(tmp_path):
     site_dir.mkdir(parents=True)
     (site_dir / "index.html").write_text("<html>true text of the book</html>")
     archive = tmp_path / "dist" / "proof-site.zip"
-    shutil.make_archive(str(archive.with_suffix("")), "zip",
-                        root_dir=tmp_path / "dist", base_dir="site")
+    shutil.make_archive(
+        str(archive.with_suffix("")), "zip", root_dir=tmp_path / "dist", base_dir="site"
+    )
     assert verify_archives.verify_site_zip(archive, site_dir) == []
     mutated, record = damage.flip_member_byte(archive.read_bytes())
     archive.write_bytes(mutated)
@@ -197,8 +209,10 @@ def test_deliberate_damage_invariants_have_an_operator():
 
     attacked = {spec["invariant"] for spec in damage.DAMAGE_INVARIANTS.values()}
     required = {
-        "INV-pages-refs", "INV-archive-source-policy",
-        "INV-format-site-identity", "INV-archive-site-bytes",
+        "INV-pages-refs",
+        "INV-archive-source-policy",
+        "INV-format-site-identity",
+        "INV-archive-site-bytes",
     }
     missing = sorted(required - attacked)
     assert not missing, f"invariants with no declared damage operator: {missing}"
@@ -210,8 +224,10 @@ def test_every_operator_declares_an_invariant():
     entry is an untested mutation."""
 
     operators = {
-        name for name in dir(damage)
-        if not name.startswith("_") and callable(getattr(damage, name))
+        name
+        for name in dir(damage)
+        if not name.startswith("_")
+        and callable(getattr(damage, name))
         and getattr(getattr(damage, name), "__module__", "") == "tests.damage"
     }
     # Only the mutation functions (they return a DamageRecord) must be
@@ -221,6 +237,7 @@ def test_every_operator_declares_an_invariant():
     assert mutation_ids, "no damage operators declared"
     # Every declared operator's invariant id is real.
     from press import invariants
+
     ledger_ids = {inv["id"] for inv in invariants.load()}
     for mutation_id, spec in damage.DAMAGE_INVARIANTS.items():
         assert spec["invariant"] in ledger_ids, (mutation_id, spec["invariant"])

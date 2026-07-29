@@ -33,15 +33,88 @@ TEXT_SUFFIXES = {
 # model all English stop words. A candidate may include stop words when it also
 # contains a meaningful token, as in "at its core".
 STOP_WORDS = {
-    "a", "an", "and", "are", "as", "at", "be", "been", "but", "by",
-    "can", "could", "did", "do", "does", "for", "from", "had", "has",
-    "have", "he", "her", "here", "hers", "him", "his", "how", "i", "if",
-    "in", "into", "is", "it", "its", "may", "me", "might", "more", "most",
-    "my", "no", "not", "of", "on", "or", "our", "ours", "she", "should",
-    "so", "some", "such", "than", "that", "the", "their", "theirs", "them",
-    "then", "there", "these", "they", "this", "those", "to", "too", "us",
-    "was", "we", "were", "what", "when", "where", "which", "who", "why",
-    "will", "with", "would", "you", "your", "yours",
+    "a",
+    "an",
+    "and",
+    "are",
+    "as",
+    "at",
+    "be",
+    "been",
+    "but",
+    "by",
+    "can",
+    "could",
+    "did",
+    "do",
+    "does",
+    "for",
+    "from",
+    "had",
+    "has",
+    "have",
+    "he",
+    "her",
+    "here",
+    "hers",
+    "him",
+    "his",
+    "how",
+    "i",
+    "if",
+    "in",
+    "into",
+    "is",
+    "it",
+    "its",
+    "may",
+    "me",
+    "might",
+    "more",
+    "most",
+    "my",
+    "no",
+    "not",
+    "of",
+    "on",
+    "or",
+    "our",
+    "ours",
+    "she",
+    "should",
+    "so",
+    "some",
+    "such",
+    "than",
+    "that",
+    "the",
+    "their",
+    "theirs",
+    "them",
+    "then",
+    "there",
+    "these",
+    "they",
+    "this",
+    "those",
+    "to",
+    "too",
+    "us",
+    "was",
+    "we",
+    "were",
+    "what",
+    "when",
+    "where",
+    "which",
+    "who",
+    "why",
+    "will",
+    "with",
+    "would",
+    "you",
+    "your",
+    "yours",
 }
 
 TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9]*(?:[-'][A-Za-z0-9]+)*")
@@ -61,9 +134,7 @@ class CorpusStats:
 def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     """Parse command-line arguments."""
 
-    parser = argparse.ArgumentParser(
-        description="Find phrases overrepresented in a model corpus."
-    )
+    parser = argparse.ArgumentParser(description="Find phrases overrepresented in a model corpus.")
     parser.add_argument(
         "--model",
         nargs="+",
@@ -313,11 +384,7 @@ def load_known_terms(path: Path | None) -> set[str]:
         reader = csv.DictReader(handle)
         if not reader.fieldnames or "term" not in reader.fieldnames:
             raise ValueError(f"{path}: expected a 'term' column")
-        return {
-            row["term"].strip().lower()
-            for row in reader
-            if row.get("term", "").strip()
-        }
+        return {row["term"].strip().lower() for row in reader if row.get("term", "").strip()}
 
 
 def phrase_size(term: str) -> int:
@@ -367,11 +434,7 @@ def rank_candidates(
         log2_ratio = math.log2(ratio)
 
         # Favor phrases that are both distinctive and repeated across documents.
-        score = (
-            max(log2_ratio, 0.0)
-            * math.log1p(model_count)
-            * math.sqrt(model_docs)
-        )
+        score = max(log2_ratio, 0.0) * math.log1p(model_count) * math.sqrt(model_docs)
 
         rows.append(
             {
@@ -382,9 +445,7 @@ def rank_candidates(
                 "model_per_million": round(model_count * 1_000_000 / model_total, 3),
                 "baseline_count": baseline_count,
                 "baseline_documents": baseline.documents[term],
-                "baseline_per_million": round(
-                    baseline_count * 1_000_000 / baseline_total, 3
-                ),
+                "baseline_per_million": round(baseline_count * 1_000_000 / baseline_total, 3),
                 "frequency_ratio": round(ratio, 3),
                 "log2_ratio": round(log2_ratio, 3),
                 "score": round(score, 3),

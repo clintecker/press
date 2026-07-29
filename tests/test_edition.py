@@ -22,25 +22,38 @@ def _manifest(**over) -> edition.EditionManifest:
     """A valid, release-gated manifest with a correctly derived identity."""
 
     base = edition.EditionManifest(
-        schema_version=edition.SCHEMA_VERSION, edition_id="",
-        slug="make-ready", title="Make Ready", format="paperback",
-        isbn="9780306406157", trim_width=6.0, trim_height=9.0,
-        page_count=180, paper="cream", spine_width_in=0.45, bleed_in=0.125,
+        schema_version=edition.SCHEMA_VERSION,
+        edition_id="",
+        slug="make-ready",
+        title="Make Ready",
+        format="paperback",
+        isbn="9780306406157",
+        trim_width=6.0,
+        trim_height=9.0,
+        page_count=180,
+        paper="cream",
+        spine_width_in=0.45,
+        bleed_in=0.125,
         interior=edition.ArtifactRef("interior", "a" * 64, 500_000),
         cover=edition.ArtifactRef("cover", "b" * 64, 90_000),
-        toolchain_digest="sha-202165d", source_commit="c0ffee1",
-        tree_clean=True, input_digests={"invariants": "d1"},
-        receipt_digests=("r0", "r1"))
+        toolchain_digest="sha-202165d",
+        source_commit="c0ffee1",
+        tree_clean=True,
+        input_digests={"invariants": "d1"},
+        receipt_digests=("r0", "r1"),
+    )
     base = dataclasses.replace(base, **over)
     return dataclasses.replace(base, edition_id=edition._identity_digest(base))
 
 
 def _observed(m: edition.EditionManifest) -> edition.Observed:
-    return edition.Observed(m.interior.sha256, m.interior.byte_size,
-                            m.page_count, m.cover.sha256, m.cover.byte_size)
+    return edition.Observed(
+        m.interior.sha256, m.interior.byte_size, m.page_count, m.cover.sha256, m.cover.byte_size
+    )
 
 
 # ---- L1 pure / property ----
+
 
 def test_a_freshly_built_manifest_verifies():
     m = _manifest()
@@ -48,13 +61,13 @@ def test_a_freshly_built_manifest_verifies():
 
 
 @pytest.mark.layer("property")
-@given(pages=st.integers(min_value=24, max_value=2000),
-       size=st.integers(min_value=1, max_value=10_000_000))
+@given(
+    pages=st.integers(min_value=24, max_value=2000),
+    size=st.integers(min_value=1, max_value=10_000_000),
+)
 def test_canonical_identity_is_deterministic(pages, size):
-    a = _manifest(page_count=pages,
-                  interior=edition.ArtifactRef("interior", "c" * 64, size))
-    b = _manifest(page_count=pages,
-                  interior=edition.ArtifactRef("interior", "c" * 64, size))
+    a = _manifest(page_count=pages, interior=edition.ArtifactRef("interior", "c" * 64, size))
+    b = _manifest(page_count=pages, interior=edition.ArtifactRef("interior", "c" * 64, size))
     assert a.edition_id == b.edition_id
     assert a.digest() == b.digest()
 
@@ -69,16 +82,30 @@ def test_json_round_trip_preserves_identity_and_digest():
 @pytest.mark.invariant("INV-edition-manifest")
 @pytest.mark.layer("property")
 @pytest.mark.proof("positive")
-@given(field=st.sampled_from([
-    "slug", "title", "format", "page_count", "paper", "trim_width",
-    "spine_width_in", "toolchain_digest",
-]))
+@given(
+    field=st.sampled_from(
+        [
+            "slug",
+            "title",
+            "format",
+            "page_count",
+            "paper",
+            "trim_width",
+            "spine_width_in",
+            "toolchain_digest",
+        ]
+    )
+)
 def test_every_production_fact_moves_identity(field):
     m = _manifest()
     tweaks = {
-        "slug": "other", "title": "Other", "format": "hardcover",
-        "page_count": m.page_count + 1, "paper": "white",
-        "trim_width": 6.14, "spine_width_in": m.spine_width_in + 0.01,
+        "slug": "other",
+        "title": "Other",
+        "format": "hardcover",
+        "page_count": m.page_count + 1,
+        "paper": "white",
+        "trim_width": 6.14,
+        "spine_width_in": m.spine_width_in + 0.01,
         "toolchain_digest": "sha-different",
     }
     moved = dataclasses.replace(m, **{field: tweaks[field]})
@@ -89,8 +116,7 @@ def test_every_production_fact_moves_identity(field):
 @given(field=st.sampled_from(["source_commit", "tree_clean", "receipt_digests"]))
 def test_provenance_does_not_move_identity(field):
     m = _manifest()
-    tweaks = {"source_commit": "deadbee2", "tree_clean": False,
-              "receipt_digests": ("r9",)}
+    tweaks = {"source_commit": "deadbee2", "tree_clean": False, "receipt_digests": ("r9",)}
     same = dataclasses.replace(m, **{field: tweaks[field]})
     # Provenance and capability are recorded but are not edition facts.
     assert edition._identity_digest(same) == m.edition_id
@@ -98,8 +124,9 @@ def test_provenance_does_not_move_identity(field):
 
 def test_a_provider_qualification_is_not_an_edition_fact():
     m = _manifest()
-    qualified = dataclasses.replace(m, qualifications=(
-        edition.ProviderQualification("lulu", "PB-BW", m.edition_id, "e" * 64),))
+    qualified = dataclasses.replace(
+        m, qualifications=(edition.ProviderQualification("lulu", "PB-BW", m.edition_id, "e" * 64),)
+    )
     # Adding a qualification must not change what the edition is.
     assert edition._identity_digest(qualified) == m.edition_id
     assert edition.verify_facts(qualified, _observed(qualified)) == []
@@ -107,7 +134,8 @@ def test_a_provider_qualification_is_not_an_edition_fact():
 
 def test_forbidden_key_scan_finds_nested_secrets():
     assert edition._forbidden_keys_present(
-        {"price": 100, "nested": [{"secret": "x"}], "ok": 1}) == ["price", "secret"]
+        {"price": 100, "nested": [{"secret": "x"}], "ok": 1}
+    ) == ["price", "secret"]
     assert edition._forbidden_keys_present(dataclasses.asdict(_manifest())) == []
 
 
@@ -117,19 +145,30 @@ def test_a_release_receipt_can_bind_the_edition_digest():
     from press import receipts
 
     m = _manifest()
-    inputs = {"invariants": "d", "fixtures": "d", "scenarios": "d",
-              "surfaces": "d", "toolchain": "sha-x"}
+    inputs = {
+        "invariants": "d",
+        "fixtures": "d",
+        "scenarios": "d",
+        "surfaces": "d",
+        "toolchain": "sha-x",
+    }
     release = receipts.Receipt(
-        schema_version=receipts.SCHEMA_VERSION, layer="release",
-        source_commit="c", tree_clean=True, inputs=inputs, prerequisites=[],
-        proofs=[], artifacts={"edition": m.edition_id})
+        schema_version=receipts.SCHEMA_VERSION,
+        layer="release",
+        source_commit="c",
+        tree_clean=True,
+        inputs=inputs,
+        prerequisites=[],
+        proofs=[],
+        artifacts={"edition": m.edition_id},
+    )
     assert release.artifacts["edition"] == m.edition_id
     # The receipt digest is stable, so the binding is verifiable.
-    assert release.digest() == receipts.from_json(
-        receipts.to_json([release]))[0].digest()
+    assert release.digest() == receipts.from_json(receipts.to_json([release]))[0].digest()
 
 
 # ---- L3 adversarial: each defect must be named ----
+
 
 @pytest.mark.invariant("INV-edition-manifest")
 @pytest.mark.layer("unit")
@@ -188,8 +227,9 @@ def test_a_mutable_looking_reference_is_refused():
 @pytest.mark.proof("negative")
 def test_a_stale_qualification_is_refused():
     m = _manifest()
-    stale = dataclasses.replace(m, qualifications=(
-        edition.ProviderQualification("lulu", "PB", "f" * 64, "e" * 64),))
+    stale = dataclasses.replace(
+        m, qualifications=(edition.ProviderQualification("lulu", "PB", "f" * 64, "e" * 64),)
+    )
     assert any("stale" in p for p in edition.verify_facts(stale, _observed(stale)))
 
 
@@ -214,6 +254,7 @@ def test_a_future_schema_version_is_refused():
 
 # ---- L2 component: build from real artifacts ----
 
+
 def _write_pdf(path, pages):
     from pypdf import PdfWriter
 
@@ -235,9 +276,11 @@ def test_build_from_artifacts_then_verify(scaffolded_book, monkeypatch):
     _write_pdf(edition.cover_path(root, slug), 1)
 
     # Isolate the edition logic from the press repo's own git state.
-    monkeypatch.setattr(receipts, "current_inputs",
-                        lambda toolchain_digest="unpinned": (
-                            {"invariants": "d"}, "c0ffee", True))
+    monkeypatch.setattr(
+        receipts,
+        "current_inputs",
+        lambda toolchain_digest="unpinned": ({"invariants": "d"}, "c0ffee", True),
+    )
     monkeypatch.setattr(receipts, "pinned_toolchain_digest", lambda: "sha-xyz")
     receipt = receipts.emit("collection", proofs=[])
     manifest = edition.build([receipt], root=root)
@@ -249,5 +292,4 @@ def test_build_from_artifacts_then_verify(scaffolded_book, monkeypatch):
     # Corrupt the interior on disk after the manifest was cut: verify must
     # refuse it (a rebuild after payment is forbidden).
     _write_pdf(edition.interior_path(root, slug), 97)
-    assert any("interior digest" in p or "page count" in p
-               for p in edition.verify(manifest, root))
+    assert any("interior digest" in p or "page count" in p for p in edition.verify(manifest, root))

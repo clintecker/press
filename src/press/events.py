@@ -50,7 +50,8 @@ def emit_line(event_type: str, **payload: Any) -> str:
         raise ValueError(f"unknown event type: {event_type!r}")
     body = json.dumps(
         {"version": PROTOCOL_VERSION, "type": event_type, "payload": payload},
-        sort_keys=True, separators=(",", ":"),
+        sort_keys=True,
+        separators=(",", ":"),
     )
     return SENTINEL + body
 
@@ -66,7 +67,7 @@ def parse_line(line: str) -> Event | ProtocolError | None:
 
     if not is_event_line(line):
         return None
-    body = line[len(SENTINEL):]
+    body = line[len(SENTINEL) :]
     try:
         data = json.loads(body)
     except json.JSONDecodeError as exc:

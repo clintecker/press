@@ -47,48 +47,79 @@ COMMANDS: tuple[Command, ...] = (
     Command("style", "checking", "Run the prose style audit"),
     Command("verify", "checking", "Rebuild and verify the reading PDF"),
     Command("verify-formats", "checking", "Rebuild and verify every non-PDF format"),
-    Command("verify-pages", "checking", "Assemble and verify the Pages site",
-            alias_of="pages"),
+    Command("verify-pages", "checking", "Assemble and verify the Pages site", alias_of="pages"),
     # print pack
     Command("print", "print pack", "Build the print-profile interior", build_format=True),
     Command("verify-print", "print pack", "Verify the interior and cover wrap"),
     Command("coverwrap", "print pack", "Build and verify the cover wrap"),
-    Command("publish", "print pack", "Emit a retail channel checklist",
-            args="kdp|ingram [--report-only]"),
-    Command("isbn", "print pack", "Assign ISBNs from an owned block",
-            args="status | assign print|epub"),
-    Command("onix", "print pack", "Generate an ONIX 3.0 metadata record",
-            args="[--forthcoming]"),
+    Command(
+        "publish",
+        "print pack",
+        "Emit a retail channel checklist",
+        args="kdp|ingram [--report-only]",
+    ),
+    Command(
+        "isbn", "print pack", "Assign ISBNs from an owned block", args="status | assign print|epub"
+    ),
+    Command("onix", "print pack", "Generate an ONIX 3.0 metadata record", args="[--forthcoming]"),
     Command("pcn", "print pack", "Assemble Library of Congress PCN fields"),
-    Command("lookup", "print pack",
-            "Look up an already-issued LCCN or ISSN (opt-in, read-only)",
-            args="lccn|issn [<number>]"),
+    Command(
+        "lookup",
+        "print pack",
+        "Look up an already-issued LCCN or ISSN (opt-in, read-only)",
+        args="lccn|issn [<number>]",
+    ),
     # utilities
     Command("render", "utilities", "Render the PDF to page PNGs"),
     Command("wordcount", "utilities", "Count the manuscript words"),
-    Command("figures", "utilities",
-            "List declared figures (kind, style, art: description) as JSON"),
+    Command(
+        "figures", "utilities", "List declared figures (kind, style, art: description) as JSON"
+    ),
     Command("clean", "utilities", "Remove build and dist"),
     Command("new", "utilities", "Scaffold a new book", args="<directory>"),
-    Command("add", "utilities", "Add a chapter, appendix, or front-matter part",
-            args="chapter|appendix <name> [--front]"),
-    Command("config", "utilities", "Read and write book configuration",
-            args="get|set|unset|list|validate"),
+    Command(
+        "add",
+        "utilities",
+        "Add a chapter, appendix, or front-matter part",
+        args="chapter|appendix <name> [--front]",
+    ),
+    Command(
+        "config",
+        "utilities",
+        "Read and write book configuration",
+        args="get|set|unset|list|validate",
+    ),
     Command("selftest", "utilities", "The press checking itself"),
     Command("doctor", "utilities", "Diagnose the toolchain"),
-    Command("migrate", "utilities", "Move the book to the next press major",
-            args="[plan] | apply | rollback | status"),
+    Command(
+        "migrate",
+        "utilities",
+        "Move the book to the next press major",
+        args="[plan] | apply | rollback | status",
+    ),
     # instruments
     Command("skills", "instruments", "List the packaged authoring skills"),
     Command("workflows", "instruments", "List the packaged agent workflows"),
     Command("desk", "instruments", "Open the operator desk (needs the tui extra)"),
     # art
-    Command("art", "art", "Commission or accept cover and plate art",
-            args="commission [targets] | accept <file> --as <target>"),
-    Command("cover", "art", "Commission a cover in a chosen style",
-            args="[--style <id>] [--subject <text>] | --list"),
-    Command("illustrate", "art", "Commission an in-book illustration or plate",
-            args="<name> [--style <id>] [--from <image>] | --list"),
+    Command(
+        "art",
+        "art",
+        "Commission or accept cover and plate art",
+        args="commission [targets] | accept <file> --as <target>",
+    ),
+    Command(
+        "cover",
+        "art",
+        "Commission a cover in a chosen style",
+        args="[--style <id>] [--subject <text>] | --list",
+    ),
+    Command(
+        "illustrate",
+        "art",
+        "Commission an in-book illustration or plate",
+        args="<name> [--style <id>] [--from <image>] | --list",
+    ),
     # operator
     Command("improve", "operator", "Editorial counsel (report-first)", args="[--apply]"),
     Command("research", "operator", "Build the table of authorities"),
@@ -96,8 +127,13 @@ COMMANDS: tuple[Command, ...] = (
 )
 
 GROUP_ORDER = (
-    "building", "checking", "print pack", "utilities", "instruments",
-    "art", "operator",
+    "building",
+    "checking",
+    "print pack",
+    "utilities",
+    "instruments",
+    "art",
+    "operator",
 )
 
 

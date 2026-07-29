@@ -34,8 +34,13 @@ MIGRATED = {
 # subprocess members that actually execute a command (as opposed to the
 # exception classes a migrated module may still import to catch).
 _SUBPROCESS_EXEC = {
-    "run", "Popen", "call", "check_call", "check_output",
-    "getoutput", "getstatusoutput",
+    "run",
+    "Popen",
+    "call",
+    "check_call",
+    "check_output",
+    "getoutput",
+    "getstatusoutput",
 }
 _OS_ENV_FUNCS = {"getenv", "putenv", "unsetenv"}
 

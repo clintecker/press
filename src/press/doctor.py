@@ -114,9 +114,7 @@ class DoctorReport:
 def tool_runs(tool: str) -> bool:
     try:
         for flag in ("--version", "-v"):
-            if adapters.process_runner.run(
-                [tool, flag], capture=True, timeout=15
-            ).returncode == 0:
+            if adapters.process_runner.run([tool, flag], capture=True, timeout=15).returncode == 0:
                 return True
     except (OSError, subprocess.TimeoutExpired):
         return False
@@ -135,6 +133,87 @@ def _default_deps_probe() -> str | None:
     except ImportError as exc:
         return str(exc)
     return None
+
+
+def _tool_finding(
+    tool: str,
+    purpose: str,
+    required: bool,
+    env: adapters.Environment,
+    tool_probe: Callable[[str], bool],
+) -> Finding:
+    """One tool's finding: missing/absent when off PATH (by requirement),
+    broken when present but unrunnable, else ok."""
+
+    if env.which(tool) is None:
+        state = "missing" if required else "absent"
+        return Finding(tool, "tool", state, purpose, required)
+    if not tool_probe(tool):
+        return Finding(
+            tool,
+            "tool",
+            "broken",
+            f"present but cannot execute; {purpose}",
+            required,
+        )
+    return Finding(tool, "tool", "ok", purpose, required)
+
+
+def _upscaler_finding(upscaler_probe: Callable[[], object | None] | None) -> Finding:
+    """The plate-enhancement upscaler finding.
+
+    The upscaler lives outside PATH (Upscayl bundles it in its app), so it is
+    found by the enhancer's own resolver, not env.which -- injected so a test
+    pins it, the same discipline as every other probe. Optional: absent,
+    ``press art enhance`` quantizes without an AI upscale.
+    """
+
+    if upscaler_probe is None:
+        from . import art_enhance
+
+        upscaler_probe = art_enhance.find_upscaler
+    purpose = "plate enhancement upscaling (press art enhance)"
+    state = "absent" if upscaler_probe() is None else "ok"
+    return Finding("realesrgan", "tool", state, purpose, False)
+
+
+def _python_finding(version: tuple[int, int]) -> Finding:
+    """The interpreter finding. Inside the tested range it is ok; outside it
+    the press may still run but is unproven, so doctor says so rather than
+    staying silent."""
+
+    version_str = f"{version[0]}.{version[1]}"
+    if (3, 10) <= version <= (3, 14):
+        return Finding(
+            "python",
+            "python",
+            "ok",
+            f"{version_str} is within the tested range 3.10 to 3.14",
+            False,
+        )
+    return Finding(
+        "python",
+        "python",
+        "warn",
+        f"{version_str} is outside the tested range 3.10 to 3.14 (see docs/COMPATIBILITY.md)",
+        False,
+    )
+
+
+def _deps_finding(check_deps: Callable[[], str | None]) -> Finding:
+    """The Python-libraries finding: ok when the required imports resolve,
+    missing carrying the ImportError message when they do not."""
+
+    deps_error = check_deps()
+    if deps_error is None:
+        return Finding(
+            "python-deps",
+            "deps",
+            "ok",
+            "Pillow, pypdf, ruamel.yaml importable",
+            True,
+        )
+    return Finding("python-deps", "deps", "missing", deps_error, True)
 
 
 def examine(
@@ -164,81 +243,17 @@ def examine(
     )
     check_deps = deps_probe if deps_probe is not None else _default_deps_probe
 
-    findings: list[Finding] = []
-
-    for tool, purpose, required in CHECKS:
-        if env.which(tool) is None:
-            state = "missing" if required else "absent"
-            findings.append(Finding(tool, "tool", state, purpose, required))
-        elif not tool_probe(tool):
-            findings.append(
-                Finding(
-                    tool,
-                    "tool",
-                    "broken",
-                    f"present but cannot execute; {purpose}",
-                    required,
-                )
-            )
-        else:
-            findings.append(Finding(tool, "tool", "ok", purpose, required))
-
-    # The plate-enhancement upscaler lives outside PATH (Upscayl bundles it in
-    # its app), so it is found by the enhancer's own resolver, not env.which --
-    # injected here so a test pins it, the same discipline as every other probe.
-    # Optional: absent, `press art enhance` quantizes without an AI upscale.
-    if upscaler_probe is None:
-        from . import art_enhance
-
-        upscaler_probe = art_enhance.find_upscaler
-    upscaler_purpose = "plate enhancement upscaling (press art enhance)"
-    upscaler_state = "absent" if upscaler_probe() is None else "ok"
-    findings.append(Finding("realesrgan", "tool", upscaler_state, upscaler_purpose, False))
-
-    for key, purpose in KEYS:
-        state = "ok" if env.get(key) else "unset"
-        findings.append(Finding(key, "key", state, purpose, False))
-
-    # The tested Python range; outside it the press may still run but is
-    # unproven, so doctor says so rather than staying silent.
-    version_str = f"{version[0]}.{version[1]}"
-    if (3, 10) <= version <= (3, 14):
-        findings.append(
-            Finding(
-                "python",
-                "python",
-                "ok",
-                f"{version_str} is within the tested range 3.10 to 3.14",
-                False,
-            )
-        )
-    else:
-        findings.append(
-            Finding(
-                "python",
-                "python",
-                "warn",
-                f"{version_str} is outside the tested range 3.10 to 3.14 "
-                "(see docs/COMPATIBILITY.md)",
-                False,
-            )
-        )
-
-    deps_error = check_deps()
-    if deps_error is None:
-        findings.append(
-            Finding(
-                "python-deps",
-                "deps",
-                "ok",
-                "Pillow, pypdf, ruamel.yaml importable",
-                True,
-            )
-        )
-    else:
-        findings.append(
-            Finding("python-deps", "deps", "missing", deps_error, True)
-        )
+    findings: list[Finding] = [
+        _tool_finding(tool, purpose, required, env, tool_probe)
+        for tool, purpose, required in CHECKS
+    ]
+    findings.append(_upscaler_finding(upscaler_probe))
+    findings.extend(
+        Finding(key, "key", "ok" if env.get(key) else "unset", purpose, False)
+        for key, purpose in KEYS
+    )
+    findings.append(_python_finding(version))
+    findings.append(_deps_finding(check_deps))
 
     return DoctorReport(tuple(findings))
 

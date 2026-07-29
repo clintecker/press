@@ -1,0 +1,7 @@
+# celebrimbor mutation ratchet — survivor IDENTITY, not count. Taken in CI.
+environment: ci
+survivors:
+- src/press/barcode.py:81:93-intconst-7
+- src/press/barcode.py:83:57-intconst-13
+tool: press.mutation (deterministic)
+version: 1

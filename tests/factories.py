@@ -173,9 +173,7 @@ class BookFactory:
             (book / "config" / "metadata.yaml").write_text(raw, encoding="utf-8")
             metadata = {"__raw__": raw}
         else:
-            (book / "config" / "metadata.yaml").write_text(
-                yamlio.dump(metadata), encoding="utf-8"
-            )
+            (book / "config" / "metadata.yaml").write_text(yamlio.dump(metadata), encoding="utf-8")
 
         chapters = self._chapters or {"00-only.md": _default_chapter(self._sentinels)}
         for name, body in chapters.items():
@@ -222,9 +220,7 @@ class BookFactory:
                 yamlio.dump(self._front_matter), encoding="utf-8"
             )
         if self._aesthetic is not None:
-            (config / "aesthetic.yaml").write_text(
-                yamlio.dump(self._aesthetic), encoding="utf-8"
-            )
+            (config / "aesthetic.yaml").write_text(yamlio.dump(self._aesthetic), encoding="utf-8")
         if self._house_rules is not None:
             (config / "house-rules.yaml").write_text(
                 yamlio.dump(self._house_rules), encoding="utf-8"
@@ -233,34 +229,43 @@ class BookFactory:
             (book / "assets" / "web").mkdir(parents=True, exist_ok=True)
             if self._reader_css is not None:
                 (book / "assets" / "web" / "reader.css").write_text(
-                    self._reader_css, encoding="utf-8")
+                    self._reader_css, encoding="utf-8"
+                )
             if self._extra_css is not None:
                 (book / "assets" / "web" / "extra.css").write_text(
-                    self._extra_css, encoding="utf-8")
+                    self._extra_css, encoding="utf-8"
+                )
         if self._title_tex is not None:
             (book / "tex").mkdir(exist_ok=True)
             (book / "tex" / "title-page.tex").write_text(self._title_tex, encoding="utf-8")
 
 
 def _default_chapter(sentinels: list[str]) -> str:
-    line = sentinels[0] if sentinels else (
-        "This chapter carries one honest plain sentence long enough to "
-        "serve as a manuscript witness for the verifiers."
+    line = (
+        sentinels[0]
+        if sentinels
+        else (
+            "This chapter carries one honest plain sentence long enough to "
+            "serve as a manuscript witness for the verifiers."
+        )
     )
     return f"# Only\n\n{line}\n"
 
 
 # ---- named presets ----
 
+
 def minimal() -> BookFactory:
     """The smallest book that is still a book: one chapter, one sentinel."""
 
-    return BookFactory().with_sentinels(
-        "the smallest book that is still honestly a book"
-    ).with_chapter(
-        "00-only.md",
-        "# Only\n\nHere is the smallest book that is still honestly a book, "
-        "carrying one true sentence.\n",
+    return (
+        BookFactory()
+        .with_sentinels("the smallest book that is still honestly a book")
+        .with_chapter(
+            "00-only.md",
+            "# Only\n\nHere is the smallest book that is still honestly a book, "
+            "carrying one true sentence.\n",
+        )
     )
 
 
@@ -272,12 +277,19 @@ def full() -> BookFactory:
     return (
         BookFactory(slug="full-book")
         .with_sentinels("the whole apparatus assembled", claim)
-        .with_chapter("01-press.md", f"# The press\n\nHere the whole apparatus assembled, and {claim}.\n")
+        .with_chapter(
+            "01-press.md", f"# The press\n\nHere the whole apparatus assembled, and {claim}.\n"
+        )
         .with_appendix("z-notes.md", "# Notes\n\nA closing note long enough to read as prose.\n")
-        .with_authorities([
-            {"claim": claim, "file": "book/chapters/01-press.md",
-             "authority": "A Trade History (1900)"},
-        ])
+        .with_authorities(
+            [
+                {
+                    "claim": claim,
+                    "file": "book/chapters/01-press.md",
+                    "authority": "A Trade History (1900)",
+                },
+            ]
+        )
         .with_index_terms([{"term": "press", "match": ["press"]}])
         .with_front_matter(dedication="For the compositors.")
         .with_aesthetic({"name": "plain", "web-palette": {"ink": "#111111"}})
@@ -326,8 +338,7 @@ def portability() -> BookFactory:
         .with_sentinels("plain text must survive the crossing")
         .with_chapter(
             "00-only.md",
-            "# Only\n\nHere plain text must survive the crossing intact, "
-            "quotes and all.\n",
+            "# Only\n\nHere plain text must survive the crossing intact, quotes and all.\n",
         )
     )
 

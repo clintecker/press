@@ -81,8 +81,7 @@ def verify_retail() -> dict[str, tuple[bool, Path, str]]:
 
     # Interior and wrap fail separately, each under its own label; a
     # missing cover must never read as an interior defect.
-    attempt("Print interior PDF (mirrored margins, black ink)", interior,
-            interior_check)
+    attempt("Print interior PDF (mirrored margins, black ink)", interior, interior_check)
     attempt("Cover wrap PDF (trim + bleed, spine computed)", wrap, wrap_check)
 
     def epub_verified() -> None:
@@ -110,35 +109,30 @@ def unverified_retail() -> dict[str, tuple[bool, Path, str]]:
     slug = booklib.slug()
     dist = root / "dist"
     entries = {
-        "Print interior PDF (mirrored margins, black ink)":
-            dist / f"{slug}-interior.pdf",
-        "Cover wrap PDF (trim + bleed, spine computed)":
-            dist / f"{slug}-coverwrap.pdf",
+        "Print interior PDF (mirrored margins, black ink)": dist / f"{slug}-interior.pdf",
+        "Cover wrap PDF (trim + bleed, spine computed)": dist / f"{slug}-coverwrap.pdf",
         "EPUB (KDP eBook / Ingram ebook program)": dist / f"{slug}.epub",
-        "Marketing cover image (front board only)":
-            root / "assets" / "cover.jpg",
+        "Marketing cover image (front board only)": root / "assets" / "cover.jpg",
     }
     return {
-        label: (False, path,
-                "present but NOT verified (report-only)" if path.is_file()
-                else "missing")
+        label: (
+            False,
+            path,
+            "present but NOT verified (report-only)" if path.is_file() else "missing",
+        )
         for label, path in entries.items()
     }
 
 
-def main(channel: str, report_only: bool = False) -> int:
-    if channel not in CHANNELS:
-        raise SystemExit(f"unknown channel {channel!r}: {', '.join(CHANNELS)}")
-    root = booklib.root()
-    meta = booklib.metadata()
-    if not meta.get("title") or not meta.get("author"):
-        raise SystemExit("the checklist needs title and author in config/metadata.yaml")
-    trim = meta.get("trim") or {}
-    trim_w, trim_h = float(trim.get("width", 6)), float(trim.get("height", 9))
-    isbn = gen_coverwrap.isbn_for_print()
-    spec = CHANNELS[channel]
-
-    results = unverified_retail() if report_only else verify_retail()
+def _checklist_lines(
+    spec: dict,
+    meta: dict,
+    isbn: str | None,
+    trim_w: float,
+    trim_h: float,
+    results: dict[str, tuple[bool, Path, str]],
+) -> list[str]:
+    """Assemble the checklist body from verified results and identity."""
 
     lines = [
         f"# {spec['name']} checklist: {meta['title']}",
@@ -169,6 +163,24 @@ def main(channel: str, report_only: bool = False) -> int:
         *[f"- [ ] {item}" for item in spec["manual"]],
         "",
     ]
+    return lines
+
+
+def main(channel: str, report_only: bool = False) -> int:
+    if channel not in CHANNELS:
+        raise SystemExit(f"unknown channel {channel!r}: {', '.join(CHANNELS)}")
+    root = booklib.root()
+    meta = booklib.metadata()
+    if not meta.get("title") or not meta.get("author"):
+        raise SystemExit("the checklist needs title and author in config/metadata.yaml")
+    trim = meta.get("trim") or {}
+    trim_w, trim_h = float(trim.get("width", 6)), float(trim.get("height", 9))
+    isbn = gen_coverwrap.isbn_for_print()
+    spec = CHANNELS[channel]
+
+    results = unverified_retail() if report_only else verify_retail()
+
+    lines = _checklist_lines(spec, meta, isbn, trim_w, trim_h, results)
     out = root / "dist" / f"publish-{channel}.md"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(lines), encoding="utf-8")

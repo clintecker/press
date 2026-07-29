@@ -12,6 +12,7 @@ covers; authoring a real book uses `press cover`. Needs OPENAI_API_KEY.
 Output lands in build/commissioned-covers/ (gitignored); review the lettering
 and copy the good ones to examples/<slug>/assets/cover.jpg.
 """
+
 from __future__ import annotations
 
 import sys
@@ -49,8 +50,9 @@ def main(argv: list[str]) -> None:
     override = None
     if argv and argv[0] == "--style":
         override, argv = argv[1], argv[2:]
-    slugs = argv or [d.name for d in sorted(EXAMPLES.iterdir())
-                     if (d / "config" / "metadata.yaml").is_file()]
+    slugs = argv or [
+        d.name for d in sorted(EXAMPLES.iterdir()) if (d / "config" / "metadata.yaml").is_file()
+    ]
     for slug in slugs:
         commission(slug, override)
     print(f"+ commissioned {len(slugs)} cover(s) -> {OUT}")

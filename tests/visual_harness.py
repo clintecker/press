@@ -92,25 +92,41 @@ def extract_pdf(pdf: Path, sample_pages: list[int], dpi: int = 72) -> PdfFeature
                 continue
             box = reader.pages[page_no - 1].mediabox
             subprocess.run(
-                ["pdftoppm", "-png", "-r", str(dpi), "-f", str(page_no),
-                 "-l", str(page_no), str(pdf), str(out / "p")],
-                check=True, capture_output=True,
+                [
+                    "pdftoppm",
+                    "-png",
+                    "-r",
+                    str(dpi),
+                    "-f",
+                    str(page_no),
+                    "-l",
+                    str(page_no),
+                    str(pdf),
+                    str(out / "p"),
+                ],
+                check=True,
+                capture_output=True,
             )
             rendered = sorted(out.glob("p*.png"))
             if not rendered:
                 continue
             with Image.open(rendered[-1]) as image:
                 ink = _ink_box(image)
-            features.pages.append(PageGeometry(
-                width_pt=round(float(box.width), 1),
-                height_pt=round(float(box.height), 1),
-                ink_left=round(ink[0], 3), ink_right=round(ink[1], 3),
-                ink_top=round(ink[2], 3), ink_bottom=round(ink[3], 3),
-            ))
+            features.pages.append(
+                PageGeometry(
+                    width_pt=round(float(box.width), 1),
+                    height_pt=round(float(box.height), 1),
+                    ink_left=round(ink[0], 3),
+                    ink_right=round(ink[1], 3),
+                    ink_top=round(ink[2], 3),
+                    ink_bottom=round(ink[3], 3),
+                )
+            )
     return features
 
 
 # ---- baseline comparison ----
+
 
 @dataclass
 class Drift:
@@ -120,8 +136,9 @@ class Drift:
     tolerance: float
 
 
-def compare_pdf(baseline: dict, actual: PdfFeatures, geometry_tol: float = 0.03,
-                pt_tol: float = 1.0) -> list[Drift]:
+def compare_pdf(
+    baseline: dict, actual: PdfFeatures, geometry_tol: float = 0.03, pt_tol: float = 1.0
+) -> list[Drift]:
     """Geometry drift beyond tolerance, scoped so a toolchain patch does
     not trip it but a layout change does."""
 
@@ -133,12 +150,19 @@ def compare_pdf(baseline: dict, actual: PdfFeatures, geometry_tol: float = 0.03,
     for index, (base_page, act_page) in enumerate(zip(baseline["pages"], actual.pages)):
         for dim in ("width_pt", "height_pt"):
             if abs(base_page[dim] - getattr(act_page, dim)) > pt_tol:
-                drifts.append(Drift(f"page{index}.{dim}", base_page[dim],
-                                    getattr(act_page, dim), pt_tol))
+                drifts.append(
+                    Drift(f"page{index}.{dim}", base_page[dim], getattr(act_page, dim), pt_tol)
+                )
         for edge in ("ink_left", "ink_right", "ink_top", "ink_bottom"):
             if abs(base_page[edge] - getattr(act_page, edge)) > geometry_tol:
-                drifts.append(Drift(f"page{index}.{edge}", base_page[edge],
-                                    getattr(act_page, edge), geometry_tol))
+                drifts.append(
+                    Drift(
+                        f"page{index}.{edge}",
+                        base_page[edge],
+                        getattr(act_page, edge),
+                        geometry_tol,
+                    )
+                )
     return drifts
 
 
@@ -150,8 +174,14 @@ def write_review(path: Path, baseline: dict, actual: PdfFeatures, drifts: list[D
     """A compact review artifact: expected, actual, and the drift, for a
     human deciding whether a change is a regression or a new baseline."""
 
-    path.write_text(json.dumps({
-        "baseline": baseline,
-        "actual": to_baseline(actual),
-        "drift": [asdict(d) for d in drifts],
-    }, indent=2), encoding="utf-8")
+    path.write_text(
+        json.dumps(
+            {
+                "baseline": baseline,
+                "actual": to_baseline(actual),
+                "drift": [asdict(d) for d in drifts],
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )

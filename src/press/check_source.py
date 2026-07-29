@@ -55,8 +55,7 @@ def _sentinel_failures(seen: set[Path]) -> list[str]:
     # A sentinel that never appears in the source proves nothing in the
     # artifacts; catch the typo here, not after six builds.
     manuscript_text = " ".join(
-        " ".join(path.read_text(encoding="utf-8").split())
-        for path in seen if path.is_file()
+        " ".join(path.read_text(encoding="utf-8").split()) for path in seen if path.is_file()
     )
     return [
         f"sentinel not found in the manuscript: {sentinel}"
@@ -85,8 +84,7 @@ def _config_shape_failures(root: Path) -> list[str]:
             failures.append(str(exc))
             continue
         failures.extend(
-            f"{file}: {problem}"
-            for problem in config_schema.validate_file(root, file, proposed)
+            f"{file}: {problem}" for problem in config_schema.validate_file(root, file, proposed)
         )
     return failures
 
@@ -96,9 +94,7 @@ def _plate_failures(root: Path, seen: set[Path]) -> list[str]:
     # archive and the site while appearing in no book; orphans are
     # mistakes. The match is path-anchored so raven.jpg cannot hide
     # behind a reference to black-raven.jpg.
-    manuscript = "\n".join(
-        path.read_text(encoding="utf-8") for path in seen if path.is_file()
-    )
+    manuscript = "\n".join(path.read_text(encoding="utf-8") for path in seen if path.is_file())
     return [
         f"plate never referenced by the manuscript: assets/woodcuts/{plate.name}"
         for plate in booklib.plate_files(root / "assets" / "woodcuts")

@@ -27,7 +27,9 @@ JUNK_MARKERS = ("__pycache__", ".pyc", ".pyo", ".DS_Store", ".swp")
 def _build(outdir: Path) -> tuple[str, list[str]]:
     result = subprocess.run(
         [sys.executable, "-m", "build", "--outdir", str(outdir)],
-        cwd=ROOT, capture_output=True, text=True,
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
     )
     if result.returncode != 0:
         raise AssertionError(f"build failed:\n{result.stdout}\n{result.stderr}")
@@ -57,6 +59,7 @@ def test_distributions_carry_no_bytecode(tmp_path):
     # the audit's dirty build was made from.
     script = ROOT / "src" / "press" / "data" / "skills" / "overused-jargon" / "scripts"
     import py_compile
+
     for py in script.glob("*.py"):
         py_compile.compile(str(py))
     try:
@@ -70,8 +73,7 @@ def test_distributions_carry_no_bytecode(tmp_path):
 
 def test_build_is_warning_free(tmp_path):
     output, _ = _build(tmp_path)
-    warnings = [line for line in output.splitlines()
-                if line.lower().startswith("warning:")]
+    warnings = [line for line in output.splitlines() if line.lower().startswith("warning:")]
     assert not warnings, f"build emitted warnings (treated as failures): {warnings}"
 
 
@@ -103,14 +105,14 @@ def test_membership_is_stable_across_runs(tmp_path):
     logical member set (ignoring the dist filenames themselves)."""
 
     def logical(outdir: Path) -> set[str]:
-        return {m for m in _members(outdir)
-                if not any(marker in m for marker in JUNK_MARKERS)}
+        return {m for m in _members(outdir) if not any(marker in m for marker in JUNK_MARKERS)}
 
     first = tmp_path / "a"
     second = tmp_path / "b"
     _build(first)
     script = ROOT / "src" / "press" / "data" / "skills" / "overused-jargon" / "scripts"
     import py_compile
+
     for py in script.glob("*.py"):
         py_compile.compile(str(py))
     try:

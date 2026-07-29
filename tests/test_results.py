@@ -125,7 +125,12 @@ def test_verification_report_cannot_claim_success_with_a_failure():
 
 def test_module_exposes_the_vocabulary():
     for name in (
-        "BuildReceipt", "VerificationReport", "CheckResult",
-        "ConfigError", "PolicyError", "ToolError", "ArtifactError",
+        "BuildReceipt",
+        "VerificationReport",
+        "CheckResult",
+        "ConfigError",
+        "PolicyError",
+        "ToolError",
+        "ArtifactError",
     ):
         assert hasattr(results, name)

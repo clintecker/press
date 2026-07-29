@@ -1,0 +1,91 @@
+source = "src/press"
+exclude = ["src/press/data/**"]
+policy_roles = ["verifier", "parser", "producer", "adapter", "orchestrator"]
+
+# press is a book-BUILD pipeline: reading and writing files is its reason to
+# exist, and it tests those operations against real temp dirs, not an injected
+# filesystem seam. Declare filesystem its tested medium (celebrimbor 0.12.0 #13);
+# Its CLI entries read sys.argv but take argv as an injectable param (tested by
+# passing it), and os.environ config routes through adapters.environment -- so
+# environment is handled too. clock stays strict: a date/now stamp is genuine
+# injection debt.
+ambient_capabilities = ["filesystem", "environment"]
+
+
+# celebrimbor's runtime import-health gate: it imports the source and proves
+# every module loads and is free of forbidden import side effects -- the parity
+# replacement for press's own check_imports / check_import_side_effects (retired
+# in Phase 4). Unblocked by celebrimbor 0.7.1 (#8: the probe now keeps
+# socket.socket subclassable).
+import_check = true
+
+# Strict marker mode: every xfail/skip/skipif reason must cite a declared
+# limitation from the invariant ledger, so a suppressed test is tied to a
+# named, reviewable gap rather than a free-text excuse (celebrimbor markers).
+markers_cite_limitations = true
+
+# press's own domain checks (the book/publishing verifiers celebrimbor cannot
+# know about). The CLI imports this module so `celebrimbor gate` runs all the
+# press.* checks alongside the builtins -- no hand-rolled wrapper. A module that
+# will not import is a hard, fail-closed error (celebrimbor 0.7.0, #7).
+check_modules = ["press.quality_checks"]
+
+# press's deterministic mutation of its pure policy modules, exposed as the
+# survivor set celebrimbor's mutation ratchet consumes (celebrimbor 0.11.0):
+# press.mutation:survivors returns frozenset[celebrimbor.Survivor], and
+# celebrimbor runs its own survivor-identity ratchet over it against
+# .celebrimbor/baselines/mutation.yaml -- so the former scripts/mutation_ratchet.py
+# and quality/mutation-baseline.json are retired.
+mutation_survivors = "press.mutation:survivors"
+
+# The known-bad fixtures live in the package data dir; expected.yaml there names
+# the checker + diagnostic each proves. This is the parity replacement for
+# press's own check_the_checkers / check_fixture_provenance.
+known_bad = "src/press/data/known-bad"
+
+# press's coverage policy is a pure ratchet (floors only rise) with an absolute
+# minimum of 50%, the exact LOW_FLOOR the retired scripts/coverage_ratchet.py
+# enforced -- not celebrimbor's stricter default of 60. Modules below it are the
+# toolchain- and image-boundary code proven at the integration layer, each
+# carrying its reason in the coverage baseline's `reasons:` map (transcribed from
+# the old LOW_FLOOR_ALLOWED). Lowering to 50 is parity with press's own bar, not
+# a weakening; the per-module floors still only rise.
+min_coverage_floor = 50.0
+
+[paths]
+surfaces = ".celebrimbor/surfaces.yaml"
+invariants = ".celebrimbor/invariants.yaml"
+producers = ".celebrimbor/producers.yaml"
+coverage_baseline = ".celebrimbor/baselines/coverage.yaml"
+mutation_baseline = ".celebrimbor/baselines/mutation.yaml"
+
+# press's editorial linters are book-context-bound and emit human phrases, so
+# they run in-process (callable) with substring matching (celebrimbor 0.9.0, #10)
+# -- diagnostics_for(path) returns the diagnostic lines; the declared phrase must
+# appear inside one.
+[known_bad_checkers.style_audit]
+callable = "press.style_audit:diagnostics_for"
+match = "substring"
+
+[known_bad_checkers.jargon_lint]
+callable = "press.jargon_lint:diagnostics_for"
+match = "substring"
+
+# Structural budgets: press's own standard, set just above its current
+# practice so a regression still fails but its deliberate, cohesive shapes are
+# not held to bars press never chose. complexity=15 matches press's own ruff
+# gate ([tool.ruff.lint.mccabe] max-complexity=15, a completed burndown, vs
+# celebrimbor's stricter default 10). The genuinely-too-big modules (selftest,
+# build) are split rather than accommodated -- these budgets do not excuse them.
+[limits]
+complexity = 15
+nesting = 5
+max_params = 9
+max_keyword_params = 15
+max_function_lines = 100
+max_file_lines = 660
+# 10: the selftest_book/selftest_release check-aggregator modules group ~12
+# independent domain checks each -- cohesive by PURPOSE (run the checks), which
+# code-cohesion under-measures; every other module stays well under.
+max_domains_per_file = 10
+max_public_callables = 25

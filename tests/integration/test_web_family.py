@@ -33,9 +33,7 @@ from tests.integration._harness import (
 )
 
 PANDOC = ("pandoc",)
-requires_pandoc = pytest.mark.skipif(
-    bool(missing_tools(PANDOC)), reason=skip_reason(PANDOC)
-)
+requires_pandoc = pytest.mark.skipif(bool(missing_tools(PANDOC)), reason=skip_reason(PANDOC))
 requires_pages_toolchain = pytest.mark.skipif(
     bool(missing_tools(PDF_TOOLCHAIN)), reason=skip_reason(PDF_TOOLCHAIN)
 )
@@ -146,6 +144,4 @@ def test_pages_references_resolve(tmp_path):
 
     assert rc == 0, "verify_pages found an unresolved reference on the built site"
     assert "pages/" in evidence.outputs, "no pages site directory was produced"
-    assert all(
-        evidence.tool_versions[tool] != "absent" for tool in PDF_TOOLCHAIN
-    )
+    assert all(evidence.tool_versions[tool] != "absent" for tool in PDF_TOOLCHAIN)

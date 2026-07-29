@@ -17,7 +17,15 @@ from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
 from textual.widgets import (
-    DataTable, Footer, Header, Input, Label, ListItem, ListView, RichLog, Static,
+    DataTable,
+    Footer,
+    Header,
+    Input,
+    Label,
+    ListItem,
+    ListView,
+    RichLog,
+    Static,
 )
 
 from .. import catalog, desk_model, process_control
@@ -94,17 +102,16 @@ class DeskApp(App):
                 table.add_columns("artifact", "state", "published")
                 for row in model.artifacts:
                     glyph, word = STATE_GLYPH[row.state]
-                    table.add_row(row.name, f"{glyph} {word}",
-                                  "yes" if row.published else "-")
+                    table.add_row(row.name, f"{glyph} {word}", "yes" if row.published else "-")
                 yield table
             summary = self._capability_summary(model)
-            yield Static(summary, id="capabilities",
-                         classes="ok" if model.ready else "warn")
+            yield Static(summary, id="capabilities", classes="ok" if model.ready else "warn")
             doctor_table: DataTable = DataTable(id="doctor")
             doctor_table.add_columns("state", "capability", "purpose")
             for finding in desk_model.doctor_rows(model.capabilities):
-                doctor_table.add_row(f"{finding.glyph} {finding.state_word}",
-                                     finding.name, finding.purpose)
+                doctor_table.add_row(
+                    f"{finding.glyph} {finding.state_word}", finding.name, finding.purpose
+                )
             yield doctor_table
         yield Footer()
 
@@ -160,8 +167,7 @@ class RunScreen(Screen):
         ("escape", "leave", "back"),
     ]
 
-    def __init__(self, root: Path, target: str, args: tuple[str, ...] = (),
-                 *, spawn=None) -> None:
+    def __init__(self, root: Path, target: str, args: tuple[str, ...] = (), *, spawn=None) -> None:
         super().__init__()
         self._root = root
         self._target = target
@@ -281,7 +287,8 @@ class PickerScreen(Screen):
         # with a prompt rather than running straight into a usage error.
         if command is not None and command.args and not args:
             self.query_one("#picker-title", Label).update(
-                f"{target} needs arguments: {command.args}")
+                f"{target} needs arguments: {command.args}"
+            )
             self.query_one("#picker-args", Input).focus()
             return
         self.app.pop_screen()

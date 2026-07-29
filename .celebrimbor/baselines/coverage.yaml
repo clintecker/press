@@ -1,0 +1,125 @@
+# celebrimbor coverage ratchet -- per-module floors that may only rise,
+# measured in CI. Minimum is 50% ([tool.celebrimbor] min_coverage_floor),
+# press's own LOW_FLOOR; modules below it carry a reason (from the retired
+# coverage_ratchet's LOW_FLOOR_ALLOWED): toolchain- and image-boundary code
+# proven at the integration layer, not by unit coverage.
+version: 1
+environment: ci
+tool: coverage
+floors:
+  __init__: 66.7
+  __main__: 20.9
+  adapters.__init__: 100.0
+  adapters.fakes: 96.0
+  adapters.http: 100.0
+  adapters.import_guard: 0.0
+  adapters.production: 76.2
+  adapters.protocols: 74.6
+  adapters.retry: 100.0
+  adapters.streaming: 92.0
+  add: 93.0
+  aesthetic: 20.0
+  art: 12.3
+  art_commission: 11.4
+  art_enhance: 80.0
+  artifact_status: 98.3
+  barcode: 100.0
+  booklib: 69.1
+  bookmodel: 81.9
+  brand: 85.0
+  build: 10.9
+  catalog: 95.6
+  check_source: 73.3
+  check_the_checkers: 16.7
+  commerce: 89.2
+  config_cli: 84.2
+  config_schema: 93.6
+  config_store: 90.9
+  cover: 40.0
+  desk_model: 100.0
+  doctor: 95.2
+  dropcaps: 84.0
+  edition: 84.4
+  events: 94.5
+  extensions: 93.0
+  fixture_provenance: 86.0
+  gen_authorities: 73.6
+  gen_coverwrap: 11.9
+  gen_front_matter: 11.5
+  gen_index: 15.1
+  idlookup: 90.0
+  illustrate: 46.0
+  impact: 83.7
+  instruments: 25.4
+  invariants: 78.3
+  jargon_lint: 21.2
+  migrate: 86.0
+  mutation: 0.0
+  onix: 90.0
+  operator: 12.4
+  package_source: 90.7
+  pcn: 90.0
+  print_safe: 92.0
+  process_control: 82.1
+  profiles: 84.0
+  provider_specs: 95.0
+  providers.__init__: 100.0
+  providers.contract: 100.0
+  providers.fake: 96.2
+  providers.lulu: 69.8
+  providers.transport: 94.3
+  publish: 0.0
+  qualification: 88.1
+  quality_checks: 0.0
+  reader_meta: 30.0
+  receipts: 68.9
+  registrations: 41.6
+  registry: 44.3
+  results: 100.0
+  scaffold: 90.3
+  scenarios: 91.0
+  selftest: 86.5
+  style_audit: 14.9
+  surfaces: 71.9
+  verify_archives: 56.7
+  verify_coverwrap: 40.0
+  verify_formats: 45.6
+  verify_pages: 76.3
+  verify_pdf: 10.5
+  webmeta: 95.0
+  wordcount: 28.6
+  yamlio: 96.1
+reasons:
+  __main__: CLI dispatch; every route proven by its command
+  adapters.import_guard: bare-install import guard; exercised only in a spawned subprocess
+    (the bare-wheel CI proof), which in-process coverage cannot observe
+  aesthetic: TeX/CSS token substitution; proven by a real build
+  art: art intake; proven by the integration build
+  art_commission: image-model boundary; proven against fakes at the adapter layer
+  build: orchestrates the toolchain; proven by the integration build
+  check_the_checkers: meta-checker; proven by the checkers it drives
+  cover: cover-style engine; the image call is proven at the art-commission layer
+  gen_coverwrap: cover-wrap TeX; proven by verify_coverwrap and a real build
+  gen_front_matter: front-matter TeX; proven by verify_cover_page and a real build
+  gen_index: index appendix; proven by a build that rejects a zero-hit term
+  illustrate: illustration engine; the image call is proven at the art-commission
+    layer
+  instruments: skills/workflows listing; proven by the listed instruments
+  jargon_lint: jargon lint over real prose; proven at integration
+  mutation: deterministic mutation of the pure policy modules; shells out to pytest
+    per mutant, so it is exercised by celebrimbor's mutation ratchet, not the unit
+    suite
+  operator: operator command dispatch; proven by improve/research/aesthetic
+  publish: retail-channel checklist; proven by the integration build
+  quality_checks: press's domain-check registrations; run by celebrimbor gate (check_modules),
+    not imported by pytest -- each check's falsifier is proven by celebrimbor.falsifiers
+  reader_meta: reader/landing metadata and sitemap generation split from build; the
+    per-page stampers and sitemap are exercised by a real build (toolchain tier),
+    only landing_head_metadata by unit test
+  registrations: ISBN/LCCN paperwork; proven by the retail integration
+  registry: surface/target registry; proven by the drift checks
+  style_audit: prose audit over real manuscripts; proven at integration
+  verify_coverwrap: inspects a real wrap PDF; proven at the toolchain layer
+  verify_formats: inspects real EPUB/HTML/txt/docx; proven at the toolchain layer
+  verify_pdf: renders and inspects a real PDF; proven at the toolchain layer
+  wordcount: manuscript word count; proven by a real book

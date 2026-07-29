@@ -61,9 +61,7 @@ class Finding:
 def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     """Parse command-line arguments."""
 
-    default_watchlist = (
-        instruments.SKILLS / "overused-jargon" / "references" / "watchlist.csv"
-    )
+    default_watchlist = instruments.SKILLS / "overused-jargon" / "references" / "watchlist.csv"
 
     parser = argparse.ArgumentParser(
         description="Find watched jargon in Markdown or plain-text files."
@@ -144,13 +142,9 @@ def load_rules(path: Path) -> list[Rule]:
             if not term:
                 raise ValueError(f"{path}:{row_number}: empty term")
             if match not in {"word", "phrase", "regex"}:
-                raise ValueError(
-                    f"{path}:{row_number}: match must be word, phrase, or regex"
-                )
+                raise ValueError(f"{path}:{row_number}: match must be word, phrase, or regex")
             if status not in STATUS_LEVEL:
-                raise ValueError(
-                    f"{path}:{row_number}: unknown status {status!r}"
-                )
+                raise ValueError(f"{path}:{row_number}: unknown status {status!r}")
 
             rules.append(
                 Rule(
@@ -335,6 +329,26 @@ def should_fail(findings: Sequence[Finding], fail_on: str) -> bool:
 
     threshold = STATUS_LEVEL[fail_on]
     return any(STATUS_LEVEL[finding.status] >= threshold for finding in findings)
+
+
+def diagnostics_for(path: Path) -> list[str]:
+    """Every watchlist finding for one file, book-free (the default packaged
+    watchlist, no per-book allow list): the in-process seam celebrimbor's
+    known-bad gate calls per fixture, substring-matching the declared
+    diagnostic. Each line carries the ``jargon`` label the fixtures declare."""
+
+    default_watchlist = instruments.SKILLS / "overused-jargon" / "references" / "watchlist.csv"
+    rules = load_rules(default_watchlist)
+    text = Path(path).read_text(encoding="utf-8")
+    findings = scan_text(
+        path=str(path),
+        text=text,
+        rules=rules,
+        allowed_terms=set(),
+        include_quotes=True,
+        remaining=1_000_000,
+    )
+    return [f"jargon: {finding.term!r} ({finding.status})" for finding in findings]
 
 
 def main(argv: Sequence[str] | None = None) -> int:

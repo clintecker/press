@@ -29,9 +29,7 @@ from tests.integration._harness import (
 )
 
 REQUIRED = ("pandoc",)
-requires_pandoc = pytest.mark.skipif(
-    bool(missing_tools(REQUIRED)), reason=skip_reason(REQUIRED)
-)
+requires_pandoc = pytest.mark.skipif(bool(missing_tools(REQUIRED)), reason=skip_reason(REQUIRED))
 
 
 def _book(root):
@@ -81,9 +79,7 @@ def test_portable_editions_keep_witnesses(tmp_path):
         verify_formats.verify_docx(dist / f"{slug}.docx")
         evidence.record_verifier("verify_formats.verify_docx")
         evidence.record_invariant("INV-format-witness")
-        evidence.outputs = digest_outputs(
-            dist, [f"{slug}.md", f"{slug}.txt", f"{slug}.docx"]
-        )
+        evidence.outputs = digest_outputs(dist, [f"{slug}.md", f"{slug}.txt", f"{slug}.docx"])
     evidence.write(tmp_path)
 
     for name in (f"{slug}.md", f"{slug}.txt", f"{slug}.docx"):

@@ -92,8 +92,11 @@ def test_house_pdf_layout_matches_baseline(tmp_path):
                 "updated by accident"
             )
         BASELINE.parent.mkdir(parents=True, exist_ok=True)
-        payload = {"design_major": "v1", "reason": update,
-                   "features": visual_harness.to_baseline(features)}
+        payload = {
+            "design_major": "v1",
+            "reason": update,
+            "features": visual_harness.to_baseline(features),
+        }
         BASELINE.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         pytest.skip(f"baseline updated: {update}")
 
@@ -137,9 +140,12 @@ def test_profile_renders_at_its_declared_trim(tmp_path, profile_id):
         factories.BookFactory(slug="trim-fixture", title="Trim Fixture")
         .with_sentinels("the house design lays this paragraph")
         .with_metadata(print={"profile": profile_id})
-        .with_chapter("01-one.md",
-                      "# Chapter one\n\n" + ("The house design lays this "
-                      "paragraph across the page. " * 6) + "\n")
+        .with_chapter(
+            "01-one.md",
+            "# Chapter one\n\n"
+            + ("The house design lays this paragraph across the page. " * 6)
+            + "\n",
+        )
         .build(tmp_path)
     )
     with handle.use():
@@ -176,6 +182,7 @@ def test_baseline_is_committed_and_shaped():
 # toolchain: a font swap, a margin shift, and a page-count change are each
 # drift, while the unchanged features are clean.
 
+
 def _baseline_features() -> dict:
     if not BASELINE.is_file():
         pytest.skip("no baseline to compare against")
@@ -184,7 +191,8 @@ def _baseline_features() -> dict:
 
 def _as_features(data: dict) -> visual_harness.PdfFeatures:
     return visual_harness.PdfFeatures(
-        page_count=data["page_count"], fonts=list(data["fonts"]),
+        page_count=data["page_count"],
+        fonts=list(data["fonts"]),
         pages=[visual_harness.PageGeometry(**p) for p in data["pages"]],
     )
 

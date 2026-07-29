@@ -88,7 +88,7 @@ def hyphenate(isbn13: str) -> str:
     conf = isbn_block() or {}
     prefix = str(conf.get("prefix", "")).strip().rstrip("-")
     prefix_digits, width = _block_spec()
-    publication = isbn13[len(prefix_digits):12]
+    publication = isbn13[len(prefix_digits) : 12]
     check = isbn13[12]
     joiner = "-" if "-" in prefix else ""
     return f"{prefix}{joiner or '-'}{publication}-{check}" if prefix else isbn13
@@ -102,17 +102,17 @@ def _used_publications(prefix_digits: str, width: int) -> dict[int, str]:
     for edition, value in isbn_map().items():
         digits = "".join(ch for ch in str(value) if ch.isdigit())
         if len(digits) == 13 and digits.startswith(prefix_digits):
-            used[int(digits[len(prefix_digits):12])] = edition
+            used[int(digits[len(prefix_digits) : 12])] = edition
     return used
 
 
 @dataclass(frozen=True)
 class BlockStatus:
-    prefix: str                # the hyphenated prefix as configured
-    prefix_digits: str         # the same, digits only
+    prefix: str  # the hyphenated prefix as configured
+    prefix_digits: str  # the same, digits only
     size: int
     width: int
-    assigned: dict[int, str]   # publication number -> edition holding it
+    assigned: dict[int, str]  # publication number -> edition holding it
 
     @property
     def free(self) -> int:
@@ -144,11 +144,11 @@ def next_publication() -> int:
 
     prefix_digits, width = _block_spec()
     used = _used_publications(prefix_digits, width)
-    for publication in range(10 ** width):
+    for publication in range(10**width):
         if publication not in used:
             return publication
     raise SystemExit(
-        f"ISBN block exhausted: all {10 ** width} numbers under {prefix_digits} "
+        f"ISBN block exhausted: all {10**width} numbers under {prefix_digits} "
         "are assigned. Buy another prefix from your agency."
     )
 
@@ -206,9 +206,7 @@ def isbn(edition: str) -> str | None:
     try:
         return barcode.validate(value)
     except SystemExit as exc:
-        raise SystemExit(
-            f"registrations isbn {edition} in config/metadata.yaml: {exc}"
-        ) from exc
+        raise SystemExit(f"registrations isbn {edition} in config/metadata.yaml: {exc}") from exc
 
 
 def isbn_display(edition: str) -> str | None:
@@ -244,7 +242,9 @@ def issn_valid(value: str) -> bool:
 def lccn_plausible(value: str) -> bool:
     """LCCNs have no check digit; hold the shape, not the arithmetic."""
 
-    return bool(re.fullmatch(r"[a-z]{0,3}\d{8,12}", value.replace("-", "").replace(" ", "").lower()))
+    return bool(
+        re.fullmatch(r"[a-z]{0,3}\d{8,12}", value.replace("-", "").replace(" ", "").lower())
+    )
 
 
 def issn_check_digit(first_seven: str) -> str:
@@ -298,18 +298,9 @@ def isbn10_to_isbn13(isbn10: str) -> str:
     return "978" + "".join(core[:9]) + str(barcode.check_digit(twelve))
 
 
-def failures(reg: dict | None = None) -> list[str]:
-    """Every invalid registration, as check-style failure lines. Reads the
-    book's registrations from disk unless a proposed block is passed (the
-    `press config` writer validates its edit before it touches a byte)."""
-
+def _isbn_edition_failures(editions: dict) -> list[str]:
+    """Barcode-validate each non-pending ISBN edition."""
     found: list[str] = []
-    if reg is None:
-        reg = block()
-    try:
-        editions = _isbn_map(reg)
-    except SystemExit as exc:
-        return [str(exc)]
     for edition, value in editions.items():
         text = str(value).strip()
         if text.lower() == PENDING:
@@ -318,13 +309,23 @@ def failures(reg: dict | None = None) -> list[str]:
             barcode.validate(text)
         except SystemExit as exc:
             found.append(f"registrations isbn {edition}: {exc}")
+    return found
+
+
+def _issn_lccn_failures(reg: dict) -> list[str]:
+    """Check the ISSN check digit and LCCN plausibility when present."""
+    found: list[str] = []
     issn = reg.get("issn")
     if issn and str(issn).strip().lower() != PENDING and not issn_valid(str(issn)):
         found.append(f"registrations issn fails its check digit: {issn}")
     lccn = reg.get("lccn")
     if lccn and str(lccn).strip().lower() != PENDING and not lccn_plausible(str(lccn)):
         found.append(f"registrations lccn does not look like an LCCN: {lccn}")
+    return found
 
+
+def _block_spec_failures(reg: dict) -> list[str]:
+    """Validate the ISBN block only when it is complete."""
     conf = reg.get("isbn-block")
     if isinstance(conf, dict) and conf.get("prefix") and conf.get("size") is not None:
         # Validate only a complete block: setting the prefix and size one at a
@@ -332,25 +333,48 @@ def failures(reg: dict | None = None) -> list[str]:
         try:
             _block_spec(conf)
         except SystemExit as exc:
-            found.append(str(exc))
+            return [str(exc)]
+    return []
 
-    if reg.get("retail"):
-        isbns = editions
-        pending = [
-            f"isbn {edition} missing"
-            for edition in ("print", "epub") if edition not in isbns
+
+def _retail_failures(reg: dict, editions: dict) -> list[str]:
+    """Flag a retail edition whose registrations are absent or still pending."""
+    if not reg.get("retail"):
+        return []
+    isbns = editions
+    pending = [f"isbn {edition} missing" for edition in ("print", "epub") if edition not in isbns]
+    pending += [
+        f"isbn {edition}"
+        for edition, value in isbns.items()
+        if str(value).strip().lower() == PENDING
+    ]
+    pending += [
+        name
+        for name in ("issn", "lccn")
+        if reg.get(name) and str(reg[name]).strip().lower() == PENDING
+    ]
+    if pending:
+        return [
+            "retail edition declared while registrations are absent "
+            "or pending: " + ", ".join(pending)
         ]
-        pending += [
-            f"isbn {edition}" for edition, value in isbns.items()
-            if str(value).strip().lower() == PENDING
-        ]
-        pending += [
-            name for name in ("issn", "lccn")
-            if reg.get(name) and str(reg[name]).strip().lower() == PENDING
-        ]
-        if pending:
-            found.append(
-                "retail edition declared while registrations are absent "
-                "or pending: " + ", ".join(pending)
-            )
+    return []
+
+
+def failures(reg: dict | None = None) -> list[str]:
+    """Every invalid registration, as check-style failure lines. Reads the
+    book's registrations from disk unless a proposed block is passed (the
+    `press config` writer validates its edit before it touches a byte)."""
+
+    if reg is None:
+        reg = block()
+    try:
+        editions = _isbn_map(reg)
+    except SystemExit as exc:
+        return [str(exc)]
+    found: list[str] = []
+    found += _isbn_edition_failures(editions)
+    found += _issn_lccn_failures(reg)
+    found += _block_spec_failures(reg)
+    found += _retail_failures(reg, editions)
     return found

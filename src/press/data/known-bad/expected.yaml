@@ -1,0 +1,62 @@
+# Known-bad provenance for celebrimbor's known_bad gate: each fixture ->
+# the checker that must reject it and the diagnostic (substring) it emits.
+# Generated from quality/fixtures.yaml; the same facts press's own
+# celebrimbor.known_bad enforces, replacing press's retired fixture auditor,'s schema.
+
+em-dash.md:
+  checker: style_audit
+  diagnostic: 'em dash'
+curly-quotes.md:
+  checker: style_audit
+  diagnostic: 'curly'
+emoji.md:
+  checker: style_audit
+  diagnostic: 'outside the print-font set'
+title-case.md:
+  checker: style_audit
+  diagnostic: 'title-case heading'
+numbered-heading.md:
+  checker: style_audit
+  diagnostic: 'manual number in heading'
+long-paragraph.md:
+  checker: style_audit
+  diagnostic: 'words'
+en-dash.md:
+  checker: style_audit
+  diagnostic: 'en dash'
+trailing-whitespace.md:
+  checker: style_audit
+  diagnostic: 'trailing whitespace'
+in-conclusion.md:
+  checker: style_audit
+  diagnostic: 'generic conclusion'
+throat-clearing-important.md:
+  checker: style_audit
+  diagnostic: 'throat-clearing phrase'
+throat-clearing-worth.md:
+  checker: style_audit
+  diagnostic: 'throat-clearing phrase'
+at-its-core.md:
+  checker: style_audit
+  diagnostic: 'fake-revelation phrase'
+real-question.md:
+  checker: style_audit
+  diagnostic: 'fake-revelation phrase'
+lets-dive.md:
+  checker: style_audit
+  diagnostic: 'chatbot signposting'
+without-further-ado.md:
+  checker: style_audit
+  diagnostic: 'chatbot signposting'
+testament.md:
+  checker: style_audit
+  diagnostic: 'inflated significance'
+vibrant-tapestry.md:
+  checker: style_audit
+  diagnostic: 'inflated AI phrase'
+negative-parallelism.md:
+  checker: style_audit
+  diagnostic: 'formulaic negative parallelism'
+jargon.md:
+  checker: jargon_lint
+  diagnostic: 'jargon'

@@ -16,10 +16,15 @@ from press import commerce, verify_pages
 
 
 def _meta(**over):
-    block = {"enabled": True, "edition": "paperback",
-             "storefront-url": "https://store.example.test/book",
-             "seller-of-record": "Lulu", "support-url": "https://ex.test/s",
-             "privacy-url": "https://ex.test/p", "refund-url": "https://ex.test/r"}
+    block = {
+        "enabled": True,
+        "edition": "paperback",
+        "storefront-url": "https://store.example.test/book",
+        "seller-of-record": "Lulu",
+        "support-url": "https://ex.test/s",
+        "privacy-url": "https://ex.test/p",
+        "refund-url": "https://ex.test/r",
+    }
     block.update(over)
     return {"commerce": {"print-ordering": block}}
 
@@ -29,6 +34,7 @@ def _cfg(**over):
 
 
 # ---- load ----
+
 
 def test_absent_block_loads_none():
     assert commerce.load({}) is None
@@ -42,6 +48,7 @@ def test_a_valid_block_loads_and_validates():
 
 # ---- validate (the verifier) ----
 
+
 def test_a_disabled_block_is_silent():
     assert commerce.validate(_cfg(enabled=False)) == []
     assert commerce.render(_cfg(enabled=False)) == ""
@@ -51,8 +58,10 @@ def test_a_disabled_block_is_silent():
 @pytest.mark.layer("unit")
 @pytest.mark.proof("negative")
 def test_a_non_https_storefront_is_refused():
-    assert any("storefront-url must be https" in p
-               for p in commerce.validate(_cfg(**{"storefront-url": "http://x.test"})))
+    assert any(
+        "storefront-url must be https" in p
+        for p in commerce.validate(_cfg(**{"storefront-url": "http://x.test"}))
+    )
 
 
 def test_an_omitted_policy_link_is_allowed_and_generated():
@@ -73,16 +82,17 @@ def test_a_provided_policy_link_is_used_and_not_generated():
 @pytest.mark.layer("unit")
 @pytest.mark.proof("negative")
 def test_a_non_https_policy_link_is_refused():
-    assert any("privacy-url must be https" in p
-               for p in commerce.validate(_cfg(**{"privacy-url": "http://x.test"})))
+    assert any(
+        "privacy-url must be https" in p
+        for p in commerce.validate(_cfg(**{"privacy-url": "http://x.test"}))
+    )
 
 
 @pytest.mark.invariant("INV-commerce-config")
 @pytest.mark.layer("unit")
 @pytest.mark.proof("negative")
 def test_an_unnamed_seller_is_refused():
-    assert any("seller-of-record" in p
-               for p in commerce.validate(_cfg(**{"seller-of-record": ""})))
+    assert any("seller-of-record" in p for p in commerce.validate(_cfg(**{"seller-of-record": ""})))
 
 
 @pytest.mark.invariant("INV-commerce-config")
@@ -97,25 +107,50 @@ def test_an_embedded_secret_is_refused():
 @pytest.mark.layer("unit")
 @pytest.mark.proof("negative")
 def test_an_unknown_key_is_refused():
-    bad = commerce.load({"commerce": {"print-ordering": {
-        "enabled": True, "edition": "paperback",
-        "storefront-url": "https://s.test/x", "seller-of-record": "Lulu",
-        "support-url": "https://ex.test/s", "privacy-url": "https://ex.test/p",
-        "refund-url": "https://ex.test/r", "broker-url": "https://oops"}}})
+    bad = commerce.load(
+        {
+            "commerce": {
+                "print-ordering": {
+                    "enabled": True,
+                    "edition": "paperback",
+                    "storefront-url": "https://s.test/x",
+                    "seller-of-record": "Lulu",
+                    "support-url": "https://ex.test/s",
+                    "privacy-url": "https://ex.test/p",
+                    "refund-url": "https://ex.test/r",
+                    "broker-url": "https://oops",
+                }
+            }
+        }
+    )
     assert any("unknown key" in p for p in commerce.validate(bad))
 
 
 def test_failures_reads_book_metadata(monkeypatch):
     from press import booklib
 
-    monkeypatch.setattr(booklib, "metadata", lambda: {"commerce": {
-        "print-ordering": {"enabled": True, "edition": "pb",
-                            "storefront-url": "http://x", "seller-of-record": "",
-                            "support-url": "", "privacy-url": "", "refund-url": ""}}})
+    monkeypatch.setattr(
+        booklib,
+        "metadata",
+        lambda: {
+            "commerce": {
+                "print-ordering": {
+                    "enabled": True,
+                    "edition": "pb",
+                    "storefront-url": "http://x",
+                    "seller-of-record": "",
+                    "support-url": "",
+                    "privacy-url": "",
+                    "refund-url": "",
+                }
+            }
+        },
+    )
     assert commerce.failures()  # a broken enabled block fails press check
 
 
 # ---- render (the CTA) ----
+
 
 def test_the_cta_is_a_scriptless_link_with_disclosure_and_policies():
     html = commerce.render(_cfg())
@@ -136,6 +171,7 @@ def test_html_in_config_is_escaped():
 
 
 # ---- generated policy pages (#151) ----
+
 
 def test_generated_policy_body_discloses_the_seller_and_publisher():
     cfg = _cfg(**{"privacy-url": ""})
@@ -181,7 +217,7 @@ def test_the_documented_commerce_example_actually_validates():
 
     from press import yamlio
 
-    doc = (Path(__file__).resolve().parent.parent / "docs" / "PRINT-ORDERING.md")
+    doc = Path(__file__).resolve().parent.parent / "docs" / "PRINT-ORDERING.md"
     blocks = re.findall(r"```yaml\n(.*?)```", doc.read_text(encoding="utf-8"), re.S)
     examples = [b for b in blocks if "print-ordering" in b]
     assert examples, "the print-ordering guide has no commerce example"
@@ -191,6 +227,7 @@ def test_the_documented_commerce_example_actually_validates():
 
 
 # ---- the site verifier ----
+
 
 def _pages_with(index_html: str, tmp_path: Path) -> Path:
     pages = tmp_path / "pages"
@@ -231,8 +268,7 @@ def test_verifier_refuses_a_missing_cta_when_enabled(tmp_path):
 @pytest.mark.proof("negative")
 def test_verifier_refuses_a_leaked_secret_in_a_page(tmp_path):
     cfg = _cfg()
-    page = (f"<html><body>{commerce.render(cfg)}"
-            "<!-- oops api_key=sk_live_leak --></body></html>")
+    page = f"<html><body>{commerce.render(cfg)}<!-- oops api_key=sk_live_leak --></body></html>"
     pages = _pages_with(page, tmp_path)
     assert any("leak a secret" in p for p in verify_pages.check_commerce(pages, cfg))
 
@@ -241,10 +277,12 @@ def test_verifier_accepts_innocent_secret_prose_in_a_page(tmp_path):
     # The shape-based marker does not read the book's own prose as a leak: a
     # page that says "secret"/"password" as English is not credential-shaped.
     cfg = _cfg()
-    page = (f"<html><body>{commerce.render(cfg)}"
-            "<p>The secretary kept the password to herself; it was her "
-            "secret. Read Secrets of the Trade to learn the api key concept."
-            "</p></body></html>")
+    page = (
+        f"<html><body>{commerce.render(cfg)}"
+        "<p>The secretary kept the password to herself; it was her "
+        "secret. Read Secrets of the Trade to learn the api key concept."
+        "</p></body></html>"
+    )
     pages = _pages_with(page, tmp_path)
     assert verify_pages.check_commerce(pages, cfg) == []
 
@@ -265,12 +303,13 @@ def test_verifier_accepts_a_present_disclosing_policy_page(tmp_path):
     page = f"<html><body>{commerce.render(cfg)}</body></html>"
     pages = _pages_with(page, tmp_path)
     (pages / "support.html").write_text(
-        "<html><body>Sold by Lulu, the seller of record.</body></html>",
-        encoding="utf-8")
+        "<html><body>Sold by Lulu, the seller of record.</body></html>", encoding="utf-8"
+    )
     assert verify_pages.check_commerce(pages, cfg) == []
 
 
 # ---- the release gate (pure decision) ----
+
 
 def test_release_gate_ships_a_book_that_sells_nothing():
     assert commerce.release_problems(None, edition_qualified=False) == []
@@ -297,13 +336,17 @@ def test_release_gate_surfaces_a_config_error_even_when_qualified():
     assert any("https" in p for p in commerce.release_problems(bad, edition_qualified=True))
 
 
-@pytest.mark.parametrize(("problems", "release", "expected"), [
-    ([], False, 0),
-    (["edition has no passed physical qualification"], False, 0),
-    (["edition has no passed physical qualification"], True, 1),
-])
+@pytest.mark.parametrize(
+    ("problems", "release", "expected"),
+    [
+        ([], False, 0),
+        (["edition has no passed physical qualification"], False, 0),
+        (["edition has no passed physical qualification"], True, 1),
+    ],
+)
 def test_cli_commerce_gate_is_advisory_locally_and_fail_closed_in_release(
-        problems, release, expected, monkeypatch, capsys, tmp_path):
+    problems, release, expected, monkeypatch, capsys, tmp_path
+):
     """The CLI reports the same decision in both modes, but only a release
     may be blocked. This restores proof of the branch added with commerce."""
 
@@ -311,8 +354,7 @@ def test_cli_commerce_gate_is_advisory_locally_and_fail_closed_in_release(
 
     monkeypatch.setattr(booklib, "root", lambda: tmp_path)
     monkeypatch.setattr(booklib, "book", lambda: object())
-    monkeypatch.setattr(
-        commerce, "release_gate", lambda root, book: (problems, "paperback"))
+    monkeypatch.setattr(commerce, "release_gate", lambda root, book: (problems, "paperback"))
     if release:
         monkeypatch.setenv("PRESS_RELEASE", "1")
     else:
@@ -328,6 +370,7 @@ def test_cli_commerce_gate_is_advisory_locally_and_fail_closed_in_release(
 
 
 # ---- the release gate (orchestrator, end to end) ----
+
 
 def _write_pdf(path, pages):
     from pypdf import PdfWriter
@@ -354,14 +397,19 @@ def test_release_gate_end_to_end(scaffolded_book, monkeypatch):
 
     # Enable ordering in the book's metadata (clear the cached read).
     meta_path = root / "config" / "metadata.yaml"
-    meta_path.write_text(meta_path.read_text() + (
-        "\ncommerce:\n  print-ordering:\n    enabled: true\n"
-        "    edition: paperback\n"
-        "    storefront-url: \"https://store.example.test/x\"\n"
-        "    seller-of-record: \"Lulu\"\n"
-        "    support-url: \"https://ex.test/s\"\n"
-        "    privacy-url: \"https://ex.test/p\"\n"
-        "    refund-url: \"https://ex.test/r\"\n"), encoding="utf-8")
+    meta_path.write_text(
+        meta_path.read_text()
+        + (
+            "\ncommerce:\n  print-ordering:\n    enabled: true\n"
+            "    edition: paperback\n"
+            '    storefront-url: "https://store.example.test/x"\n'
+            '    seller-of-record: "Lulu"\n'
+            '    support-url: "https://ex.test/s"\n'
+            '    privacy-url: "https://ex.test/p"\n'
+            '    refund-url: "https://ex.test/r"\n'
+        ),
+        encoding="utf-8",
+    )
     booklib.metadata.cache_clear()
     # The print pack is already on disk; do not rebuild it in the test.
     monkeypatch.setattr(registry, "build", lambda name: None)
@@ -371,11 +419,24 @@ def test_release_gate_end_to_end(scaffolded_book, monkeypatch):
     qual_path = root / "config" / "qualification.yaml"
 
     def write_inspection(edition_id):
-        qual_path.write_text(yamlio.dump({"schema_version": 1, "inspections": [{
-            "provider": "lulu", "product_id": "PB-BW-6x9", "region": "US",
-            "edition_id": edition_id, "inspector": "tester",
-            "results": {p: "pass" for p in qualification.REQUIRED_CHECKLIST}}]}),
-            encoding="utf-8")
+        qual_path.write_text(
+            yamlio.dump(
+                {
+                    "schema_version": 1,
+                    "inspections": [
+                        {
+                            "provider": "lulu",
+                            "product_id": "PB-BW-6x9",
+                            "region": "US",
+                            "edition_id": edition_id,
+                            "inspector": "tester",
+                            "results": {p: "pass" for p in qualification.REQUIRED_CHECKLIST},
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
 
     # With a passed inspection scoped to this edition, the gate is green.
     write_inspection(manifest.edition_id)
@@ -386,8 +447,9 @@ def test_release_gate_end_to_end(scaffolded_book, monkeypatch):
     # An inspection of a different edition is stale: the gate fails closed.
     write_inspection("a-different-edition-id")
     problems, _ = commerce.release_gate(root, book)
-    assert any("no passed physical qualification" in p or "different edition" in p
-               for p in problems)
+    assert any(
+        "no passed physical qualification" in p or "different edition" in p for p in problems
+    )
 
     # No qualification file at all: fail closed.
     qual_path.unlink()

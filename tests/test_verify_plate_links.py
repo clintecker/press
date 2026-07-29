@@ -45,8 +45,7 @@ def _image_xobject(writer: PdfWriter) -> DictionaryObject:
     return xobjects
 
 
-def _plate_pdf(path: Path, *, target_has_image: bool,
-               label: str = "List of plates") -> Path:
+def _plate_pdf(path: Path, *, target_has_image: bool, label: str = "List of plates") -> Path:
     """A two-page PDF: an illustration-list page (named *label*) whose link
     points at the second page, which carries an image only when
     ``target_has_image`` is set."""
@@ -57,8 +56,7 @@ def _plate_pdf(path: Path, *, target_has_image: bool,
 
     # The lof page needs real text so extract_text() finds the list label.
     contents = DecodedStreamObject()
-    contents.set_data(
-        b"BT /F1 12 Tf 20 150 Td (" + label.encode("latin-1") + b") Tj ET")
+    contents.set_data(b"BT /F1 12 Tf 20 150 Td (" + label.encode("latin-1") + b") Tj ET")
     lof[NameObject("/Contents")] = writer._add_object(contents)
     font = DictionaryObject()
     font[NameObject("/Type")] = NameObject("/Font")
@@ -80,12 +78,8 @@ def _plate_pdf(path: Path, *, target_has_image: bool,
     link = DictionaryObject()
     link[NameObject("/Type")] = NameObject("/Annot")
     link[NameObject("/Subtype")] = NameObject("/Link")
-    link[NameObject("/Rect")] = ArrayObject(
-        [NumberObject(v) for v in (20, 140, 180, 160)]
-    )
-    link[NameObject("/Dest")] = ArrayObject(
-        [target.indirect_reference, NameObject("/Fit")]
-    )
+    link[NameObject("/Rect")] = ArrayObject([NumberObject(v) for v in (20, 140, 180, 160)])
+    link[NameObject("/Dest")] = ArrayObject([target.indirect_reference, NameObject("/Fit")])
     lof[NameObject("/Annots")] = ArrayObject([writer._add_object(link)])
 
     with path.open("wb") as handle:
@@ -99,8 +93,7 @@ def test_a_plate_link_to_an_imageless_page_is_rejected(tmp_path):
     pdf = _plate_pdf(tmp_path / "imageless.pdf", target_has_image=False)
     # The link genuinely resolves to a real page; that page just holds no image.
     assert "List of plates" in (PdfReader(str(pdf)).pages[0].extract_text() or "")
-    with pytest.raises(SystemExit,
-                       match="List of plates links point at imageless pages"):
+    with pytest.raises(SystemExit, match="List of plates links point at imageless pages"):
         verify_pdf.verify_plate_links(pdf)
 
 
@@ -109,10 +102,8 @@ def test_a_plate_link_to_an_imageless_page_is_rejected(tmp_path):
 def test_a_list_of_figures_link_to_an_imageless_page_is_rejected(tmp_path):
     # The split's other list is held to the same rule: a numbered figure's
     # link must land on a page that actually carries its raster.
-    pdf = _plate_pdf(tmp_path / "figs.pdf", target_has_image=False,
-                     label="List of Figures")
-    with pytest.raises(SystemExit,
-                       match="List of Figures links point at imageless pages"):
+    pdf = _plate_pdf(tmp_path / "figs.pdf", target_has_image=False, label="List of Figures")
+    with pytest.raises(SystemExit, match="List of Figures links point at imageless pages"):
         verify_pdf.verify_plate_links(pdf)
 
 

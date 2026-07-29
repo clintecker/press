@@ -32,6 +32,7 @@ from PIL import Image, ImageDraw, ImageFont
 # in the palette, in the spirit of a woodcut printer's mark. Not illustration
 # (that needs an image model); a mark, the kind a press cuts once and reuses.
 
+
 def _stroke(s: float) -> int:
     return max(4, round(s * 0.05))
 
@@ -56,9 +57,16 @@ def _em_sun(d: ImageDraw.ImageDraw, cx: float, cy: float, s: float, col) -> None
     d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=col, width=w)
     for k in range(12):
         a = math.radians(k * 30)
-        d.line([cx + math.cos(a) * r * 1.5, cy + math.sin(a) * r * 1.5,
-                cx + math.cos(a) * r * 2.05, cy + math.sin(a) * r * 2.05],
-               fill=col, width=w)
+        d.line(
+            [
+                cx + math.cos(a) * r * 1.5,
+                cy + math.sin(a) * r * 1.5,
+                cx + math.cos(a) * r * 2.05,
+                cy + math.sin(a) * r * 2.05,
+            ],
+            fill=col,
+            width=w,
+        )
 
 
 def _em_moon(d: ImageDraw.ImageDraw, cx: float, cy: float, s: float, col) -> None:
@@ -89,8 +97,7 @@ def _em_furrows(d: ImageDraw.ImageDraw, cx: float, cy: float, s: float, col) -> 
 def _em_facets(d: ImageDraw.ImageDraw, cx: float, cy: float, s: float, col) -> None:
     w = _stroke(s)
     for r in (s * 0.5, s * 0.32, s * 0.15):
-        d.polygon([(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)],
-                  outline=col, width=w)
+        d.polygon([(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)], outline=col, width=w)
 
 
 def _em_hearth(d: ImageDraw.ImageDraw, cx: float, cy: float, s: float, col) -> None:
@@ -103,9 +110,14 @@ def _em_hearth(d: ImageDraw.ImageDraw, cx: float, cy: float, s: float, col) -> N
 
 
 _EMBLEMS = {
-    "waves": _em_waves, "broadcast": _em_broadcast, "sun": _em_sun,
-    "moon": _em_moon, "rings": _em_rings, "furrows": _em_furrows,
-    "facets": _em_facets, "hearth": _em_hearth,
+    "waves": _em_waves,
+    "broadcast": _em_broadcast,
+    "sun": _em_sun,
+    "moon": _em_moon,
+    "rings": _em_rings,
+    "furrows": _em_furrows,
+    "facets": _em_facets,
+    "hearth": _em_hearth,
 }
 
 # Where to look for a usable serif face, by the book's pdf-family first and
@@ -157,7 +169,7 @@ def _font(path: str | None, size: int) -> ImageFont.FreeTypeFont:
 
 def _hex(colour: str) -> tuple[int, int, int]:
     c = colour.lstrip("#")
-    return tuple(int(c[i:i + 2], 16) for i in (0, 2, 4))  # type: ignore[return-value]
+    return tuple(int(c[i : i + 2], 16) for i in (0, 2, 4))  # type: ignore[return-value]
 
 
 def _luminance(rgb: tuple[int, int, int]) -> float:
@@ -165,8 +177,9 @@ def _luminance(rgb: tuple[int, int, int]) -> float:
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
 
-def _wrap(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont,
-          max_w: int) -> list[str]:
+def _wrap(
+    draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, max_w: int
+) -> list[str]:
     words, lines, line = text.split(), [], ""
     for word in words:
         trial = f"{line} {word}".strip()
@@ -180,9 +193,15 @@ def _wrap(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont,
     return lines
 
 
-def _centered_block(draw: ImageDraw.ImageDraw, lines: list[str],
-                    font: ImageFont.FreeTypeFont, cx: int, top: int,
-                    fill: tuple[int, int, int], leading: float = 1.16) -> int:
+def _centered_block(
+    draw: ImageDraw.ImageDraw,
+    lines: list[str],
+    font: ImageFont.FreeTypeFont,
+    cx: int,
+    top: int,
+    fill: tuple[int, int, int],
+    leading: float = 1.16,
+) -> int:
     ascent, descent = font.getmetrics()
     line_h = int((ascent + descent) * leading)
     y = top
@@ -197,9 +216,19 @@ class _Cover:
     """The drawing surface and everything a grammar needs, so each grammar is
     just a layout of a shared vocabulary (title, rules, colophon, imprint)."""
 
-    def __init__(self, dest_size: tuple[int, int], paper: str, ink: str,
-                 accent: str, font_file: str | None, title: str, subtitle: str,
-                 author: str, imprint: str, emblem: str = "") -> None:
+    def __init__(
+        self,
+        dest_size: tuple[int, int],
+        paper: str,
+        ink: str,
+        accent: str,
+        font_file: str | None,
+        title: str,
+        subtitle: str,
+        author: str,
+        imprint: str,
+        emblem: str = "",
+    ) -> None:
         self.W, self.H = dest_size
         self.pap, self.ic, self.ac = _hex(paper), _hex(ink), _hex(accent)
         # Text laid on the accent field is light or near-black by contrast.
@@ -218,8 +247,9 @@ class _Cover:
         if fn:
             fn(self.d, self.W // 2, cy, size, colour)
 
-    def title_block(self, top: int, colour: tuple[int, int, int], size: int,
-                    region_h: int | None = None) -> int:
+    def title_block(
+        self, top: int, colour: tuple[int, int, int], size: int, region_h: int | None = None
+    ) -> int:
         f = _font(self.font_file, size)
         lines = _wrap(self.d, self.title, f, self.inner)
         a, de = f.getmetrics()
@@ -227,24 +257,21 @@ class _Cover:
         y = top if region_h is None else top + (region_h - line_h * len(lines)) // 2
         return _centered_block(self.d, lines, f, self.W // 2, y, colour, leading=1.08)
 
-    def text_block(self, top: int, text: str, size: int,
-                   colour: tuple[int, int, int]) -> int:
+    def text_block(self, top: int, text: str, size: int, colour: tuple[int, int, int]) -> int:
         if not text:
             return top
         f = _font(self.font_file, size)
-        return _centered_block(self.d, _wrap(self.d, text, f, self.inner), f,
-                               self.W // 2, top, colour, leading=1.2)
+        return _centered_block(
+            self.d, _wrap(self.d, text, f, self.inner), f, self.W // 2, top, colour, leading=1.2
+        )
 
-    def rule(self, y: int, colour: tuple[int, int, int], width: int = 150,
-             thick: int = 4) -> None:
-        self.d.rectangle([(self.W - width) // 2, y, (self.W + width) // 2, y + thick],
-                         fill=colour)
+    def rule(self, y: int, colour: tuple[int, int, int], width: int = 150, thick: int = 4) -> None:
+        self.d.rectangle([(self.W - width) // 2, y, (self.W + width) // 2, y + thick], fill=colour)
 
     def colophon(self, cy: int, colour: tuple[int, int, int]) -> None:
         skip = {"and", "the", "of", "for", "&", "a"}
         initials = "".join(
-            w[0] for w in self.imprint.split()
-            if w[:1].isalpha() and w.lower() not in skip
+            w[0] for w in self.imprint.split() if w[:1].isalpha() and w.lower() not in skip
         )[:3].upper()
         if not initials:
             return
@@ -252,8 +279,12 @@ class _Cover:
         self.d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=colour, width=4)
         f = _font(self.font_file, 36)
         bb = self.d.textbbox((0, 0), initials, font=f)
-        self.d.text((cx - (bb[2] - bb[0]) / 2 - bb[0], cy - (bb[3] - bb[1]) / 2 - bb[1]),
-                    initials, font=f, fill=colour)
+        self.d.text(
+            (cx - (bb[2] - bb[0]) / 2 - bb[0], cy - (bb[3] - bb[1]) / 2 - bb[1]),
+            initials,
+            font=f,
+            fill=colour,
+        )
 
     def imprint_line(self, y: int, colour: tuple[int, int, int]) -> None:
         if not self.imprint:
@@ -262,13 +293,14 @@ class _Cover:
         w = self.d.textlength(self.imprint.upper(), font=f)
         self.d.text((self.W // 2 - w / 2, y), self.imprint.upper(), font=f, fill=colour)
 
-    def frame(self, colour: tuple[int, int, int], inset: int = 30,
-              width: int = 3) -> None:
-        self.d.rectangle([inset, inset, self.W - inset, self.H - inset],
-                         outline=colour, width=width)
+    def frame(self, colour: tuple[int, int, int], inset: int = 30, width: int = 3) -> None:
+        self.d.rectangle(
+            [inset, inset, self.W - inset, self.H - inset], outline=colour, width=width
+        )
 
-    def colophon_stack(self, colour_mark: tuple[int, int, int],
-                       colour_text: tuple[int, int, int]) -> None:
+    def colophon_stack(
+        self, colour_mark: tuple[int, int, int], colour_text: tuple[int, int, int]
+    ) -> None:
         """The recurring bottom stack: author, colophon mark, imprint."""
         if self.author:
             self.text_block(self.H - 390, self.author, 54, colour_text)
@@ -333,17 +365,39 @@ def _g_panel(cv: _Cover) -> None:
 
 
 _GRAMMARS = {
-    "band": _g_band, "full": _g_full, "framed": _g_framed,
-    "stack": _g_stack, "panel": _g_panel,
+    "band": _g_band,
+    "full": _g_full,
+    "framed": _g_framed,
+    "stack": _g_stack,
+    "panel": _g_panel,
 }
 
 
-def make_cover(dest: Path, *, title: str, subtitle: str, author: str,
-               imprint: str, paper: str, ink: str, accent: str,
-               font_family: str = "", grammar: str = "band") -> None:
+def make_cover(
+    dest: Path,
+    *,
+    title: str,
+    subtitle: str,
+    author: str,
+    imprint: str,
+    paper: str,
+    ink: str,
+    accent: str,
+    font_family: str = "",
+    grammar: str = "band",
+) -> None:
     """Draw a 2:3 typographic cover in the chosen grammar and write it as JPEG."""
-    cv = _Cover((1200, 1800), paper, ink, accent, _find_font_file(font_family),
-                title, subtitle, author, imprint)
+    cv = _Cover(
+        (1200, 1800),
+        paper,
+        ink,
+        accent,
+        _find_font_file(font_family),
+        title,
+        subtitle,
+        author,
+        imprint,
+    )
     _GRAMMARS.get(grammar, _g_band)(cv)
     dest.parent.mkdir(parents=True, exist_ok=True)
     cv.img.save(dest, "JPEG", quality=90)
@@ -351,7 +405,8 @@ def make_cover(dest: Path, *, title: str, subtitle: str, author: str,
 
 def _read(meta: str, key: str) -> str:
     import re
-    m = re.search(rf'^{key}:[ \t]*(.+)$', meta, re.M)
+
+    m = re.search(rf"^{key}:[ \t]*(.+)$", meta, re.M)
     if not m:
         return ""
     v = m.group(1).strip()
@@ -360,13 +415,15 @@ def _read(meta: str, key: str) -> str:
 
 def _read_indented(text: str, key: str) -> str:
     import re
+
     m = re.search(rf'^[ \t]+{key}:[ \t]*"?(#?[^"\n]+)"?[ \t]*$', text, re.M)
     return m.group(1).strip().strip('"') if m else ""
 
 
 def _first_author(meta: str) -> str:
     import re
-    m = re.search(r'^author:[ \t]*\n[ \t]+-[ \t]*(.+)$', meta, re.M)
+
+    m = re.search(r"^author:[ \t]*\n[ \t]+-[ \t]*(.+)$", meta, re.M)
     return m.group(1).strip().strip('"') if m else ""
 
 

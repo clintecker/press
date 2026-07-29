@@ -56,8 +56,13 @@ _STATUS = {
 class FakeProvider:
     name = "fake"
 
-    def __init__(self, *, capabilities: frozenset[Capability] = _ALL,
-                 refs: Iterator[str] | None = None, secret: bytes = b"fake-secret") -> None:
+    def __init__(
+        self,
+        *,
+        capabilities: frozenset[Capability] = _ALL,
+        refs: Iterator[str] | None = None,
+        secret: bytes = b"fake-secret",
+    ) -> None:
         self._caps = capabilities
         self._refs = refs or (f"fake-{n}" for n in count(1))
         self._secret = secret
@@ -74,9 +79,12 @@ class FakeProvider:
         order = self._orders[provider_ref]
         self._raw_status[provider_ref] = raw_status
         self._orders[provider_ref] = ProviderOrder(
-            provider_ref=order.provider_ref, external_id=order.external_id,
-            status=self.normalize_status(raw_status), raw_status=raw_status,
-            tracking_urls=order.tracking_urls)
+            provider_ref=order.provider_ref,
+            external_id=order.external_id,
+            status=self.normalize_status(raw_status),
+            raw_status=raw_status,
+            tracking_urls=order.tracking_urls,
+        )
 
     def sign(self, body: bytes) -> str:
         return hmac.new(self._secret, body, hashlib.sha256).hexdigest()
@@ -142,8 +150,11 @@ class FakeProvider:
         order = self._orders.get(provider_ref)
         if order is None:
             return TypedError("not_found", f"no order {provider_ref!r}")
-        if order.status in (ProviderStatus.IN_PRODUCTION, ProviderStatus.SHIPPED,
-                            ProviderStatus.DELIVERED):
+        if order.status in (
+            ProviderStatus.IN_PRODUCTION,
+            ProviderStatus.SHIPPED,
+            ProviderStatus.DELIVERED,
+        ):
             return TypedError("not_cancelable", f"cannot cancel a {order.status.value} order")
         self.advance(provider_ref, "canceled")
         return self._orders[provider_ref]
@@ -166,9 +177,13 @@ class FakeProvider:
 def sample_submission(external_id: str = "order-1") -> Submission:
     """A ready-made submission for tests and the conformance suite."""
 
-    item = LineItem("SKU-6X9-BW", 120, 1,
-                    "https://example.test/interior.pdf",
-                    "https://example.test/cover.pdf", external_id="item-1")
-    address = Address("A Reader", "1 Main St", "Springfield", "IL", "62704", "US",
-                      "555-0100")
+    item = LineItem(
+        "SKU-6X9-BW",
+        120,
+        1,
+        "https://example.test/interior.pdf",
+        "https://example.test/cover.pdf",
+        external_id="item-1",
+    )
+    address = Address("A Reader", "1 Main St", "Springfield", "IL", "62704", "US", "555-0100")
     return Submission(external_id, "owner@example.test", (item,), address, "GROUND")

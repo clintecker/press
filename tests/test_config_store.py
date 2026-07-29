@@ -13,17 +13,21 @@ from press import config_store as cs
 
 # ---- dotted-path parsing ---------------------------------------------
 
+
 @pytest.mark.parametrize("bad", ["", "   ", ".", "a.", ".a", "a..b", "a. b", "a b.c"])
 def test_a_malformed_path_is_refused(bad):
     with pytest.raises(cs.ConfigError):
         cs.split_path(bad)
 
 
-@pytest.mark.parametrize("good,expected", [
-    ("title", ["title"]),
-    ("commerce.print-ordering.enabled", ["commerce", "print-ordering", "enabled"]),
-    ("registrations.isbn.print", ["registrations", "isbn", "print"]),
-])
+@pytest.mark.parametrize(
+    "good,expected",
+    [
+        ("title", ["title"]),
+        ("commerce.print-ordering.enabled", ["commerce", "print-ordering", "enabled"]),
+        ("registrations.isbn.print", ["registrations", "isbn", "print"]),
+    ],
+)
 def test_a_well_formed_path_splits(good, expected):
     assert cs.split_path(good) == expected
 
@@ -35,6 +39,7 @@ def test_split_join_round_trips(segments):
 
 
 # ---- get / set / unset ------------------------------------------------
+
 
 def test_set_creates_intermediate_mappings_then_get_reads_them():
     data: dict = {}
@@ -63,12 +68,13 @@ def test_get_through_a_scalar_raises():
 def test_unset_is_idempotent_and_reports_whether_it_removed():
     data = {"a": {"b": 1}}
     assert cs.del_path(data, "a.b") is True
-    assert cs.del_path(data, "a.b") is False       # already gone
-    assert cs.del_path(data, "x.y.z") is False      # never existed
-    assert cs.has_path(data, "a")                    # empty parent left in place
+    assert cs.del_path(data, "a.b") is False  # already gone
+    assert cs.del_path(data, "x.y.z") is False  # never existed
+    assert cs.has_path(data, "a")  # empty parent left in place
 
 
 # ---- coercion: never guess a type from the string --------------------
+
 
 def test_a_string_field_keeps_the_literal_text():
     assert cs.coerce("true", "str") == "true"
@@ -82,9 +88,15 @@ def test_bool_and_int_and_float_coerce_by_declared_type():
     assert cs.coerce("0.0025", "float") == 0.0025
 
 
-@pytest.mark.parametrize("value,type_name", [
-    ("maybe", "bool"), ("3.5", "int"), ("twelve", "int"), ("wide", "float"),
-])
+@pytest.mark.parametrize(
+    "value,type_name",
+    [
+        ("maybe", "bool"),
+        ("3.5", "int"),
+        ("twelve", "int"),
+        ("wide", "float"),
+    ],
+)
 def test_a_scalar_that_does_not_fit_its_type_is_refused(value, type_name):
     with pytest.raises(cs.ConfigError):
         cs.coerce(value, type_name)
@@ -99,9 +111,9 @@ def test_a_collection_field_requires_explicit_json():
 
 def test_a_json_list_of_the_wrong_shape_is_refused():
     with pytest.raises(cs.ConfigError, match="array of strings"):
-        cs.coerce('[1, 2]', "list[str]", as_json=True)
+        cs.coerce("[1, 2]", "list[str]", as_json=True)
     with pytest.raises(cs.ConfigError, match="object"):
-        cs.coerce('[]', "mapping", as_json=True)
+        cs.coerce("[]", "mapping", as_json=True)
 
 
 def test_json_scalar_keeps_bool_and_int_distinct():
@@ -131,10 +143,10 @@ def test_editing_one_key_preserves_comments_and_other_keys(tmp_path):
     cs.write_atomic(path, data)
     out = path.read_text(encoding="utf-8")
     assert "New Title" in out and "Old Title" not in out
-    assert "# The book's identity." in out       # leading comment survives
-    assert "keep this comment" in out             # inline comment survives
+    assert "# The book's identity." in out  # leading comment survives
+    assert "keep this comment" in out  # inline comment survives
     assert "a trailing note the user wrote" in out
-    assert "verify-min-pages: 40" in out          # untouched key survives
+    assert "verify-min-pages: 40" in out  # untouched key survives
 
 
 def test_a_missing_file_loads_empty_and_a_first_set_creates_it(tmp_path):
@@ -153,6 +165,7 @@ def test_a_malformed_file_is_a_config_error_not_a_traceback(tmp_path):
 
 
 # ---- write-safety: agree with the build's YAML 1.1 loader --------------
+
 
 @pytest.mark.parametrize("text", ["no", "yes", "on", "off", "true", "2026", "3.5", "null", "~"])
 def test_a_string_typed_value_survives_as_the_string_set(text, tmp_path):
@@ -193,6 +206,7 @@ def test_as_build_reads_returns_parsed_types_and_tolerates_non_mappings():
     # The quoted "true" reads back as a string; the bare 24 as an int.
     assert cs.as_build_reads(m) == {"verify-min-pages": 24, "flag": "true"}
     from ruamel.yaml.comments import CommentedSeq
+
     assert cs.as_build_reads(CommentedSeq()) == {}
 
 
@@ -214,4 +228,4 @@ def test_write_is_atomic_leaving_no_temp_behind(tmp_path):
     cs.set_path(data, "title", "X")
     cs.write_atomic(path, data)
     siblings = [p.name for p in tmp_path.iterdir()]
-    assert siblings == ["metadata.yaml"]          # no .press-tmp residue
+    assert siblings == ["metadata.yaml"]  # no .press-tmp residue

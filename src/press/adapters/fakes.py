@@ -14,6 +14,7 @@ contract test can drive both through one behavioral interface.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date, datetime, time, timezone
 from typing import Any, Mapping, Sequence
 
 from ..results import PolicyError
@@ -130,6 +131,31 @@ class FakeEnvironment:
         self.writes.append((key, None))
 
 
+class FakeClock:
+    """A ``Clock`` pinned to a fixed date and timestamp.
+
+    ``today`` returns the injected ``date`` unchanged, and ``now`` returns
+    the injected ``datetime`` (defaulting to midnight UTC on the pinned
+    date when none is given), so a test states the exact moment a seal,
+    acceptance line, front-matter stamp, or ONIX ``sent`` field records
+    with no reference to the wall clock the suite happens to run on."""
+
+    def __init__(self, today: date, now: datetime | None = None) -> None:
+        self._today = today
+        self._now = now if now is not None else datetime.combine(today, time(), timezone.utc)
+
+    def today(self) -> date:
+        return self._today
+
+    def now(self) -> datetime:
+        return self._now
+
+    def monotonic(self) -> float:
+        # A fixed reading: a fake needs no real elapsed time, so every call
+        # returns the same value (elapsed durations read as zero under test).
+        return 0.0
+
+
 @dataclass(frozen=True)
 class RecordedRequest:
     """One HTTP request, recorded before it would have gone to the wire."""
@@ -145,9 +171,7 @@ class FakeImageClient:
     programmed list of JSON responses (or raises a programmed exception).
     Never opens a socket."""
 
-    def __init__(
-        self, responses: Sequence[dict | BaseException] | None = None
-    ) -> None:
+    def __init__(self, responses: Sequence[dict | BaseException] | None = None) -> None:
         self.requests: list[RecordedRequest] = []
         self._responses: list[dict | BaseException] = list(responses or [])
 
@@ -159,20 +183,12 @@ class FakeImageClient:
             raise outcome
         return outcome
 
-    def post_json(
-        self, url: str, payload: Mapping[str, Any], headers: Mapping[str, str]
-    ) -> dict:
-        self.requests.append(
-            RecordedRequest("json", url, dict(payload), dict(headers))
-        )
+    def post_json(self, url: str, payload: Mapping[str, Any], headers: Mapping[str, str]) -> dict:
+        self.requests.append(RecordedRequest("json", url, dict(payload), dict(headers)))
         return self._answer()
 
-    def post_multipart(
-        self, url: str, body: bytes, headers: Mapping[str, str]
-    ) -> dict:
-        self.requests.append(
-            RecordedRequest("multipart", url, body, dict(headers))
-        )
+    def post_multipart(self, url: str, body: bytes, headers: Mapping[str, str]) -> dict:
+        self.requests.append(RecordedRequest("multipart", url, body, dict(headers)))
         return self._answer()
 
 

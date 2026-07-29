@@ -27,12 +27,15 @@ C = contract.Capability
 
 # ---- adapter factories for the shared suite ----
 
+
 def _make_fake():
     return fake_mod.FakeProvider()
 
 
 _JOB = {
-    "id": 42776, "external_id": "order-1", "status": {"name": "CREATED"},
+    "id": 42776,
+    "external_id": "order-1",
+    "status": {"name": "CREATED"},
     "line_items": [{"id": 1, "tracking_urls": []}],
 }
 
@@ -40,25 +43,39 @@ _JOB = {
 def _lulu_routes():
     return {
         ("POST", "/openid-connect/token"): Response(
-            200, json.dumps({"access_token": "tok", "expires_in": 3600}).encode()),
-        ("POST", "/print-job-cost-calculations/"): Response(201, json.dumps({
-            "currency": "USD",
-            "line_item_costs": [{"total_cost_incl_tax": "15.00"}],
-            "shipping_cost": {"total_cost_incl_tax": "5.00"},
-            "total_tax": "2.00", "total_cost_incl_tax": "22.00"}).encode()),
+            200, json.dumps({"access_token": "tok", "expires_in": 3600}).encode()
+        ),
+        ("POST", "/print-job-cost-calculations/"): Response(
+            201,
+            json.dumps(
+                {
+                    "currency": "USD",
+                    "line_item_costs": [{"total_cost_incl_tax": "15.00"}],
+                    "shipping_cost": {"total_cost_incl_tax": "5.00"},
+                    "total_tax": "2.00",
+                    "total_cost_incl_tax": "22.00",
+                }
+            ).encode(),
+        ),
         ("POST", "/print-jobs/"): Response(201, json.dumps(_JOB).encode()),
         ("GET", "/print-jobs/42776/"): Response(200, json.dumps(_JOB).encode()),
         ("POST", "/print-jobs/42776/status/"): Response(
-            200, json.dumps({"name": "CANCELED"}).encode()),
+            200, json.dumps({"name": "CANCELED"}).encode()
+        ),
         ("POST", "/validate-interior/"): Response(
-            201, json.dumps({"id": 1, "errors": []}).encode()),
+            201, json.dumps({"id": 1, "errors": []}).encode()
+        ),
     }
 
 
 def _make_lulu(transport=None):
     return lulu_mod.LuluProvider(
         transport or CannedTransport(_lulu_routes()),
-        client_key="k", client_secret="s", sandbox=True, webhook_secret="whsec")
+        client_key="k",
+        client_secret="s",
+        sandbox=True,
+        webhook_secret="whsec",
+    )
 
 
 ADAPTERS = [("fake", _make_fake), ("lulu", _make_lulu)]
@@ -70,6 +87,7 @@ def provider(request):
 
 
 # ---- the shared contract ----
+
 
 def test_capabilities_are_a_frozenset_of_capabilities(provider):
     caps = provider.capabilities()
@@ -100,8 +118,9 @@ def test_an_unknown_status_string_quarantines(provider):
 
 
 def test_a_valid_event_is_authentic_a_tampered_one_is_not(provider):
-    body = json.dumps({"topic": "PRINT_JOB_STATUS_CHANGED",
-                       "provider_ref": "x", "data": _JOB}).encode()
+    body = json.dumps(
+        {"topic": "PRINT_JOB_STATUS_CHANGED", "provider_ref": "x", "data": _JOB}
+    ).encode()
     headers = _sign(provider, body)
     assert provider.parse_event(body, headers).authentic
     assert not provider.parse_event(body + b"tampered", headers).authentic
@@ -116,13 +135,16 @@ def _sign(provider, body: bytes) -> dict[str, str]:
 
 def _quote_request():
     return contract.QuoteRequest(
-        line_items=(contract.LineItem("SKU", 120, 2,
-                                      "https://e.test/i.pdf", "https://e.test/c.pdf"),),
+        line_items=(
+            contract.LineItem("SKU", 120, 2, "https://e.test/i.pdf", "https://e.test/c.pdf"),
+        ),
         address=contract.Address("R", "1 St", "City", "IL", "62704", "US", "555"),
-        shipping_level="GROUND")
+        shipping_level="GROUND",
+    )
 
 
 # ---- the fake's scripting ----
+
 
 def test_fake_scripts_rejection_and_timeout():
     provider = fake_mod.FakeProvider()
@@ -133,14 +155,14 @@ def test_fake_scripts_rejection_and_timeout():
 
 def test_fake_validates_files_and_declares_unsupported_validation():
     item = contract.LineItem(
-        "SKU", 120, 1, "http://unsafe/interior.pdf", "relative-cover.pdf",
-        external_id="line-1")
+        "SKU", 120, 1, "http://unsafe/interior.pdf", "relative-cover.pdf", external_id="line-1"
+    )
     provider = fake_mod.FakeProvider()
     assert provider.validate_files((item,)) == {
-        "line-1": ["interior url is not https", "cover url is not https"]}
+        "line-1": ["interior url is not https", "cover url is not https"]
+    }
 
-    without_validation = fake_mod.FakeProvider(
-        capabilities=frozenset({C.SUBMIT}))
+    without_validation = fake_mod.FakeProvider(capabilities=frozenset({C.SUBMIT}))
     result = without_validation.validate_files((item,))
     assert isinstance(result, contract.TypedError)
     assert result.code == "unsupported"
@@ -172,10 +194,8 @@ def test_fake_refuses_late_cancellation_and_unsupported_boundaries():
     assert late.code == "not_cancelable"
     assert isinstance(provider.cancel("absent"), contract.TypedError)
 
-    lookup_only = fake_mod.FakeProvider(
-        capabilities=frozenset({C.LOOKUP}))
-    assert isinstance(
-        lookup_only.submit(fake_mod.sample_submission()), contract.UnknownOutcome)
+    lookup_only = fake_mod.FakeProvider(capabilities=frozenset({C.LOOKUP}))
+    assert isinstance(lookup_only.submit(fake_mod.sample_submission()), contract.UnknownOutcome)
     event = lookup_only.parse_event(b"{}", {})
     assert event.authentic is False
     assert "does not support webhooks" in event.reason
@@ -193,21 +213,25 @@ def test_an_unsupported_capability_is_declared_not_simulated():
 
 # ---- Lulu specifics ----
 
+
 def test_lulu_pod_package_id_for_6x9_bw_paperback():
     assert lulu_mod.pod_package_id(6.0, 9.0) == "0600X0900.BW.STD.PB.060UW444.MXX"
     assert lulu_mod.pod_package_id(6.0, 9.0, paper="060UC444") == "0600X0900.BW.STD.PB.060UC444.MXX"
 
 
-@pytest.mark.parametrize("raw,expected", [
-    ("CREATED", contract.ProviderStatus.CREATED),
-    ("UNPAID", contract.ProviderStatus.CREATED),
-    ("PRODUCTION_DELAYED", contract.ProviderStatus.ACCEPTED),
-    ("IN_PRODUCTION", contract.ProviderStatus.IN_PRODUCTION),
-    ("SHIPPED", contract.ProviderStatus.SHIPPED),
-    ("REJECTED", contract.ProviderStatus.REJECTED),
-    ("CANCELED", contract.ProviderStatus.CANCELED),
-    ("SOMETHING_NEW", contract.ProviderStatus.UNKNOWN),
-])
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("CREATED", contract.ProviderStatus.CREATED),
+        ("UNPAID", contract.ProviderStatus.CREATED),
+        ("PRODUCTION_DELAYED", contract.ProviderStatus.ACCEPTED),
+        ("IN_PRODUCTION", contract.ProviderStatus.IN_PRODUCTION),
+        ("SHIPPED", contract.ProviderStatus.SHIPPED),
+        ("REJECTED", contract.ProviderStatus.REJECTED),
+        ("CANCELED", contract.ProviderStatus.CANCELED),
+        ("SOMETHING_NEW", contract.ProviderStatus.UNKNOWN),
+    ],
+)
 def test_lulu_status_normalization(raw, expected):
     assert _make_lulu().normalize_status(raw) == expected
 
@@ -242,23 +266,29 @@ def test_lulu_submit_timeout_is_an_unknown_outcome():
 
 def test_lulu_parses_both_drf_error_shapes():
     detail = lulu_mod.LuluProvider._error_detail(
-        Response(401, json.dumps({"detail": "Authentication credentials were not provided."}).encode()))
+        Response(
+            401, json.dumps({"detail": "Authentication credentials were not provided."}).encode()
+        )
+    )
     assert "Authentication" in detail
     field = lulu_mod.LuluProvider._error_detail(
-        Response(400, json.dumps({"url": ["Enter a valid URL."]}).encode()))
+        Response(400, json.dumps({"url": ["Enter a valid URL."]}).encode())
+    )
     assert "url" in field and "valid URL" in field
 
 
 def test_lulu_rejected_submission_is_a_typed_rejection():
     routes = _lulu_routes()
     routes[("POST", "/print-jobs/")] = Response(
-        400, json.dumps({"line_items": ["This field is required."]}).encode())
+        400, json.dumps({"line_items": ["This field is required."]}).encode()
+    )
     result = _make_lulu(CannedTransport(routes)).submit(fake_mod.sample_submission())
     assert isinstance(result, contract.Rejected)
     assert "required" in result.detail
 
 
 # ---- money and fuzz ----
+
 
 @pytest.mark.invariant("INV-provider-contract")
 @pytest.mark.layer("unit")
@@ -281,7 +311,9 @@ def test_money_parses_decimals_without_float_error():
     assert contract.Money.parse("USD", "19.99").minor_units == 1999
     assert contract.Money.parse("USD", "0.10").minor_units == 10
     # The classic float trap: 0.1 + 0.2 in cents is exactly 30.
-    assert (contract.Money.parse("USD", "0.1") + contract.Money.parse("USD", "0.2")).minor_units == 30
+    assert (
+        contract.Money.parse("USD", "0.1") + contract.Money.parse("USD", "0.2")
+    ).minor_units == 30
 
 
 @given(raw=st.text(max_size=40))

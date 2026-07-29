@@ -56,8 +56,13 @@ DEFAULT_KIND = "figure"
 # faces a chapter; ``full-bleed`` fills the page; ``margin`` sits in the
 # outer margin.
 PLACES = (
-    "inline", "wrap-inner", "wrap-outer", "plate",
-    "frontispiece", "full-bleed", "margin",
+    "inline",
+    "wrap-inner",
+    "wrap-outer",
+    "plate",
+    "frontispiece",
+    "full-bleed",
+    "margin",
 )
 # The places that run in the text flow and may therefore carry a width
 # measure; a plate/frontispiece/full-bleed owns its own geometry and may not.
@@ -67,7 +72,9 @@ MEASURES = ("full-measure", "half-measure", "third-measure")
 # The fraction of the measure each names, for the graphics width the writer
 # emits (portable across PDF and HTML).
 MEASURE_FRACTION = {
-    "full-measure": "100%", "half-measure": "50%", "third-measure": "33%",
+    "full-measure": "100%",
+    "half-measure": "50%",
+    "third-measure": "33%",
 }
 
 # The informative kinds that, when a figure DECLARES one explicitly, earn a
@@ -112,15 +119,15 @@ class Figure:
     caption: str
     kind: str
     style: str | None
-    directive: str            # "art" | "data" | "source" | ""
-    description: str | None   # the directive body, whitespace-normalized
-    identifier: str | None = None    # the #id, for a "see Figure N" cross-ref
-    width: str | None = None         # full-/half-/third-measure (or a raw length)
-    place: str | None = None         # one of PLACES
-    outset: str | None = None        # the runaround gap, a relative length in em
-    alt: str | None = None           # fig-alt: the accessible alt text
-    decorative: bool = False         # an ornament: alt="" / role=presentation
-    kind_declared: bool = False      # was .kind spelled, or is this a bare image?
+    directive: str  # "art" | "data" | "source" | ""
+    description: str | None  # the directive body, whitespace-normalized
+    identifier: str | None = None  # the #id, for a "see Figure N" cross-ref
+    width: str | None = None  # full-/half-/third-measure (or a raw length)
+    place: str | None = None  # one of PLACES
+    outset: str | None = None  # the runaround gap, a relative length in em
+    alt: str | None = None  # fig-alt: the accessible alt text
+    decorative: bool = False  # an ornament: alt="" / role=presentation
+    kind_declared: bool = False  # was .kind spelled, or is this a bare image?
 
     @property
     def generatable(self) -> bool:
@@ -140,11 +147,37 @@ class Figure:
         unnumbered plate, so a book that declares no numbered figure is
         unchanged."""
 
-        return (
-            self.kind_declared
-            and self.kind in NUMBERED_KINDS
-            and not self.decorative
-        )
+        return self.kind_declared and self.kind in NUMBERED_KINDS and not self.decorative
+
+
+def _attr_token_value(match: re.Match[str]) -> str:
+    """The value of a ``key=value`` attribute token, whichever quoting the
+    author used (double, single, or bare)."""
+
+    value = match.group("qv")
+    if value is None:
+        value = match.group("sv")
+    if value is None:
+        value = match.group("uv") or ""
+    return value
+
+
+def _scan_attr_tokens(attrs: str) -> tuple[str | None, str | None, dict[str, str]]:
+    """The #id, the first .class (the kind), and every ``key=value`` pair from
+    a pandoc attribute string, in one pass over its tokens."""
+
+    identifier: str | None = None
+    kind: str | None = None
+    keys: dict[str, str] = {}
+    for match in _ATTR_TOKEN.finditer(attrs):
+        if match.group("id"):
+            identifier = match.group("id")
+        elif match.group("cls"):
+            if kind is None:  # the first .class is the kind
+                kind = match.group("cls")
+        else:
+            keys[match.group("key")] = _attr_token_value(match)
+    return identifier, kind, keys
 
 
 def _parse_attrs(attrs: str) -> dict[str, object]:
@@ -152,23 +185,8 @@ def _parse_attrs(attrs: str) -> dict[str, object]:
     attribute string. A bare image with no attributes is a ``figure`` with no
     style and no declared kind."""
 
-    identifier: str | None = None
-    kind: str | None = None
+    identifier, kind, keys = _scan_attr_tokens(attrs)
     style: str | None = None
-    keys: dict[str, str] = {}
-    for match in _ATTR_TOKEN.finditer(attrs):
-        if match.group("id"):
-            identifier = match.group("id")
-        elif match.group("cls"):
-            if kind is None:            # the first .class is the kind
-                kind = match.group("cls")
-        else:
-            value = match.group("qv")
-            if value is None:
-                value = match.group("sv")
-            if value is None:
-                value = match.group("uv") or ""
-            keys[match.group("key")] = value
     if "style" in keys:
         style = keys["style"] or None
     decorative = keys.get("decorative", "").lower() in ("true", "yes", "1")
@@ -195,22 +213,80 @@ def parse(markdown: str) -> list[Figure]:
     for match in _FIGURE_RE.finditer(markdown):
         attrs = _parse_attrs(match.group("attrs") or "")
         body = match.group("body")
-        figures.append(Figure(
-            src=match.group("src").strip(),
-            caption=match.group("caption").strip(),
-            kind=str(attrs["kind"]),
-            style=attrs["style"],  # type: ignore[arg-type]
-            directive=match.group("key") or "",
-            description=" ".join(body.split()) if body else None,
-            identifier=attrs["identifier"],  # type: ignore[arg-type]
-            width=attrs["width"],  # type: ignore[arg-type]
-            place=attrs["place"],  # type: ignore[arg-type]
-            outset=attrs["outset"],  # type: ignore[arg-type]
-            alt=attrs["alt"],  # type: ignore[arg-type]
-            decorative=bool(attrs["decorative"]),
-            kind_declared=bool(attrs["kind_declared"]),
-        ))
+        figures.append(
+            Figure(
+                src=match.group("src").strip(),
+                caption=match.group("caption").strip(),
+                kind=str(attrs["kind"]),
+                style=attrs["style"],  # type: ignore[arg-type]
+                directive=match.group("key") or "",
+                description=" ".join(body.split()) if body else None,
+                identifier=attrs["identifier"],  # type: ignore[arg-type]
+                width=attrs["width"],  # type: ignore[arg-type]
+                place=attrs["place"],  # type: ignore[arg-type]
+                outset=attrs["outset"],  # type: ignore[arg-type]
+                alt=attrs["alt"],  # type: ignore[arg-type]
+                decorative=bool(attrs["decorative"]),
+                kind_declared=bool(attrs["kind_declared"]),
+            )
+        )
     return figures
+
+
+def _place_problems(where: str, place: str | None) -> list[str]:
+    """The placement-vocabulary problems for one figure's ``place``: a side
+    outside the grammar, or a left/right side where a parity-aware one belongs."""
+
+    if place is None or place in PLACES:
+        return []
+    if place in ("left", "right", "inner", "outer", "wrap-left", "wrap-right"):
+        return [
+            f"{where}: place={place} is not parity-aware; use "
+            "wrap-inner or wrap-outer, never left/right"
+        ]
+    return [f"{where}: unknown place={place} (use one of {', '.join(PLACES)})"]
+
+
+def _width_problems(where: str, width: str | None, place: str | None) -> list[str]:
+    """The placement-vocabulary problems for one figure's ``width``: an unknown
+    measure, a measure on a place that owns its own geometry, or an absolute
+    length where an in-flow figure takes a relative measure."""
+
+    if width is None:
+        return []
+    if width.endswith("-measure") and width not in MEASURES:
+        return [f"{where}: unknown width measure {width} (use one of {', '.join(MEASURES)})"]
+    if width in MEASURES and place is not None and place not in INFLOW_PLACES:
+        return [
+            f"{where}: a width measure applies to an in-flow figure, "
+            f"not place={place}; a {place} owns its own geometry"
+        ]
+    if _ABSOLUTE_LENGTH.match(width) and place in INFLOW_PLACES:
+        return [
+            f"{where}: width={width} is absolute; an in-flow figure "
+            "takes a relative measure (full-/half-/third-measure)"
+        ]
+    return []
+
+
+def _validate_figure(fig: Figure) -> list[str]:
+    """Every way one figure's placement vocabulary is malformed, as located
+    messages."""
+
+    where = fig.src
+    problems = _place_problems(where, fig.place)
+    problems += _width_problems(where, fig.width, fig.place)
+    if fig.outset is not None and not _RELATIVE_OUTSET.match(fig.outset):
+        problems.append(
+            f"{where}: outset={fig.outset} is not a relative gap; the "
+            "runaround gap is a length in em (e.g. 1em)"
+        )
+    if fig.decorative and fig.alt:
+        problems.append(
+            f"{where}: a decorative image takes an empty alt; drop either "
+            "fig-alt or decorative=true, not both"
+        )
+    return problems
 
 
 def validate(figures: list[Figure]) -> list[str]:
@@ -223,48 +299,7 @@ def validate(figures: list[Figure]) -> list[str]:
 
     problems: list[str] = []
     for fig in figures:
-        where = fig.src
-        place = fig.place
-        if place is not None and place not in PLACES:
-            if place in ("left", "right", "inner", "outer",
-                         "wrap-left", "wrap-right"):
-                problems.append(
-                    f"{where}: place={place} is not parity-aware; use "
-                    "wrap-inner or wrap-outer, never left/right"
-                )
-            else:
-                problems.append(
-                    f"{where}: unknown place={place} (use one of "
-                    f"{', '.join(PLACES)})"
-                )
-        width = fig.width
-        if width is not None:
-            if width.endswith("-measure") and width not in MEASURES:
-                problems.append(
-                    f"{where}: unknown width measure {width} (use one of "
-                    f"{', '.join(MEASURES)})"
-                )
-            elif width in MEASURES and place is not None \
-                    and place not in INFLOW_PLACES:
-                problems.append(
-                    f"{where}: a width measure applies to an in-flow figure, "
-                    f"not place={place}; a {place} owns its own geometry"
-                )
-            elif _ABSOLUTE_LENGTH.match(width) and place in INFLOW_PLACES:
-                problems.append(
-                    f"{where}: width={width} is absolute; an in-flow figure "
-                    "takes a relative measure (full-/half-/third-measure)"
-                )
-        if fig.outset is not None and not _RELATIVE_OUTSET.match(fig.outset):
-            problems.append(
-                f"{where}: outset={fig.outset} is not a relative gap; the "
-                "runaround gap is a length in em (e.g. 1em)"
-            )
-        if fig.decorative and fig.alt:
-            problems.append(
-                f"{where}: a decorative image takes an empty alt; drop either "
-                "fig-alt or decorative=true, not both"
-            )
+        problems += _validate_figure(fig)
     return problems
 
 

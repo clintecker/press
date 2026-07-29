@@ -115,21 +115,32 @@ def available_model(upscaler: Upscaler, preferred: str) -> str:
     have = {p.stem for p in Path(upscaler.models_dir).glob("*.param")}
     if preferred in have:
         return preferred
-    for fallback in ("remacri-4x", "ultrasharp-4x", "realesrgan-x4plus",
-                     "upscayl-standard-4x"):
+    for fallback in ("remacri-4x", "ultrasharp-4x", "realesrgan-x4plus", "upscayl-standard-4x"):
         if fallback in have:
             return fallback
     return preferred  # let the tool report the missing model plainly
 
 
-def upscale(src: Path, dst: Path, *, model: str, scale: int,
-            upscaler: Upscaler) -> None:
+def upscale(src: Path, dst: Path, *, model: str, scale: int, upscaler: Upscaler) -> None:
     """Upscale src to dst with the given model, through the process adapter."""
 
     adapters.process_runner.run(
-        [upscaler.binary, "-i", str(src), "-o", str(dst),
-         "-n", model, "-m", upscaler.models_dir, "-s", str(scale)],
-        check=True, capture=True, timeout=600,
+        [
+            upscaler.binary,
+            "-i",
+            str(src),
+            "-o",
+            str(dst),
+            "-n",
+            model,
+            "-m",
+            upscaler.models_dir,
+            "-s",
+            str(scale),
+        ],
+        check=True,
+        capture=True,
+        timeout=600,
     )
 
 
@@ -184,9 +195,17 @@ class Result:
 _DEFAULT_MAX_EDGE = 2400
 
 
-def enhance(src: Path, dst: Path, *, model: str | None = None,
-            colors: int = 16, scale: int = 4, medium: str = "",
-            max_edge: int = _DEFAULT_MAX_EDGE, grayscale: bool = True) -> Result:
+def enhance(
+    src: Path,
+    dst: Path,
+    *,
+    model: str | None = None,
+    colors: int = 16,
+    scale: int = 4,
+    medium: str = "",
+    max_edge: int = _DEFAULT_MAX_EDGE,
+    grayscale: bool = True,
+) -> Result:
     """Finish one image: upscale (if a model is installed), resample to a
     print-grade target long edge, quantize, and write a lossless PNG. With no
     upscaler present the image is resampled with a plain high-quality filter
@@ -208,8 +227,7 @@ def enhance(src: Path, dst: Path, *, model: str | None = None,
     big: Image.Image
     tmp = dst.with_suffix(".upscaled.png")
     if upscaler is not None:
-        upscale(src, tmp, model=available_model(upscaler, model),
-                scale=scale, upscaler=upscaler)
+        upscale(src, tmp, model=available_model(upscaler, model), scale=scale, upscaler=upscaler)
         big = Image.open(tmp)
         upscaled = True
     else:
@@ -222,8 +240,9 @@ def enhance(src: Path, dst: Path, *, model: str | None = None,
     longest = max(big.width, big.height)
     if longest > max_edge:
         ratio = max_edge / longest
-        big = big.resize((round(big.width * ratio), round(big.height * ratio)),
-                         Image.Resampling.LANCZOS)
+        big = big.resize(
+            (round(big.width * ratio), round(big.height * ratio)), Image.Resampling.LANCZOS
+        )
 
     # A plate master carries alpha (segmented from baked white, or generated
     # transparent) so it composites onto any surface; finishing must not
@@ -244,5 +263,6 @@ def enhance(src: Path, dst: Path, *, model: str | None = None,
     final = Image.open(dst)
     counted = final.convert("L") if grayscale else final.convert("RGB")
     distinct = len(counted.getcolors(maxcolors=colors * 4) or [])
-    return Result(path=dst, width=final.width, height=final.height,
-                  colors=distinct, upscaled=upscaled)
+    return Result(
+        path=dst, width=final.width, height=final.height, colors=distinct, upscaled=upscaled
+    )

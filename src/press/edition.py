@@ -39,20 +39,42 @@ MEDIA_TYPE = "application/pdf"
 # came from; capability (qualifications) says who can print it; a dirty
 # tree says it is not sellable. None of these change what the physical
 # object is, so none may change the edition_id.
-_EXCLUDED_FROM_IDENTITY = frozenset({
-    "edition_id", "source_commit", "tree_clean", "input_digests",
-    "receipt_digests", "qualifications",
-})
+_EXCLUDED_FROM_IDENTITY = frozenset(
+    {
+        "edition_id",
+        "source_commit",
+        "tree_clean",
+        "input_digests",
+        "receipt_digests",
+        "qualifications",
+    }
+)
 
 # Keys that must never appear anywhere in a manifest: a manifest carries
 # identity and print facts, never money, secrets, or a recipient. The
 # schema already excludes them; this list turns a future field mistake
 # into a caught defect rather than a leak.
-_FORBIDDEN_KEYS = frozenset({
-    "price", "amount", "cost", "currency", "card", "cvv", "secret",
-    "password", "token", "apikey", "api_key", "credential", "email",
-    "address", "recipient", "customer", "phone",
-})
+_FORBIDDEN_KEYS = frozenset(
+    {
+        "price",
+        "amount",
+        "cost",
+        "currency",
+        "card",
+        "cvv",
+        "secret",
+        "password",
+        "token",
+        "apikey",
+        "api_key",
+        "credential",
+        "email",
+        "address",
+        "recipient",
+        "customer",
+        "phone",
+    }
+)
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -149,6 +171,7 @@ def _forbidden_keys_present(data: object) -> list[str]:
 
 # ---- construction (I/O) ----
 
+
 def _file_facts(path: Path) -> tuple[str, int]:
     data = path.read_bytes()
     return hashlib.sha256(data).hexdigest(), len(data)
@@ -176,9 +199,14 @@ def observe(root: Path, slug: str) -> Observed:
     return Observed(interior_sha, interior_size, pages, cover_sha, cover_size)
 
 
-def build(chain, *, root: Path | None = None, book=None,
-          fmt: str = "paperback",
-          qualifications: tuple[ProviderQualification, ...] = ()) -> EditionManifest:
+def build(
+    chain,
+    *,
+    root: Path | None = None,
+    book=None,
+    fmt: str = "paperback",
+    qualifications: tuple[ProviderQualification, ...] = (),
+) -> EditionManifest:
     """Assemble a manifest from the release-gated artifacts, the book
     facts, and the trust-receipt chain. The chain is the release proof the
     edition stands on; its receipts' digests are recorded as provenance."""
@@ -191,8 +219,7 @@ def build(chain, *, root: Path | None = None, book=None,
         book = booklib.book()
 
     observed = observe(root, book.slug)
-    inputs, commit, clean = receipts.current_inputs(
-        receipts.pinned_toolchain_digest())
+    inputs, commit, clean = receipts.current_inputs(receipts.pinned_toolchain_digest())
 
     manifest = EditionManifest(
         schema_version=SCHEMA_VERSION,
@@ -207,8 +234,7 @@ def build(chain, *, root: Path | None = None, book=None,
         paper=str((book.print_config or {}).get("paper", "cream")),
         spine_width_in=round(gen_coverwrap.spine_width(observed.interior_pages), 6),
         bleed_in=gen_coverwrap.BLEED_IN,
-        interior=ArtifactRef("interior", observed.interior_sha256,
-                             observed.interior_byte_size),
+        interior=ArtifactRef("interior", observed.interior_sha256, observed.interior_byte_size),
         cover=ArtifactRef("cover", observed.cover_sha256, observed.cover_byte_size),
         toolchain_digest=receipts.pinned_toolchain_digest(),
         source_commit=commit,
@@ -222,12 +248,13 @@ def build(chain, *, root: Path | None = None, book=None,
 
 # ---- verification ----
 
+
 def _check_identity(manifest: EditionManifest) -> list[str]:
     problems: list[str] = []
     if manifest.schema_version != SCHEMA_VERSION:
         problems.append(
-            f"unknown schema version {manifest.schema_version} "
-            f"(this press writes {SCHEMA_VERSION})")
+            f"unknown schema version {manifest.schema_version} (this press writes {SCHEMA_VERSION})"
+        )
     # The stored edition_id must be the digest of the identity fields, so
     # a hand-edited fact cannot keep a trusted id.
     recomputed = _identity_digest(manifest)
@@ -235,7 +262,8 @@ def _check_identity(manifest: EditionManifest) -> list[str]:
         problems.append(
             "edition_id does not match the identity digest "
             f"({manifest.edition_id[:12]} != {recomputed[:12]}); a "
-            "production-affecting fact was changed without re-deriving identity")
+            "production-affecting fact was changed without re-deriving identity"
+        )
     return problems
 
 
@@ -254,7 +282,8 @@ def _check_bytes(manifest: EditionManifest, observed: Observed) -> list[str]:
     if manifest.page_count != observed.interior_pages:
         problems.append(
             f"page count {manifest.page_count} does not match the interior "
-            f"({observed.interior_pages} pages)")
+            f"({observed.interior_pages} pages)"
+        )
     return problems
 
 
@@ -267,9 +296,11 @@ def _check_references(manifest: EditionManifest) -> list[str]:
             problems.append(f"{ref.role} digest is not a sha256")
         if ref.media_type != MEDIA_TYPE:
             problems.append(f"{ref.role} media type {ref.media_type!r} is not {MEDIA_TYPE}")
-    for label, value in (("interior", manifest.interior.sha256),
-                         ("cover", manifest.cover.sha256),
-                         ("toolchain", manifest.toolchain_digest)):
+    for label, value in (
+        ("interior", manifest.interior.sha256),
+        ("cover", manifest.cover.sha256),
+        ("toolchain", manifest.toolchain_digest),
+    ):
         if "/" in value or "latest" in value.lower() or ".pdf" in value.lower():
             problems.append(f"{label} reference {value!r} looks like a mutable path")
     return problems
@@ -281,7 +312,8 @@ def _check_sellable(manifest: EditionManifest) -> list[str]:
     if forbidden:
         problems.append(
             f"manifest carries forbidden field(s) {sorted(set(forbidden))}; "
-            "an edition manifest holds no price, secret, or customer data")
+            "an edition manifest holds no price, secret, or customer data"
+        )
     # Only a release-gated edition may be sold: it needs a receipt chain
     # and a clean-tree build.
     if not manifest.receipt_digests:
@@ -289,7 +321,8 @@ def _check_sellable(manifest: EditionManifest) -> list[str]:
     if not manifest.tree_clean:
         problems.append(
             "built from a dirty tree; a sellable edition is cut from a clean "
-            "release state (this is a local-development manifest)")
+            "release state (this is a local-development manifest)"
+        )
     return problems
 
 
@@ -302,10 +335,10 @@ def _check_qualifications(manifest: EditionManifest) -> list[str]:
             problems.append(
                 f"provider {qual.provider!r} qualification is stale: proven "
                 f"against {qual.qualified_for[:12]}, not this edition "
-                f"{manifest.edition_id[:12]}")
+                f"{manifest.edition_id[:12]}"
+            )
         if not _SHA256.match(qual.evidence_digest):
-            problems.append(
-                f"provider {qual.provider!r} qualification evidence is not a sha256")
+            problems.append(f"provider {qual.provider!r} qualification evidence is not a sha256")
     return problems
 
 
@@ -316,11 +349,13 @@ def verify_facts(manifest: EditionManifest, observed: Observed) -> list[str]:
     receipt chain, and a stale provider qualification. Pure, so it is
     property-testable without touching disk."""
 
-    return (_check_identity(manifest)
-            + _check_bytes(manifest, observed)
-            + _check_references(manifest)
-            + _check_sellable(manifest)
-            + _check_qualifications(manifest))
+    return (
+        _check_identity(manifest)
+        + _check_bytes(manifest, observed)
+        + _check_references(manifest)
+        + _check_sellable(manifest)
+        + _check_qualifications(manifest)
+    )
 
 
 def verify(manifest: EditionManifest, root: Path) -> list[str]:
@@ -341,6 +376,7 @@ def is_sellable(manifest: EditionManifest, observed: Observed) -> bool:
 
 # ---- serialization ----
 
+
 def to_json(manifest: EditionManifest) -> str:
     return json.dumps(asdict(manifest), indent=2, sort_keys=True)
 
@@ -351,7 +387,8 @@ def from_json(text: str) -> EditionManifest:
     data["cover"] = ArtifactRef(**data["cover"])
     data["receipt_digests"] = tuple(data.get("receipt_digests", ()))
     data["qualifications"] = tuple(
-        ProviderQualification(**q) for q in data.get("qualifications", ()))
+        ProviderQualification(**q) for q in data.get("qualifications", ())
+    )
     return EditionManifest(**data)
 
 
@@ -378,8 +415,10 @@ def main(argv: list[str] | None = None) -> int:
         for problem in problems:
             print(f"  - {problem}")
         return 1
-    print(f"edition manifest holds: {manifest.slug} {manifest.format}, "
-          f"{manifest.page_count} pages, identity {manifest.edition_id[:12]}")
+    print(
+        f"edition manifest holds: {manifest.slug} {manifest.format}, "
+        f"{manifest.page_count} pages, identity {manifest.edition_id[:12]}"
+    )
     return 0
 
 

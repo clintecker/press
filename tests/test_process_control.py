@@ -140,7 +140,12 @@ def controller(spawn: RecordingSpawn, *, root: str = "/book") -> ProcessControll
 def test_invocation_builds_an_argv_array_not_a_shell_string():
     inv = Invocation.of("publish", "kdp", "--report-only")
     assert inv.argv("/usr/bin/python3") == [
-        "/usr/bin/python3", "-m", "press", "publish", "kdp", "--report-only",
+        "/usr/bin/python3",
+        "-m",
+        "press",
+        "publish",
+        "kdp",
+        "--report-only",
     ]
     assert inv.cli == "press publish kdp --report-only"
 
@@ -174,7 +179,9 @@ def test_run_streams_lines_then_reports_the_exact_return_code():
     assert outcome == Outcome(returncode=0, cancelled=False, cancel_stage=CancelStage.NONE)
     assert outcome.succeeded is True
     assert sink.lines == [
-        (STDOUT, "building"), (STDERR, "a warning"), (STDOUT, "done"),
+        (STDOUT, "building"),
+        (STDERR, "a warning"),
+        (STDOUT, "done"),
     ]
     assert ctl.state == RunState.DONE
     assert process.waited is True
@@ -234,7 +241,11 @@ def test_partial_final_line_with_no_newline_is_still_delivered():
 
 def test_interleaved_channels_retain_order_and_identity():
     lines = [
-        (STDOUT, "1"), (STDERR, "2"), (STDERR, "3"), (STDOUT, "4"), (STDERR, "5"),
+        (STDOUT, "1"),
+        (STDERR, "2"),
+        (STDERR, "3"),
+        (STDOUT, "4"),
+        (STDERR, "5"),
     ]
     process = FakeProcess(lines, returncode=0)
     ctl = controller(RecordingSpawn(process))
@@ -318,14 +329,14 @@ def test_cancel_requests_sigint_and_reaches_terminated():
     sink = Sink()
 
     ctl.start(Invocation.of("all"))
-    assert ctl.poll(sink) is True          # "working"
+    assert ctl.poll(sink) is True  # "working"
     ctl.cancel()
     assert ctl.state == RunState.CANCELLING
     assert ctl.cancel_stage == CancelStage.ACKNOWLEDGED
     assert process.interrupts == 1
 
-    assert ctl.poll(sink) is True          # "interrupted"
-    assert ctl.poll(sink) is False         # end-of-output signal
+    assert ctl.poll(sink) is True  # "interrupted"
+    assert ctl.poll(sink) is False  # end-of-output signal
     outcome = ctl.finish()
 
     assert outcome.cancelled is True
@@ -359,8 +370,8 @@ def test_second_cancel_escalates_to_terminate():
     sink = Sink()
 
     ctl.start(Invocation.of("all"))
-    ctl.cancel()                            # SIGINT
-    ctl.cancel()                            # escalate to SIGTERM
+    ctl.cancel()  # SIGINT
+    ctl.cancel()  # escalate to SIGTERM
     assert process.interrupts == 1
     assert process.terminates == 1
     assert ctl.state == RunState.CANCELLING

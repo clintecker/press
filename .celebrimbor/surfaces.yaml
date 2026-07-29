@@ -1,0 +1,611 @@
+# reconciled
+exemptions:
+  doctor:main:
+    reason: A presenter over doctor findings; proven by the integration gate running
+      it.
+    review_by: '2027-01-01'
+  selftest:main:
+    reason: The orchestrator the whole selftest suite is; every check it runs is proven.
+    review_by: '2027-01-01'
+modules:
+  __main__:
+    overrides:
+      console: adapter
+      verify_built: orchestrator
+      verify_formats_built: orchestrator
+    pin: "5468fc3c1883"
+    role: orchestrator
+    status: ratified
+  adapters.fakes:
+    overrides:
+      FakeClock.monotonic: pure
+      FakeClock.now: pure
+      FakeClock.today: pure
+      FakeEnvironment.get: adapter
+      FakeEnvironment.set: adapter
+      FakeEnvironment.unset: adapter
+      FakeEnvironment.which: adapter
+      FakeImageClient.post_json: adapter
+      FakeImageClient.post_multipart: adapter
+      FakeProcessRunner.run: adapter
+      ScriptedRetrySource.poll: adapter
+    pin: "329c91baf2de"
+    role: pure
+    status: ratified
+  adapters.http:
+    pin: "44d25eab0a65"
+    role: adapter
+    status: ratified
+  adapters.production:
+    overrides:
+      OsEnvironment.which: pure
+      SystemClock.monotonic: adapter
+      SystemClock.now: adapter
+      SystemClock.today: adapter
+      __init__: pure
+    pin: "10b8d91bf33c"
+    role: adapter
+    status: ratified
+  adapters.protocols:
+    overrides:
+      Clock.monotonic: pure
+      Clock.now: pure
+      Clock.today: pure
+      HttpImageClient.post_json: pure
+      HttpImageClient.post_multipart: pure
+      SpawnedProcess.read_line: pure
+    pin: "2ef80096f3ef"
+    role: pure
+    status: ratified
+  adapters.retry:
+    overrides:
+      __post_init__: verifier
+    pin: "365221fcbff1"
+    role: adapter
+    status: ratified
+  adapters.streaming:
+    pin: "47bac78e0931"
+    role: adapter
+    status: ratified
+  add:
+    overrides:
+      main: presenter
+      slugify: normalizer
+    pin: "9dbd36812216"
+    role: pure
+    status: ratified
+  aesthetic:
+    overrides:
+      write_tex_overrides: producer
+    pin: "bbd2c13c7427"
+    role: normalizer
+    status: ratified
+  art:
+    pin: "b87106dbab32"
+    role: presenter
+    status: ratified
+  art_commission:
+    overrides:
+      commission: producer
+      generate_gemini: orchestrator
+      generate_openai: orchestrator
+      main: presenter
+      normalize_reference: normalizer
+      parse_commissions: parser
+      shape_for: pure
+    pin: "994df98240ae"
+    role: adapter
+    status: ratified
+  art_enhance:
+    overrides:
+      available_model: adapter
+      enhance: producer
+      find_upscaler: adapter
+      upscale: adapter
+    pin: "1f6d803299dc"
+    role: pure
+    status: ratified
+  artifact_status:
+    overrides:
+      artifact_state: adapter
+      record_evidence: adapter
+    pin: "77d93eaa8ec2"
+    role: pure
+    status: ratified
+  barcode:
+    pin: "f2d80959b9ec"
+    role: pure
+    status: ratified
+  booklib:
+    overrides:
+      plate_files: pure
+      require_release_witnesses: verifier
+      validate_slug: pure
+    pin: "5276176bb854"
+    role: parser
+    status: ratified
+  bookmodel:
+    pin: "5454529099dd"
+    role: parser
+    status: ratified
+  brand:
+    pin: "cbf039757bcd"
+    role: presenter
+    status: ratified
+  build:
+    overrides:
+      build_target: orchestrator
+      cover_fragment_html: pure
+      download_names: pure
+      run: adapter
+      subtitle_stack_html: pure
+    pin: "a81106139217"
+    role: producer
+    status: ratified
+  catalog:
+    overrides:
+      render_command_help: producer
+      render_global_help: producer
+      render_usage: producer
+    pin: "abae723b91c2"
+    role: pure
+    status: ratified
+  check_source:
+    pin: "cd8c333d15d3"
+    role: verifier
+    status: ratified
+  check_the_checkers:
+    pin: "d5a172a0a908"
+    role: verifier
+    status: ratified
+  commerce:
+    overrides:
+      load: parser
+      should_emit: pure
+      validate: verifier
+    pin: "9927e0a4b81f"
+    role: producer
+    status: ratified
+  config_cli:
+    pin: "2c084d3885ed"
+    role: presenter
+    status: ratified
+  config_schema:
+    overrides:
+      validate_file: verifier
+    pin: "479710ded91a"
+    role: pure
+    status: ratified
+  config_store:
+    overrides:
+      coerce: parser
+      load: parser
+      split_path: parser
+      write_atomic: adapter
+      write_safe: pure
+    pin: "6b09442b1876"
+    role: pure
+    status: ratified
+  cover:
+    overrides:
+      build_prompt: pure
+      load_styles: adapter
+      main: presenter
+    pin: "23ed923f75a2"
+    role: pure
+    status: ratified
+  desk:
+    pin: "b4f9e782eca7"
+    role: presenter
+    status: ratified
+  desk.app:
+    overrides:
+      RunScreen.run_child: presenter
+      __init__: pure
+      _blocked_reason: pure
+      _capability_summary: pure
+      _model: orchestrator
+      command_names: pure
+    pin: "d01a954bb8dc"
+    role: presenter
+    status: ratified
+  desk.wizard:
+    overrides:
+      _display: pure
+      _typed: parser
+    pin: "f9574e782e49"
+    role: presenter
+    status: ratified
+  desk_model:
+    overrides:
+      doctor_rows: pure
+      progress_event: parser
+    pin: "9ed46925058f"
+    role: producer
+    status: ratified
+  doctor:
+    overrides:
+      examine: adapter
+      render_finding: pure
+      tool_runs: parser
+    pin: "1501ee61beb9"
+    role: presenter
+    status: ratified
+  dropcaps:
+    overrides:
+      settings: parser
+    pin: "2e2fbebda6c9"
+    role: pure
+    status: ratified
+  edition:
+    overrides:
+      build: producer
+      cover_path: pure
+      from_json: pure
+      interior_path: pure
+      is_sellable: pure
+      observe: pure
+      to_json: pure
+    pin: "356de4c2b1a6"
+    role: verifier
+    status: ratified
+  events:
+    overrides:
+      Demux.feed: adapter
+      emit_line: pure
+      parse_line: parser
+    pin: "d8a68d712c9e"
+    role: pure
+    status: ratified
+  extensions:
+    overrides:
+      conformance: verifier
+      core_names: adapter
+      load_manifest: parser
+      load_manifest_file: parser
+    pin: "12dde2a3bad5"
+    role: pure
+    status: ratified
+  figures:
+    overrides:
+      as_dict: pure
+      main: presenter
+    pin: "63f71f0efb7e"
+    role: parser
+    status: ratified
+  gen_authorities:
+    overrides:
+      chapter_label: pure
+      next_letter: pure
+      normalize: normalizer
+      print_safe: normalizer
+      taken_letters: adapter
+    pin: "1b78f65030df"
+    role: producer
+    status: ratified
+  gen_coverwrap:
+    overrides:
+      interior_page_count: pure
+      isbn_for_print: parser
+      layout: pure
+      spine_width: pure
+      tex_safe_path: pure
+      wrap_geometry: pure
+    pin: "2e3b7b5c92c6"
+    role: producer
+    status: ratified
+  gen_front_matter:
+    overrides:
+      escape: normalizer
+    pin: "839b4bc2f9eb"
+    role: producer
+    status: ratified
+  gen_index:
+    pin: "3b15fe3d8430"
+    role: producer
+    status: ratified
+  idlookup:
+    overrides:
+      LookupResult.ok: pure
+    pin: "52fa0c8b868d"
+    role: orchestrator
+    status: ratified
+  illustrate:
+    overrides:
+      build_prompt: pure
+      find_figure: adapter
+      load_styles: adapter
+      main: presenter
+    pin: "65a3b5e0c39f"
+    role: pure
+    status: ratified
+  instruments:
+    pin: "6ed70eda5cde"
+    role: presenter
+    status: ratified
+  invariants:
+    overrides:
+      load: parser
+      render: producer
+    pin: "f8c04e94533a"
+    role: verifier
+    status: ratified
+  jargon_lint:
+    overrides:
+      line_and_column: pure
+    pin: "e1292b8a37d9"
+    role: verifier
+    status: ratified
+  migrate:
+    overrides:
+      Diagnosis.from_major: pure
+      apply: producer
+      diagnose: parser
+      pin_sites: parser
+      render_plan: pure
+      rollback: producer
+      status: presenter
+    pin: "0c0e4fe1b6c2"
+    role: pure
+    status: ratified
+  mutation:
+    pin: "4af50f18b7c4"
+    role: verifier
+    status: ratified
+  onix:
+    pin: "844197dd4ac2"
+    role: pure
+    status: ratified
+  operator:
+    pin: "04de80aa4b23"
+    role: orchestrator
+    status: ratified
+  package_source:
+    overrides:
+      publication_members: adapter
+      tracked_paths: parser
+    pin: "d685e7d98700"
+    role: producer
+    status: ratified
+  pcn:
+    pin: "18f4a543f27b"
+    role: pure
+    status: ratified
+  press:
+    pin: "34da1a40b1e4"
+    role: pure
+    status: ratified
+  print_safe:
+    pin: "263ccd15fd5f"
+    role: producer
+    status: ratified
+  process_control:
+    overrides:
+      ProcessController.cancel: adapter
+      ProcessController.finish: adapter
+      ProcessController.poll: adapter
+      ProcessController.run: adapter
+      ProcessController.start: adapter
+    pin: "87da15e722d7"
+    role: pure
+    status: ratified
+  profile_lifecycle:
+    overrides:
+      load_seals: parser
+      main: presenter
+      validate: verifier
+    pin: "e8e2d3f95d82"
+    role: producer
+    status: ratified
+  profiles:
+    overrides:
+      active: parser
+      load: parser
+      write_geometry_tex: producer
+    pin: "a807170578f4"
+    role: pure
+    status: ratified
+  provider_specs:
+    overrides:
+      active: parser
+      load: parser
+    pin: "302d0b7d4b54"
+    role: pure
+    status: ratified
+  providers.contract:
+    overrides:
+      Money.parse: parser
+      PrintProvider.normalize_status: pure
+      PrintProvider.parse_event: pure
+      PrintProvider.validate_files: pure
+    pin: "448b838a2983"
+    role: pure
+    status: ratified
+  providers.fake:
+    overrides:
+      FakeProvider.advance: adapter
+      FakeProvider.normalize_status: normalizer
+      FakeProvider.parse_event: parser
+      FakeProvider.script_submit: adapter
+      FakeProvider.sign: pure
+      FakeProvider.submit: adapter
+      FakeProvider.validate_files: pure
+    pin: "3c4efbe7a819"
+    role: pure
+    status: ratified
+  providers.lulu:
+    overrides:
+      LuluProvider.cancel: adapter
+      LuluProvider.get_order: adapter
+      LuluProvider.normalize_status: normalizer
+      LuluProvider.parse_event: parser
+      LuluProvider.quote: adapter
+      LuluProvider.submit: adapter
+      LuluProvider.validate_files: adapter
+      _access_token: adapter
+      _request: adapter
+    pin: "9082cf3e8122"
+    role: pure
+    status: ratified
+  providers.transport:
+    overrides:
+      Response.json: parser
+    pin: "286ff7f8d49b"
+    role: pure
+    status: ratified
+  publish:
+    overrides:
+      verify_retail: orchestrator
+    pin: "3f9433d14a33"
+    role: orchestrator
+    status: ratified
+  qualification:
+    overrides:
+      load: parser
+      providers: parser
+      qualify: pure
+      render: producer
+      render_packaged: producer
+    pin: "9fd2f914efad"
+    role: verifier
+    status: ratified
+  quality_checks:
+    pin: "8916446d0630"
+    role: pure
+    status: ratified
+  reader_meta:
+    overrides:
+      book_sitemap_locs: pure
+      landing_head_metadata: pure
+    pin: "b8d44479a5e3"
+    role: producer
+    status: ratified
+  receipts:
+    overrides:
+      assemble_release: producer
+      build_full_chain: producer
+      build_release_receipt: producer
+      current_inputs: orchestrator
+      emit: producer
+      from_json: pure
+      to_json: pure
+    pin: "f8a911239b27"
+    role: verifier
+    status: ratified
+  registrations:
+    pin: "248ea2faf5aa"
+    role: parser
+    status: ratified
+  registry:
+    overrides:
+      build_order: pure
+      condition_holds: adapter
+      download_names: pure
+    pin: "b4a070b7de21"
+    role: orchestrator
+    status: ratified
+  results:
+    pin: "489f322233bc"
+    role: pure
+    status: ratified
+  scaffold:
+    pin: "ad0e58101cf1"
+    role: producer
+    status: ratified
+  scenarios:
+    overrides:
+      dimension_values: pure
+      high_risk_scenarios: pure
+      load: parser
+      pairwise: pure
+      scenario_id: pure
+      surface_dimensions: pure
+    pin: "6ad8765b4616"
+    role: producer
+    status: ratified
+  selftest_book:
+    pin: "9c44e2195b0c"
+    role: verifier
+    status: ratified
+  selftest_release:
+    pin: "90a484f66ec9"
+    role: verifier
+    status: ratified
+  selftest:
+    overrides:
+      borrow_book: orchestrator
+      clear_book_caches: pure
+      main: presenter
+      modules: pure
+      render_reference: producer
+    pin: "545fc61510a2"
+    role: verifier
+    status: ratified
+  style_audit:
+    overrides:
+      audit_dirs: pure
+      banned_book_patterns: parser
+      in_fenced_code: pure
+      looks_title_cased: pure
+      markdown_files: adapter
+    pin: "02ce40e58c61"
+    role: verifier
+    status: ratified
+  verify_archives:
+    pin: "63484214dd66"
+    role: verifier
+    status: ratified
+  verify_coverwrap:
+    overrides:
+      render: adapter
+    pin: "79a54b18556c"
+    role: verifier
+    status: ratified
+  verify_formats:
+    overrides:
+      chapter_witnesses: adapter
+      docx_visible_text: parser
+      manuscript_witness: adapter
+      normalized: normalizer
+      plate_count: pure
+      sentinel_present: pure
+    pin: "fd210683bb0f"
+    role: verifier
+    status: ratified
+  verify_pages:
+    overrides:
+      check_downloads: pure
+      check_reading_surface: verifier
+      check_refs: pure
+      commerce_secret: pure
+      scan_page: parser
+    pin: "2080ea5367e2"
+    role: verifier
+    status: ratified
+  verify_pdf:
+    overrides:
+      edge_has_ink: pure
+      ink_bbox: pure
+      looks_blank: pure
+      parse_args: parser
+      render_pages: verifier
+      run_capture: parser
+    pin: "32f650c8bad5"
+    role: verifier
+    status: ratified
+  webmeta:
+    pin: "946a1c55ee3f"
+    role: pure
+    status: ratified
+  wordcount:
+    pin: "18c3b2a4e0e6"
+    role: presenter
+    status: ratified
+  yamlio:
+    overrides:
+      dump: producer
+      write: producer
+    pin: "65608d47effe"
+    role: parser
+    status: ratified
+version: 1

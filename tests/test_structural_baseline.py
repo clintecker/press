@@ -83,8 +83,8 @@ def test_non_pdf_editions_match_structural_baseline(tmp_path):
             )
         BASELINE.parent.mkdir(parents=True, exist_ok=True)
         BASELINE.write_text(
-            json.dumps({"design_major": "v1", "reason": update, "features": actual},
-                       indent=2) + "\n",
+            json.dumps({"design_major": "v1", "reason": update, "features": actual}, indent=2)
+            + "\n",
             encoding="utf-8",
         )
         pytest.skip(f"structural baseline updated: {update}")
@@ -116,6 +116,7 @@ def test_structural_baseline_is_committed_and_shaped():
 # The comparison bites, proven against the committed baseline without the
 # toolchain: a lost chapter document, a dropped nav entry, and a removed
 # house style are each drift, while the unchanged structure is clean.
+
 
 def _baseline_features() -> dict:
     if not BASELINE.is_file():

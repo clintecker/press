@@ -79,7 +79,7 @@ def test_reading_pdf_carries_ink(tmp_path):
 
     assert rc == 0, "verify_pdf refused the freshly built reading PDF"
     assert f"{slug}.pdf" in evidence.outputs, "no reading PDF was produced"
-    assert all(
-        evidence.tool_versions[tool] != "absent" for tool in REQUIRED
-    ), "an unskipped PDF runner recorded a tool as absent"
+    assert all(evidence.tool_versions[tool] != "absent" for tool in REQUIRED), (
+        "an unskipped PDF runner recorded a tool as absent"
+    )
     assert "verify_pdf.main" in evidence.verifiers

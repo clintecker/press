@@ -25,8 +25,7 @@ from dataclasses import dataclass
 # marks, dashes, and the inverted marks that open a sentence in some
 # languages. Kept as a set of the ones that actually occur so a stray symbol
 # does not get swept into the cap.
-_LEAD = set("\"'`‘’“”«»‹›"
-            "—–‒‐-¿¡")
+_LEAD = set("\"'`‘’“”«»‹›—–‒‐-¿¡")
 
 
 # The chapter-opening styles a profile may request. "none" is the default and
@@ -53,9 +52,7 @@ class Settings:
         return self.style != "none"
 
 
-def settings(
-    profile_opening: dict | None, book_override: dict | None = None
-) -> Settings:
+def settings(profile_opening: dict | None, book_override: dict | None = None) -> Settings:
     """Resolve the effective chapter-opening settings: the profile carries the
     design default; a book may override it (the design-major seals the profile,
     but a book opts its own chapters in or out). An unknown style is refused
@@ -64,9 +61,7 @@ def settings(
     merged = {**(profile_opening or {}), **(book_override or {})}
     style = str(merged.get("style", "none"))
     if style not in STYLES:
-        raise SystemExit(
-            f"unknown chapter-opening style {style!r}; one of: {', '.join(STYLES)}"
-        )
+        raise SystemExit(f"unknown chapter-opening style {style!r}; one of: {', '.join(STYLES)}")
     return Settings(
         style=style,
         lines=int(merged.get("lines", 3)),
@@ -102,15 +97,12 @@ def tex_setup(settings: Settings) -> str:
         return ""
     remainder_font = r"\scshape" if settings.small_caps_remainder else ""
     reserve = settings.lines + settings.depth + 1
-    opts = (
-        f"lines={settings.lines},depth={settings.depth},findent=2pt,nindent=0pt"
-    )
+    opts = f"lines={settings.lines},depth={settings.depth},findent=2pt,nindent=0pt"
     preamble = "\\usepackage{lettrine}\n"
     initial = "#2"
     if settings.style == "ornate":
         preamble += (
-            "\\usepackage{yfonts}\n"
-            "\\newcommand{\\PressOrnateInitial}{\\usefont{U}{yinit}{m}{n}}\n"
+            "\\usepackage{yfonts}\n\\newcommand{\\PressOrnateInitial}{\\usefont{U}{yinit}{m}{n}}\n"
         )
         initial = "\\PressOrnateInitial #2"
     remainder = f"{remainder_font} #3"
@@ -120,8 +112,7 @@ def tex_setup(settings: Settings) -> str:
     # upright body size rather than scaled up with the initial.
     hang = r"\smash{\llap{\normalfont\normalsize #1\kern0.1em}}"
     return (
-        preamble
-        + "\\newcommand{\\PressDropCap}[3]{%\n"
+        preamble + "\\newcommand{\\PressDropCap}[3]{%\n"
         f"  \\Needspace*{{{reserve}\\baselineskip}}%\n"
         "  \\def\\PressDropLead{#1}%\n"
         "  \\ifx\\PressDropLead\\empty\n"

@@ -16,6 +16,7 @@ translation depends on seeing them.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date, datetime
 from enum import Enum
 from typing import Any, Mapping, Optional, Protocol, Sequence
 
@@ -68,6 +69,22 @@ class Environment(Protocol):
     def unset(self, key: str) -> None: ...
 
 
+class Clock(Protocol):
+    """Reads the current date and timestamp -- the one ambient clock the
+    press touches. Front-matter stamps, acceptance-record lines, and
+    profile seals date themselves through ``today``; the ONIX ``sent``
+    timestamp reads ``now`` (a timezone-aware ``datetime``). Both go
+    through this seam instead of a module-qualified ``date.today()`` /
+    ``datetime.now()``, so a test pins the moment and no build depends on
+    the wall clock the machine happens to run on."""
+
+    def today(self) -> date: ...
+
+    def now(self) -> datetime: ...
+
+    def monotonic(self) -> float: ...
+
+
 class HttpImageClient(Protocol):
     """Posts to an image-generation HTTP API and returns the decoded JSON.
     A protocol error (the API answered with an HTTP error status) raises
@@ -77,9 +94,7 @@ class HttpImageClient(Protocol):
         self, url: str, payload: Mapping[str, Any], headers: Mapping[str, str]
     ) -> dict: ...
 
-    def post_multipart(
-        self, url: str, body: bytes, headers: Mapping[str, str]
-    ) -> dict: ...
+    def post_multipart(self, url: str, body: bytes, headers: Mapping[str, str]) -> dict: ...
 
 
 class OutputChannel(str, Enum):

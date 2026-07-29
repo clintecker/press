@@ -38,8 +38,12 @@ def _synthetic() -> profiles.Profile:
             "trim": {"width": 5.0, "height": 8.0},
             "interior": {
                 "margins": {
-                    "inner": 0.7, "outer": 0.6, "top": 0.7,
-                    "bottom": 0.7, "headsep": 0.2, "footskip": 0.35,
+                    "inner": 0.7,
+                    "outer": 0.6,
+                    "top": 0.7,
+                    "bottom": 0.7,
+                    "headsep": 0.2,
+                    "footskip": 0.35,
                 },
                 "figure-cap": 5.5,
                 "typography": {"indent": "1.0em", "leading": 1.1},
@@ -100,8 +104,9 @@ def test_novella_is_a_meaningfully_different_design():
 @pytest.mark.layer("unit")
 def test_digest_is_stable_and_sensitive():
     # Same profile, same digest across loads (keys a visual baseline).
-    assert profiles.digest(profiles.load("house-6x9")) == \
-        profiles.digest(profiles.load("house-6x9"))
+    assert profiles.digest(profiles.load("house-6x9")) == profiles.digest(
+        profiles.load("house-6x9")
+    )
     # Changing any sealed value moves the digest.
     base = _synthetic()
     changed_data = {**base.data, "interior": {**base.data["interior"], "figure-cap": 5.6}}
@@ -184,11 +189,14 @@ def test_all_profile_digests_are_pairwise_distinct():
 
 
 @pytest.mark.layer("unit")
-@pytest.mark.parametrize("profile_id, trim, cap", [
-    ("large-print-7x10", (7.0, 10.0), 7.2),
-    ("digest-5.5x8.5", (5.5, 8.5), 6.0),
-    ("mass-market-4.25x6.87", (4.25, 6.87), 4.8),
-])
+@pytest.mark.parametrize(
+    "profile_id, trim, cap",
+    [
+        ("large-print-7x10", (7.0, 10.0), 7.2),
+        ("digest-5.5x8.5", (5.5, 8.5), 6.0),
+        ("mass-market-4.25x6.87", (4.25, 6.87), 4.8),
+    ],
+)
 def test_trim_profile_loads_with_its_declared_geometry(profile_id, trim, cap):
     p = profiles.load(profile_id)
     assert p.trim == trim
@@ -208,7 +216,7 @@ def test_large_print_is_a_genuinely_larger_design():
     house, lp = profiles.load("house-6x9"), profiles.load("large-print-7x10")
     assert lp.trim[0] > house.trim[0] and lp.trim[1] > house.trim[1]
     assert float(lp.typography["leading"]) > float(house.typography["leading"])
-    assert lp.web["base-size"] == "1.4rem"      # larger than the house 1.25rem
+    assert lp.web["base-size"] == "1.4rem"  # larger than the house 1.25rem
     assert float(lp.web["line-height"]) > float(house.web["line-height"])
 
 
@@ -217,17 +225,19 @@ def test_mass_market_is_the_densest_design():
     # The mass-market discipline (#217): the tightest leading and the
     # narrowest web measure of the shipped profiles, so a long novel fits the
     # rack spine.
-    leadings = {pid: float(profiles.load(pid).typography["leading"])
-                for pid in PROFILE_DIGESTS}
+    leadings = {pid: float(profiles.load(pid).typography["leading"]) for pid in PROFILE_DIGESTS}
     assert leadings["mass-market-4.25x6.87"] == min(leadings.values())
 
 
 @pytest.mark.layer("unit")
-@pytest.mark.parametrize("profile_id, measure", [
-    ("large-print-7x10", "54rem"),
-    ("digest-5.5x8.5", "44rem"),
-    ("mass-market-4.25x6.87", "34rem"),
-])
+@pytest.mark.parametrize(
+    "profile_id, measure",
+    [
+        ("large-print-7x10", "54rem"),
+        ("digest-5.5x8.5", "44rem"),
+        ("mass-market-4.25x6.87", "34rem"),
+    ],
+)
 def test_trim_profile_web_css_overrides_only_the_measure(profile_id, measure):
     css = profiles.web_css(profiles.load(profile_id))
     assert f"max-width: {measure}" in css
@@ -237,11 +247,14 @@ def test_trim_profile_web_css_overrides_only_the_measure(profile_id, measure):
 
 
 @pytest.mark.layer("unit")
-@pytest.mark.parametrize("profile_id, expect", [
-    ("large-print-7x10", "paperwidth=7in,paperheight=10in"),
-    ("digest-5.5x8.5", "paperwidth=5.5in,paperheight=8.5in"),
-    ("mass-market-4.25x6.87", "paperwidth=4.25in,paperheight=6.87in"),
-])
+@pytest.mark.parametrize(
+    "profile_id, expect",
+    [
+        ("large-print-7x10", "paperwidth=7in,paperheight=10in"),
+        ("digest-5.5x8.5", "paperwidth=5.5in,paperheight=8.5in"),
+        ("mass-market-4.25x6.87", "paperwidth=4.25in,paperheight=6.87in"),
+    ],
+)
 def test_trim_profile_geometry_tex_projects_its_trim(profile_id, expect):
     assert expect in profiles.geometry_tex(profiles.load(profile_id))
 

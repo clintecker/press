@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import urllib.error
 import urllib.request
+from datetime import date, datetime, timezone
 from typing import Any, Mapping, Sequence
 
 from ..results import ToolError
@@ -30,9 +31,7 @@ class HttpError(ToolError):
     the exact console message the press has always printed."""
 
     def __init__(self, host: str, code: int, detail: str) -> None:
-        super().__init__(
-            f"{host} refused ({code})", source=host, code=code, detail=detail
-        )
+        super().__init__(f"{host} refused ({code})", source=host, code=code, detail=detail)
         self.host = host
 
 
@@ -45,9 +44,15 @@ class HttpError(ToolError):
 # observes only itself. A caller that is deliberately testing git behavior
 # injects an explicit env, which is respected verbatim.
 _GIT_REPO_BINDING = (
-    "GIT_INDEX_FILE", "GIT_DIR", "GIT_WORK_TREE", "GIT_PREFIX",
-    "GIT_OBJECT_DIRECTORY", "GIT_COMMON_DIR", "GIT_INDEX_VERSION",
-    "GIT_NAMESPACE", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_INDEX_FILE",
+    "GIT_DIR",
+    "GIT_WORK_TREE",
+    "GIT_PREFIX",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_COMMON_DIR",
+    "GIT_INDEX_VERSION",
+    "GIT_NAMESPACE",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
 )
 
 
@@ -67,8 +72,7 @@ class SubprocessRunner:
     ) -> ProcessResult:
         run_env = dict(env) if env is not None else None
         is_git = bool(argv) and os.path.basename(str(argv[0])) == "git"
-        if env is None and is_git \
-                and any(v in os.environ for v in _GIT_REPO_BINDING):
+        if env is None and is_git and any(v in os.environ for v in _GIT_REPO_BINDING):
             run_env = os.environ.copy()
             for var in _GIT_REPO_BINDING:
                 run_env.pop(var, None)
@@ -107,13 +111,26 @@ class OsEnvironment:
         os.environ.pop(key, None)
 
 
+class SystemClock:
+    """Reads the real wall-calendar date. The production ``Clock``."""
+
+    def today(self) -> date:
+        return date.today()
+
+    def now(self) -> datetime:
+        return datetime.now(timezone.utc)
+
+    def monotonic(self) -> float:
+        import time
+
+        return time.monotonic()
+
+
 class UrllibImageClient:
     """POSTs to image-generation APIs with ``urllib``. The production
     ``HttpImageClient``."""
 
-    def post_json(
-        self, url: str, payload: Mapping[str, Any], headers: Mapping[str, str]
-    ) -> dict:
+    def post_json(self, url: str, payload: Mapping[str, Any], headers: Mapping[str, str]) -> dict:
         request = urllib.request.Request(
             url,
             data=json.dumps(dict(payload)).encode("utf-8"),
@@ -121,9 +138,7 @@ class UrllibImageClient:
         )
         return self._send(url, request)
 
-    def post_multipart(
-        self, url: str, body: bytes, headers: Mapping[str, str]
-    ) -> dict:
+    def post_multipart(self, url: str, body: bytes, headers: Mapping[str, str]) -> dict:
         request = urllib.request.Request(url, data=body, headers=dict(headers))
         return self._send(url, request)
 
@@ -141,3 +156,4 @@ class UrllibImageClient:
 process_runner = SubprocessRunner()
 environment = OsEnvironment()
 image_client = UrllibImageClient()
+clock = SystemClock()
