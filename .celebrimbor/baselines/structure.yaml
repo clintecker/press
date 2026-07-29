@@ -27,11 +27,7 @@ breaches:
   capability/yamlio:load:filesystem: 1
   complexity/art_commission:parse_commissions:cyclomatic-complexity: 16
   complexity/art_commission:parse_commissions:nesting-depth: 9
-  complexity/selftest::file-lines: 1522
-  complexity/selftest::public-callables: 33
-  complexity/selftest:check_migration:cyclomatic-complexity: 27
-  complexity/selftest:check_source_policy:cyclomatic-complexity: 22
 environment: ci
-reason: 'split build.py 909->659: extracted reader_meta.py (reader/structured-metadata cluster); decomposed
-  pages_build; flattened build_target into a dispatch (now orchestrator)'
+reason: split selftest.py 1521->586 into selftest_book(530)+selftest_release(537); decomposed check_source_policy
+  22 + check_migration 27; cohesion budget 10 for the check-aggregator modules
 version: 1

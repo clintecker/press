@@ -91,6 +91,8 @@ modules:
   scaffold: producer
   scenarios: {default: producer, overrides: {load: parser, dimension_values: pure, surface_dimensions: pure, scenario_id: pure, pairwise: pure, high_risk_scenarios: pure}}
   selftest: {default: verifier, overrides: {render_reference: producer, borrow_book: adapter, clear_book_caches: adapter, main: presenter}}
+  selftest_book: verifier
+  selftest_release: verifier
   style_audit: {default: verifier, overrides: {in_fenced_code: pure, looks_title_cased: pure, markdown_files: pure, audit_dirs: pure, banned_book_patterns: parser}}
   verify_archives: verifier
   verify_coverwrap: {default: verifier, overrides: {render: adapter}}

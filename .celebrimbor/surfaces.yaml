@@ -510,6 +510,14 @@ modules:
     pin: "6ad8765b4616"
     role: producer
     status: ratified
+  selftest_book:
+    pin: "9c44e2195b0c"
+    role: verifier
+    status: ratified
+  selftest_release:
+    pin: "90a484f66ec9"
+    role: verifier
+    status: ratified
   selftest:
     overrides:
       borrow_book: orchestrator
@@ -517,7 +525,7 @@ modules:
       main: presenter
       modules: pure
       render_reference: producer
-    pin: "79b1c77971c8"
+    pin: "545fc61510a2"
     role: verifier
     status: ratified
   style_audit:
