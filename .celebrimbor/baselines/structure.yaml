@@ -65,8 +65,6 @@ breaches:
   complexity/figures:_parse_attrs:cyclomatic-complexity: 15
   complexity/figures:validate:cyclomatic-complexity: 17
   complexity/figures:validate:nesting-depth: 5
-  complexity/fixture_provenance:_entry_problems:cyclomatic-complexity: 17
-  complexity/fixture_provenance:_entry_problems:nesting-depth: 5
   complexity/gen_authorities::cohesion: 2
   complexity/gen_authorities:_locate_declared:positional-parameters: 6
   complexity/gen_coverwrap:generate:lines: 97
@@ -85,15 +83,13 @@ breaches:
   complexity/registrations:failures:cyclomatic-complexity: 22
   complexity/results::cohesion: 2
   complexity/scaffold:main:cyclomatic-complexity: 12
-  complexity/selftest::file-lines: 1908
-  complexity/selftest::public-callables: 40
-  complexity/selftest:_prove_no_import_side_effects:nesting-depth: 5
+  complexity/selftest::file-lines: 1522
+  complexity/selftest::public-callables: 33
   complexity/selftest:check_book_model:cyclomatic-complexity: 14
   complexity/selftest:check_coverwrap_detectors:cyclomatic-complexity: 12
   complexity/selftest:check_docs:cyclomatic-complexity: 11
   complexity/selftest:check_honest_refusals:cyclomatic-complexity: 13
   complexity/selftest:check_honest_refusals:nesting-depth: 5
-  complexity/selftest:check_ledger_completeness:cyclomatic-complexity: 17
   complexity/selftest:check_migration:cyclomatic-complexity: 27
   complexity/selftest:check_pages_verifier:cyclomatic-complexity: 14
   complexity/selftest:check_receipt_chain:lines: 86
@@ -113,6 +109,6 @@ breaches:
   complexity/webmeta:head_fragment:cyclomatic-complexity: 16
   complexity/webmeta:head_fragment:keyword-only-parameters: 15
 environment: ci
-reason: 'selftest.py 1906->1908: diagnostics_for excluded from jargon byte-parity (known_bad wiring);
-  module dissolves in the Phase-4 sweep'
+reason: 'post-sweep: deleted impact.py, coverage_ratchet.py, fixture_provenance.py + ~500 lines of selftest
+  infra; ratchet the grandfathered structure/capability breaches down to what remains'
 version: 1
