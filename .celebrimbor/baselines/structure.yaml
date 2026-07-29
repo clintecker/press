@@ -1,16 +1,10 @@
 # celebrimbor structure ratchet — grandfathered existing debt.
 # New or worsened breaches fail; these are the ones present at adoption.
 breaches:
-  capability/__main__:main:environment: 1
   capability/art:record_acceptance:clock: 1
-  capability/edition:main:environment: 1
-  capability/jargon_lint:main:environment: 1
-  capability/jargon_lint:read_inputs:environment: 1
   capability/profile_lifecycle:write_seal:clock: 1
-  capability/receipts:main:environment: 1
   capability/registry:build:clock: 1
-  capability/style_audit:main:environment: 1
 environment: ci
-reason: 'declare filesystem ambient (0.12.0 #13): press tests file ops with real temp dirs; capability
-  breaches drop to the genuine clock/environment injection debt'
+reason: 'environment declared ambient (0.12.0 #13): CLI entries take injectable argv, os.environ via adapters.environment;
+  remaining are genuine clock injection debt'
 version: 1
