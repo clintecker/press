@@ -74,6 +74,35 @@ def shape_for(target: str, prompt: str) -> tuple[tuple, tuple]:
     return SHAPES[key]
 
 
+def _commission_key(section: str | None, plate: str | None) -> str | None:
+    """The prompts-dict key a section (and plate) resolves to, or None when the
+    section is one parse_commissions does not recognize."""
+
+    if section is None:
+        return None
+    if section.startswith("cover"):
+        return "cover"
+    if section.startswith("plates") and plate:
+        return f"plate:{plate}"
+    if section.startswith("logomark"):
+        return "logomark"
+    if section.startswith("author portrait"):
+        return "portrait"
+    return None
+
+
+def _record_prompt(
+    prompts: dict[str, str], fence: list[str], section: str | None, plate: str | None
+) -> None:
+    """Record a closed fenced block under its section's key -- first one wins --
+    skipping an empty block or an unrecognized section."""
+
+    prompt = "\n".join(fence).strip()
+    key = _commission_key(section, plate)
+    if prompt and key is not None:
+        prompts.setdefault(key, prompt)
+
+
 def parse_commissions(path: Path) -> dict[str, str]:
     """target -> prompt, from the workflow's commissions.md structure."""
 
@@ -94,18 +123,8 @@ def parse_commissions(path: Path) -> dict[str, str]:
             if fence is None:
                 fence = []
             else:
-                prompt = "\n".join(fence).strip()
+                _record_prompt(prompts, fence, section, plate)
                 fence = None
-                if not prompt or section is None:
-                    continue
-                if section.startswith("cover"):
-                    prompts.setdefault("cover", prompt)
-                elif section.startswith("plates") and plate:
-                    prompts.setdefault(f"plate:{plate}", prompt)
-                elif section.startswith("logomark"):
-                    prompts.setdefault("logomark", prompt)
-                elif section.startswith("author portrait"):
-                    prompts.setdefault("portrait", prompt)
         elif fence is not None:
             fence.append(line)
     if not prompts:

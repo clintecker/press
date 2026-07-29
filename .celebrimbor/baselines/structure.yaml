@@ -25,9 +25,7 @@ breaches:
   capability/registry:build:clock: 1
   capability/style_audit:main:environment: 1
   capability/yamlio:load:filesystem: 1
-  complexity/art_commission:parse_commissions:cyclomatic-complexity: 16
-  complexity/art_commission:parse_commissions:nesting-depth: 9
 environment: ci
-reason: split selftest.py 1521->586 into selftest_book(530)+selftest_release(537); decomposed check_source_policy
-  22 + check_migration 27; cohesion budget 10 for the check-aggregator modules
+reason: 'decompose parse_commissions (16->cover key + record helpers): complexity burndown complete, 0
+  breaches'
 version: 1
