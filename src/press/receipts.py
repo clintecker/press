@@ -55,7 +55,7 @@ RELEASE_TIERS = ["quality", "integration", "release"]
 SCHEMA_VERSION = 1
 ROOT = Path(__file__).resolve().parent.parent.parent
 MANIFESTS = {
-    "invariants": ROOT / "quality" / "invariants.yaml",
+    "invariants": ROOT / ".celebrimbor" / "invariants.yaml",
     "fixtures": ROOT / "quality" / "fixtures.yaml",
     "scenarios": ROOT / "quality" / "scenarios.yaml",
     "surfaces": ROOT / ".celebrimbor" / "surfaces.yaml",

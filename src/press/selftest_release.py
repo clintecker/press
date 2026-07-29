@@ -429,14 +429,17 @@ def check_docs() -> None:
             "`press selftest --write-docs`"
         )
     invariants_doc = here.parent.parent / "docs" / "INVARIANTS.md"
-    if (
-        invariants_doc.is_file()
-        and invariants_doc.read_text(encoding="utf-8") != invariants.render()
-    ):
-        raise SystemExit(
-            "docs/INVARIANTS.md drifted from quality/invariants.yaml; "
-            "regenerate with `press selftest --write-docs`"
-        )
+    if invariants_doc.is_file():
+        try:
+            rendered = invariants.render()
+        except ImportError:
+            rendered = None  # celebrimbor absent (bare/3.10 leg); the drift
+            # check runs on the quality tier, where the gate does.
+        if rendered is not None and invariants_doc.read_text(encoding="utf-8") != rendered:
+            raise SystemExit(
+                "docs/INVARIANTS.md drifted from .celebrimbor/invariants.yaml; "
+                "regenerate with `press selftest --write-docs`"
+            )
     from . import qualification
 
     quals_doc = here.parent.parent / "docs" / "PROVIDER-QUALIFICATION.md"

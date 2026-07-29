@@ -327,7 +327,7 @@ modules:
     overrides:
       load: parser
       render: producer
-    pin: "f8c04e94533a"
+    pin: "7d571c9b840d"
     role: verifier
     status: ratified
   jargon_lint:

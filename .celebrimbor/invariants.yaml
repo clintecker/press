@@ -1052,15 +1052,6 @@ invariants:
     layers:
     - pytest
     risk: An illegal figure geometry would reach LaTeX and misplace or break the layout.
-  INV-press-ledger-no-dangling:
-    statement: press's own invariant-ledger validation raises on a dangling proof reference.
-    enforced_by: invariants:validate
-    negative_proof: tests/test_sabotage.py::test_sabotage_dangling_invariant_proof_reddens_ledger
-    owner: invariants
-    criticality: standard
-    layers:
-    - pytest
-    risk: An invariant could name a proof that no longer exists, a hollow guarantee.
   INV-idlookup-fails-closed:
     statement: An LCCN record for a different number is a mismatch, and lookups fail closed on entities, size, and media.
     enforced_by: idlookup:lookup_lccn

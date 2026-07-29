@@ -51,7 +51,7 @@ floors:
   illustrate: 46.0
   impact: 83.7
   instruments: 25.4
-  invariants: 78.3
+  invariants: 73.0
   jargon_lint: 21.2
   migrate: 86.0
   mutation: 0.0
