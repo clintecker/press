@@ -2,6 +2,13 @@ source = "src/press"
 exclude = ["src/press/data/**", "src/press/surfaces.py"]
 policy_roles = ["verifier", "parser", "producer", "adapter", "orchestrator"]
 
+# press is a book-BUILD pipeline: reading and writing files is its reason to
+# exist, and it tests those operations against real temp dirs, not an injected
+# filesystem seam. Declare filesystem its tested medium (celebrimbor 0.12.0 #13);
+# clock/environment stay strict -- those are real injection debt.
+ambient_capabilities = ["filesystem"]
+
+
 # celebrimbor's runtime import-health gate: it imports the source and proves
 # every module loads and is free of forbidden import side effects -- the parity
 # replacement for press's own check_imports / check_import_side_effects (retired
