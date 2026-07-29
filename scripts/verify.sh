@@ -28,15 +28,14 @@ if [ "$mode" = "--quick" ]; then
   exit 0
 fi
 
-step "the celebrimbor quality gate (surface, invariants, producers, known-bad, imports, impact, coverage, and press's domain checks)"
+step "the celebrimbor quality gate (surface, invariants, producers, known-bad, imports, impact, coverage, mutation, and press's domain checks)"
 # Produce coverage first (celebrimbor.coverage measures a .coverage file, it does
 # not run the suite). Never pass --update-baselines locally: it re-measures on
-# this machine and can inflate the committed floors above CI's.
+# this machine and can inflate the committed floors above CI's. The mutation
+# ratchet runs inside the gate now, over press.mutation:survivors
+# ([tool.celebrimbor] mutation_survivors); there is no separate script.
 python3 -m pytest -q -p no:cacheprovider --cov=press --cov-report=
 celebrimbor gate
-
-step "mutation score on the pure modules"
-python3 scripts/mutation_ratchet.py
 
 step "the documentation site builds and its checks pass"
 python3 scripts/build_site.py >/dev/null

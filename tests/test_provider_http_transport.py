@@ -14,7 +14,27 @@ import urllib.error
 import pytest
 
 from press.adapters import http
-from press.providers.transport import TransportError, TransportTimeout
+from press.providers.transport import Response, TransportError, TransportTimeout
+
+
+# --- Response.json and the typed transport signals (transport.py) -------------
+
+
+def test_response_json_guards_empty_body_parses_and_types_are_distinct():
+    # An empty body is the "no content" answer (204, or a bodiless 200); it
+    # decodes to {} rather than blowing up json.loads on the empty string.
+    assert Response(200, b"").json() == {}
+    # A real body parses to its mapping.
+    assert Response(200, b'{"job": "queued", "n": 2}').json() == {"job": "queued", "n": 2}
+
+    # Timeout ("may have landed") and error ("did not") are separate types,
+    # neither a subclass of the other, so a caller can treat the ambiguous
+    # case differently from a demonstrable failure. Collapse them and this
+    # asymmetry vanishes.
+    assert issubclass(TransportTimeout, Exception)
+    assert issubclass(TransportError, Exception)
+    assert not issubclass(TransportTimeout, TransportError)
+    assert not issubclass(TransportError, TransportTimeout)
 
 
 class _Reply:

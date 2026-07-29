@@ -348,6 +348,10 @@ modules:
     pin: "0c0e4fe1b6c2"
     role: pure
     status: ratified
+  mutation:
+    pin: "4af50f18b7c4"
+    role: verifier
+    status: ratified
   onix:
     pin: "844197dd4ac2"
     role: pure

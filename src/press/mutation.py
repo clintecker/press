@@ -1,8 +1,7 @@
-#!/usr/bin/env python3
-"""Deterministic mutation-score ratchet over the pure policy modules.
+"""Deterministic mutation of the pure policy modules, for celebrimbor's ratchet.
 
 Coverage proves a line ran; it does not prove a test would notice if the
-line were wrong. This ratchet mutates the pure, deterministic policy and
+line were wrong. This module mutates the pure, deterministic policy and
 verifier modules one edit at a time -- flip a comparison, swap a boolean
 operator, bump a constant -- and runs each module's example-based tests
 against the mutant. A mutant the tests still pass is a survivor: a change
@@ -15,33 +14,33 @@ with no retry, so a red result can never be laundered into green. The
 mutant runs against a shadow copy of the source tree (symlinks, with the
 one mutated file written real) so the working tree is never touched.
 
-quality/mutation-baseline.json records, per module, how many mutants the
-tests kill and which survive. The gate fails if a module kills fewer than
-its baseline (a proof weakened) or if the mutant total changed (the
-source moved and the baseline must be re-taken deliberately, never
-automatically). Raise a baseline with --update after adding tests.
-
-Usage:
-  python3 scripts/mutation_ratchet.py            # check against baseline
-  python3 scripts/mutation_ratchet.py --update   # re-take the baseline
-  python3 scripts/mutation_ratchet.py --module receipts   # one module
+:func:`survivors` is the seam celebrimbor's mutation ratchet consumes
+(``[tool.celebrimbor] mutation_survivors``): it returns the current survivor
+set as ``frozenset[celebrimbor.Survivor]``, and celebrimbor runs its own
+survivor-identity ratchet over that set against
+``.celebrimbor/baselines/mutation.yaml``. celebrimbor is a dev/CI dependency,
+never a book runtime one, so it is imported lazily inside :func:`survivors`
+and this module imports cleanly without it.
 """
 
 from __future__ import annotations
 
 import ast
 import copy
-import json
 import os
-import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING, Callable
 
-ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "src" / "press"
-BASELINE = ROOT / "quality" / "mutation-baseline.json"
+from . import adapters
+
+if TYPE_CHECKING:
+    from celebrimbor import Survivor
+
+SRC = Path(__file__).resolve().parent
+ROOT = SRC.parent.parent
 
 # module -> the example-based test files that must kill its mutants.
 #
@@ -100,9 +99,49 @@ class Site:
     kind: str
     detail: str  # operator index or the concrete edit, for a stable id
 
-    @property
-    def id(self) -> str:
-        return f"{self.lineno}:{self.col}:{self.kind}:{self.detail}"
+
+def _site_id(site: Site) -> str:
+    return f"{site.lineno}:{site.col}:{site.kind}:{site.detail}"
+
+
+def _const_site(node: ast.Constant, line: int, col: int) -> Site | None:
+    """The mutation a constant offers: flip a bool, bump an int. bool is a
+    subclass of int, so it must be tested first."""
+
+    if isinstance(node.value, bool):
+        return Site(line, col, "boolconst", str(node.value))
+    if isinstance(node.value, int):
+        return Site(line, col, "intconst", str(node.value))
+    return None
+
+
+def _site_for(node: ast.AST, line: int, col: int) -> Site | None:
+    """The one mutation site a node offers, or None if it offers none."""
+
+    if isinstance(node, ast.Compare) and node.ops and type(node.ops[0]) in _COMPARE_FLIP:
+        return Site(line, col, "compare", type(node.ops[0]).__name__)
+    if isinstance(node, ast.BinOp) and type(node.op) in _ARITH_FLIP:
+        return Site(line, col, "arith", type(node.op).__name__)
+    if isinstance(node, ast.BoolOp) and type(node.op) in _BOOL_FLIP:
+        return Site(line, col, "bool", type(node.op).__name__)
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+        return Site(line, col, "not", "drop")
+    if isinstance(node, ast.Constant):
+        return _const_site(node, line, col)
+    return None
+
+
+def _dedupe(sites: list[Site]) -> list[Site]:
+    """Left-nested BinOps share a (line, col), producing identical site ids;
+    keep one per id so a mutant is enumerated and run exactly once."""
+
+    seen: set[str] = set()
+    unique: list[Site] = []
+    for site in sites:
+        if _site_id(site) not in seen:
+            seen.add(_site_id(site))
+            unique.append(site)
+    return unique
 
 
 def _enumerate(tree: ast.AST) -> list[Site]:
@@ -110,32 +149,10 @@ def _enumerate(tree: ast.AST) -> list[Site]:
     for node in ast.walk(tree):
         if not hasattr(node, "lineno") or not hasattr(node, "col_offset"):
             continue
-        line: int = node.lineno
-        col: int = node.col_offset
-        if isinstance(node, ast.Compare) and node.ops:
-            op = node.ops[0]
-            if type(op) in _COMPARE_FLIP:
-                sites.append(Site(line, col, "compare", type(op).__name__))
-        elif isinstance(node, ast.BinOp) and type(node.op) in _ARITH_FLIP:
-            sites.append(Site(line, col, "arith", type(node.op).__name__))
-        elif isinstance(node, ast.BoolOp) and type(node.op) in _BOOL_FLIP:
-            sites.append(Site(line, col, "bool", type(node.op).__name__))
-        elif isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
-            sites.append(Site(line, col, "not", "drop"))
-        elif isinstance(node, ast.Constant):
-            if isinstance(node.value, bool):
-                sites.append(Site(line, col, "boolconst", str(node.value)))
-            elif isinstance(node.value, int):
-                sites.append(Site(line, col, "intconst", str(node.value)))
-    # Left-nested BinOps share a (line, col), producing identical site
-    # ids; keep one per id so a mutant is enumerated and run exactly once.
-    seen: set[str] = set()
-    unique: list[Site] = []
-    for site in sites:
-        if site.id not in seen:
-            seen.add(site.id)
-            unique.append(site)
-    return unique
+        site = _site_for(node, node.lineno, node.col_offset)
+        if site is not None:
+            sites.append(site)
+    return _dedupe(sites)
 
 
 def _mut_compare(node: ast.AST, detail: str) -> bool:
@@ -182,7 +199,7 @@ def _mut_intconst(node: ast.AST, detail: str) -> bool:
     return False
 
 
-_MUTATORS = {
+_MUTATORS: dict[str, Callable[[ast.AST, str], bool]] = {
     "compare": _mut_compare,
     "arith": _mut_arith,
     "bool": _mut_bool,
@@ -242,17 +259,24 @@ def _shadow(module: str, tmp: Path) -> Path:
     return pkg
 
 
+def _mutant_env(pkg_parent: Path) -> dict[str, str]:
+    """The child environment for a mutant run: the shadow package ahead on
+    PYTHONPATH, and no bytecode cache. A .pyc written for one mutant would,
+    within a single mtime tick, be reused for the next and run the wrong
+    mutant; forbidding the cache makes every import compile the current
+    source. Read through the environment adapter, never ``os.environ``."""
+
+    env = adapters.environment.copy()
+    env["PYTHONPATH"] = str(pkg_parent) + os.pathsep + env.get("PYTHONPATH", "")
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    return env
+
+
 def _run_tests(test_files: list[str], pkg_parent: Path) -> bool:
     """True if the tests all pass on the current shadow (mutant survived);
     False if any test fails or errors (mutant killed)."""
 
-    env = dict(os.environ)
-    env["PYTHONPATH"] = str(pkg_parent) + os.pathsep + env.get("PYTHONPATH", "")
-    # No bytecode cache: a .pyc written for one mutant would, within a
-    # single mtime tick, be reused for the next and run the wrong mutant.
-    # Forbidding the cache makes every import compile the current source.
-    env["PYTHONDONTWRITEBYTECODE"] = "1"
-    result = subprocess.run(
+    result = adapters.process_runner.run(
         [
             sys.executable,
             "-m",
@@ -265,8 +289,8 @@ def _run_tests(test_files: list[str], pkg_parent: Path) -> bool:
             *test_files,
         ],
         cwd=ROOT,
-        env=env,
-        capture_output=True,
+        env=_mutant_env(pkg_parent),
+        capture=True,
     )
     return result.returncode == 0
 
@@ -275,19 +299,16 @@ def _assert_shadow_wins(module: str, pkg_parent: Path) -> None:
     """Confirm the shadow module out-ranks the installed one before any
     scoring. If it did not (a strict-editable MetaPathFinder resolving
     press before PYTHONPATH), every mutant would import the real module
-    and 'survive' -- and a --update in that state would silently gut the
+    and 'survive' -- and scoring in that state would silently gut the
     gate. Better to abort loudly than to bless a shadow that lost."""
 
-    env = dict(os.environ)
-    env["PYTHONPATH"] = str(pkg_parent) + os.pathsep + env.get("PYTHONPATH", "")
-    result = subprocess.run(
+    result = adapters.process_runner.run(
         [sys.executable, "-c", f"import press.{module} as m; print(m.__file__)"],
         cwd=ROOT,
-        env=env,
-        capture_output=True,
-        text=True,
+        env=_mutant_env(pkg_parent),
+        capture=True,
     )
-    resolved = result.stdout.strip()
+    resolved = result.stdout.decode("utf-8", "replace").strip()
     if not resolved.startswith(str(pkg_parent)):
         raise SystemExit(
             f"mutation shadow did not win: press.{module} resolved to "
@@ -296,11 +317,14 @@ def _assert_shadow_wins(module: str, pkg_parent: Path) -> None:
         )
 
 
-def score_module(module: str) -> dict:
+def _survivor_sites(module: str) -> list[Site]:
+    """The sites whose mutant every target test still passed -- the survivors
+    of one module, each a change to its logic no test detects."""
+
     source = (SRC / f"{module}.py").read_text(encoding="utf-8")
     tree = ast.parse(source)
     sites = _enumerate(tree)
-    survivors: list[str] = []
+    survivors: list[Site] = []
     with tempfile.TemporaryDirectory(prefix=f"mut-{module}-") as tmp:
         tmp_path = Path(tmp)
         pkg = _shadow(module, tmp_path)
@@ -311,69 +335,35 @@ def score_module(module: str) -> dict:
             mutant = _apply(tree, site)
             target.write_text(ast.unparse(mutant), encoding="utf-8")
             if _run_tests(TARGETS[module], tmp_path):
-                survivors.append(site.id)
-    total = len(sites)
-    return {"total": total, "killed": total - len(survivors), "survivors": sorted(survivors)}
+                survivors.append(site)
+    return survivors
 
 
-def main(argv: list[str] | None = None) -> int:
-    args = list(argv if argv is not None else sys.argv[1:])
-    update = "--update" in args
-    only = None
-    if "--module" in args:
-        only = args[args.index("--module") + 1]
+def survivors() -> "frozenset[Survivor]":
+    """The current mutation survivors across every target module, as
+    ``frozenset[celebrimbor.Survivor]`` for celebrimbor's mutation ratchet.
 
-    modules = [only] if only else list(TARGETS)
-    current = {m: score_module(m) for m in modules}
-    for m in modules:
-        r = current[m]
-        print(
-            f"{m}: killed {r['killed']}/{r['total']}"
-            + (f"  survivors: {', '.join(r['survivors'])}" if r["survivors"] else "")
-        )
+    One press survivor maps to one ``Survivor(file, line, operator)``: the
+    repo-relative source path, the mutation's line, and an operator string
+    that carries the column, kind, and detail. celebrimbor's survivor
+    identity is ``file:line:operator`` and its baseline round-trips that
+    string by splitting on the last two colons, so the operator itself must
+    hold no colon; press joins ``col``, ``kind``, and ``detail`` (all
+    alphanumeric) with ``-`` instead. Column is part of the operator so two
+    mutants on one line never collide. celebrimbor is imported here (never at
+    module top) so this module loads without it on a bare install."""
 
-    if update:
-        existing = (
-            json.loads(BASELINE.read_text(encoding="utf-8"))
-            if BASELINE.exists()
-            else {"modules": {}}
-        )
-        existing.setdefault("modules", {}).update(current)
-        existing["modules"] = dict(sorted(existing["modules"].items()))
-        BASELINE.write_text(json.dumps(existing, indent=2) + "\n", encoding="utf-8")
-        print(f"re-baselined {len(current)} module(s)")
-        return 0
+    from celebrimbor import Survivor
 
-    baseline = json.loads(BASELINE.read_text(encoding="utf-8"))["modules"]
-    problems = []
-    for m in modules:
-        r = current[m]
-        base = baseline.get(m)
-        if base is None:
-            problems.append(f"{m}: no baseline (run --update)")
-        elif r["total"] != base["total"]:
-            problems.append(
-                f"{m}: mutant total changed {base['total']} -> {r['total']}; "
-                f"the source moved, re-take the baseline deliberately"
-            )
-        else:
-            # Survivor identity is the invariant, not the count: a change
-            # that lets one mutant survive while another newly dies keeps
-            # the count level but has lost a real proof. Fail on any new
-            # survivor, not merely a lower kill count.
-            new = sorted(set(r["survivors"]) - set(base["survivors"]))
-            if new:
-                problems.append(
-                    f"{m}: {len(new)} new survivor(s) a proof no longer kills: {', '.join(new)}"
+    found: set[Survivor] = set()
+    for module in TARGETS:
+        rel = f"src/press/{module}.py"
+        for site in _survivor_sites(module):
+            found.add(
+                Survivor(
+                    file=rel,
+                    line=site.lineno,
+                    operator=f"{site.col}-{site.kind}-{site.detail}",
                 )
-    if problems:
-        print("\nmutation ratchet failed:")
-        for p in problems:
-            print(f"  - {p}")
-        return 1
-    print(f"\nmutation ratchet holds: {len(modules)} module(s) at or above baseline")
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+            )
+    return frozenset(found)

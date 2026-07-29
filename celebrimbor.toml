@@ -25,10 +25,27 @@ import_check = true
 # will not import is a hard, fail-closed error (celebrimbor 0.7.0, #7).
 check_modules = ["press.quality_checks"]
 
+# press's deterministic mutation of its pure policy modules, exposed as the
+# survivor set celebrimbor's mutation ratchet consumes (celebrimbor 0.11.0):
+# press.mutation:survivors returns frozenset[celebrimbor.Survivor], and
+# celebrimbor runs its own survivor-identity ratchet over it against
+# .celebrimbor/baselines/mutation.yaml -- so the former scripts/mutation_ratchet.py
+# and quality/mutation-baseline.json are retired.
+mutation_survivors = "press.mutation:survivors"
+
 # The known-bad fixtures live in the package data dir; expected.yaml there names
 # the checker + diagnostic each proves. This is the parity replacement for
 # press's own check_the_checkers / check_fixture_provenance.
 known_bad = "src/press/data/known-bad"
+
+# press's coverage policy is a pure ratchet (floors only rise) with an absolute
+# minimum of 50%, the exact LOW_FLOOR the retired scripts/coverage_ratchet.py
+# enforced -- not celebrimbor's stricter default of 60. Modules below it are the
+# toolchain- and image-boundary code proven at the integration layer, each
+# carrying its reason in the coverage baseline's `reasons:` map (transcribed from
+# the old LOW_FLOOR_ALLOWED). Lowering to 50 is parity with press's own bar, not
+# a weakening; the per-module floors still only rise.
+min_coverage_floor = 50.0
 
 [paths]
 surfaces = ".celebrimbor/surfaces.yaml"

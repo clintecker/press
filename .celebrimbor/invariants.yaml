@@ -8,7 +8,7 @@ invariants:
     owner: verify_archives
     risk: The downloadable reader disagrees with the site that was verified.
     statement: The reader zip is byte-for-byte the verified site directory.
-    negative_proof: 
+    negative_proof:
       tests/test_properties_policy.py::test_secret_named_file_is_never_admitted
     limitations:
     - Compares to the on-disk site, which must itself have been verified first.
@@ -20,7 +20,7 @@ invariants:
     layers:
     - selftest
     - pytest
-    negative_proof: 
+    negative_proof:
       tests/test_properties_policy.py::test_secret_named_file_is_never_admitted
     owner: package_source
     risk: A public source archive leaks a secret or a file outside the repo.
@@ -28,7 +28,7 @@ invariants:
       files only, symlinks never dereferenced, secret files abort, no member escapes
       its prefix.'
     limitations:
-    - Secret and junk patterns are fixed lists; a novel secret filename is not 
+    - Secret and junk patterns are fixed lists; a novel secret filename is not
       caught.
   INV-authorities-claims:
     ci_tier: quality
@@ -40,12 +40,12 @@ invariants:
     owner: gen_authorities
     risk: A citation outlives the sentence it attributed, rotting silently.
     statement: Every authorities claim appears in the manuscript exactly once in
-      its declared file; malformed, duplicate, missing, moved, and ambiguous 
+      its declared file; malformed, duplicate, missing, moved, and ambiguous
       entries are each named.
-    negative_proof: 
+    negative_proof:
       tests/test_selftest_checks.py::test_invariant_check_passes[check_authorities_ledger]
     limitations:
-    - Whitespace-normalized substring match; a coincidental duplicate counts as 
+    - Whitespace-normalized substring match; a coincidental duplicate counts as
       a hit.
   INV-authorities-printsafe:
     ci_tier: quality
@@ -67,9 +67,9 @@ invariants:
     - selftest
     - pytest
     owner: __main__
-    risk: A pandoc or TeX failure ends in a Python traceback, not the tool's 
+    risk: A pandoc or TeX failure ends in a Python traceback, not the tool's
       message.
-    statement: A failing tool's exit code passes through the console, never a 
+    statement: A failing tool's exit code passes through the console, never a
       traceback.
     negative_proof: src/press/selftest.py::check_honest_refusals
     limitations:
@@ -84,18 +84,18 @@ invariants:
     owner: commerce
     risk: A book site advertises ordering with an insecure or broken link, leaks
       a credential into a public page, or hides who the seller is.
-    statement: The print-order CTA is generated only for an enabled, valid 
-      config; verification refuses a non-HTTPS storefront or policy link, an 
-      unnamed seller of record, an embedded secret, or an unknown key. A policy 
-      link the publisher omits is generated as an honest page on the site that 
-      discloses the seller of record; the rendered landing page carries the CTA 
-      exactly when ordering is enabled, every generated policy page exists, and 
+    statement: The print-order CTA is generated only for an enabled, valid
+      config; verification refuses a non-HTTPS storefront or policy link, an
+      unnamed seller of record, an embedded secret, or an unknown key. A policy
+      link the publisher omits is generated as an honest page on the site that
+      discloses the seller of record; the rendered landing page carries the CTA
+      exactly when ordering is enabled, every generated policy page exists, and
       no page leaks a secret.
     negative_proof: tests/test_commerce.py::test_an_embedded_secret_is_refused
     limitations:
-    - Validates the config's shape and safety and the rendered page's shape; it 
-      cannot confirm the storefront URL is reachable or that the linked product 
-      is the qualified edition (the release gate and physical qualification do 
+    - Validates the config's shape and safety and the rendered page's shape; it
+      cannot confirm the storefront URL is reachable or that the linked product
+      is the qualified edition (the release gate and physical qualification do
       that).
   INV-commerce-release-gate:
     ci_tier: quality
@@ -105,17 +105,17 @@ invariants:
     - selftest
     - pytest
     owner: commerce
-    risk: A book publishes an "order a print copy" link for an edition no one 
+    risk: A book publishes an "order a print copy" link for an edition no one
       has verified a provider can actually print.
-    statement: A book that advertises print ordering may not ship a release 
-      unless its config is valid and its exact edition passed a physical 
-      qualification; a missing, invalid, or unqualified edition fails the 
+    statement: A book that advertises print ordering may not ship a release
+      unless its config is valid and its exact edition passed a physical
+      qualification; a missing, invalid, or unqualified edition fails the
       release gate closed, while a book that sells nothing ships freely.
-    negative_proof: 
+    negative_proof:
       tests/test_commerce.py::test_release_gate_refuses_an_unqualified_edition
     limitations:
-    - The pure gate decides on the config and whether the edition is qualified; 
-      the orchestrator that builds the edition identity from the print pack and 
+    - The pure gate decides on the config and whether the edition is qualified;
+      the orchestrator that builds the edition identity from the print pack and
       matches inspections against it is proven by the pytest component test, and
       enforcement is release-gated (PRESS_RELEASE), advisory otherwise.
   INV-config-locatable:
@@ -142,11 +142,11 @@ invariants:
     - pytest
     owner: registrations
     risk: A malformed identifier reaches a retail channel or the barcode.
-    statement: ISBN and ISSN check digits are computed, never trusted; retail 
+    statement: ISBN and ISSN check digits are computed, never trusted; retail
       mode fails on a pending number.
     negative_proof: src/press/selftest.py::check_arithmetic
     limitations:
-    - LCCN is shape-checked only; the ISBN is not matched to the barcode 
+    - LCCN is shape-checked only; the ISBN is not matched to the barcode
       edition.
   INV-config-release-witness:
     ci_tier: integration
@@ -156,9 +156,9 @@ invariants:
     - integration
     owner: booklib
     risk: A release is cut that no rendered artifact can be proven to be.
-    statement: Release builds refuse vacuous witnesses (fewer than two 
+    statement: Release builds refuse vacuous witnesses (fewer than two
       sentinels, page floor under twenty-four) when PRESS_RELEASE is set.
-    negative_proof: 
+    negative_proof:
       tests/test_sabotage.py::test_sabotage_removed_graph_edge_reddens_state_model
     limitations:
     - Counts only; two trivial sentinels satisfy it; drafts skip it.
@@ -170,7 +170,7 @@ invariants:
     layers:
     - selftest
     - pytest
-    negative_proof: 
+    negative_proof:
       tests/test_selftest_checks.py::test_slug_invariant_rejects_bad
     owner: booklib
     risk: A crafted slug escapes the dist directory or breaks a filename.
@@ -189,7 +189,7 @@ invariants:
       number; a metadata trim that disagrees with the profile is refused.
     negative_proof: src/press/selftest.py::check_book_model
     limitations:
-    - The house profile is 6 by 9, so a book selecting no profile keeps the v1 
+    - The house profile is 6 by 9, so a book selecting no profile keeps the v1
       trim; non-house profiles owe visual qualification.
   INV-contract-mirror:
     ci_tier: quality
@@ -199,9 +199,9 @@ invariants:
     - selftest
     owner: selftest
     risk: The two contributor contracts drift apart and disagree.
-    statement: AGENTS.md is a byte-for-byte mirror of CLAUDE.md below the 
+    statement: AGENTS.md is a byte-for-byte mirror of CLAUDE.md below the
       heading.
-    negative_proof: 
+    negative_proof:
       tests/test_selftest_checks.py::test_contract_mirror_names_drift_between_agent_instructions
     limitations:
     - Only the body below the first line is compared.
@@ -218,7 +218,7 @@ invariants:
       clean quiet zones.
     negative_proof: src/press/selftest.py::check_coverwrap_detectors
     limitations:
-    - Twenty-five transitions against EAN-13's real fifty-nine; it proves a 
+    - Twenty-five transitions against EAN-13's real fifty-nine; it proves a
       symbol, not the right symbol.
   INV-coverwrap-geometry:
     ci_tier: integration
@@ -228,12 +228,12 @@ invariants:
     - integration
     owner: gen_coverwrap
     risk: A wrong-sized retail cover is produced and blessed.
-    statement: The wrap is one page at exactly trim plus bleed plus spine, the 
+    statement: The wrap is one page at exactly trim plus bleed plus spine, the
       spine recomputed from the built interior, never restated.
-    negative_proof: 
+    negative_proof:
       tests/test_sabotage.py::test_sabotage_removed_graph_edge_reddens_state_model
     limitations:
-    - Spine trusts the declared paper stock; a wrong stock yields a 
+    - Spine trusts the declared paper stock; a wrong stock yields a
       self-consistent wrong spine.
   INV-design-layout-stable:
     ci_tier: integration
@@ -242,14 +242,14 @@ invariants:
     layers:
     - integration
     owner: build
-    risk: The house design drifts silently -- a margin shifts, a font is 
-      swapped, a plate is displaced -- changing a valid book's typography or 
+    risk: The house design drifts silently -- a margin shifts, a font is
+      swapped, a plate is displaced -- changing a valid book's typography or
       layout without the major-version decision the contract requires.
-    statement: A valid v1 book renders at the committed house geometry -- page 
-      count, embedded fonts, and per-page trim and ink bounds within tolerance 
+    statement: A valid v1 book renders at the committed house geometry -- page
+      count, embedded fonts, and per-page trim and ink bounds within tolerance
       -- so the house typography and layout cannot change within a major without
       a deliberate, reasoned baseline decision.
-    negative_proof: 
+    negative_proof:
       tests/test_sabotage.py::test_sabotage_removed_graph_edge_reddens_state_model
     limitations:
     - "Toolchain-gated: the rendered comparison runs only where pandoc, LuaLaTeX,
@@ -267,8 +267,8 @@ invariants:
     - selftest
     owner: selftest
     risk: The documentation quietly diverges from what the code does.
-    statement: Usage and README name every target, REFERENCE.md and 
-      INVARIANTS.md equal their generated text, and the aesthetics skill 
+    statement: Usage and README name every target, REFERENCE.md and
+      INVARIANTS.md equal their generated text, and the aesthetics skill
       documents every consumed key.
     negative_proof:
     - tests/test_selftest_checks.py::test_docs_check_names_a_drifted_provider_qualification_page
@@ -297,12 +297,12 @@ invariants:
       and stranded above it. When the style is off, the filter changes nothing, so
       a book that does not opt in renders unchanged; and a book whose chapters open
       on ordinary words compiles to the same lettrine call whatever style it uses."
-    negative_proof: 
+    negative_proof:
       tests/test_sabotage.py::test_sabotage_removed_graph_edge_reddens_state_model
     limitations:
-    - The eligibility and emission are proven by running the Lua filter through 
-      pandoc; the rendered PDF (which needs the lettrine package from the 
-      toolchain image) is proven where that toolchain is present. The grapheme 
+    - The eligibility and emission are proven by running the Lua filter through
+      pandoc; the rendered PDF (which needs the lettrine package from the
+      toolchain image) is proven where that toolchain is present. The grapheme
       and punctuation split is proven exhaustively in test_dropcaps.
   INV-edition-manifest:
     ci_tier: quality
@@ -323,7 +323,7 @@ invariants:
       built from a dirty tree, and a provider qualification proven against a different
       edition.'
     limitations:
-    - Verifies content identity against the artifacts on disk and the 
+    - Verifies content identity against the artifacts on disk and the
       well-formedness of qualification evidence; it does not re-run a provider's
       physical qualification, only reject a qualification whose named edition is
       not this one.
@@ -348,7 +348,7 @@ invariants:
     - integration
     owner: style_audit
     risk: Synthetic or print-unsafe prose reaches a published book.
-    statement: The universal prose battery refuses dashes, curly quotes, 
+    statement: The universal prose battery refuses dashes, curly quotes,
       out-of-font glyphs, throat-clearing, bad headings, and long paragraphs.
     negative_proof:
     - src/press/data/known-bad/em-dash.md
@@ -370,7 +370,7 @@ invariants:
     - src/press/data/known-bad/vibrant-tapestry.md
     - src/press/data/known-bad/negative-parallelism.md
     limitations:
-    - The glyph law flags legitimate Greek or math; short title-case headings 
+    - The glyph law flags legitimate Greek or math; short title-case headings
       slip.
   INV-editorial-checkers:
     ci_tier: quality
@@ -385,7 +385,7 @@ invariants:
     - tests/test_sabotage.py::test_sabotage_removed_graph_edge_reddens_state_model
     owner: check_the_checkers
     risk: A checker silently stops catching what it was built to catch.
-    statement: Every known-bad fixture trips its declared rule; known-good 
+    statement: Every known-bad fixture trips its declared rule; known-good
       passes clean.
     limitations:
     - A book fixture with no expect comment falls back to any-rejection.
@@ -409,13 +409,13 @@ invariants:
     - selftest
     - pytest
     owner: jargon_lint
-    risk: A matching, normalization, or allowlist fix lands in one checker and 
-      authors running the standalone skill get different accept/reject results 
+    risk: A matching, normalization, or allowlist fix lands in one checker and
+      authors running the standalone skill get different accept/reject results
       than press check.
-    statement: The package jargon checker and the portable skill copy return 
-      equivalent findings and refusals for the same text and watchlist, and 
+    statement: The package jargon checker and the portable skill copy return
+      equivalent findings and refusals for the same text and watchlist, and
       default to the same watchlist.
-    negative_proof: 
+    negative_proof:
       tests/test_jargon_parity.py::test_shared_logic_is_byte_identical
     limitations:
     - A shared-source and fixture/property contract, not a single shared engine;
@@ -430,18 +430,18 @@ invariants:
     - pytest
     negative_proof: src/press/data/extensions/hostile/collision.yaml
     owner: extensions
-    risk: A third-party extension shadows a core artifact or command, or a 
-      manifest written for a future contract loads and behaves unpredictably, 
-      because collisions and version mismatches were discovered at build time 
+    risk: A third-party extension shadows a core artifact or command, or a
+      manifest written for a future contract loads and behaves unpredictably,
+      because collisions and version mismatches were discovered at build time
       instead of refused up front.
-    statement: An extension declaration is refused before execution when it 
-      collides with a core name, targets an extension-contract major this press 
-      does not implement, is structurally malformed, or names an unknown 
-      dependency. Discovery is declarative and deterministic; nothing runs on 
+    statement: An extension declaration is refused before execution when it
+      collides with a core name, targets an extension-contract major this press
+      does not implement, is structurally malformed, or names an unknown
+      dependency. Discovery is declarative and deterministic; nothing runs on
       the strength of import order or an ambient entry point.
     limitations:
     - Conformance decides on the declared manifest -- the names, contract major,
-      dependencies, invariants, and capabilities an extension states; it does 
+      dependencies, invariants, and capabilities an extension states; it does
       not sandbox arbitrary code, because the contract admits no code extension,
       only declarative registry entries.
   INV-extension-seal:
@@ -457,15 +457,15 @@ invariants:
     risk: A plugin silently weakens or stands in for core verification, or ships
       a guarantee nothing enforces, so a book carries an invariant that is never
       checked.
-    statement: An extension may depend on the mandatory verification, path 
-      containment, artifact graph, config validation, and release gate, but it 
-      may never declare that it provides or replaces one, and it may not carry 
+    statement: An extension may depend on the mandatory verification, path
+      containment, artifact graph, config validation, and release gate, but it
+      may never declare that it provides or replaces one, and it may not carry
       an invariant it does not prove. A manifest that claims a sealed capability
       or an unproven obligation is refused.
     limitations:
-    - The seal is a fixed set of capability tokens and the rule that every 
-      declared invariant names a proof; it governs what a manifest may claim, 
-      not the runtime behavior of a code extension, which the contract does not 
+    - The seal is a fixed set of capability tokens and the rule that every
+      declared invariant names a proof; it governs what a manifest may claim,
+      not the runtime behavior of a code extension, which the contract does not
       admit.
   INV-format-agreement:
     ci_tier: quality
@@ -477,12 +477,12 @@ invariants:
     - integration
     owner: verify_formats
     risk: A single format loses a chapter -- a broken pandoc filter, a truncated
-      export -- and ships, because each edition was only ever checked for one 
+      export -- and ships, because each edition was only ever checked for one
       witness line and the formats were never cross-checked against each other.
-    statement: Every chapter's content appears in every built edition; an 
-      edition that silently drops a chapter (or most of it) disagrees with the 
+    statement: Every chapter's content appears in every built edition; an
+      edition that silently drops a chapter (or most of it) disagrees with the
       editions that kept it and is refused, not passed.
-    negative_proof: 
+    negative_proof:
       tests/test_verify_editions.py::test_an_edition_that_drops_a_chapter_is_named_and_refused
     limitations:
     - "Presence of a distinctive multi-word fragment per chapter, not a full diff:
@@ -498,9 +498,9 @@ invariants:
     - selftest
     owner: verify_formats
     risk: A duplicated or missing chapter page passes on file count alone.
-    statement: Each chapter's witness appears exactly once across the reader 
+    statement: Each chapter's witness appears exactly once across the reader
       site.
-    negative_proof: 
+    negative_proof:
       tests/test_selftest_checks.py::test_invariant_check_passes[check_site_identity]
     limitations:
     - A chapter with no qualifying line contributes no witness.
@@ -512,14 +512,14 @@ invariants:
     - integration
     - unit
     owner: build
-    risk: An edition silently loses its structure -- a chapter document dropped 
-      from the EPUB spine, a nav entry gone, a house DOCX style removed -- and 
+    risk: An edition silently loses its structure -- a chapter document dropped
+      from the EPUB spine, a nav entry gone, a house DOCX style removed -- and
       ships, because only the PDF's shape was ever pinned.
     statement: "A valid v1 book's non-PDF editions keep their committed structural
       shape: the EPUB's chapter-document count exactly, its spine and nav and the
       reader site's pages and links no smaller than the reviewed baseline, and the
       DOCX still declaring every house style."
-    negative_proof: 
+    negative_proof:
       tests/test_sabotage.py::test_sabotage_removed_graph_edge_reddens_state_model
     limitations:
     - 'Toolchain-gated: the rendered comparison runs only where pandoc is present,
@@ -535,14 +535,14 @@ invariants:
     layers:
     - selftest
     - pytest
-    negative_proof: 
+    negative_proof:
       tests/test_selftest_checks.py::test_invariant_check_passes[check_format_witnesses]
     owner: verify_formats
     risk: A format silently drops the manuscript and still verifies.
-    statement: Title and a derived manuscript witness appear in every format; a 
+    statement: Title and a derived manuscript witness appear in every format; a
       book yielding no witness is refused, not passed.
     limitations:
-    - One longest line per document; a format dropping every other line is not 
+    - One longest line per document; a format dropping every other line is not
       caught here -- INV-format-agreement holds the full per-chapter witness set
       against every edition to close that gap.
   INV-graph-acyclic:
@@ -554,9 +554,9 @@ invariants:
     - pytest
     owner: registry
     risk: A build order cycles or an artifact has no real output.
-    statement: The artifact graph is acyclic, outputs unique, every published 
+    statement: The artifact graph is acyclic, outputs unique, every published
       artifact a concrete filename.
-    negative_proof: 
+    negative_proof:
       tests/test_sabotage.py::test_sabotage_removed_graph_edge_reddens_state_model
     limitations:
     - Proves graph shape, not that each builder produces its declared output.
@@ -572,8 +572,8 @@ invariants:
     statement: Metadata interpolated into HTML and TeX is escaped.
     negative_proof: src/press/selftest.py::check_honest_refusals
     limitations:
-    - The HTML cover fragment and the front-matter TeX escaper 
-      (gen_front_matter.escape) are proven; other sibling sites share the 
+    - The HTML cover fragment and the front-matter TeX escaper
+      (gen_front_matter.escape) are proven; other sibling sites share the
       pattern unproven.
   INV-graph-no-stale:
     ci_tier: integration
@@ -582,11 +582,11 @@ invariants:
     enforced_by: __main__:main
     layers:
     - integration
-    negative_proof: 
+    negative_proof:
       tests/test_sabotage.py::test_sabotage_removed_graph_edge_reddens_state_model
     owner: __main__
     risk: A verifier passes an old artifact that no longer matches the source.
-    statement: Verify targets rebuild before verifying; a stale artifact cannot 
+    statement: Verify targets rebuild before verifying; a stale artifact cannot
       be blessed.
     limitations:
     - CLI-path only; importing a verifier module directly skips the rebuild.
@@ -598,14 +598,14 @@ invariants:
     - selftest
     - pytest
     owner: migrate
-    risk: An author applies a major upgrade blind and discovers the design or 
+    risk: An author applies a major upgrade blind and discovers the design or
       pin changes only after the fact.
-    statement: A migration dry run reports every change it would make and every 
-      design consequence to weigh, and writes nothing; a book learns exactly 
+    statement: A migration dry run reports every change it would make and every
+      design consequence to weigh, and writes nothing; a book learns exactly
       what moving majors does before a byte changes.
     negative_proof: tests/test_migrate.py::test_apply_then_rollback_is_exact
     limitations:
-    - The preview enumerates the pin changes and the house-profile design 
+    - The preview enumerates the pin changes and the house-profile design
       verdict; a book that has already selected a non-house profile carries that
       design choice independently of the migration.
   INV-migration-safe:
@@ -618,15 +618,15 @@ invariants:
     - pytest
     negative_proof: tests/test_migrate.py::test_apply_then_rollback_is_exact
     owner: migrate
-    risk: An upgrade silently rewrites prose or art, or leaves a book stranded 
+    risk: An upgrade silently rewrites prose or art, or leaves a book stranded
       on a half-changed pin with no way back.
-    statement: Migrating a book between press majors moves only the pin, in 
+    statement: Migrating a book between press majors moves only the pin, in
       requirements.txt and the CI workflow; the manuscript, config, and accepted
-      art come out byte-for-byte identical, and rollback restores the exact 
+      art come out byte-for-byte identical, and rollback restores the exact
       pre-migration pin from a backup written before any file is changed.
     limitations:
-    - Proven on a scaffolded book (the two pin sites the template writes); a 
-      book that pins the press somewhere exotic is diagnosed and refused rather 
+    - Proven on a scaffolded book (the two pin sites the template writes); a
+      book that pins the press somewhere exotic is diagnosed and refused rather
       than rewritten, not migrated.
   INV-pages-refs:
     ci_tier: quality
@@ -637,7 +637,7 @@ invariants:
     - pytest
     owner: verify_pages
     risk: The public site ships dead links or a stylesheet pointing at nothing.
-    statement: Every local reference and stylesheet url resolves; fragments 
+    statement: Every local reference and stylesheet url resolves; fragments
       resolve to real anchors.
     negative_proof: src/press/selftest.py::check_pages_verifier
     limitations:
@@ -653,7 +653,7 @@ invariants:
     negative_proof: src/press/selftest.py::check_coverwrap_detectors
     owner: verify_pdf
     risk: A miscalibrated detector passes blank pages or fails inked ones.
-    statement: The blank-page detector is proven against fixtures before it 
+    statement: The blank-page detector is proven against fixtures before it
       judges.
     limitations:
     - Two synthetic extremes; a faint hairline can still read as blank.
@@ -666,7 +666,7 @@ invariants:
     owner: verify_pdf
     risk: A blank or clipped page ships in the interior.
     statement: Every rendered page carries ink and keeps it off the edge.
-    negative_proof: 
+    negative_proof:
       tests/test_sabotage.py::test_sabotage_removed_graph_edge_reddens_state_model
     limitations:
     - Tolerates one structural blank verso in the print profile.
@@ -680,15 +680,15 @@ invariants:
     risk: A profile silently renders at the wrong trim, or a sealed design value
       drifts while its visual baseline still reads as valid.
     statement: Selecting a design profile renders the interior at that profile's
-      declared trim, and an unknown profile is refused before any rendering. A 
-      profile's design-affecting data has a stable digest, so a sealed value 
+      declared trim, and an unknown profile is refused before any rendering. A
+      profile's design-affecting data has a stable digest, so a sealed value
       cannot change without the key that scopes its visual baseline moving too.
-    negative_proof: 
+    negative_proof:
       tests/test_sabotage.py::test_sabotage_removed_graph_edge_reddens_state_model
     limitations:
-    - The rendered-trim proof runs where the toolchain is present (the 
-      integration tier); locally, the projection-string and digest proofs stand 
-      in. Typography and web tokens are projected and proven at the fragment 
+    - The rendered-trim proof runs where the toolchain is present (the
+      integration tier); locally, the projection-string and digest proofs stand
+      in. Typography and web tokens are projected and proven at the fragment
       level; their rendered baselines are generated in the pinned toolchain.
   INV-provider-contract:
     ci_tier: quality
@@ -698,10 +698,10 @@ invariants:
     layers:
     - selftest
     - pytest
-    negative_proof: 
+    negative_proof:
       tests/test_provider_conformance.py::test_an_unsupported_capability_is_declared_not_simulated
     owner: providers
-    risk: A provider coupling leaks SDK types into the domain, a lost response 
+    risk: A provider coupling leaks SDK types into the domain, a lost response
       prints a second copy, an unknown status is guessed, or a forged webhook is
       trusted.
     statement: 'Every print-provider adapter maps its own vocabulary to the neutral
@@ -711,8 +711,8 @@ invariants:
       acceptance), an unsupported capability is a typed refusal rather than a simulation,
       and a webhook is authentic only when its signature matches the raw body.'
     limitations:
-    - The contract and the conformance suite are proven against the smart fake 
-      and the Lulu adapter under a canned transport; the live Lulu sandbox 
+    - The contract and the conformance suite are proven against the smart fake
+      and the Lulu adapter under a canned transport; the live Lulu sandbox
       exchange awaits credentials (the deferred end-to-end proof).
   INV-provider-qualification:
     ci_tier: quality
@@ -722,20 +722,20 @@ invariants:
     - selftest
     - pytest
     owner: qualification
-    risk: A book is sold as printable by a provider that cannot produce the 
+    risk: A book is sold as printable by a provider that cannot produce the
       exact object, or a qualification survives a production-affecting change to
       the edition.
-    statement: The provider record declares every capability explicitly (an 
-      omitted capability is a forbidden implicit claim) and the full physical 
-      checklist; a provider is qualified for an edition only by a physical 
-      inspection with every checklist point passed, scoped to that edition's 
+    statement: The provider record declares every capability explicitly (an
+      omitted capability is a forbidden implicit claim) and the full physical
+      checklist; a provider is qualified for an edition only by a physical
+      inspection with every checklist point passed, scoped to that edition's
       identity, so a marketing claim, a failed point, a not-fit provider, and an
       inspection of a different edition are all refused.
-    negative_proof: 
+    negative_proof:
       tests/test_qualification.py::test_a_failed_point_cannot_qualify
     limitations:
-    - Validates the record's shape and the physical-gate logic; it cannot 
-      confirm a claimed inspection actually happened, only that a qualification 
+    - Validates the record's shape and the physical-gate logic; it cannot
+      confirm a claimed inspection actually happened, only that a qualification
       carries a passed, edition-scoped inspection digest.
   INV-release-contract:
     ci_tier: integration
@@ -745,9 +745,9 @@ invariants:
     - integration
     owner: selftest
     risk: A pinned book resolves a different pipeline than the tag promises.
-    statement: A three-part tag pins its own action ref and an existing 
+    statement: A three-part tag pins its own action ref and an existing
       immutable toolchain image, proven before the major floats.
-    negative_proof: 
+    negative_proof:
       tests/test_sabotage.py::test_sabotage_removed_graph_edge_reddens_state_model
     limitations:
     - The pin grep is an exact string; it does not prove the tag's tree.
@@ -760,21 +760,21 @@ invariants:
     - selftest
     - pytest
     - integration
-    negative_proof: 
+    negative_proof:
       tests/test_receipts.py::test_release_refuses_dirty_tree_receipt
     owner: receipts
     risk: A release ships objects that differ from the ones the tests proved.
-    statement: A release chain refuses a missing, tampered, reordered, or 
-      input-mismatched prerequisite, a dirty-tree receipt, a terminal receipt 
+    statement: A release chain refuses a missing, tampered, reordered, or
+      input-mismatched prerequisite, a dirty-tree receipt, a terminal receipt
       whose package or toolchain does not match the built and pinned objects, an
-      incomplete chain that skips any trust layer or breaks a layer's extension 
-      of its predecessor, and, when assembled from per-job receipts, a missing 
-      CI tier (a job that did not run leaves no receipt) or receipts that 
+      incomplete chain that skips any trust layer or breaks a layer's extension
+      of its predecessor, and, when assembled from per-job receipts, a missing
+      CI tier (a job that did not run leaves no receipt) or receipts that
       disagree on the source commit.
     limitations:
     - The per-job assembly makes the chain reflect the CI jobs that actually ran
-      and uploaded a receipt; it trusts that an uploaded tier receipt attests 
-      real work, and the cross-workflow artifact download is proven only by a 
+      and uploaded a receipt; it trusts that an uploaded tier receipt attests
+      real work, and the cross-workflow artifact download is proven only by a
       live release, not the fast suite.
   INV-release-tag-grammar:
     ci_tier: quality
@@ -787,7 +787,7 @@ invariants:
     negative_proof: scripts/release.sh
     owner: selftest
     risk: A malformed tag or an injected command reaches the release path.
-    statement: A release tag is strict SemVer and the composite action refuses 
+    statement: A release tag is strict SemVer and the composite action refuses
       shell syntax in its command input.
     limitations:
     - The action grammar is proven by unit test, not by a live workflow run.
@@ -805,4 +805,359 @@ invariants:
     negative_proof: src/press/data/template/config/metadata.yaml
     limitations:
     - Pattern-based; a novel identifying string is not caught.
+  INV-fakes-routing:
+    statement: The process fake answers by command name first, then from its queue, and records every invocation.
+    enforced_by: adapters.fakes:FakeProcessRunner.run
+    negative_proof: tests/test_adapters.py::test_fake_runner_answers_by_command_and_from_queue
+    owner: adapters.fakes
+    criticality: standard
+    layers:
+    - pytest
+    risk: Tests would assert against a fake that misroutes or forgets calls, proving nothing about the real boundary.
+  INV-http-transport-signals:
+    statement: The urllib transport translates a timeout to TransportTimeout and other network failures to TransportError, and bounds the read.
+    enforced_by: adapters.http:urlopen_transport
+    negative_proof: tests/test_provider_http_transport.py::test_network_failures_are_translated_to_typed_transport_signals
+    owner: adapters.http
+    criticality: standard
+    layers:
+    - pytest
+    risk: A network failure would surface untyped, and callers could not tell 'may have landed' from 'did not'.
+  INV-subprocess-git-isolation:
+    statement: The subprocess runner strips ambient GIT_* repo-binding vars for git commands so a nested repo observes only itself.
+    enforced_by: adapters.production:SubprocessRunner.run
+    negative_proof: tests/test_git_isolation.py::test_ambient_git_index_does_not_hide_a_nested_repos_files
+    owner: adapters.production
+    criticality: standard
+    layers:
+    - pytest
+    risk: An inherited git index would silently redirect git to the outer repo, corrupting a nested book.
+  INV-config-store-never-guess:
+    statement: 'Config coercion never guesses a collection type: a collection field requires explicit JSON.'
+    enforced_by: config_store:coerce
+    negative_proof: tests/test_config_store.py::test_a_collection_field_requires_explicit_json
+    owner: config_store
+    criticality: standard
+    layers:
+    - pytest
+    risk: A mistyped config value would be silently coerced, admitting invalid configuration.
+  INV-process-cancel-not-success:
+    statement: A process that exits zero after cancellation is still not a success.
+    enforced_by: process_control:ProcessController.finish
+    negative_proof: tests/test_process_control.py::test_cancel_race_a_zero_exit_after_cancel_is_still_not_success
+    owner: process_control
+    criticality: standard
+    layers:
+    - pytest
+    risk: A cancelled build could be reported as succeeded on a race, blessing incomplete output.
+  INV-events-protocol-failure:
+    statement: A malformed or unknown-version event line surfaces a ProtocolError with the raw output preserved.
+    enforced_by: events:parse_line
+    negative_proof: tests/test_events.py::test_unknown_version_is_a_protocol_failure
+    owner: events
+    criticality: standard
+    layers:
+    - pytest
+    risk: A malformed event would be silently dropped or misparsed, hiding a protocol break.
+  INV-art-key-never-stored:
+    statement: The image-model key is read from the environment on demand and its absence is refused, never stored.
+    enforced_by: art_commission:key_for
+    negative_proof: tests/test_adapters_routing.py::test_key_for_refuses_when_unset
+    owner: art_commission
+    criticality: standard
+    layers:
+    - pytest
+    risk: A missing credential would surface late, or a key could be persisted to disk.
+  INV-plate-alpha-preserved:
+    statement: Enhancing a plate master preserves its alpha (ink on transparency); it is never baked onto white.
+    enforced_by: art_enhance:enhance
+    negative_proof: tests/test_art_enhance.py::test_enhance_preserves_a_plate_masters_alpha
+    owner: art_enhance
+    criticality: standard
+    layers:
+    - pytest
+    risk: A plate would ship as a baked-white master, breaking compositing onto any surface (#226).
+  INV-cover-baked-guard:
+    statement: A baked cover style fills every placeholder and carries the exact-text guardrail.
+    enforced_by: cover:build_prompt
+    negative_proof: tests/test_cover.py::test_build_prompt_fills_and_guards_baked_style
+    owner: cover
+    criticality: standard
+    layers:
+    - pytest
+    risk: The cover prompt could leave a placeholder unfilled or drop the verbatim-text guard.
+  INV-illustrate-subject:
+    statement: An illustration's subject is the figure's art description, never its caption (#225).
+    enforced_by: illustrate:subject_from_figure
+    negative_proof: tests/test_illustrate.py::test_subject_is_the_figures_art_description_not_its_caption
+    owner: illustrate
+    criticality: standard
+    layers:
+    - pytest
+    risk: The caption text would be drawn into the image instead of the intended subject.
+  INV-artifact-state-by-digest:
+    statement: 'Artifact state derives from content digests, not mtimes: touching a file without changing it stays verified.'
+    enforced_by: artifact_status:artifact_state
+    negative_proof: tests/test_artifact_status.py::test_touch_without_change_stays_verified
+    owner: artifact_status
+    criticality: standard
+    layers:
+    - pytest
+    risk: A no-op touch would invalidate verified artifacts, forcing needless rebuilds or false staleness.
+  INV-reader-no-phantom-canonical:
+    statement: Without a configured site-url, the reader landing claims no canonical URL or image (#158).
+    enforced_by: reader_meta:landing_head_metadata
+    negative_proof: tests/test_landing_metadata.py::test_without_a_site_url_no_canonical_or_url_is_claimed
+    owner: reader_meta
+    criticality: standard
+    layers:
+    - pytest
+    risk: The site would assert a canonical URL it does not own, misdirecting crawlers.
+  INV-doctor-denies-broken:
+    statement: A missing required tool denies the machine; the verdict derives from the findings.
+    enforced_by: doctor:examine
+    negative_proof: tests/test_doctor_findings.py::test_required_tool_missing_denies_machine
+    owner: doctor
+    criticality: standard
+    layers:
+    - pytest
+    risk: Doctor could pass a machine that cannot build, hiding a broken toolchain.
+  INV-coverwrap-composer-geometry:
+    statement: The cover-wrap geometry composer reproduces the sealed v1 perfect-bound geometry exactly.
+    enforced_by: gen_coverwrap:wrap_geometry
+    negative_proof: tests/test_coverwrap_layout.py::test_perfect_bound_reproduces_v1_geometry
+    owner: gen_coverwrap
+    criticality: standard
+    layers:
+    - pytest
+    risk: A wrap would ship with drifted spine/bleed math, misprinting the cover.
+  INV-front-matter-golden:
+    statement: Generated front-matter TeX matches its golden byte-for-byte.
+    enforced_by: gen_front_matter:generate
+    negative_proof: tests/test_gen_front_matter_golden.py::test_generated_front_matter_matches_the_golden
+    owner: gen_front_matter
+    criticality: standard
+    layers:
+    - pytest
+    risk: Front matter would drift silently, changing a valid book's typography.
+  INV-print-safe-flatten:
+    statement: Print sanitization flattens transparency onto white, caps resolution without upscaling, and preserves grayscale.
+    enforced_by: print_safe:sanitize
+    negative_proof: tests/test_print_safe.py::test_sanitize_flattens_transparency_onto_white
+    owner: print_safe
+    criticality: standard
+    layers:
+    - pytest
+    risk: A print image could ship with an alpha channel or be upscaled, failing the printer's requirements.
+  INV-scaffold-no-leak:
+    statement: A scaffolded book carries no identity from the press or any prior book.
+    enforced_by: scaffold:main
+    negative_proof: tests/test_scaffold_book.py::test_scaffold_carries_no_original_identity
+    owner: scaffold
+    criticality: standard
+    layers:
+    - pytest
+    risk: A new book would leak a previous book's title, slug, or art.
+  INV-catalog-route-parity:
+    statement: Every CLI route is a catalog command and every catalog command is dispatchable.
+    enforced_by: catalog:canonical_targets
+    negative_proof: tests/test_catalog.py::test_every_route_is_a_catalog_command
+    owner: catalog
+    criticality: standard
+    layers:
+    - pytest
+    risk: The catalogue and the CLI would drift, so help lists a command that cannot run, or hides one that can.
+  INV-add-no-clobber:
+    statement: Adding a chapter refuses to overwrite an existing file.
+    enforced_by: add:main
+    negative_proof: tests/test_add.py::test_add_refuses_to_overwrite_an_existing_file
+    owner: add
+    criticality: standard
+    layers:
+    - pytest
+    risk: An author's existing chapter could be silently clobbered.
+  INV-provider-legality:
+    statement: The provider legality gate refuses an uncut trim, illegal binding, out-of-range page count, or unsupported color.
+    enforced_by: provider_specs:ProviderSpec.check_selection
+    negative_proof: tests/test_provider_specs.py::test_legality_refuses_an_uncut_trim
+    owner: provider_specs
+    criticality: standard
+    layers:
+    - pytest
+    risk: An order a print provider will reject could pass press's own checks.
+  INV-money-exact-cents:
+    statement: Money parses decimal strings as exact cents, never through binary float.
+    enforced_by: providers.contract:Money.parse
+    negative_proof: tests/test_provider_conformance.py::test_money_parses_decimals_without_float_error
+    owner: providers.contract
+    criticality: standard
+    layers:
+    - pytest
+    risk: Prices would accrue float error, so 0.1 + 0.2 would not be 30 cents.
+  INV-webhook-authenticity:
+    statement: A valid webhook event is authentic and a tampered body is not.
+    enforced_by: providers.fake:FakeProvider.parse_event
+    negative_proof: tests/test_provider_conformance.py::test_a_valid_event_is_authentic_a_tampered_one_is_not
+    owner: providers.fake
+    criticality: standard
+    layers:
+    - pytest
+    risk: A forged provider webhook could be accepted as genuine.
+  INV-lulu-timeout-unknown:
+    statement: A submit timeout is an UnknownOutcome that forces a lookup, never a retry or an assumed success.
+    enforced_by: providers.lulu:LuluProvider.submit
+    negative_proof: tests/test_provider_conformance.py::test_lulu_submit_timeout_is_an_unknown_outcome
+    owner: providers.lulu
+    criticality: standard
+    layers:
+    - pytest
+    risk: A timed-out order could be silently resubmitted (double-printing) or assumed placed.
+  INV-registrations-malformed-fails:
+    statement: A malformed ISBN/registration block surfaces as a check failure.
+    enforced_by: registrations:failures
+    negative_proof: tests/test_registrations_isbn.py::test_a_malformed_block_is_a_check_failure
+    owner: registrations
+    criticality: standard
+    layers:
+    - pytest
+    risk: Broken registration paperwork would pass unnoticed to print.
+  INV-check-source-fails-closed:
+    statement: The source checker exits nonzero on a malformed authorities ledger and its figure/print variants.
+    enforced_by: check_source:main
+    negative_proof: tests/test_config_shapes.py::test_check_source_rejects_a_malformed_authorities_ledger
+    owner: check_source
+    criticality: standard
+    layers:
+    - pytest
+    risk: A malformed config would build instead of failing closed.
+  INV-config-schema-shape:
+    statement: Config validation returns problems for a wrong-shaped file, and enforcement fails closed.
+    enforced_by: config_schema:validate_file
+    negative_proof: tests/test_config_shapes.py::test_index_terms_terms_wrapper_is_refused_by_shape
+    owner: config_schema
+    criticality: standard
+    layers:
+    - pytest
+    risk: An ill-shaped config would be admitted, corrupting downstream generation.
+  INV-figures-refuse-illegal:
+    statement: Figure validation refuses left/right placement with absolute width and a bad outset.
+    enforced_by: figures:validate
+    negative_proof: tests/test_figures.py::test_validate_refuses_left_right_absolute_and_bad_outset
+    owner: figures
+    criticality: standard
+    layers:
+    - pytest
+    risk: An illegal figure geometry would reach LaTeX and misplace or break the layout.
+  INV-press-ledger-no-dangling:
+    statement: press's own invariant-ledger validation raises on a dangling proof reference.
+    enforced_by: invariants:validate
+    negative_proof: tests/test_sabotage.py::test_sabotage_dangling_invariant_proof_reddens_ledger
+    owner: invariants
+    criticality: standard
+    layers:
+    - pytest
+    risk: An invariant could name a proof that no longer exists, a hollow guarantee.
+  INV-idlookup-fails-closed:
+    statement: An LCCN record for a different number is a mismatch, and lookups fail closed on entities, size, and media.
+    enforced_by: idlookup:lookup_lccn
+    negative_proof: tests/test_idlookup.py::test_lccn_record_for_a_different_number_is_a_mismatch
+    owner: idlookup
+    criticality: standard
+    layers:
+    - pytest
+    risk: A wrong or malicious authority record could be accepted as this book's identity.
+  INV-selftest-orchestrates-all:
+    statement: Every registered check is orchestrated by the one ordered CHECKS list the CLI and pytest both run.
+    enforced_by: selftest:main
+    negative_proof: tests/test_selftest_checks.py::test_every_check_is_orchestrated
+    owner: selftest
+    criticality: standard
+    layers:
+    - pytest
+    risk: A check could exist but never run, a silent hole in the gate.
+  INV-profile-seal-refuses-drift:
+    statement: The print-profile seal gate refuses a drifted, unsealed, or missing profile.
+    enforced_by: profile_lifecycle:validate
+    negative_proof: tests/test_profile_lifecycle.py::test_digest_drift_is_refused
+    owner: profile_lifecycle
+    criticality: standard
+    layers:
+    - pytest
+    risk: A profile could change without re-sealing, so geometry drifts from its proven values.
+  INV-scenarios-cover-pairs:
+    statement: The pairwise generator's selection covers every pair of parameter values.
+    enforced_by: scenarios:pairwise
+    negative_proof: tests/test_scenarios.py::test_pairwise_covers_every_pair
+    owner: scenarios
+    criticality: standard
+    layers:
+    - pytest
+    risk: A scenario matrix would miss a combination, leaving it untested.
+  INV-desk-blocks-unrunnable:
+    statement: The operator desk grays out a blocked command so it cannot launch into a guaranteed failure.
+    enforced_by: desk.app:PickerScreen.compose
+    negative_proof: tests/test_desk_polish.py::test_picker_grays_out_a_blocked_command
+    owner: desk.app
+    criticality: standard
+    layers:
+    - pytest
+    risk: A user could launch a command the environment cannot satisfy, failing confusingly.
+    limitations:
+    - Proven only where the tui extra (textual) is installed.
+  INV-wizard-preview-only:
+    statement: The setup wizard writes only a clean preview; an invalid edit is previewed but never written.
+    enforced_by: desk.wizard:ReviewScreen.action_apply
+    negative_proof: tests/test_desk_wizard.py::test_an_invalid_edit_is_previewed_but_never_written
+    owner: desk.wizard
+    criticality: standard
+    layers:
+    - pytest
+    risk: An invalid config edit could be written to disk, corrupting the book's config.
+    limitations:
+    - Proven only where the tui extra (textual) is installed.
+  INV-desk-model-blocks-build:
+    statement: Build commands are blocked when the required toolchain is missing, while toolchain-free commands stay runnable.
+    enforced_by: desk_model:DeskModel.blocked_reason
+    negative_proof: tests/test_desk_model.py::test_missing_toolchain_blocks_build_commands
+    owner: desk_model
+    criticality: standard
+    layers:
+    - pytest
+    risk: The desk would offer a build that cannot run, or block one that could.
+  INV-operator-counsel-touches-nothing:
+    statement: A counsel-mode run (no --apply) leaves the manuscript and config byte-identical, aborting if anything changed.
+    enforced_by: operator:improve
+    negative_proof: tests/test_operator_counsel.py::test_improve_counsel_aborts_when_workflow_touches_manuscript
+    owner: operator
+    criticality: standard
+    layers:
+    - pytest
+    risk: An advisory run could silently rewrite the author's manuscript.
+  INV-gen-index-hits-and-zero-hit:
+    statement: Each curated index term resolves to the chapters it appears in, and a zero-hit term fails the build.
+    enforced_by: gen_index:generate
+    negative_proof: tests/test_config_shapes.py::test_gen_index_resolves_hits_to_chapters_and_fails_on_a_zero_hit
+    owner: gen_index
+    criticality: standard
+    layers:
+    - pytest
+    risk: A subject-index term matching nothing would ship as a silent, empty entry.
+  INV-transport-empty-body-and-signals:
+    statement: An empty response body parses as an empty mapping, and the transport's timeout and error signals stay distinct types.
+    enforced_by: providers.transport:Response.json
+    negative_proof: tests/test_provider_http_transport.py::test_response_json_guards_empty_body_parses_and_types_are_distinct
+    owner: providers.transport
+    criticality: standard
+    layers:
+    - pytest
+    risk: An empty body would raise mid-parse, or a timeout would be mistaken for a definite failure.
+  INV-publish-rebuild-before-bless:
+    statement: Retail verification rebuilds each artifact through the registry before verifying, so a stale or corrupt file is never blessed, and a failing verifier yields a nonzero exit.
+    enforced_by: publish:verify_retail
+    negative_proof: tests/test_publish_rebuild.py::test_verify_retail_rebuilds_before_bless_and_main_fails_on_a_bad_verifier
+    owner: publish
+    criticality: standard
+    layers:
+    - pytest
+    risk: A stale artifact could be checked off as verified and sent to a print channel.
 version: 1

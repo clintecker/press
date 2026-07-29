@@ -225,6 +225,49 @@ def test_gen_index_self_guards_against_an_entry_missing_match(scaffolded_book):
     assert "config/index-terms.yaml" in str(caught.value)
 
 
+def test_gen_index_resolves_hits_to_chapters_and_fails_on_a_zero_hit(scaffolded_book):
+    # The core contract of gen_index, not the shape guard: a curated term
+    # resolves to exactly the chapters whose text carries it, and a term that
+    # matches nothing anywhere fails the build by name (silence is refused).
+    import pytest
+
+    from press import gen_index, yamlio
+
+    chapters = scaffolded_book / "book" / "chapters"
+    _write(chapters / "01-alpha.md", "# Alpha\n\nThe telegraph clicked all night.\n")
+    _write(chapters / "02-beta.md", "# Beta\n\nThe railway carried the mail.\n")
+    terms = scaffolded_book / "config" / "index-terms.yaml"
+
+    # Both terms hit, each in its own chapter: label 1 for 01-alpha, 2 for
+    # 02-beta. The generated appendix must credit each to the right chapter.
+    _write(
+        terms,
+        yamlio.dump(
+            [
+                {"term": "Telegraph", "match": ["telegraph"]},
+                {"term": "Railway", "match": ["railway"]},
+            ]
+        ),
+    )
+    body = gen_index.generate().read_text(encoding="utf-8")
+    assert "**Telegraph** · 1" in body
+    assert "**Railway** · 2" in body
+
+    # Swap Railway for a term nobody wrote: the build must refuse, naming it.
+    _write(
+        terms,
+        yamlio.dump(
+            [
+                {"term": "Telegraph", "match": ["telegraph"]},
+                {"term": "Zeppelin", "match": ["zeppelin"]},
+            ]
+        ),
+    )
+    with pytest.raises(SystemExit) as caught:
+        gen_index.generate()
+    assert "Zeppelin" in str(caught.value)
+
+
 def test_gen_front_matter_self_guards_against_a_scalar_epigraph(scaffolded_book):
     import pytest
 

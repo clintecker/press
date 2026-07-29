@@ -1,7 +1,7 @@
-# Migrated from press's quality/ by contrib/migrate_press.py. Review before committing.
+# celebrimbor mutation ratchet — survivor IDENTITY, not count. Taken in CI.
 environment: ci
 survivors:
-- 52:48:intconst:7
-- 54:57:intconst:13
-tool: mutmut (migrated from press)
+- src/press/barcode.py:81:93-intconst-7
+- src/press/barcode.py:83:57-intconst-13
+tool: press.mutation (deterministic)
 version: 1

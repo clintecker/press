@@ -23,13 +23,16 @@ jobs:
         run: |
           # celebrimbor gate runs press's own domain checks (via
           # [tool.celebrimbor] check_modules) plus surface, invariants,
-          # producers, known-bad, imports, impact, and the coverage ratchet --
-          # the checks press used to keep as its own parallel machinery
-          # (check_imports, check_invariant_ledger, check_producers_are_verified,
-          # fixture provenance, press.impact, coverage_ratchet), now retired.
-          # celebrimbor.coverage measures a .coverage file rather than running
-          # the suite, so produce one first; impact wants the PR base for its
-          # diff.
+          # producers, known-bad, imports, impact, the coverage ratchet, and
+          # the mutation ratchet -- the checks press used to keep as its own
+          # parallel machinery (check_imports, check_invariant_ledger,
+          # check_producers_are_verified, fixture provenance, press.impact,
+          # coverage_ratchet, scripts/mutation_ratchet.py), now retired. The
+          # mutation ratchet runs over press.mutation:survivors
+          # ([tool.celebrimbor] mutation_survivors), against
+          # .celebrimbor/baselines/mutation.yaml. celebrimbor.coverage measures
+          # a .coverage file rather than running the suite, so produce one
+          # first; impact wants the PR base for its diff.
           python3 -m pytest -q -p no:cacheprovider --cov=press --cov-report=
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             git fetch origin "${{ github.base_ref }}" --depth=1 || true
@@ -37,12 +40,6 @@ jobs:
           else
             celebrimbor gate
           fi
-      - name: The pure-logic modules still kill their mutants
-        run: |
-          # Deterministic mutation over the pure-computation modules: a
-          # surviving mutant beyond the baseline means a proof weakened.
-          # Each mutant runs its example-based tests once, no retry.
-          python3 scripts/mutation_ratchet.py
       - name: Site builds from these docs
         run: |
           sudo apt-get update -q
