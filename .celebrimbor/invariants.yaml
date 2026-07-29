@@ -194,7 +194,7 @@ invariants:
   INV-contract-mirror:
     ci_tier: quality
     criticality: standard
-    enforced_by: selftest:check_contract_mirror
+    enforced_by: selftest_release:check_contract_mirror
     layers:
     - selftest
     owner: selftest
@@ -262,7 +262,7 @@ invariants:
   INV-docs-no-drift:
     ci_tier: quality
     criticality: standard
-    enforced_by: selftest:check_docs
+    enforced_by: selftest_release:check_docs
     layers:
     - selftest
     owner: selftest
@@ -404,7 +404,7 @@ invariants:
   INV-editorial-jargon-parity:
     ci_tier: quality
     criticality: standard
-    enforced_by: selftest:check_jargon_parity
+    enforced_by: selftest_book:check_jargon_parity
     layers:
     - selftest
     - pytest
@@ -694,7 +694,7 @@ invariants:
     ci_tier: quality
     critical: true
     criticality: critical
-    enforced_by: selftest:check_provider_contract
+    enforced_by: selftest_release:check_provider_contract
     layers:
     - selftest
     - pytest
@@ -740,7 +740,7 @@ invariants:
   INV-release-contract:
     ci_tier: integration
     criticality: standard
-    enforced_by: selftest:check_release_grammar
+    enforced_by: selftest_release:check_release_grammar
     layers:
     - integration
     owner: selftest
@@ -780,7 +780,7 @@ invariants:
     ci_tier: quality
     critical: true
     criticality: critical
-    enforced_by: selftest:check_release_grammar
+    enforced_by: selftest_release:check_release_grammar
     layers:
     - selftest
     - pytest
@@ -794,7 +794,7 @@ invariants:
   INV-scaffold-neutral:
     ci_tier: quality
     criticality: standard
-    enforced_by: selftest:check_scaffold_neutrality
+    enforced_by: selftest_book:check_scaffold_neutrality
     layers:
     - selftest
     - pytest

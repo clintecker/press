@@ -23,9 +23,6 @@ pending:
   edition:build:
     reason: verifier fixture not yet migrated from press
     review_by: '2026-10-01'
-  impact:render:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
   invariants:render:
     reason: verifier fixture not yet migrated from press
     review_by: '2026-10-01'
@@ -71,6 +68,10 @@ pending:
   yamlio:write:
     reason: verifier fixture not yet migrated from press
     review_by: '2026-10-01'
+  reader_meta:
+    reason: reader metadata injected into the site; proven by verify_pages, 
+      ledger entry pending
+    review_by: '2027-01-01'
 version: 1
 producers:
   build:
@@ -82,7 +83,7 @@ producers:
     negative_fixture: 
       tests/test_commerce.py::test_verifier_refuses_a_missing_cta_when_enabled
   gen_authorities:
-    verifier: selftest:check_authorities_ledger
+    verifier: selftest_book:check_authorities_ledger
     negative_fixture: 
       tests/test_selftest_checks.py::test_invariant_check_passes[check_authorities_ledger]
   gen_coverwrap:
@@ -106,6 +107,6 @@ producers:
     negative_fixture: 
       tests/test_profile_lifecycle.py::test_digest_drift_is_refused
   scaffold:
-    verifier: selftest:check_scaffold_neutrality
+    verifier: selftest_book:check_scaffold_neutrality
     negative_fixture: 
       tests/test_selftest_checks.py::test_invariant_check_passes[check_scaffold_neutrality]
