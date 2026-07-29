@@ -18,6 +18,9 @@ modules:
     status: ratified
   adapters.fakes:
     overrides:
+      FakeClock.monotonic: pure
+      FakeClock.now: pure
+      FakeClock.today: pure
       FakeEnvironment.get: adapter
       FakeEnvironment.set: adapter
       FakeEnvironment.unset: adapter
@@ -26,7 +29,7 @@ modules:
       FakeImageClient.post_multipart: adapter
       FakeProcessRunner.run: adapter
       ScriptedRetrySource.poll: adapter
-    pin: "835cab608ebc"
+    pin: "329c91baf2de"
     role: pure
     status: ratified
   adapters.http:
@@ -36,16 +39,22 @@ modules:
   adapters.production:
     overrides:
       OsEnvironment.which: pure
+      SystemClock.monotonic: adapter
+      SystemClock.now: adapter
+      SystemClock.today: adapter
       __init__: pure
-    pin: "0292a65b8d40"
+    pin: "10b8d91bf33c"
     role: adapter
     status: ratified
   adapters.protocols:
     overrides:
+      Clock.monotonic: pure
+      Clock.now: pure
+      Clock.today: pure
       HttpImageClient.post_json: pure
       HttpImageClient.post_multipart: pure
       SpawnedProcess.read_line: pure
-    pin: "e06c7cf80557"
+    pin: "2ef80096f3ef"
     role: pure
     status: ratified
   adapters.retry:
@@ -72,7 +81,7 @@ modules:
     role: normalizer
     status: ratified
   art:
-    pin: "f8f148662d94"
+    pin: "b87106dbab32"
     role: presenter
     status: ratified
   art_commission:
@@ -381,7 +390,7 @@ modules:
       load_seals: parser
       main: presenter
       validate: verifier
-    pin: "d432efba2380"
+    pin: "e8e2d3f95d82"
     role: producer
     status: ratified
   profiles:
@@ -488,7 +497,7 @@ modules:
       build_order: pure
       condition_holds: adapter
       download_names: pure
-    pin: "ef19a141b2bd"
+    pin: "b4a070b7de21"
     role: orchestrator
     status: ratified
   results:

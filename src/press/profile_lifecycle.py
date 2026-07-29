@@ -28,10 +28,9 @@ side of the lifecycle is ``docs/PROFILE-LIFECYCLE.md``.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
 from pathlib import Path
 
-from . import booklib, profiles, yamlio
+from . import adapters, booklib, profiles, yamlio
 
 SEALS = booklib.DATA / "profile-seals.yaml"
 SCHEMA_VERSION = 1
@@ -267,7 +266,7 @@ def write_seal(
 
     selected = path if path is not None else SEALS
     seals = load_seals(selected)
-    on = on or date.today().isoformat()
+    on = on or adapters.clock.today().isoformat()
     # Preserve the existing note when re-sealing without a new one.
     if not note and profile_id in seals:
         note = seals[profile_id].note

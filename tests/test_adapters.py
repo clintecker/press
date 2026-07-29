@@ -178,6 +178,44 @@ def test_fake_environment_answers_from_map_and_records_reads():
 
 
 # --------------------------------------------------------------------------
+# Clock: production and fake against one interface
+# --------------------------------------------------------------------------
+
+
+def test_clock_contract_fake_pins_and_system_reads_today():
+    import datetime
+
+    pinned = datetime.date(2019, 4, 13)
+    fake = fakes.FakeClock(pinned)
+    assert fake.today() == pinned
+    # A second read is stable: the fake never advances the calendar.
+    assert fake.today() == pinned
+
+    system = production.SystemClock()
+    assert system.today() == datetime.date.today()
+
+
+def test_clock_contract_fake_pins_and_system_reads_now():
+    import datetime
+
+    # An explicit timestamp is returned verbatim.
+    pinned = datetime.datetime(2019, 4, 13, 9, 30, tzinfo=datetime.timezone.utc)
+    fake = fakes.FakeClock(pinned.date(), now=pinned)
+    assert fake.now() == pinned
+    assert fake.now() == pinned  # stable across reads
+
+    # With no explicit timestamp the fake derives midnight UTC on the day.
+    derived = fakes.FakeClock(datetime.date(2019, 4, 13))
+    assert derived.now() == datetime.datetime(2019, 4, 13, tzinfo=datetime.timezone.utc)
+
+    # Production reads the real, timezone-aware UTC moment.
+    system = production.SystemClock()
+    moment = system.now()
+    assert moment.tzinfo == datetime.timezone.utc
+    assert moment.date() == datetime.datetime.now(datetime.timezone.utc).date()
+
+
+# --------------------------------------------------------------------------
 # HttpImageClient: fake records requests; production maps errors to HttpError
 # --------------------------------------------------------------------------
 
@@ -271,3 +309,4 @@ def test_default_singletons_are_the_production_adapters():
     assert isinstance(adapters.process_runner, production.SubprocessRunner)
     assert isinstance(adapters.environment, production.OsEnvironment)
     assert isinstance(adapters.image_client, production.UrllibImageClient)
+    assert isinstance(adapters.clock, production.SystemClock)

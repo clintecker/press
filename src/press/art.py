@@ -13,11 +13,10 @@ from __future__ import annotations
 
 import argparse
 import re
-from datetime import date
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
-from . import booklib
+from . import adapters, booklib
 
 if TYPE_CHECKING:
     from PIL import Image as _Image
@@ -255,7 +254,7 @@ def record_acceptance(root: Path, target: str, source: Path, image, destination:
     record = root / "art" / "commissions.md"
     record.parent.mkdir(parents=True, exist_ok=True)
     line = (
-        f"- Accepted {date.today().isoformat()}: `{target}` <- {source.name}, "
+        f"- Accepted {adapters.clock.today().isoformat()}: `{target}` <- {source.name}, "
         f"{image.width}x{image.height}px, placed at {destination.relative_to(root)}"
     )
     if record.is_file():

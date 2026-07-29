@@ -22,12 +22,15 @@ from .production import (
     HttpError,
     OsEnvironment,
     SubprocessRunner,
+    SystemClock,
     UrllibImageClient,
+    clock,
     environment,
     image_client,
     process_runner,
 )
 from .protocols import (
+    Clock,
     Environment,
     HttpImageClient,
     OutputChannel,
@@ -50,14 +53,17 @@ __all__ = [
     "OutputChannel",
     "SpawnedProcess",
     "Spawn",
+    "Clock",
     # production adapters + singletons
     "SubprocessRunner",
     "OsEnvironment",
     "UrllibImageClient",
+    "SystemClock",
     "HttpError",
     "process_runner",
     "environment",
     "image_client",
+    "clock",
     "default_spawn",
     # retry
     "RetryBudget",

@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import urllib.error
 import urllib.request
+from datetime import date, datetime, timezone
 from typing import Any, Mapping, Sequence
 
 from ..results import ToolError
@@ -110,6 +111,21 @@ class OsEnvironment:
         os.environ.pop(key, None)
 
 
+class SystemClock:
+    """Reads the real wall-calendar date. The production ``Clock``."""
+
+    def today(self) -> date:
+        return date.today()
+
+    def now(self) -> datetime:
+        return datetime.now(timezone.utc)
+
+    def monotonic(self) -> float:
+        import time
+
+        return time.monotonic()
+
+
 class UrllibImageClient:
     """POSTs to image-generation APIs with ``urllib``. The production
     ``HttpImageClient``."""
@@ -140,3 +156,4 @@ class UrllibImageClient:
 process_runner = SubprocessRunner()
 environment = OsEnvironment()
 image_client = UrllibImageClient()
+clock = SystemClock()

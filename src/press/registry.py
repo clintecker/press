@@ -129,15 +129,15 @@ def build_order(targets: list[str]) -> list[str]:
 def build(name: str) -> None:
     """Build an artifact and everything it stands on, dependency-first."""
 
-    import time
+    from . import adapters
 
     timings: list[tuple[str, float]] = []
     for step in build_order([name]):
         if not condition_holds(ARTIFACTS[step]):
             continue
-        started = time.monotonic()
+        started = adapters.clock.monotonic()
         _execute(step)
-        timings.append((step, time.monotonic() - started))
+        timings.append((step, adapters.clock.monotonic() - started))
     ran = [(step, elapsed) for step, elapsed in timings if elapsed >= 0.05]
     if len(ran) > 1:
         total = sum(elapsed for _, elapsed in timings)

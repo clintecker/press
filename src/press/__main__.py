@@ -221,8 +221,6 @@ def _run_onix(args: list[str]) -> int:
     metadata a distributor ingests. A book with no ISBN still gets an honest
     record to inspect; a `--forthcoming` flag marks the publishing status."""
 
-    import datetime
-
     from . import onix, registrations
 
     book = booklib.book()
@@ -231,7 +229,7 @@ def _run_onix(args: list[str]) -> int:
     editions = onix.editions_for(book, print_isbn, epub_isbn)
     lang = booklib.metadata().get("lang")
     sender = book.publisher or "press"
-    sent = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M")
+    sent = adapters.clock.now().strftime("%Y%m%dT%H%M")
     status = "02" if "--forthcoming" in args else "04"
     xml = onix.build(book, editions, lang=lang, sent=sent, sender=sender, status=status)
 
