@@ -166,34 +166,33 @@ def _data_dir(name: str) -> Path:
     return booklib.DATA / name
 
 
-def conformance(manifest: Manifest, reserved: set[str] | None = None) -> list[str]:
-    """The policy gate. Return the reasons this manifest is refused, most
-    important first; an empty list means it conforms. Every reason names the
-    exact declaration at fault so a failure is locatable, never a bare
-    'invalid extension'."""
+def _surface_problems(manifest: Manifest) -> list[str]:
+    """The contract major, kind, and publication policy must each name a
+    value this press understands."""
 
-    reserved = core_names() if reserved is None else reserved
     problems: list[str] = []
-
     if manifest.contract_major not in SUPPORTED_CONTRACT_MAJORS:
         supported = ", ".join(str(m) for m in SUPPORTED_CONTRACT_MAJORS)
         problems.append(
             f"targets extension contract major {manifest.contract_major}; "
             f"this press supports {{{supported}}}"
         )
-
     if manifest.kind not in KINDS:
         problems.append(
             f"kind {manifest.kind!r} is not an extensible surface (one of: {', '.join(KINDS)})"
         )
-
     if manifest.publication not in PUBLICATION:
         problems.append(
             f"publication {manifest.publication!r} must be one of: {', '.join(PUBLICATION)}"
         )
+    return problems
 
-    # A provided name may not collide with a core name or with another name
-    # this same manifest claims. Collision is decided before any build.
+
+def _provides_problems(manifest: Manifest, reserved: set[str]) -> list[str]:
+    """A provided name may not collide with a core name or with another name
+    this same manifest claims. Collision is decided before any build."""
+
+    problems: list[str] = []
     seen: set[str] = set()
     for name in manifest.provides:
         if name in reserved:
@@ -201,23 +200,39 @@ def conformance(manifest: Manifest, reserved: set[str] | None = None) -> list[st
         if name in seen:
             problems.append(f"provides {name!r} more than once")
         seen.add(name)
+    return problems
 
-    # A dependency must resolve to something knowable now: a core name or a
-    # name this manifest itself provides. An ambient, hope-it-loads dependency
-    # is refused so discovery order cannot decide behavior.
-    knowable = reserved | set(manifest.provides)
+
+def _requires_problems(manifest: Manifest, knowable: set[str]) -> list[str]:
+    """A dependency must resolve to something knowable now: a core name or a
+    name this manifest itself provides. An ambient, hope-it-loads dependency
+    is refused so discovery order cannot decide behavior."""
+
+    problems: list[str] = []
     for name in manifest.requires:
         if name not in knowable:
             problems.append(f"requires {name!r}, which is neither a core name nor provided here")
+    return problems
 
-    # Every invariant an extension takes on must carry a proof. An obligation
-    # without a proof is exactly the invisible weakening the seal forbids.
+
+def _invariant_problems(manifest: Manifest) -> list[str]:
+    """Every invariant an extension takes on must carry a proof. An obligation
+    without a proof is exactly the invisible weakening the seal forbids."""
+
+    problems: list[str] = []
     proofs = [p for p in manifest.proofs if p and p != "none"]
     if manifest.invariants and not proofs:
         problems.append(
             f"declares invariants ({', '.join(manifest.invariants)}) but names no proof for them"
         )
+    return problems
 
+
+def _capability_problems(manifest: Manifest) -> list[str]:
+    """A manifest may depend on a sealed capability but never claim to provide
+    or replace one."""
+
+    problems: list[str] = []
     sealed = [c for c in manifest.capabilities if c in SEALED_CAPABILITIES]
     for capability in sealed:
         problems.append(
@@ -225,7 +240,23 @@ def conformance(manifest: Manifest, reserved: set[str] | None = None) -> list[st
             "containment, the artifact graph, and the release gate cannot be "
             "provided or replaced by an extension"
         )
+    return problems
 
+
+def conformance(manifest: Manifest, reserved: set[str] | None = None) -> list[str]:
+    """The policy gate. Return the reasons this manifest is refused, most
+    important first; an empty list means it conforms. Every reason names the
+    exact declaration at fault so a failure is locatable, never a bare
+    'invalid extension'."""
+
+    reserved = core_names() if reserved is None else reserved
+    knowable = reserved | set(manifest.provides)
+    problems: list[str] = []
+    problems += _surface_problems(manifest)
+    problems += _provides_problems(manifest, reserved)
+    problems += _requires_problems(manifest, knowable)
+    problems += _invariant_problems(manifest)
+    problems += _capability_problems(manifest)
     return problems
 
 

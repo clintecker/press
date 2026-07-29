@@ -68,6 +68,22 @@ def build_prompt(style: dict, ctx: dict[str, str]) -> str:
     return prompt
 
 
+def _resolve_subject(meta: dict, cover: dict, subject: str) -> str:
+    """The cover imagery is drawn from the book's subject. Prefer an explicit
+    --subject, then a cover.subject the aesthetic states, then the book's own
+    description (its subject in the author's words) or the cover.emblem it
+    describes -- so a book that says what it is about gets that on its cover,
+    instead of the literal "the book's subject" that made the model invent
+    generic motifs. The literal remains only when a book states nothing."""
+    return (
+        subject
+        or str(cover.get("subject") or "").strip()
+        or str(meta.get("description") or "").strip()
+        or str(cover.get("emblem") or "").strip()
+        or "the book's subject"
+    )
+
+
 def context(meta: dict, aes: dict, subject: str = "") -> dict[str, str]:
     """The fill context for one book, from its metadata and effective
     aesthetic. An explicit ``subject`` overrides the aesthetic's."""
@@ -75,19 +91,7 @@ def context(meta: dict, aes: dict, subject: str = "") -> dict[str, str]:
     imprint = str(meta.get("publisher") or "")
     palette = aes.get("web-palette") or aes
     cover = aes.get("cover") or {}
-    # The cover imagery is drawn from the book's subject. Prefer an explicit
-    # --subject, then a cover.subject the aesthetic states, then the book's own
-    # description (its subject in the author's words) or the cover.emblem it
-    # describes -- so a book that says what it is about gets that on its cover,
-    # instead of the literal "the book's subject" that made the model invent
-    # generic motifs. The literal remains only when a book states nothing.
-    resolved_subject = (
-        subject
-        or str(cover.get("subject") or "").strip()
-        or str(meta.get("description") or "").strip()
-        or str(cover.get("emblem") or "").strip()
-        or "the book's subject"
-    )
+    resolved_subject = _resolve_subject(meta, cover, subject)
     return {
         "title": str(meta.get("title") or ""),
         "author": str(authors[0] if authors else ""),

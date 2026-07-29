@@ -320,37 +320,41 @@ def _reader_page_title(html_text: str) -> str:
     return html_mod.unescape(match.group(1).strip()) if match else ""
 
 
-def _reader_jsonld(
-    book,
-    is_index: bool,
-    page_title: str,
-    canonical: str,
-    read_base: str,
-    desc: str,
-    has_cover: bool,
-):
-    """The structured node for one reader page: a Book on the index (consistent
-    with the landing's identity), an Article that isPartOf that Book on a
-    chapter, plus a BreadcrumbList when there is a public base to point at."""
+def _reader_identity(book) -> dict:
+    """The Book identity shared by the index node and every chapter's
+    ``isPartOf``: title, language, and (when known) author and publisher."""
 
     identity: dict = {"@type": "Book", "name": book.title, "inLanguage": "en"}
     if book.authors:
         identity["author"] = [{"@type": "Person", "name": a} for a in book.authors]
     if book.publisher:
         identity["publisher"] = {"@type": "Organization", "name": book.publisher}
+    return identity
 
-    if is_index:
-        node = dict(identity)
-        node["@context"] = "https://schema.org"
-        if desc:
-            node["description"] = desc
-        if book.year:
-            node["datePublished"] = book.year
-        if canonical:
-            node["url"] = canonical
-        if canonical and has_cover:
-            node["image"] = read_base + "cover.jpg"
-        return node
+
+def _reader_index_node(
+    book, identity: dict, canonical: str, read_base: str, desc: str, has_cover: bool
+) -> dict:
+    """The index page's Book node, consistent with the landing's identity."""
+
+    node = dict(identity)
+    node["@context"] = "https://schema.org"
+    if desc:
+        node["description"] = desc
+    if book.year:
+        node["datePublished"] = book.year
+    if canonical:
+        node["url"] = canonical
+    if canonical and has_cover:
+        node["image"] = read_base + "cover.jpg"
+    return node
+
+
+def _reader_article_node(
+    book, identity: dict, page_title: str, canonical: str, read_base: str, desc: str
+):
+    """A chapter's Article node (isPartOf the Book), plus a BreadcrumbList
+    when there is a public base to point at."""
 
     article: dict = {
         "@context": "https://schema.org",
@@ -386,6 +390,25 @@ def _reader_jsonld(
         ],
     }
     return [article, breadcrumb]
+
+
+def _reader_jsonld(
+    book,
+    is_index: bool,
+    page_title: str,
+    canonical: str,
+    read_base: str,
+    desc: str,
+    has_cover: bool,
+):
+    """The structured node for one reader page: a Book on the index (consistent
+    with the landing's identity), an Article that isPartOf that Book on a
+    chapter, plus a BreadcrumbList when there is a public base to point at."""
+
+    identity = _reader_identity(book)
+    if is_index:
+        return _reader_index_node(book, identity, canonical, read_base, desc, has_cover)
+    return _reader_article_node(book, identity, page_title, canonical, read_base, desc)
 
 
 def inject_reader_metadata(site_dir: Path, book) -> None:
@@ -628,21 +651,28 @@ def landing_head_metadata(
     )
 
 
-def _prepare_pages_output(root: Path, output_dir: str) -> Path:
-    """Empty and recreate the pages output directory, returning its path."""
+def pages_build(output_dir: str) -> None:
+    """Assemble the GitHub Pages site: landing page, chapters, downloads.
 
+    Every fact on the landing page derives from metadata and the
+    artifacts actually produced; optional blocks render only when their
+    asset or config exists, and all metadata is HTML-escaped.
+    """
+
+    import html as html_mod
+
+    from . import webmeta
+
+    root = booklib.root()
     out = root / output_dir
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
-    return out
 
-
-def _edition_rows(trim_text: str) -> list[str]:
-    """The download table's rows: the chapter edition first, then one row per
-    available download that `_edition_row` recognises."""
-
-    import html as html_mod
+    meta = booklib.metadata()
+    title = html_mod.escape(str(meta["title"]))
+    trim = meta.get("trim") or {}
+    trim_text = f"{trim.get('width', 6):g} by {trim.get('height', 9):g} inches"
 
     rows = [
         '    <tr><td><a href="read/index.html">Chapter edition</a></td>\n'
@@ -659,77 +689,37 @@ def _edition_rows(trim_text: str) -> list[str]:
             f"{label}</a></td>\n"
             f'        <td class="desc">{html_mod.escape(description)}</td></tr>'
         )
-    return rows
 
-
-def _cover_block(root: Path, title: str) -> str:
-    """The landing hero's cover plate, or empty when the book has no cover."""
-
-    if not (root / "assets" / "cover.jpg").is_file():
-        return ""
-    return (
-        '    <div class="cover-plate">\n'
-        f'      <a href="read/index.html"><img src="cover.jpg" '
-        f'alt="Cover of {title}"></a>\n'
-        "    </div>"
-    )
-
-
-def _logo_block(root: Path) -> str:
-    """The imprint device, or empty when the book carries no press logo."""
-
-    import html as html_mod
-
-    if not (root / "assets" / "press-logo.png").is_file():
-        return ""
-    publisher = html_mod.escape(booklib.book().publisher)
-    return f'    <img class="press-logo" src="press-logo.png" alt="Imprint device of {publisher}">'
-
-
-def _repo_paragraph(meta) -> str:
-    """The provenance paragraph, or empty when no repository is declared."""
-
-    import html as html_mod
-
+    cover_block = ""
+    if (root / "assets" / "cover.jpg").is_file():
+        cover_block = (
+            '    <div class="cover-plate">\n'
+            f'      <a href="read/index.html"><img src="cover.jpg" '
+            f'alt="Cover of {title}"></a>\n'
+            "    </div>"
+        )
+    logo_block = ""
+    if (root / "assets" / "press-logo.png").is_file():
+        publisher = html_mod.escape(booklib.book().publisher)
+        logo_block = (
+            f'    <img class="press-logo" src="press-logo.png" alt="Imprint device of {publisher}">'
+        )
+    repo_paragraph = ""
     repository = str(meta.get("repository") or "")
-    if not repository:
-        return ""
-    repo = html_mod.escape(repository)
-    return (
-        "    <p>The source lives in "
-        f'<a href="{repo}">a public build system</a>; versions and their\n'
-        f'    contents are recorded in the <a href="{repo}/blob/main/CHANGELOG.md">changelog</a>,\n'
-        f'    and finished releases live on the <a href="{repo}/releases">releases page</a>.</p>'
-    )
+    if repository:
+        repo = html_mod.escape(repository)
+        repo_paragraph = (
+            "    <p>The source lives in "
+            f'<a href="{repo}">a public build system</a>; versions and their\n'
+            f'    contents are recorded in the <a href="{repo}/blob/main/CHANGELOG.md">changelog</a>,\n'
+            f'    and finished releases live on the <a href="{repo}/releases">releases page</a>.</p>'
+        )
 
-
-def _apply_extra_css(page: str, root: Path) -> str:
-    """Fold the book's optional `assets/web/extra.css` into the page head."""
-
-    extra = root / "assets" / "web" / "extra.css"
-    if not extra.is_file():
-        return page
-    overrides = (
-        "<style>\n/* assets/web/extra.css */\n"
-        + extra.read_text(encoding="utf-8")
-        + "\n</style>\n</head>"
-    )
-    return page.replace("</head>", overrides, 1)
-
-
-def _render_landing_index(out: Path, root: Path, meta) -> None:
-    """Render the landing page from the template and write index.html."""
-
-    import html as html_mod
-
-    from . import aesthetic
     from . import commerce as commerce_mod
-    from . import webmeta
 
-    title = html_mod.escape(str(meta["title"]))
-    trim = meta.get("trim") or {}
-    trim_text = f"{trim.get('width', 6):g} by {trim.get('height', 9):g} inches"
+    commerce_block = commerce_mod.render(commerce_mod.load(meta))
 
+    template = (booklib.DATA / "web" / "index-template.html").read_text(encoding="utf-8")
     has_cover = (root / "assets" / "cover.jpg").is_file()
     head_meta = landing_head_metadata(
         booklib.book(),
@@ -742,26 +732,36 @@ def _render_landing_index(out: Path, root: Path, meta) -> None:
         "{{DESCRIPTION}}": html_mod.escape(str(meta.get("description", "")).strip()),
         "{{HEAD_META}}": head_meta,
         "{{SUBTITLE_STACK}}": subtitle_stack_html(str(meta.get("subtitle") or "")),
-        "{{COVER_BLOCK}}": _cover_block(root, title),
-        "{{COMMERCE_BLOCK}}": commerce_mod.render(commerce_mod.load(meta)),
-        "{{EDITION_ROWS}}": "\n".join(_edition_rows(trim_text)),
-        "{{REPO_PARAGRAPH}}": _repo_paragraph(meta),
-        "{{LOGO_BLOCK}}": _logo_block(root),
+        "{{COVER_BLOCK}}": cover_block,
+        "{{COMMERCE_BLOCK}}": commerce_block,
+        "{{EDITION_ROWS}}": "\n".join(rows),
+        "{{REPO_PARAGRAPH}}": repo_paragraph,
+        "{{LOGO_BLOCK}}": logo_block,
         "{{DATE}}": html_mod.escape(booklib.book().date),
         "{{COPYRIGHT}}": html_mod.escape(booklib.book().copyright),
         "{{PUBLISHER}}": html_mod.escape(booklib.book().publisher),
         "{{PLACE}}": html_mod.escape(booklib.book().publisher_place),
     }
-    page = (booklib.DATA / "web" / "index-template.html").read_text(encoding="utf-8")
+    page = template
     for key, value in replacements.items():
         page = page.replace(key, value)
+    from . import aesthetic
+
     page = aesthetic.substitute_web(page)
-    page = _apply_extra_css(page, root)
+    extra = root / "assets" / "web" / "extra.css"
+    if extra.is_file():
+        overrides = (
+            "<style>\n/* assets/web/extra.css */\n"
+            + extra.read_text(encoding="utf-8")
+            + "\n</style>\n</head>"
+        )
+        page = page.replace("</head>", overrides, 1)
     (out / "index.html").write_text(webmeta.label_table_cells(page), encoding="utf-8")
 
-
-def _copy_pages_assets(root: Path, out: Path) -> None:
-    """Copy the optional cover/logo, any woodcuts, and the reader edition."""
+    # Generate the support/privacy/returns pages the CTA links to but the
+    # publisher did not host themselves (#151), so every policy link
+    # resolves to an honest page the book owns.
+    _write_policy_pages(out, meta, booklib.book())
 
     for optional in ("cover.jpg", "press-logo.png"):
         source = root / "assets" / optional
@@ -771,11 +771,6 @@ def _copy_pages_assets(root: Path, out: Path) -> None:
     if woodcuts.is_dir():
         shutil.copytree(woodcuts, out / "woodcuts")
     shutil.copytree(root / "dist" / "site", out / "read")
-
-
-def _copy_downloads(root: Path, out: Path) -> None:
-    """Copy every declared download into downloads/, refusing silent gaps."""
-
     downloads = out / "downloads"
     downloads.mkdir()
     for name in download_names():
@@ -786,27 +781,6 @@ def _copy_downloads(root: Path, out: Path) -> None:
                 "(silent gaps in the public downloads are not allowed)"
             )
         shutil.copy(source, downloads / name)
-
-
-def pages_build(output_dir: str) -> None:
-    """Assemble the GitHub Pages site: landing page, chapters, downloads.
-
-    Every fact on the landing page derives from metadata and the
-    artifacts actually produced; optional blocks render only when their
-    asset or config exists, and all metadata is HTML-escaped.
-    """
-
-    root = booklib.root()
-    out = _prepare_pages_output(root, output_dir)
-    meta = booklib.metadata()
-
-    _render_landing_index(out, root, meta)
-    # Generate the support/privacy/returns pages the CTA links to but the
-    # publisher did not host themselves (#151), so every policy link
-    # resolves to an honest page the book owns.
-    _write_policy_pages(out, meta, booklib.book())
-    _copy_pages_assets(root, out)
-    _copy_downloads(root, out)
     _write_book_sitemap(out, booklib.book())
     print(f"+ assembled pages site -> {output_dir}")
 

@@ -84,7 +84,7 @@ modules:
       normalize_reference: normalizer
       parse_commissions: parser
       shape_for: pure
-    pin: "f2f05e5d1d58"
+    pin: "48fa5f9650fc"
     role: adapter
     status: ratified
   art_enhance:
@@ -130,7 +130,7 @@ modules:
       download_names: pure
       run: adapter
       subtitle_stack_html: pure
-    pin: "5198dabc975d"
+    pin: "cd95d19676e4"
     role: producer
     status: ratified
   catalog:
@@ -146,7 +146,7 @@ modules:
     role: verifier
     status: ratified
   check_the_checkers:
-    pin: "00ee4e79b875"
+    pin: "d5a172a0a908"
     role: verifier
     status: ratified
   commerce:
@@ -182,7 +182,7 @@ modules:
       build_prompt: pure
       load_styles: adapter
       main: presenter
-    pin: "bcb31f197de6"
+    pin: "23ed923f75a2"
     role: pure
     status: ratified
   desk:
@@ -254,14 +254,14 @@ modules:
       core_names: adapter
       load_manifest: parser
       load_manifest_file: parser
-    pin: "39356af5f5aa"
+    pin: "12dde2a3bad5"
     role: pure
     status: ratified
   figures:
     overrides:
       as_dict: pure
       main: presenter
-    pin: "1c42fadc4ebb"
+    pin: "63f71f0efb7e"
     role: parser
     status: ratified
   gen_authorities:
@@ -443,7 +443,7 @@ modules:
   publish:
     overrides:
       verify_retail: orchestrator
-    pin: "7713ab7a70ab"
+    pin: "3f9433d14a33"
     role: orchestrator
     status: ratified
   qualification:
@@ -473,7 +473,7 @@ modules:
     role: verifier
     status: ratified
   registrations:
-    pin: "c4df24e27024"
+    pin: "248ea2faf5aa"
     role: parser
     status: ratified
   registry:
@@ -566,7 +566,7 @@ modules:
     role: verifier
     status: ratified
   webmeta:
-    pin: "cd528babda13"
+    pin: "946a1c55ee3f"
     role: pure
     status: ratified
   wordcount:

@@ -74,6 +74,23 @@ def shape_for(target: str, prompt: str) -> tuple[tuple, tuple]:
     return SHAPES[key]
 
 
+def _record_prompt(
+    prompts: dict[str, str], section: str | None, plate: str | None, prompt: str
+) -> None:
+    """File a completed fenced prompt under its target, keyed by section."""
+
+    if not prompt or section is None:
+        return
+    if section.startswith("cover"):
+        prompts.setdefault("cover", prompt)
+    elif section.startswith("plates") and plate:
+        prompts.setdefault(f"plate:{plate}", prompt)
+    elif section.startswith("logomark"):
+        prompts.setdefault("logomark", prompt)
+    elif section.startswith("author portrait"):
+        prompts.setdefault("portrait", prompt)
+
+
 def parse_commissions(path: Path) -> dict[str, str]:
     """target -> prompt, from the workflow's commissions.md structure."""
 
@@ -94,18 +111,8 @@ def parse_commissions(path: Path) -> dict[str, str]:
             if fence is None:
                 fence = []
             else:
-                prompt = "\n".join(fence).strip()
+                _record_prompt(prompts, section, plate, "\n".join(fence).strip())
                 fence = None
-                if not prompt or section is None:
-                    continue
-                if section.startswith("cover"):
-                    prompts.setdefault("cover", prompt)
-                elif section.startswith("plates") and plate:
-                    prompts.setdefault(f"plate:{plate}", prompt)
-                elif section.startswith("logomark"):
-                    prompts.setdefault("logomark", prompt)
-                elif section.startswith("author portrait"):
-                    prompts.setdefault("portrait", prompt)
         elif fence is not None:
             fence.append(line)
     if not prompts:
@@ -295,69 +302,6 @@ LIKENESS_PREAMBLE = (
 )
 
 
-def _resolve_photo(root: Path, photo_path: str | None) -> tuple[bytes, str] | None:
-    """The portrait reference image: an explicit --photo when given (relative
-    paths resolve against the book root), otherwise art/author-photo.*."""
-
-    if not photo_path:
-        return author_photo(root)
-    chosen_photo = Path(photo_path)
-    if not chosen_photo.is_absolute():
-        chosen_photo = root / chosen_photo
-    if not chosen_photo.is_file():
-        raise SystemExit(f"no such photograph: {chosen_photo}")
-    return normalize_reference(chosen_photo.read_bytes(), chosen_photo), "image/jpeg"
-
-
-def _references_for(
-    root: Path, target: str, prompt: str, photo: tuple[bytes, str] | None
-) -> tuple[list[tuple[bytes, str]], str]:
-    """Reference images and the (possibly preamble-prefixed) prompt for one
-    target: the author photograph for a portrait, else accepted plates."""
-
-    if target == "portrait" and photo:
-        print(f"  {target}: engraving the supplied author photograph")
-        return [photo], LIKENESS_PREAMBLE + prompt
-    references = style_references(root, target)
-    if references:
-        print(f"  {target}: holding to {len(references)} accepted plate(s)")
-        return references, STYLE_PREAMBLE + prompt
-    return references, prompt
-
-
-def _generate(
-    model: str,
-    prompt: str,
-    openai_spec: tuple,
-    gemini_spec: tuple,
-    count: int,
-    references: list[tuple[bytes, str]],
-) -> list[bytes]:
-    """Dispatch one target/model pair to the matching image backend."""
-
-    if model == "openai":
-        return generate_openai(prompt, openai_spec, count, references)
-    return generate_gemini(prompt, gemini_spec, count, references)
-
-
-def _save_candidates(
-    directory: Path, root: Path, target: str, model: str, images: list[bytes]
-) -> int:
-    """Write returned images under candidates/<target>/ without overwriting an
-    existing candidate; return how many were saved."""
-
-    saved = 0
-    index = 1
-    for blob in images:
-        while (directory / f"{model}-{index}.png").exists():
-            index += 1
-        out = directory / f"{model}-{index}.png"
-        out.write_bytes(blob)
-        print(f"  {target} <- {model}: {out.relative_to(root)} ({len(blob) // 1024}kB)")
-        saved += 1
-    return saved
-
-
 def commission(
     targets: list[str], models: list[str], count: int, photo_path: str | None = None
 ) -> int:
@@ -370,19 +314,50 @@ def commission(
     plan = ", ".join(f"{t} -> {'+'.join(models)}" for t in chosen)
     print(f"submitting {len(chosen)} commissions ({count} image(s) each): {plan}")
 
-    photo = _resolve_photo(root, photo_path)
+    if photo_path:
+        chosen_photo = Path(photo_path)
+        if not chosen_photo.is_absolute():
+            chosen_photo = root / chosen_photo
+        if not chosen_photo.is_file():
+            raise SystemExit(f"no such photograph: {chosen_photo}")
+        photo: tuple[bytes, str] | None = (
+            normalize_reference(chosen_photo.read_bytes(), chosen_photo),
+            "image/jpeg",
+        )
+    else:
+        photo = author_photo(root)
     saved = 0
     for target, prompt in chosen.items():
         openai_spec, gemini_spec = shape_for(target, prompt)
-        references, prompt = _references_for(root, target, prompt, photo)
+        references: list[tuple[bytes, str]] = []
+        if target == "portrait" and photo:
+            references = [photo]
+            prompt = LIKENESS_PREAMBLE + prompt
+            print(f"  {target}: engraving the supplied author photograph")
+        else:
+            references = style_references(root, target)
+            if references:
+                prompt = STYLE_PREAMBLE + prompt
+                print(f"  {target}: holding to {len(references)} accepted plate(s)")
         directory = root / "art" / "candidates" / target.replace(":", "-")
         directory.mkdir(parents=True, exist_ok=True)
         for model in models:
-            images = _generate(model, prompt, openai_spec, gemini_spec, count, references)
+            images = (
+                generate_openai(prompt, openai_spec, count, references)
+                if model == "openai"
+                else generate_gemini(prompt, gemini_spec, count, references)
+            )
             if not images:
                 print(f"  {target} <- {model}: no image returned")
                 continue
-            saved += _save_candidates(directory, root, target, model, images)
+            index = 1
+            for blob in images:
+                while (directory / f"{model}-{index}.png").exists():
+                    index += 1
+                out = directory / f"{model}-{index}.png"
+                out.write_bytes(blob)
+                print(f"  {target} <- {model}: {out.relative_to(root)} ({len(blob) // 1024}kB)")
+                saved += 1
     if saved == 0:
         raise SystemExit("no images were produced")
     print(

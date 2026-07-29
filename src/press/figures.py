@@ -150,14 +150,24 @@ class Figure:
         return self.kind_declared and self.kind in NUMBERED_KINDS and not self.decorative
 
 
-def _parse_attrs(attrs: str) -> dict[str, object]:
-    """The kind, style, identifier, and placement vocabulary out of a pandoc
-    attribute string. A bare image with no attributes is a ``figure`` with no
-    style and no declared kind."""
+def _attr_token_value(match: re.Match[str]) -> str:
+    """The value of a ``key=value`` attribute token, whichever quoting the
+    author used (double, single, or bare)."""
+
+    value = match.group("qv")
+    if value is None:
+        value = match.group("sv")
+    if value is None:
+        value = match.group("uv") or ""
+    return value
+
+
+def _scan_attr_tokens(attrs: str) -> tuple[str | None, str | None, dict[str, str]]:
+    """The #id, the first .class (the kind), and every ``key=value`` pair from
+    a pandoc attribute string, in one pass over its tokens."""
 
     identifier: str | None = None
     kind: str | None = None
-    style: str | None = None
     keys: dict[str, str] = {}
     for match in _ATTR_TOKEN.finditer(attrs):
         if match.group("id"):
@@ -166,12 +176,17 @@ def _parse_attrs(attrs: str) -> dict[str, object]:
             if kind is None:  # the first .class is the kind
                 kind = match.group("cls")
         else:
-            value = match.group("qv")
-            if value is None:
-                value = match.group("sv")
-            if value is None:
-                value = match.group("uv") or ""
-            keys[match.group("key")] = value
+            keys[match.group("key")] = _attr_token_value(match)
+    return identifier, kind, keys
+
+
+def _parse_attrs(attrs: str) -> dict[str, object]:
+    """The kind, style, identifier, and placement vocabulary out of a pandoc
+    attribute string. A bare image with no attributes is a ``figure`` with no
+    style and no declared kind."""
+
+    identifier, kind, keys = _scan_attr_tokens(attrs)
+    style: str | None = None
     if "style" in keys:
         style = keys["style"] or None
     decorative = keys.get("decorative", "").lower() in ("true", "yes", "1")
@@ -218,6 +233,62 @@ def parse(markdown: str) -> list[Figure]:
     return figures
 
 
+def _place_problems(where: str, place: str | None) -> list[str]:
+    """The placement-vocabulary problems for one figure's ``place``: a side
+    outside the grammar, or a left/right side where a parity-aware one belongs."""
+
+    if place is None or place in PLACES:
+        return []
+    if place in ("left", "right", "inner", "outer", "wrap-left", "wrap-right"):
+        return [
+            f"{where}: place={place} is not parity-aware; use "
+            "wrap-inner or wrap-outer, never left/right"
+        ]
+    return [f"{where}: unknown place={place} (use one of {', '.join(PLACES)})"]
+
+
+def _width_problems(where: str, width: str | None, place: str | None) -> list[str]:
+    """The placement-vocabulary problems for one figure's ``width``: an unknown
+    measure, a measure on a place that owns its own geometry, or an absolute
+    length where an in-flow figure takes a relative measure."""
+
+    if width is None:
+        return []
+    if width.endswith("-measure") and width not in MEASURES:
+        return [f"{where}: unknown width measure {width} (use one of {', '.join(MEASURES)})"]
+    if width in MEASURES and place is not None and place not in INFLOW_PLACES:
+        return [
+            f"{where}: a width measure applies to an in-flow figure, "
+            f"not place={place}; a {place} owns its own geometry"
+        ]
+    if _ABSOLUTE_LENGTH.match(width) and place in INFLOW_PLACES:
+        return [
+            f"{where}: width={width} is absolute; an in-flow figure "
+            "takes a relative measure (full-/half-/third-measure)"
+        ]
+    return []
+
+
+def _validate_figure(fig: Figure) -> list[str]:
+    """Every way one figure's placement vocabulary is malformed, as located
+    messages."""
+
+    where = fig.src
+    problems = _place_problems(where, fig.place)
+    problems += _width_problems(where, fig.width, fig.place)
+    if fig.outset is not None and not _RELATIVE_OUTSET.match(fig.outset):
+        problems.append(
+            f"{where}: outset={fig.outset} is not a relative gap; the "
+            "runaround gap is a length in em (e.g. 1em)"
+        )
+    if fig.decorative and fig.alt:
+        problems.append(
+            f"{where}: a decorative image takes an empty alt; drop either "
+            "fig-alt or decorative=true, not both"
+        )
+    return problems
+
+
 def validate(figures: list[Figure]) -> list[str]:
     """Every way a figure's placement vocabulary is malformed, as located
     messages. The vocabulary is relative and parity-aware by law: a ``place``
@@ -228,42 +299,7 @@ def validate(figures: list[Figure]) -> list[str]:
 
     problems: list[str] = []
     for fig in figures:
-        where = fig.src
-        place = fig.place
-        if place is not None and place not in PLACES:
-            if place in ("left", "right", "inner", "outer", "wrap-left", "wrap-right"):
-                problems.append(
-                    f"{where}: place={place} is not parity-aware; use "
-                    "wrap-inner or wrap-outer, never left/right"
-                )
-            else:
-                problems.append(f"{where}: unknown place={place} (use one of {', '.join(PLACES)})")
-        width = fig.width
-        if width is not None:
-            if width.endswith("-measure") and width not in MEASURES:
-                problems.append(
-                    f"{where}: unknown width measure {width} (use one of {', '.join(MEASURES)})"
-                )
-            elif width in MEASURES and place is not None and place not in INFLOW_PLACES:
-                problems.append(
-                    f"{where}: a width measure applies to an in-flow figure, "
-                    f"not place={place}; a {place} owns its own geometry"
-                )
-            elif _ABSOLUTE_LENGTH.match(width) and place in INFLOW_PLACES:
-                problems.append(
-                    f"{where}: width={width} is absolute; an in-flow figure "
-                    "takes a relative measure (full-/half-/third-measure)"
-                )
-        if fig.outset is not None and not _RELATIVE_OUTSET.match(fig.outset):
-            problems.append(
-                f"{where}: outset={fig.outset} is not a relative gap; the "
-                "runaround gap is a length in em (e.g. 1em)"
-            )
-        if fig.decorative and fig.alt:
-            problems.append(
-                f"{where}: a decorative image takes an empty alt; drop either "
-                "fig-alt or decorative=true, not both"
-            )
+        problems += _validate_figure(fig)
     return problems
 
 

@@ -298,18 +298,9 @@ def isbn10_to_isbn13(isbn10: str) -> str:
     return "978" + "".join(core[:9]) + str(barcode.check_digit(twelve))
 
 
-def failures(reg: dict | None = None) -> list[str]:
-    """Every invalid registration, as check-style failure lines. Reads the
-    book's registrations from disk unless a proposed block is passed (the
-    `press config` writer validates its edit before it touches a byte)."""
-
+def _isbn_edition_failures(editions: dict) -> list[str]:
+    """Barcode-validate each non-pending ISBN edition."""
     found: list[str] = []
-    if reg is None:
-        reg = block()
-    try:
-        editions = _isbn_map(reg)
-    except SystemExit as exc:
-        return [str(exc)]
     for edition, value in editions.items():
         text = str(value).strip()
         if text.lower() == PENDING:
@@ -318,13 +309,23 @@ def failures(reg: dict | None = None) -> list[str]:
             barcode.validate(text)
         except SystemExit as exc:
             found.append(f"registrations isbn {edition}: {exc}")
+    return found
+
+
+def _issn_lccn_failures(reg: dict) -> list[str]:
+    """Check the ISSN check digit and LCCN plausibility when present."""
+    found: list[str] = []
     issn = reg.get("issn")
     if issn and str(issn).strip().lower() != PENDING and not issn_valid(str(issn)):
         found.append(f"registrations issn fails its check digit: {issn}")
     lccn = reg.get("lccn")
     if lccn and str(lccn).strip().lower() != PENDING and not lccn_plausible(str(lccn)):
         found.append(f"registrations lccn does not look like an LCCN: {lccn}")
+    return found
 
+
+def _block_spec_failures(reg: dict) -> list[str]:
+    """Validate the ISBN block only when it is complete."""
     conf = reg.get("isbn-block")
     if isinstance(conf, dict) and conf.get("prefix") and conf.get("size") is not None:
         # Validate only a complete block: setting the prefix and size one at a
@@ -332,26 +333,48 @@ def failures(reg: dict | None = None) -> list[str]:
         try:
             _block_spec(conf)
         except SystemExit as exc:
-            found.append(str(exc))
+            return [str(exc)]
+    return []
 
-    if reg.get("retail"):
-        isbns = editions
-        pending = [
-            f"isbn {edition} missing" for edition in ("print", "epub") if edition not in isbns
+
+def _retail_failures(reg: dict, editions: dict) -> list[str]:
+    """Flag a retail edition whose registrations are absent or still pending."""
+    if not reg.get("retail"):
+        return []
+    isbns = editions
+    pending = [f"isbn {edition} missing" for edition in ("print", "epub") if edition not in isbns]
+    pending += [
+        f"isbn {edition}"
+        for edition, value in isbns.items()
+        if str(value).strip().lower() == PENDING
+    ]
+    pending += [
+        name
+        for name in ("issn", "lccn")
+        if reg.get(name) and str(reg[name]).strip().lower() == PENDING
+    ]
+    if pending:
+        return [
+            "retail edition declared while registrations are absent "
+            "or pending: " + ", ".join(pending)
         ]
-        pending += [
-            f"isbn {edition}"
-            for edition, value in isbns.items()
-            if str(value).strip().lower() == PENDING
-        ]
-        pending += [
-            name
-            for name in ("issn", "lccn")
-            if reg.get(name) and str(reg[name]).strip().lower() == PENDING
-        ]
-        if pending:
-            found.append(
-                "retail edition declared while registrations are absent "
-                "or pending: " + ", ".join(pending)
-            )
+    return []
+
+
+def failures(reg: dict | None = None) -> list[str]:
+    """Every invalid registration, as check-style failure lines. Reads the
+    book's registrations from disk unless a proposed block is passed (the
+    `press config` writer validates its edit before it touches a byte)."""
+
+    if reg is None:
+        reg = block()
+    try:
+        editions = _isbn_map(reg)
+    except SystemExit as exc:
+        return [str(exc)]
+    found: list[str] = []
+    found += _isbn_edition_failures(editions)
+    found += _issn_lccn_failures(reg)
+    found += _block_spec_failures(reg)
+    found += _retail_failures(reg, editions)
     return found
