@@ -38,3 +38,11 @@ match = "substring"
 [known_bad_checkers.jargon_lint]
 callable = "press.jargon_lint:diagnostics_for"
 match = "substring"
+
+# Structural budgets. complexity=15 matches press's own deliberate ruff gate
+# ([tool.ruff.lint.mccabe] max-complexity = 15, a completed burndown) rather
+# than celebrimbor's stricter default of 10 -- press is validated by its own
+# standard. The other budgets (file length, params, cohesion) keep celebrimbor's
+# defaults, which press is adopting.
+[limits]
+complexity = 15

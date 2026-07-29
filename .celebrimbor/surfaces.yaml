@@ -84,7 +84,7 @@ modules:
       normalize_reference: normalizer
       parse_commissions: parser
       shape_for: pure
-    pin: "48fa5f9650fc"
+    pin: "ab2ad57bd223"
     role: adapter
     status: ratified
   art_enhance:

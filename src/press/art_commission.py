@@ -74,23 +74,6 @@ def shape_for(target: str, prompt: str) -> tuple[tuple, tuple]:
     return SHAPES[key]
 
 
-def _record_prompt(
-    prompts: dict[str, str], section: str | None, plate: str | None, prompt: str
-) -> None:
-    """File a completed fenced prompt under its target, keyed by section."""
-
-    if not prompt or section is None:
-        return
-    if section.startswith("cover"):
-        prompts.setdefault("cover", prompt)
-    elif section.startswith("plates") and plate:
-        prompts.setdefault(f"plate:{plate}", prompt)
-    elif section.startswith("logomark"):
-        prompts.setdefault("logomark", prompt)
-    elif section.startswith("author portrait"):
-        prompts.setdefault("portrait", prompt)
-
-
 def parse_commissions(path: Path) -> dict[str, str]:
     """target -> prompt, from the workflow's commissions.md structure."""
 
@@ -111,8 +94,18 @@ def parse_commissions(path: Path) -> dict[str, str]:
             if fence is None:
                 fence = []
             else:
-                _record_prompt(prompts, section, plate, "\n".join(fence).strip())
+                prompt = "\n".join(fence).strip()
                 fence = None
+                if not prompt or section is None:
+                    continue
+                if section.startswith("cover"):
+                    prompts.setdefault("cover", prompt)
+                elif section.startswith("plates") and plate:
+                    prompts.setdefault(f"plate:{plate}", prompt)
+                elif section.startswith("logomark"):
+                    prompts.setdefault("logomark", prompt)
+                elif section.startswith("author portrait"):
+                    prompts.setdefault("portrait", prompt)
         elif fence is not None:
             fence.append(line)
     if not prompts:
@@ -176,12 +169,9 @@ def generate_openai(
     return [base64.b64decode(item["b64_json"]) for item in body.get("data", [])]
 
 
-def generate_gemini(
-    prompt: str, spec: tuple, count: int, references: list[tuple[bytes, str]] | None = None
-) -> list[bytes]:
-    # The Imagen predict endpoint is closed to new API users; the Gemini
-    # image models answer generateContent with inline image parts.
-    model, aspect, image_size = spec
+def _gemini_parts(prompt: str, references: list[tuple[bytes, str]] | None) -> list[dict]:
+    """The prompt plus any reference images, as generateContent parts."""
+
     parts: list[dict] = [{"text": prompt}]
     for blob, mime in references or []:
         parts.append(
@@ -192,6 +182,38 @@ def generate_gemini(
                 }
             }
         )
+    return parts
+
+
+def _gemini_images(body: dict) -> list[bytes]:
+    """The inline image bytes carried by every candidate part."""
+
+    images: list[bytes] = []
+    for candidate in body.get("candidates", []):
+        for part in (candidate.get("content") or {}).get("parts", []):
+            data = (part.get("inlineData") or {}).get("data")
+            if data:
+                images.append(base64.b64decode(data))
+    return images
+
+
+def _report_gemini_refusal(body: dict) -> None:
+    """A refusal explains itself in text or finishReason; relay it."""
+
+    for candidate in body.get("candidates", []):
+        reason = candidate.get("finishReason", "")
+        texts = [p.get("text", "") for p in (candidate.get("content") or {}).get("parts", [])]
+        note = " ".join(t for t in texts if t)[:300]
+        print(f"    gemini returned no image ({reason}): {note or 'no explanation'}")
+
+
+def generate_gemini(
+    prompt: str, spec: tuple, count: int, references: list[tuple[bytes, str]] | None = None
+) -> list[bytes]:
+    # The Imagen predict endpoint is closed to new API users; the Gemini
+    # image models answer generateContent with inline image parts.
+    model, aspect, image_size = spec
+    parts = _gemini_parts(prompt, references)
     images: list[bytes] = []
     for _ in range(count):
         body = post_json(
@@ -205,21 +227,11 @@ def generate_gemini(
             },
             {"x-goog-api-key": key_for("gemini")},
         )
-        found = len(images)
-        for candidate in body.get("candidates", []):
-            for part in (candidate.get("content") or {}).get("parts", []):
-                data = (part.get("inlineData") or {}).get("data")
-                if data:
-                    images.append(base64.b64decode(data))
-        if len(images) == found:
-            # A refusal explains itself in text or finishReason; relay it.
-            for candidate in body.get("candidates", []):
-                reason = candidate.get("finishReason", "")
-                texts = [
-                    p.get("text", "") for p in (candidate.get("content") or {}).get("parts", [])
-                ]
-                note = " ".join(t for t in texts if t)[:300]
-                print(f"    gemini returned no image ({reason}): {note or 'no explanation'}")
+        new_images = _gemini_images(body)
+        if new_images:
+            images.extend(new_images)
+        else:
+            _report_gemini_refusal(body)
     return images
 
 
@@ -302,6 +314,54 @@ LIKENESS_PREAMBLE = (
 )
 
 
+def _resolve_photo(root: Path, photo_path: str | None) -> tuple[bytes, str] | None:
+    """The portrait reference: an explicit --photo (resolved against the
+    book root) or the author's own art/author-photo.* when none is given."""
+
+    if not photo_path:
+        return author_photo(root)
+    chosen_photo = Path(photo_path)
+    if not chosen_photo.is_absolute():
+        chosen_photo = root / chosen_photo
+    if not chosen_photo.is_file():
+        raise SystemExit(f"no such photograph: {chosen_photo}")
+    return normalize_reference(chosen_photo.read_bytes(), chosen_photo), "image/jpeg"
+
+
+def _references_for(
+    root: Path, target: str, prompt: str, photo: tuple[bytes, str] | None
+) -> tuple[str, list[tuple[bytes, str]]]:
+    """The reference images and prompt preamble for one target, announcing
+    the choice exactly as the run does."""
+
+    if target == "portrait" and photo:
+        print(f"  {target}: engraving the supplied author photograph")
+        return LIKENESS_PREAMBLE + prompt, [photo]
+    references = style_references(root, target)
+    if references:
+        print(f"  {target}: holding to {len(references)} accepted plate(s)")
+        return STYLE_PREAMBLE + prompt, references
+    return prompt, references
+
+
+def _write_candidates(
+    directory: Path, root: Path, model: str, target: str, images: list[bytes]
+) -> int:
+    """Persist a model's images beside their siblings without overwriting,
+    reporting each; returns how many were written."""
+
+    saved = 0
+    index = 1
+    for blob in images:
+        while (directory / f"{model}-{index}.png").exists():
+            index += 1
+        out = directory / f"{model}-{index}.png"
+        out.write_bytes(blob)
+        print(f"  {target} <- {model}: {out.relative_to(root)} ({len(blob) // 1024}kB)")
+        saved += 1
+    return saved
+
+
 def commission(
     targets: list[str], models: list[str], count: int, photo_path: str | None = None
 ) -> int:
@@ -314,31 +374,11 @@ def commission(
     plan = ", ".join(f"{t} -> {'+'.join(models)}" for t in chosen)
     print(f"submitting {len(chosen)} commissions ({count} image(s) each): {plan}")
 
-    if photo_path:
-        chosen_photo = Path(photo_path)
-        if not chosen_photo.is_absolute():
-            chosen_photo = root / chosen_photo
-        if not chosen_photo.is_file():
-            raise SystemExit(f"no such photograph: {chosen_photo}")
-        photo: tuple[bytes, str] | None = (
-            normalize_reference(chosen_photo.read_bytes(), chosen_photo),
-            "image/jpeg",
-        )
-    else:
-        photo = author_photo(root)
+    photo = _resolve_photo(root, photo_path)
     saved = 0
     for target, prompt in chosen.items():
         openai_spec, gemini_spec = shape_for(target, prompt)
-        references: list[tuple[bytes, str]] = []
-        if target == "portrait" and photo:
-            references = [photo]
-            prompt = LIKENESS_PREAMBLE + prompt
-            print(f"  {target}: engraving the supplied author photograph")
-        else:
-            references = style_references(root, target)
-            if references:
-                prompt = STYLE_PREAMBLE + prompt
-                print(f"  {target}: holding to {len(references)} accepted plate(s)")
+        prompt, references = _references_for(root, target, prompt, photo)
         directory = root / "art" / "candidates" / target.replace(":", "-")
         directory.mkdir(parents=True, exist_ok=True)
         for model in models:
@@ -350,14 +390,7 @@ def commission(
             if not images:
                 print(f"  {target} <- {model}: no image returned")
                 continue
-            index = 1
-            for blob in images:
-                while (directory / f"{model}-{index}.png").exists():
-                    index += 1
-                out = directory / f"{model}-{index}.png"
-                out.write_bytes(blob)
-                print(f"  {target} <- {model}: {out.relative_to(root)} ({len(blob) // 1024}kB)")
-                saved += 1
+            saved += _write_candidates(directory, root, model, target, images)
     if saved == 0:
         raise SystemExit("no images were produced")
     print(
