@@ -58,7 +58,7 @@ MANIFESTS = {
     "invariants": ROOT / "quality" / "invariants.yaml",
     "fixtures": ROOT / "quality" / "fixtures.yaml",
     "scenarios": ROOT / "quality" / "scenarios.yaml",
-    "surfaces": ROOT / "quality" / "surfaces.yaml",
+    "surfaces": ROOT / ".celebrimbor" / "surfaces.yaml",
 }
 
 

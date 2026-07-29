@@ -1160,4 +1160,13 @@ invariants:
     layers:
     - pytest
     risk: A stale artifact could be checked off as verified and sent to a print channel.
+  INV-mutation-deterministic:
+    statement: The mutation engine enumerates every mutable operator in a pure module exactly once and applies exactly one edit per mutant.
+    enforced_by: mutation:survivors
+    negative_proof: tests/test_mutation.py::test_apply_mutates_exactly_one_site_and_leaves_the_rest
+    owner: mutation
+    criticality: standard
+    layers:
+    - pytest
+    risk: A missed operator or a mis-applied edit would let a real logic change survive untested, silently weakening the ratchet.
 version: 1

@@ -14,19 +14,7 @@ from __future__ import annotations
 
 import pytest
 
-from press import invariants, receipts, surfaces
-
-
-def test_sabotage_unclassified_function_reddens_surface_gate(monkeypatch):
-    """Add a public callable the classification does not cover: the
-    surface inventory must fail."""
-
-    real = surfaces.public_callables
-    monkeypatch.setattr(
-        surfaces, "public_callables", lambda: {**real(), "ghost_module": ["ghost_fn"]}
-    )
-    problems = surfaces.audit()["problems"]
-    assert any("ghost_module.ghost_fn" in p for p in problems)
+from press import invariants, receipts
 
 
 def test_sabotage_dangling_invariant_proof_reddens_ledger():
@@ -121,7 +109,6 @@ def test_sabotage_bad_tool_output_is_visible_through_the_fake():
 # it reddens. A gate added to the harness without a sabotage case is a
 # gate nobody has proven bites.
 SABOTAGE_INDEX = {
-    "surface-classification": "test_sabotage_unclassified_function_reddens_surface_gate",
     "invariant-ledger": "test_sabotage_dangling_invariant_proof_reddens_ledger",
     "graph-edges": "test_sabotage_removed_graph_edge_reddens_state_model",
     "release-receipts": "test_sabotage_mismatched_release_receipt_reddens_chain",

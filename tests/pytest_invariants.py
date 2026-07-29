@@ -27,7 +27,7 @@ mechanically rather than re-deriving it from marker scraping.
 
 This module deliberately exposes no public module-level callable: the
 hooks live on a class and every helper is underscore-prefixed, so the
-public-surface inventory (``press.surfaces``) has nothing here to
+public-surface inventory (celebrimbor's surface gate) has nothing here to
 classify. ``tests/conftest.py`` (and each malformed-suite sub-session)
 installs it by calling ``_install`` from its ``pytest_configure``.
 """

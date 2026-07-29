@@ -1,5 +1,5 @@
 source = "src/press"
-exclude = ["src/press/data/**", "src/press/surfaces.py"]
+exclude = ["src/press/data/**"]
 policy_roles = ["verifier", "parser", "producer", "adapter", "orchestrator"]
 
 # press is a book-BUILD pipeline: reading and writing files is its reason to
