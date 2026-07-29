@@ -62,8 +62,10 @@ dev = [
     # three-part tag is immutable by celebrimbor's release contract, so a
     # pinned dev env resolves the same bytes). Dev/CI only -- never a book
     # runtime dep; press.quality_checks is the only importer and is skipped
-    # when celebrimbor is absent (selftest.IMPORT_OPTIONAL_DEPS).
-    "celebrimbor @ git+https://github.com/clintecker/celebrimbor@v0.12.0",
+    # when celebrimbor is absent (selftest.IMPORT_OPTIONAL_DEPS). celebrimbor
+    # requires Python >=3.11, so it is skipped on press's 3.10 matrix leg; the
+    # gate runs on 3.12, and press's own runtime keeps supporting 3.10.
+    "celebrimbor @ git+https://github.com/clintecker/celebrimbor@v0.12.0 ; python_version >= '3.11'",
 ]
 
 [tool.pytest.ini_options]

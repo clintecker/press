@@ -136,8 +136,9 @@ jobs:
           python3 -m venv /tmp/tui
           # Install the built wheel with the tui extra plus the test tools,
           # then run the desk's headless proofs against the installed
-          # package, not the checkout.
+          # package, not the checkout. pytest-xdist because the repo's
+          # addopts pass -n auto, which the plugin must be present to accept.
           /tmp/tui/bin/pip install --quiet "$(echo /tmp/dw/*.whl)[tui]" \
-            pytest pytest-asyncio
+            pytest pytest-asyncio pytest-xdist
           /tmp/tui/bin/python -m pytest tests/test_desk_app.py tests/test_desk_run.py \
             -p no:cacheprovider
