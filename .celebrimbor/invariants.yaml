@@ -252,6 +252,7 @@ invariants:
     negative_proof:
       tests/test_sabotage.py::test_sabotage_removed_graph_edge_reddens_state_model
     limitations:
+    - 'requires capability: pandoc'
     - "Toolchain-gated: the rendered comparison runs only where pandoc, LuaLaTeX,
       and the poppler tools are present, and the reviewed baseline is regenerated
       in the pinned toolchain, never silently. The comparison's bite (a font swap,
@@ -300,6 +301,7 @@ invariants:
     negative_proof:
       tests/test_sabotage.py::test_sabotage_removed_graph_edge_reddens_state_model
     limitations:
+    - 'requires capability: pandoc'
     - The eligibility and emission are proven by running the Lua filter through
       pandoc; the rendered PDF (which needs the lettrine package from the
       toolchain image) is proven where that toolchain is present. The grapheme
@@ -522,6 +524,7 @@ invariants:
     negative_proof:
       tests/test_sabotage.py::test_sabotage_removed_graph_edge_reddens_state_model
     limitations:
+    - 'requires capability: pandoc'
     - 'Toolchain-gated: the rendered comparison runs only where pandoc is present,
       and the reviewed baseline is regenerated deliberately, never silently. Book-determined
       counts are matched exactly; version-sensitive shapes are matched in the regression
@@ -686,6 +689,7 @@ invariants:
     negative_proof:
       tests/test_sabotage.py::test_sabotage_removed_graph_edge_reddens_state_model
     limitations:
+    - 'requires capability: pandoc'
     - The rendered-trim proof runs where the toolchain is present (the
       integration tier); locally, the projection-string and digest proofs stand
       in. Typography and web tokens are projected and proven at the fragment

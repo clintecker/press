@@ -19,6 +19,11 @@ ambient_capabilities = ["filesystem", "environment"]
 # socket.socket subclassable).
 import_check = true
 
+# Strict marker mode: every xfail/skip/skipif reason must cite a declared
+# limitation from the invariant ledger, so a suppressed test is tied to a
+# named, reviewable gap rather than a free-text excuse (celebrimbor markers).
+markers_cite_limitations = true
+
 # press's own domain checks (the book/publishing verifiers celebrimbor cannot
 # know about). The CLI imports this module so `celebrimbor gate` runs all the
 # press.* checks alongside the builtins -- no hand-rolled wrapper. A module that
