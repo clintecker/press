@@ -227,9 +227,9 @@ def apply(root: Path, to_major: int) -> Path:
         path = root / rel
         text = path.read_text(encoding="utf-8")
         rewritten = _PIN.sub(
-            lambda m: f"{m.group(1)}{to_major}"
-            if int(m.group(2)) == migration.from_major
-            else m.group(0),
+            lambda m: (
+                f"{m.group(1)}{to_major}" if int(m.group(2)) == migration.from_major else m.group(0)
+            ),
             text,
         )
         path.write_text(rewritten, encoding="utf-8")

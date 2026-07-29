@@ -71,6 +71,7 @@ floors:
   publish: 0.0
   qualification: 88.1
   quality_checks: 0.0
+  reader_meta: 30.0
   receipts: 68.9
   registrations: 41.6
   registry: 44.3
@@ -112,6 +113,9 @@ reasons:
   publish: retail-channel checklist; proven by the integration build
   quality_checks: press's domain-check registrations; run by celebrimbor gate (check_modules),
     not imported by pytest -- each check's falsifier is proven by celebrimbor.falsifiers
+  reader_meta: reader/landing metadata and sitemap generation split from build; the
+    per-page stampers and sitemap are exercised by a real build (toolchain tier),
+    only landing_head_metadata by unit test
   registrations: ISBN/LCCN paperwork; proven by the retail integration
   registry: surface/target registry; proven by the drift checks
   style_audit: prose audit over real manuscripts; proven at integration
