@@ -567,7 +567,10 @@ def main(argv: list[str] | None = None) -> int:
         from . import qualification
 
         (docs / "REFERENCE.md").write_text(render_reference(), encoding="utf-8")
-        (docs / "INVARIANTS.md").write_text(invariants.render(), encoding="utf-8")
+        try:
+            (docs / "INVARIANTS.md").write_text(invariants.render(), encoding="utf-8")
+        except ImportError:
+            print("skipped INVARIANTS.md (celebrimbor not installed; the ledger renders it)")
         (docs / "PROVIDER-QUALIFICATION.md").write_text(qualification.render(), encoding="utf-8")
         # The packaged provider record is a generated projection of the one
         # canonical ledger (quality/providers.yaml), not a hand-kept mirror.

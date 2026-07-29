@@ -12,31 +12,8 @@ what the harness actually enforces.
 
 from __future__ import annotations
 
-import pytest
 
-from press import invariants, receipts
-
-
-def test_sabotage_dangling_invariant_proof_reddens_ledger():
-    """An invariant whose negative proof names a deleted check must fail
-    the ledger validator."""
-
-    bad = [
-        {
-            "id": "INV-sabotage",
-            "statement": "s",
-            "risk": "r",
-            "criticality": "standard",
-            "owner": "booklib",
-            "enforcer": "booklib",
-            "layers": ["selftest"],
-            "negative": ["check_deleted_long_ago"],
-            "ci_tier": "quality",
-            "limitations": "l",
-        }
-    ]
-    with pytest.raises(SystemExit, match="no selftest"):
-        invariants.validate(bad)
+from press import receipts
 
 
 def test_sabotage_removed_graph_edge_reddens_state_model():
@@ -109,7 +86,6 @@ def test_sabotage_bad_tool_output_is_visible_through_the_fake():
 # it reddens. A gate added to the harness without a sabotage case is a
 # gate nobody has proven bites.
 SABOTAGE_INDEX = {
-    "invariant-ledger": "test_sabotage_dangling_invariant_proof_reddens_ledger",
     "graph-edges": "test_sabotage_removed_graph_edge_reddens_state_model",
     "release-receipts": "test_sabotage_mismatched_release_receipt_reddens_chain",
     "adapter-fakes": "test_sabotage_bad_tool_output_is_visible_through_the_fake",

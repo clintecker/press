@@ -1052,15 +1052,6 @@ invariants:
     layers:
     - pytest
     risk: An illegal figure geometry would reach LaTeX and misplace or break the layout.
-  INV-press-ledger-no-dangling:
-    statement: press's own invariant-ledger validation raises on a dangling proof reference.
-    enforced_by: invariants:validate
-    negative_proof: tests/test_sabotage.py::test_sabotage_dangling_invariant_proof_reddens_ledger
-    owner: invariants
-    criticality: standard
-    layers:
-    - pytest
-    risk: An invariant could name a proof that no longer exists, a hollow guarantee.
   INV-idlookup-fails-closed:
     statement: An LCCN record for a different number is a mismatch, and lookups fail closed on entities, size, and media.
     enforced_by: idlookup:lookup_lccn
@@ -1173,4 +1164,13 @@ invariants:
     layers:
     - pytest
     risk: A missed operator or a mis-applied edit would let a real logic change survive untested, silently weakening the ratchet.
+  INV-invariant-marker-vocabulary:
+    statement: The invariant marker plugin validates every @pytest.mark.invariant citation against the one ledger; an id absent from it fails collection.
+    enforced_by: invariants:load
+    negative_proof: tests/test_collection_plugin.py::test_unknown_invariant_id_fails_collection
+    owner: invariants
+    criticality: standard
+    layers:
+    - pytest
+    risk: A test could cite a nonexistent invariant id and still pass, so an invariant marker would name a promise absent from the ledger.
 version: 1

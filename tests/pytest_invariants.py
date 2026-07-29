@@ -3,7 +3,7 @@
 A test can exist yet prove no named project claim, exercise only a
 passive signal, use an undeclared skip, or sit in the wrong tier. This
 plugin rejects those before the expensive tests run. It reads the
-executable invariant ledger (quality/invariants.yaml, via
+one invariant ledger (.celebrimbor/invariants.yaml, via
 ``press.invariants``) and, during collection, holds these lines *where
 the metadata is present* -- it does not force markers onto every test:
 
@@ -198,7 +198,7 @@ def _item_problems(
             problems.append(f"{nid}: invariant marker carries no id")
         elif invariant not in ledger:
             problems.append(
-                f"{nid}: unknown invariant {invariant!r}; not in quality/invariants.yaml"
+                f"{nid}: unknown invariant {invariant!r}; not in the invariant ledger"
             )
         if not has_layer:
             problems.append(
