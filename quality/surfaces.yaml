@@ -43,11 +43,12 @@ modules:
   build:
     default: producer
     overrides:
+      build_target: orchestrator
       cover_fragment_html: pure
       run: adapter
       subtitle_stack_html: pure
       download_names: pure
-      book_sitemap_locs: pure
+  reader_meta: {default: producer, overrides: {book_sitemap_locs: pure, landing_head_metadata: pure}}
   catalog: {default: pure, overrides: {render_usage: producer, render_global_help: producer, render_command_help: producer}}
   check_source: verifier
   check_the_checkers: verifier

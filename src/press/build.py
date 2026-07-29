@@ -20,7 +20,16 @@ from . import booklib
 from . import gen_authorities
 from . import gen_front_matter
 from . import gen_index
+from . import reader_meta
 from . import yamlio
+
+# Re-exported so the public build API is unchanged after the reader-metadata
+# split; landing_head_metadata and inject_reader_metadata are also used below.
+from .reader_meta import (
+    book_sitemap_locs,  # noqa: F401
+    inject_reader_metadata,
+    landing_head_metadata,
+)
 
 
 def run(command: list[str]) -> None:
@@ -275,192 +284,6 @@ def recompress_images(target: Path) -> None:
         image.save(path, quality=70, optimize=True)
 
 
-def _image_dims(path: Path) -> tuple[int, int] | None:
-    """Pixel dimensions of an image, or None if it cannot be read. Social
-    cards must carry verified dimensions, so this reads the real file rather
-    than trusting a declared size."""
-
-    if not path.is_file():
-        return None
-    try:
-        from PIL import Image
-
-        with Image.open(path) as image:
-            return int(image.width), int(image.height)
-    except Exception:
-        return None
-
-
-def _first_paragraph_text(html_text: str) -> str:
-    """The visible text of a reader page's first body paragraph, for a
-    per-page meta description. Derived from the built page, not hand-kept, so
-    it cannot drift from what the chapter actually says."""
-
-    import html as html_mod
-
-    body = re.search(r'<main id="content">(.*?)</main>', html_text, re.S)
-    region = body.group(1) if body else html_text
-    for match in re.finditer(r"<p[^>]*>(.*?)</p>", region, re.S):
-        text = re.sub(r"<[^>]+>", " ", match.group(1))
-        text = html_mod.unescape(" ".join(text.split()))
-        if len(text) < 20:
-            continue
-        if len(text) > 157:
-            text = text[:157].rsplit(" ", 1)[0] + "..."
-        return text
-    return ""
-
-
-def _reader_page_title(html_text: str) -> str:
-    """The chapter/page heading pandoc wrote into the reader page's <title>."""
-
-    import html as html_mod
-
-    match = re.search(r"<title>(.*?)</title>", html_text, re.S)
-    return html_mod.unescape(match.group(1).strip()) if match else ""
-
-
-def _reader_identity(book) -> dict:
-    """The Book identity shared by the index node and every chapter's
-    ``isPartOf``: title, language, and (when known) author and publisher."""
-
-    identity: dict = {"@type": "Book", "name": book.title, "inLanguage": "en"}
-    if book.authors:
-        identity["author"] = [{"@type": "Person", "name": a} for a in book.authors]
-    if book.publisher:
-        identity["publisher"] = {"@type": "Organization", "name": book.publisher}
-    return identity
-
-
-def _reader_index_node(
-    book, identity: dict, canonical: str, read_base: str, desc: str, has_cover: bool
-) -> dict:
-    """The index page's Book node, consistent with the landing's identity."""
-
-    node = dict(identity)
-    node["@context"] = "https://schema.org"
-    if desc:
-        node["description"] = desc
-    if book.year:
-        node["datePublished"] = book.year
-    if canonical:
-        node["url"] = canonical
-    if canonical and has_cover:
-        node["image"] = read_base + "cover.jpg"
-    return node
-
-
-def _reader_article_node(
-    book, identity: dict, page_title: str, canonical: str, read_base: str, desc: str
-):
-    """A chapter's Article node (isPartOf the Book), plus a BreadcrumbList
-    when there is a public base to point at."""
-
-    article: dict = {
-        "@context": "https://schema.org",
-        "@type": "Article",
-        "headline": page_title or book.title,
-        "inLanguage": "en",
-        "isPartOf": identity,
-    }
-    if desc:
-        article["description"] = desc
-    if canonical:
-        article["url"] = canonical
-    if book.authors:
-        article["author"] = [{"@type": "Person", "name": a} for a in book.authors]
-    if not canonical:
-        return article
-    breadcrumb = {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-            {
-                "@type": "ListItem",
-                "position": 1,
-                "name": book.title,
-                "item": read_base + "index.html",
-            },
-            {
-                "@type": "ListItem",
-                "position": 2,
-                "name": page_title or book.title,
-                "item": canonical,
-            },
-        ],
-    }
-    return [article, breadcrumb]
-
-
-def _reader_jsonld(
-    book,
-    is_index: bool,
-    page_title: str,
-    canonical: str,
-    read_base: str,
-    desc: str,
-    has_cover: bool,
-):
-    """The structured node for one reader page: a Book on the index (consistent
-    with the landing's identity), an Article that isPartOf that Book on a
-    chapter, plus a BreadcrumbList when there is a public base to point at."""
-
-    identity = _reader_identity(book)
-    if is_index:
-        return _reader_index_node(book, identity, canonical, read_base, desc, has_cover)
-    return _reader_article_node(book, identity, page_title, canonical, read_base, desc)
-
-
-def inject_reader_metadata(site_dir: Path, book) -> None:
-    """Post-pandoc pass: give every reader page its canonical/OG/JSON-LD.
-
-    Pandoc's chunked writer owns each page's <head>, so identity is stamped
-    here after the fact (mirroring how the docs-site builder post-processes a
-    pandoc render). The reader is served under ``read/`` on the public site,
-    so canonicals are absolute against ``site-url + read/`` -- and omitted
-    entirely on an offline build, where the shared emitter claims no URL.
-    """
-
-    from . import webmeta
-
-    base = (book.site_url or "").strip()
-    read_base = (base.rstrip("/") + "/read/") if base else ""
-    has_cover = (site_dir / "cover.jpg").is_file()
-
-    for page in sorted(site_dir.glob("*.html")):
-        text = page.read_text(encoding="utf-8")
-        is_index = page.name == "index.html"
-        canonical = (read_base + page.name) if read_base else ""
-        if is_index:
-            desc = str(book.description or "").strip()
-            page_title = book.title
-        else:
-            desc = _first_paragraph_text(text)
-            page_title = _reader_page_title(text) or book.title
-        node = _reader_jsonld(book, is_index, page_title, canonical, read_base, desc, has_cover)
-        fragment = webmeta.head_fragment(
-            base=read_base,
-            title=page_title,
-            description=desc,
-            og_type="book" if is_index else "article",
-            site_name=book.publisher or "",
-            canonical=canonical,
-            image=(read_base + "cover.jpg") if (read_base and has_cover) else "",
-            image_alt=f"Cover of {book.title}" if has_cover else "",
-            jsonld=node,
-        )
-        original = text
-        if fragment:
-            text = text.replace("</head>", fragment + "\n</head>", 1)
-        # Independent of the metadata: a table in a chapter needs its column
-        # headers carried onto its cells so narrow screens can stack it into
-        # readable cards. An offline book emits no metadata fragment at all,
-        # and its tables must still be legible on a phone.
-        text = webmeta.label_table_cells(text)
-        if text != original:
-            page.write_text(text, encoding="utf-8")
-
-
 def site_stylesheet() -> str:
     """The reader stylesheet, with the book in charge of every layer.
 
@@ -573,112 +396,16 @@ def subtitle_stack_html(subtitle: str) -> str:
     return "\n".join(lines)
 
 
-_SCHEMA_FORMATS = {
-    ".epub": ("https://schema.org/EBook", "application/epub+zip"),
-    ".pdf": ("https://schema.org/EBook", "application/pdf"),
-}
-
-
-def _landing_jsonld(book, base: str, desc: str, has_cover: bool, format_names: list[str]) -> dict:
-    """A schema.org Book node carrying only the facts the book actually has."""
-
-    node: dict = {
-        "@context": "https://schema.org",
-        "@type": "Book",
-        "name": book.title,
-        "inLanguage": "en",
-    }
-    if book.authors:
-        node["author"] = [{"@type": "Person", "name": a} for a in book.authors]
-    if book.publisher:
-        node["publisher"] = {"@type": "Organization", "name": book.publisher}
-    if desc:
-        node["description"] = desc
-    if book.year:
-        node["datePublished"] = book.year
-    if not base:
-        return node
-    node["url"] = base
-    if has_cover:
-        node["image"] = base + "cover.jpg"
-    examples = [
-        {
-            "@type": "Book",
-            "bookFormat": fmt,
-            "encodingFormat": enc,
-            "url": base + "downloads/" + name,
-        }
-        for name in format_names
-        for suffix, (fmt, enc) in _SCHEMA_FORMATS.items()
-        if name.endswith(suffix)
-    ]
-    if examples:
-        node["workExample"] = examples
-    return node
-
-
-def landing_head_metadata(
-    book, has_cover: bool, format_names: list[str], cover_dims: tuple[int, int] | None = None
-) -> str:
-    """Canonical, social-card, and schema.org JSON-LD for the book's landing
-    page, generated from the book's own config (#158). No fact is invented: a
-    canonical/og:url and og:image appear only when a `site-url` is set (and a
-    cover exists); absent facts are simply omitted, so an offline build never
-    claims a false canonical URL. The shared emitter (webmeta) enforces the
-    no-public-base law; this only assembles the book's facts."""
-
-    from . import webmeta
-
-    base = (book.site_url or "").strip()
-    base = (base.rstrip("/") + "/") if base else ""
-    desc = str(book.description or "").strip()
-    width, height = cover_dims if cover_dims else (None, None)
-
-    node = _landing_jsonld(book, base, desc, has_cover, format_names)
-    return webmeta.head_fragment(
-        base=base,
-        title=book.title,
-        description=desc,
-        og_type="book",
-        site_name=book.publisher or "",
-        canonical=base,
-        image=(base + "cover.jpg") if (base and has_cover) else "",
-        image_width=width if has_cover else None,
-        image_height=height if has_cover else None,
-        image_alt=f"Cover of {book.title}" if has_cover else "",
-        extra_properties=[("book:author", author) for author in book.authors],
-        jsonld=node,
-    )
-
-
-def pages_build(output_dir: str) -> None:
-    """Assemble the GitHub Pages site: landing page, chapters, downloads.
-
-    Every fact on the landing page derives from metadata and the
-    artifacts actually produced; optional blocks render only when their
-    asset or config exists, and all metadata is HTML-escaped.
-    """
+def _pages_download_rows(slug: str, trim_text: str) -> list[str]:
+    """The download table's rows: the chapter edition first, then each produced
+    download that maps to a listed edition label."""
 
     import html as html_mod
-
-    from . import webmeta
-
-    root = booklib.root()
-    out = root / output_dir
-    if out.exists():
-        shutil.rmtree(out)
-    out.mkdir(parents=True)
-
-    meta = booklib.metadata()
-    title = html_mod.escape(str(meta["title"]))
-    trim = meta.get("trim") or {}
-    trim_text = f"{trim.get('width', 6):g} by {trim.get('height', 9):g} inches"
 
     rows = [
         '    <tr><td><a href="read/index.html">Chapter edition</a></td>\n'
         '        <td class="desc">the book as a small website, one chapter per page</td></tr>'
     ]
-    slug = booklib.slug()
     for name in download_names():
         match = _edition_row(name, slug, trim_text)
         if match is None:
@@ -689,7 +416,18 @@ def pages_build(output_dir: str) -> None:
             f"{label}</a></td>\n"
             f'        <td class="desc">{html_mod.escape(description)}</td></tr>'
         )
+    return rows
 
+
+def _landing_optional_blocks(root: Path, meta: dict) -> dict[str, str]:
+    """The landing page's optional HTML blocks (cover, imprint device, source
+    paragraph, commerce), each empty unless its asset or config exists."""
+
+    import html as html_mod
+
+    from . import commerce as commerce_mod
+
+    title = html_mod.escape(str(meta["title"]))
     cover_block = ""
     if (root / "assets" / "cover.jpg").is_file():
         cover_block = (
@@ -714,39 +452,52 @@ def pages_build(output_dir: str) -> None:
             f'    contents are recorded in the <a href="{repo}/blob/main/CHANGELOG.md">changelog</a>,\n'
             f'    and finished releases live on the <a href="{repo}/releases">releases page</a>.</p>'
         )
+    return {
+        "{{COVER_BLOCK}}": cover_block,
+        "{{LOGO_BLOCK}}": logo_block,
+        "{{REPO_PARAGRAPH}}": repo_paragraph,
+        "{{COMMERCE_BLOCK}}": commerce_mod.render(commerce_mod.load(meta)),
+    }
 
-    from . import commerce as commerce_mod
 
-    commerce_block = commerce_mod.render(commerce_mod.load(meta))
+def _landing_index_html(root: Path, meta: dict, trim_text: str) -> str:
+    """The fully-assembled landing index.html: template, metadata head, optional
+    blocks, and any book extra.css, with every fact HTML-escaped."""
 
-    template = (booklib.DATA / "web" / "index-template.html").read_text(encoding="utf-8")
+    import html as html_mod
+
+    from . import aesthetic, webmeta
+
+    title = html_mod.escape(str(meta["title"]))
     has_cover = (root / "assets" / "cover.jpg").is_file()
     head_meta = landing_head_metadata(
         booklib.book(),
         has_cover=has_cover,
         format_names=list(download_names()),
-        cover_dims=_image_dims(root / "assets" / "cover.jpg") if has_cover else None,
+        cover_dims=reader_meta._image_dims(root / "assets" / "cover.jpg") if has_cover else None,
     )
+    blocks = _landing_optional_blocks(root, meta)
+    # The replacement order matches the original single-function pass exactly,
+    # so a value that happened to contain another placeholder token resolves
+    # identically (the byte-for-byte landing contract).
     replacements = {
         "{{TITLE}}": title,
         "{{DESCRIPTION}}": html_mod.escape(str(meta.get("description", "")).strip()),
         "{{HEAD_META}}": head_meta,
         "{{SUBTITLE_STACK}}": subtitle_stack_html(str(meta.get("subtitle") or "")),
-        "{{COVER_BLOCK}}": cover_block,
-        "{{COMMERCE_BLOCK}}": commerce_block,
-        "{{EDITION_ROWS}}": "\n".join(rows),
-        "{{REPO_PARAGRAPH}}": repo_paragraph,
-        "{{LOGO_BLOCK}}": logo_block,
+        "{{COVER_BLOCK}}": blocks["{{COVER_BLOCK}}"],
+        "{{COMMERCE_BLOCK}}": blocks["{{COMMERCE_BLOCK}}"],
+        "{{EDITION_ROWS}}": "\n".join(_pages_download_rows(booklib.slug(), trim_text)),
+        "{{REPO_PARAGRAPH}}": blocks["{{REPO_PARAGRAPH}}"],
+        "{{LOGO_BLOCK}}": blocks["{{LOGO_BLOCK}}"],
         "{{DATE}}": html_mod.escape(booklib.book().date),
         "{{COPYRIGHT}}": html_mod.escape(booklib.book().copyright),
         "{{PUBLISHER}}": html_mod.escape(booklib.book().publisher),
         "{{PLACE}}": html_mod.escape(booklib.book().publisher_place),
     }
-    page = template
+    page = (booklib.DATA / "web" / "index-template.html").read_text(encoding="utf-8")
     for key, value in replacements.items():
         page = page.replace(key, value)
-    from . import aesthetic
-
     page = aesthetic.substitute_web(page)
     extra = root / "assets" / "web" / "extra.css"
     if extra.is_file():
@@ -756,12 +507,13 @@ def pages_build(output_dir: str) -> None:
             + "\n</style>\n</head>"
         )
         page = page.replace("</head>", overrides, 1)
-    (out / "index.html").write_text(webmeta.label_table_cells(page), encoding="utf-8")
+    return webmeta.label_table_cells(page)
 
-    # Generate the support/privacy/returns pages the CTA links to but the
-    # publisher did not host themselves (#151), so every policy link
-    # resolves to an honest page the book owns.
-    _write_policy_pages(out, meta, booklib.book())
+
+def _copy_pages_assets(root: Path, out: Path) -> None:
+    """Copy the book's optional assets, the reader site, and every produced
+    download into the assembled pages tree, failing loudly on a missing
+    download so the public downloads never have a silent gap."""
 
     for optional in ("cover.jpg", "press-logo.png"):
         source = root / "assets" / optional
@@ -781,47 +533,36 @@ def pages_build(output_dir: str) -> None:
                 "(silent gaps in the public downloads are not allowed)"
             )
         shutil.copy(source, downloads / name)
-    _write_book_sitemap(out, booklib.book())
+
+
+def pages_build(output_dir: str) -> None:
+    """Assemble the GitHub Pages site: landing page, chapters, downloads.
+
+    Every fact on the landing page derives from metadata and the
+    artifacts actually produced; optional blocks render only when their
+    asset or config exists, and all metadata is HTML-escaped.
+    """
+
+    root = booklib.root()
+    out = root / output_dir
+    if out.exists():
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
+
+    meta = booklib.metadata()
+    trim = meta.get("trim") or {}
+    trim_text = f"{trim.get('width', 6):g} by {trim.get('height', 9):g} inches"
+
+    (out / "index.html").write_text(_landing_index_html(root, meta, trim_text), encoding="utf-8")
+
+    # Generate the support/privacy/returns pages the CTA links to but the
+    # publisher did not host themselves (#151), so every policy link
+    # resolves to an honest page the book owns.
+    _write_policy_pages(out, meta, booklib.book())
+
+    _copy_pages_assets(root, out)
+    reader_meta._write_book_sitemap(out, booklib.book())
     print(f"+ assembled pages site -> {output_dir}")
-
-
-def book_sitemap_locs(out: Path, book) -> list[str]:
-    """The absolute URLs of every indexable HTML surface on the book site:
-    the landing page and every reader page. Empty when no `site-url` is set,
-    so a preview/offline build declares no sitemap at all (#158)."""
-
-    base = (book.site_url or "").strip()
-    if not base:
-        return []
-    base = base.rstrip("/") + "/"
-    locs = [base]
-    read = out / "read"
-    if read.is_dir():
-        for page in sorted(read.glob("*.html")):
-            locs.append(base + "read/" + page.name)
-    return locs
-
-
-def _write_book_sitemap(out: Path, book) -> None:
-    """A sitemap.xml and robots.txt for the book site, absolute against
-    `site-url` and emitted only on a release build that has one. A
-    preview/offline build gets neither, so it never advertises URLs it is not
-    served from."""
-
-    locs = book_sitemap_locs(out, book)
-    if not locs:
-        return
-    base = (book.site_url or "").strip().rstrip("/") + "/"
-    entries = "\n".join(f"  <url><loc>{loc}</loc></url>" for loc in locs)
-    (out / "sitemap.xml").write_text(
-        '<?xml version="1.0" encoding="UTF-8"?>\n'
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-        f"{entries}\n</urlset>\n",
-        encoding="utf-8",
-    )
-    (out / "robots.txt").write_text(
-        f"User-agent: *\nAllow: /\nSitemap: {base}sitemap.xml\n", encoding="utf-8"
-    )
 
 
 def _write_policy_pages(out, meta, book) -> None:
@@ -850,60 +591,69 @@ def _write_policy_pages(out, meta, book) -> None:
         (out / filename).write_text(aesthetic.substitute_web(page), encoding="utf-8")
 
 
+def _build_epub(slug: str) -> None:
+    """The EPUB edition, carrying rights, an ISBN identifier when registered,
+    and a valid dc:date so epubcheck accepts it (RSC-005)."""
+
+    from . import registrations
+
+    book = booklib.book()
+    rights = " ".join(
+        part
+        for part in (
+            book.copyright,
+            f"Published by {book.publisher}, {book.publisher_place}." if book.publisher else "",
+        )
+        if part
+    )
+    extra = ["--metadata", f"rights={rights}"]
+    epub_isbn = registrations.isbn("epub")
+    if epub_isbn:
+        extra += ["--metadata", f"identifier=urn:isbn:{epub_isbn}"]
+    year = booklib.year()
+    if year:
+        # The prose date ("First edition, 2026") is not a date to
+        # pandoc, which then emits an empty dc:date that epubcheck
+        # rejects (RSC-005). The extracted year is a valid dc:date
+        # and leaves the displayed date untouched.
+        epub_meta = booklib.root() / "build" / "epub-metadata.xml"
+        epub_meta.parent.mkdir(parents=True, exist_ok=True)
+        epub_meta.write_text(f"<dc:date>{year}</dc:date>\n", encoding="utf-8")
+        extra += [f"--epub-metadata={epub_meta}"]
+    pandoc_build("epub", f"dist/{slug}.epub", extra=extra)
+
+
+def _build_html(slug: str) -> None:
+    """The single-file HTML edition, read in a browser too, so its tables owe
+    their cells the same column headers the reader pages carry."""
+
+    pandoc_build("html", f"dist/{slug}.html")
+    from . import webmeta
+
+    edition = booklib.root() / "dist" / f"{slug}.html"
+    edition.write_text(
+        webmeta.label_table_cells(edition.read_text(encoding="utf-8")), encoding="utf-8"
+    )
+
+
 def build_target(target: str) -> None:
     if adapters.environment.which("pandoc") is None:
         raise SystemExit("pandoc is required")
     slug = booklib.slug()
-    if target == "pdf":
-        pandoc_build("pdf", f"dist/{slug}.pdf")
-    elif target == "print":
-        pandoc_build("print", f"dist/{slug}-interior.pdf")
-    elif target == "epub":
-        from . import registrations
-
-        book = booklib.book()
-        rights = " ".join(
-            part
-            for part in (
-                book.copyright,
-                f"Published by {book.publisher}, {book.publisher_place}." if book.publisher else "",
-            )
-            if part
-        )
-        extra = ["--metadata", f"rights={rights}"]
-        epub_isbn = registrations.isbn("epub")
-        if epub_isbn:
-            extra += ["--metadata", f"identifier=urn:isbn:{epub_isbn}"]
-        year = booklib.year()
-        if year:
-            # The prose date ("First edition, 2026") is not a date to
-            # pandoc, which then emits an empty dc:date that epubcheck
-            # rejects (RSC-005). The extracted year is a valid dc:date
-            # and leaves the displayed date untouched.
-            epub_meta = booklib.root() / "build" / "epub-metadata.xml"
-            epub_meta.parent.mkdir(parents=True, exist_ok=True)
-            epub_meta.write_text(f"<dc:date>{year}</dc:date>\n", encoding="utf-8")
-            extra += [f"--epub-metadata={epub_meta}"]
-        pandoc_build("epub", f"dist/{slug}.epub", extra=extra)
-    elif target == "html":
-        pandoc_build("html", f"dist/{slug}.html")
-        # The single-file edition is read in a browser too, so its tables owe
-        # their cells the same column headers the reader pages carry.
-        from . import webmeta
-
-        edition = booklib.root() / "dist" / f"{slug}.html"
-        edition.write_text(
-            webmeta.label_table_cells(edition.read_text(encoding="utf-8")), encoding="utf-8"
-        )
-    elif target == "markdown":
-        markdown_build(f"dist/{slug}.md")
-    elif target == "site":
-        site_build("dist/site")
-    elif target == "pages":
-        pages_build("dist/pages")
-    elif target == "txt":
-        pandoc_build("portable", f"dist/{slug}.txt", extra=["--to=plain", "--columns=80"])
-    elif target == "docx":
-        pandoc_build("portable", f"dist/{slug}.docx", extra=["--to=docx"])
-    else:
+    handlers = {
+        "pdf": lambda: pandoc_build("pdf", f"dist/{slug}.pdf"),
+        "print": lambda: pandoc_build("print", f"dist/{slug}-interior.pdf"),
+        "epub": lambda: _build_epub(slug),
+        "html": lambda: _build_html(slug),
+        "markdown": lambda: markdown_build(f"dist/{slug}.md"),
+        "site": lambda: site_build("dist/site"),
+        "pages": lambda: pages_build("dist/pages"),
+        "txt": lambda: pandoc_build(
+            "portable", f"dist/{slug}.txt", extra=["--to=plain", "--columns=80"]
+        ),
+        "docx": lambda: pandoc_build("portable", f"dist/{slug}.docx", extra=["--to=docx"]),
+    }
+    handler = handlers.get(target)
+    if handler is None:
         raise SystemExit(f"unknown build target: {target}")
+    handler()

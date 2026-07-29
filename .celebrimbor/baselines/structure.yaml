@@ -27,16 +27,11 @@ breaches:
   capability/yamlio:load:filesystem: 1
   complexity/art_commission:parse_commissions:cyclomatic-complexity: 16
   complexity/art_commission:parse_commissions:nesting-depth: 9
-  complexity/build::file-lines: 910
-  complexity/build:build_target:nesting-depth: 9
-  complexity/build:pages_build:cyclomatic-complexity: 18
-  complexity/build:pages_build:lines: 132
-  complexity/build:pages_build:statements: 66
   complexity/selftest::file-lines: 1522
   complexity/selftest::public-callables: 33
   complexity/selftest:check_migration:cyclomatic-complexity: 27
   complexity/selftest:check_source_policy:cyclomatic-complexity: 22
 environment: ci
-reason: file-lines 660 accepts __main__ (656, a cohesive CLI dispatcher); selftest(1522)+build(910) remain
-  genuine split targets
+reason: 'split build.py 909->659: extracted reader_meta.py (reader/structured-metadata cluster); decomposed
+  pages_build; flattened build_target into a dispatch (now orchestrator)'
 version: 1
