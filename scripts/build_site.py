@@ -728,6 +728,26 @@ def _is_unnumbered(md: Path) -> bool:
     return "{.unnumbered}" in head or head.endswith("{-}")
 
 
+def _chapter_opening_style(meta: str) -> str | None:
+    """The `style:` under a `chapter-opening:` block, by a linear line scan.
+
+    A single multiline regex over the block backtracks exponentially on
+    deeply-indented input (CodeQL py/polynomial-redos); one pass cannot."""
+
+    in_block = False
+    for line in meta.splitlines():
+        if re.match(r"^chapter-opening:", line):
+            in_block = True
+            continue
+        if in_block:
+            if line and not line[0].isspace():
+                return None  # dedent: the block ended without a style
+            hit = re.match(r"\s+style:[ \t]*[\"']?([a-z-]+)", line)
+            if hit:
+                return hit.group(1)
+    return None
+
+
 def _example_facts(book: Path) -> Example:
     """Everything the gallery says about one example, read from the book."""
     meta = (book / "config" / "metadata.yaml").read_text(encoding="utf-8")
@@ -771,11 +791,9 @@ def _example_facts(book: Path) -> Example:
         exercises.append("footnotes")
     if profile:
         exercises.append("non-default trim")
-    opening = re.search(
-        r'^chapter-opening:[ \t]*\n(?:[ \t]+.*\n)*?[ \t]+style:[ \t]*["\']?([a-z-]+)', meta, re.M
-    )
-    if opening and opening.group(1) in ("drop-cap", "raised-cap"):
-        exercises.append(f"{opening.group(1)} openings")
+    opening_style = _chapter_opening_style(meta)
+    if opening_style in ("drop-cap", "raised-cap"):
+        exercises.append(f"{opening_style} openings")
     binding = _yaml_scalar(meta, "binding", indent="  ")
     if binding and binding != "perfect-bound":
         exercises.append(f"{binding} binding")
