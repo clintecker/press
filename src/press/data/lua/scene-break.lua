@@ -26,7 +26,7 @@ local function asterism()
   if FORMAT:match("html") or FORMAT:match("epub") then
     return pandoc.RawBlock("html", '<p class="asterism">* * *</p>')
   end
-  return nil   -- a format without a centering idiom keeps the plain rule
+  return nil -- a format without a centering idiom keeps the plain rule
 end
 
 local function fairy_dust()
@@ -39,11 +39,13 @@ local function fairy_dust()
     return pandoc.RawBlock("latex", "\\PressFairyDust")
   end
   if FORMAT:match("html") or FORMAT:match("epub") then
-    return pandoc.RawBlock("html",
+    return pandoc.RawBlock(
+      "html",
       '<div class="fairy-dust" role="separator" aria-hidden="true">'
-      .. '<span>&#42;&#42;&#42;&#42;</span>'
-      .. '<span>&#42;&#42;&#42;</span>'
-      .. '<span>&#42;&#42;&#42;&#42;</span></div>')
+        .. "<span>&#42;&#42;&#42;&#42;</span>"
+        .. "<span>&#42;&#42;&#42;</span>"
+        .. "<span>&#42;&#42;&#42;&#42;</span></div>"
+    )
   end
   return nil
 end
@@ -52,9 +54,13 @@ local ORNAMENTS = { asterism = asterism, ["fairy-dust"] = fairy_dust }
 
 function Pandoc(doc)
   local v = doc.meta["scene-break-ornament"]
-  if v ~= nil then ornament = pandoc.utils.stringify(v) end
+  if v ~= nil then
+    ornament = pandoc.utils.stringify(v)
+  end
   local render = ORNAMENTS[ornament]
-  if render == nil then return doc end   -- "rule" (or unknown): leave the rule
+  if render == nil then
+    return doc
+  end -- "rule" (or unknown): leave the rule
   return doc:walk({
     HorizontalRule = function(_)
       return render()
