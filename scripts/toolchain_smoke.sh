@@ -12,7 +12,7 @@ image="${1:?usage: toolchain_smoke.sh <image-tag> <press-checkout>}"
 press_dir="${2:?usage: toolchain_smoke.sh <image-tag> <press-checkout>}"
 
 docker run --rm "$image" bash -euo pipefail -c '
-  for tool in pandoc lualatex latexmk pdftoppm pdffonts pdfinfo pdftotext git make; do
+  for tool in pandoc lualatex latexmk pdftoppm pdffonts pdfinfo pdftotext git make stylua; do
     command -v "$tool" > /dev/null || { echo "missing: $tool"; exit 1; }
     "$tool" --version > /dev/null 2>&1 || "$tool" -v > /dev/null 2>&1 \
       || { echo "cannot execute: $tool"; exit 1; }
@@ -69,6 +69,17 @@ PY
     echo "realesrgan-ncnn-vulkan upscales with remacri (software Vulkan)"
   else
     echo "realesrgan-ncnn-vulkan absent (arm64 degrades to resample) -- ok"
+  fi
+'
+
+# selene lints the Lua filters. Upstream ships an x86_64 Linux binary only, so
+# assert it executes where present and accept its absence on arm64, where the
+# lint runs on amd64 CI and via the pre-commit hook.
+docker run --rm "$image" bash -euo pipefail -c '
+  if command -v selene > /dev/null; then
+    selene --version > /dev/null && echo "executes: selene"
+  else
+    echo "selene absent (arm64; lint runs on amd64 CI and pre-commit) -- ok"
   fi
 '
 

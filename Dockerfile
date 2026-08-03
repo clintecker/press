@@ -113,4 +113,40 @@ RUN set -eux; \
       echo "realesrgan-ncnn-vulkan: no upstream arm64 Linux build; press art enhance will resample on arm64"; \
     fi
 
+# --- Lua filter quality tools (stylua, selene) --------------------------------
+# The pandoc Lua filters get the same rigour as the Python beside them: stylua
+# formats and selene lints them (docs/LUA-QUALITY-PLAN.md §2, §3). Both are
+# single static binaries, sha256-pinned. The gates already run in pre-commit and
+# the quality CI job; carrying the tools here lets the toolchain tier run the
+# same battery, and is where the M2 (busted) and M3 (luacov) work will hang.
+#
+# stylua ships a native binary for both arches. selene ships an x86_64 Linux
+# binary only, so -- like the realesrgan upscaler above -- it is guarded to
+# amd64; on arm64 the lint runs on amd64 CI and via the pre-commit hook.
+ARG TARGETARCH
+RUN set -eux; \
+    apt-get update && apt-get install -y --no-install-recommends curl unzip ca-certificates; \
+    case "${TARGETARCH:-amd64}" in \
+      arm64) sy_url=https://github.com/JohnnyMorganz/StyLua/releases/download/v2.5.2/stylua-linux-aarch64.zip; \
+             sy_sha=0ef2ebf0b7e5a652b65c4cb96c6d9ffb3981a98547de3c764465bbf54a8d761a ;; \
+      *)     sy_url=https://github.com/JohnnyMorganz/StyLua/releases/download/v2.5.2/stylua-linux-x86_64.zip; \
+             sy_sha=bcb0d855e91f102f28a370e850f8566b3b44b79e6274d806ea5246837c0fd5ab ;; \
+    esac; \
+    curl -fsSL -o /tmp/stylua.zip "$sy_url"; \
+    echo "$sy_sha  /tmp/stylua.zip" | sha256sum -c -; \
+    unzip -q /tmp/stylua.zip stylua -d /usr/local/bin; \
+    chmod +x /usr/local/bin/stylua; \
+    stylua --version; \
+    if [ "${TARGETARCH:-amd64}" = "amd64" ]; then \
+      curl -fsSL -o /tmp/selene.zip https://github.com/Kampfkarren/selene/releases/download/0.31.0/selene-0.31.0-linux.zip; \
+      echo "dac452422747999ec4919bbb8bb52992b66aae533b60022bf005669de8616671  /tmp/selene.zip" | sha256sum -c -; \
+      unzip -q /tmp/selene.zip selene -d /usr/local/bin; \
+      chmod +x /usr/local/bin/selene; \
+      selene --version; \
+    else \
+      echo "selene: no upstream arm64 Linux build; the lua-lint gate runs on amd64 CI and via pre-commit"; \
+    fi; \
+    rm -f /tmp/stylua.zip /tmp/selene.zip; \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /book
