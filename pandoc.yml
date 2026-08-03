@@ -1,0 +1,54 @@
+---
+# selene standard library for the pandoc Lua filters. pandoc injects the
+# `pandoc` module and the FORMAT / PANDOC_* globals; a filter registers by
+# DEFINING global functions named after AST node types (Div, Image, ...), so
+# those are declared globals too -- defining them is intended, not dead code.
+base: lua53
+name: pandoc
+globals:
+  pandoc:
+    any: true
+  FORMAT:
+    any: true
+  PANDOC_VERSION:
+    property: read-only
+  PANDOC_STATE:
+    property: read-only
+  PANDOC_READER_OPTIONS:
+    property: read-only
+  Pandoc:
+    property: full-write
+  Meta:
+    property: full-write
+  Blocks:
+    property: full-write
+  Inlines:
+    property: full-write
+  Block:
+    property: full-write
+  Inline:
+    property: full-write
+  Div:
+    property: full-write
+  Span:
+    property: full-write
+  Image:
+    property: full-write
+  Figure:
+    property: full-write
+  Para:
+    property: full-write
+  Plain:
+    property: full-write
+  Header:
+    property: full-write
+  Cite:
+    property: full-write
+  Str:
+    property: full-write
+  RawBlock:
+    property: full-write
+  RawInline:
+    property: full-write
+  HorizontalRule:
+    property: full-write

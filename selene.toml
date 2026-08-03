@@ -1,0 +1,10 @@
+# selene lints the pandoc Lua filters against the pandoc std (pandoc.yml).
+# Lua-quality M1 §3.
+std = "pandoc"
+
+[lints]
+# selene's escape lint does not recognise Lua 5.3+ `\u{XXXX}` unicode escapes
+# (the filters use them for §, ¶, curly quotes); they compile cleanly under
+# the §1 syntax gate. Leave the rest of the escape checking off rather than
+# false-flag every unicode literal.
+bad_string_escape = "allow"
