@@ -66,3 +66,9 @@ repos:
         entry: python3 -m mypy src/press
         language: system
         pass_filenames: false
+      - id: lua-syntax
+        name: lua filters compile (pandoc lua)
+        entry: scripts/lua-syntax-gate.sh
+        language: script
+        files: ^src/press/data/lua/.*\.lua$
+        pass_filenames: false
