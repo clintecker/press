@@ -15,7 +15,6 @@
 -- A book that uses none of these renders byte-for-byte as before.
 
 local CASCADE_STEP = 2.4 -- em added per cascade line
-local VERSE_INDENT = "3em" -- the verse block's left inset
 local TAIL_AMP = 3.0 -- em, the serpentine's horizontal swing
 -- The size ramp down a tail, from the head to the tip.
 local TAIL_SIZES = {

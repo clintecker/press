@@ -17,6 +17,15 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -e '.[dev]'
+      - name: Install selene, so the pre-commit lua-lint hook enforces the filters
+        run: |
+          curl -fsSL -o /tmp/selene.zip \
+            https://github.com/Kampfkarren/selene/releases/download/0.31.0/selene-0.31.0-linux.zip
+          mkdir -p "$HOME/.local/bin"
+          unzip -o /tmp/selene.zip -d "$HOME/.local/bin"
+          chmod +x "$HOME/.local/bin/selene"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/selene" --version
       - name: Every format's linter, exactly as the pre-commit hook runs them
         run: pre-commit run --all-files --show-diff-on-failure
       - name: Quality gate (celebrimbor)

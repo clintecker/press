@@ -288,9 +288,7 @@ function Pandoc(doc)
       pandoc.Strong({ pandoc.Str("Figure " .. numstr .. ".") }),
       pandoc.Space(),
     })
-    if #long > 0 and long[1].t == "Plain" then
-      long[1].content = prefix .. long[1].content
-    elseif #long > 0 and long[1].t == "Para" then
+    if #long > 0 and (long[1].t == "Plain" or long[1].t == "Para") then
       long[1].content = prefix .. long[1].content
     else
       table.insert(long, 1, pandoc.Plain(prefix))

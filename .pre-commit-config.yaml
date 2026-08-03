@@ -79,3 +79,9 @@ repos:
         language: script
         files: ^src/press/data/lua/.*\.lua$
         pass_filenames: false
+      - id: lua-lint
+        name: lua filters lint (selene)
+        entry: scripts/lua-lint.sh
+        language: script
+        files: '(^src/press/data/lua/.*\.lua$|^selene\.toml$|^pandoc\.yml$)'
+        pass_filenames: false
