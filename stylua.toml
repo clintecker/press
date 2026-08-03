@@ -1,0 +1,6 @@
+# Formatting for the pandoc Lua filters (src/press/data/lua/). Enforced by the
+# JohnnyMorganz/StyLua pre-commit hook (stylua --check). Lua-quality M1 §2.
+indent_type = "Spaces"
+indent_width = 2
+column_width = 88
+quote_style = "AutoPreferDouble"

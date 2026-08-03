@@ -15,18 +15,24 @@
 -- the PDF; other formats keep the width and fall back to an in-flow figure.
 
 local NUMBERED = {
-  figure = true, chart = true, map = true, photo = true, diagram = true,
+  figure = true,
+  chart = true,
+  map = true,
+  photo = true,
+  diagram = true,
 }
 
 -- A relative width measure -> the graphics width option, against the line.
 local MEASURE_WIDTH = {
-  ["full-measure"]  = "\\linewidth",
-  ["half-measure"]  = "0.5\\linewidth",
+  ["full-measure"] = "\\linewidth",
+  ["half-measure"] = "0.5\\linewidth",
   ["third-measure"] = "0.3333\\linewidth",
 }
 -- The same, as a pandoc width value other writers understand.
 local MEASURE_PERCENT = {
-  ["full-measure"] = "100%", ["half-measure"] = "50%", ["third-measure"] = "33%",
+  ["full-measure"] = "100%",
+  ["half-measure"] = "50%",
+  ["third-measure"] = "33%",
 }
 -- Roughly how many text lines tall a wrapped figure at each measure is: a plate
 -- is about square, so a fraction of the line width is that fraction of the text
@@ -35,7 +41,9 @@ local MEASURE_PERCENT = {
 -- the next page instead of letting it hang off the foot with too few lines to
 -- close under it. A shade under square, so a wide-short plate is not over-moved.
 local MEASURE_GUARD = {
-  ["full-measure"] = 20, ["half-measure"] = 13, ["third-measure"] = 9,
+  ["full-measure"] = 20,
+  ["half-measure"] = 13,
+  ["third-measure"] = 9,
 }
 
 local function is_true(v)
@@ -46,7 +54,13 @@ end
 -- The first Image inline anywhere inside a Figure.
 local function first_image(fig)
   local found
-  fig:walk({ Image = function(img) if not found then found = img end end })
+  fig:walk({
+    Image = function(img)
+      if not found then
+        found = img
+      end
+    end,
+  })
   return found
 end
 
@@ -63,11 +77,17 @@ end
 
 -- The LaTeX \includegraphics width option for a declared width, or "".
 local function width_opt(width)
-  if not width or width == "" then return "" end
-  if MEASURE_WIDTH[width] then return ",width=" .. MEASURE_WIDTH[width] end
+  if not width or width == "" then
+    return ""
+  end
+  if MEASURE_WIDTH[width] then
+    return ",width=" .. MEASURE_WIDTH[width]
+  end
   local pct = width:match("^(%d+)%%$")
-  if pct then return ",width=" .. (tonumber(pct) / 100) .. "\\linewidth" end
-  return ",width=" .. width       -- a raw length passes through unchanged
+  if pct then
+    return ",width=" .. (tonumber(pct) / 100) .. "\\linewidth"
+  end
+  return ",width=" .. width -- a raw length passes through unchanged
 end
 
 -- The house-only attributes that must never leak into the output (pandoc
@@ -93,7 +113,9 @@ local function finalize_image(image, decorative, alt)
     image.caption = pandoc.Inlines({ pandoc.Str(alt) })
   end
   local w = image.attributes.width
-  if w and MEASURE_PERCENT[w] then image.attributes.width = MEASURE_PERCENT[w] end
+  if w and MEASURE_PERCENT[w] then
+    image.attributes.width = MEASURE_PERCENT[w]
+  end
   strip_house_keys(image)
   return image
 end
@@ -103,13 +125,20 @@ end
 -- and (for a numbered figure) the List-of-Figures line. Empty pieces drop.
 local function fig_inner(image, label, caption_latex, lof2_latex, gwidth)
   local parts = {}
-  if label and label ~= "" then parts[#parts + 1] = label end
+  if label and label ~= "" then
+    parts[#parts + 1] = label
+  end
   parts[#parts + 1] = "\\pandocbounded{\\includegraphics[keepaspectratio"
-    .. gwidth .. "]{" .. image.src .. "}}"
+    .. gwidth
+    .. "]{"
+    .. image.src
+    .. "}}"
   if caption_latex and caption_latex ~= "" then
     parts[#parts + 1] = "\\caption*{" .. caption_latex .. "}"
   end
-  if lof2_latex and lof2_latex ~= "" then parts[#parts + 1] = lof2_latex end
+  if lof2_latex and lof2_latex ~= "" then
+    parts[#parts + 1] = lof2_latex
+  end
   return table.concat(parts, "\n")
 end
 
@@ -155,14 +184,20 @@ local function full_page(image, label, caption_latex, lof2_latex, frontis)
     "\\null\\vfill",
     "\\begin{center}",
   }
-  if label and label ~= "" then parts[#parts + 1] = label end
+  if label and label ~= "" then
+    parts[#parts + 1] = label
+  end
   parts[#parts + 1] = "\\pandocbounded{\\includegraphics[keepaspectratio,"
-    .. "width=\\linewidth]{" .. image.src .. "}}"
+    .. "width=\\linewidth]{"
+    .. image.src
+    .. "}}"
   parts[#parts + 1] = "\\end{center}"
   if caption_latex and caption_latex ~= "" then
     parts[#parts + 1] = "\\captionof{figure}{" .. caption_latex .. "}"
   end
-  if lof2_latex and lof2_latex ~= "" then parts[#parts + 1] = lof2_latex end
+  if lof2_latex and lof2_latex ~= "" then
+    parts[#parts + 1] = lof2_latex
+  end
   parts[#parts + 1] = "\\vfill\\clearpage"
   return pandoc.RawBlock("latex", table.concat(parts, "\n"))
 end
@@ -176,7 +211,8 @@ end
 local function placed(image, place, width, outset, label, caption_latex, lof2_latex)
   if place == "wrap-inner" or place == "wrap-outer" or place == "margin" then
     local side = (place == "wrap-inner") and "i" or "o"
-    local inner = fig_inner(image, label, caption_latex, lof2_latex, ",width=\\linewidth")
+    local inner =
+      fig_inner(image, label, caption_latex, lof2_latex, ",width=\\linewidth")
     return { wrap = wrapfig(inner, side, width, outset) }
   elseif place == "full-bleed" or place == "frontispiece" then
     return full_page(image, label, caption_latex, lof2_latex, place == "frontispiece")
@@ -192,7 +228,9 @@ function Pandoc(doc)
 
   local function unnumbered_header(h)
     for _, c in ipairs(h.classes) do
-      if c == "unnumbered" then return true end
+      if c == "unnumbered" then
+        return true
+      end
     end
     return false
   end
@@ -201,34 +239,54 @@ function Pandoc(doc)
   local function numbered_block(fig, image, numstr)
     local cap = inlines_to_latex(caption_inlines(fig))
     if latex then
-      local label = fig.identifier ~= "" and
-        ("\\phantomsection\\label{" .. fig.identifier .. "}") or ""
+      local label = fig.identifier ~= ""
+          and ("\\phantomsection\\label{" .. fig.identifier .. "}")
+        or ""
       -- \mbox the label so a narrow column (a third-measure wrap) can never
       -- hyphenate "Figure" into "Fig-ure"; the caption text after it still wraps.
-      local caption_latex =
-        "\\mbox{\\textbf{Figure~" .. numstr .. ".}}\\enspace " .. cap
+      local caption_latex = "\\mbox{\\textbf{Figure~"
+        .. numstr
+        .. ".}}\\enspace "
+        .. cap
       local lof2 = "\\addcontentsline{lof2}{figure}{\\protect\\numberline{"
-        .. numstr .. "}" .. cap .. "}"
+        .. numstr
+        .. "}"
+        .. cap
+        .. "}"
       -- A numbered figure honours its placement too (wrap, full page); only
       -- when it names none does it fall through to the centered figure.
-      local by_place = placed(image, image.attributes.place,
-        image.attributes.width, image.attributes.outset, label, caption_latex, lof2)
-      if by_place then return by_place end
-      local inner = fig_inner(image, label, caption_latex, lof2,
-        width_opt(image.attributes.width))
-      return pandoc.RawBlock("latex",
-        "\\begin{figure}[H]\\centering\n" .. inner .. "\n\\end{figure}")
+      local by_place = placed(
+        image,
+        image.attributes.place,
+        image.attributes.width,
+        image.attributes.outset,
+        label,
+        caption_latex,
+        lof2
+      )
+      if by_place then
+        return by_place
+      end
+      local inner =
+        fig_inner(image, label, caption_latex, lof2, width_opt(image.attributes.width))
+      return pandoc.RawBlock(
+        "latex",
+        "\\begin{figure}[H]\\centering\n" .. inner .. "\n\\end{figure}"
+      )
     end
     -- Every other writer: keep the real Figure, prepend the number to the
     -- caption, carry the id as the anchor, and honour width and alt. The
     -- image is mutated through fig:walk (a bare first_image is a copy).
     local alt = image.attributes["fig-alt"]
-    fig = fig:walk({ Image = function(img)
-      return finalize_image(img, false, alt)
-    end })
+    fig = fig:walk({
+      Image = function(img)
+        return finalize_image(img, false, alt)
+      end,
+    })
     local long = fig.caption.long or pandoc.Blocks({})
     local prefix = pandoc.Inlines({
-      pandoc.Strong({ pandoc.Str("Figure " .. numstr .. ".") }), pandoc.Space(),
+      pandoc.Strong({ pandoc.Str("Figure " .. numstr .. ".") }),
+      pandoc.Space(),
     })
     if #long > 0 and long[1].t == "Plain" then
       long[1].content = prefix .. long[1].content
@@ -238,7 +296,9 @@ function Pandoc(doc)
       table.insert(long, 1, pandoc.Plain(prefix))
     end
     fig.caption.long = long
-    if fig.identifier ~= "" then fig.attr.identifier = fig.identifier end
+    if fig.identifier ~= "" then
+      fig.attr.identifier = fig.identifier
+    end
     return fig
   end
 
@@ -249,23 +309,31 @@ function Pandoc(doc)
     local width = image.attributes.width
     local alt = image.attributes["fig-alt"]
     if not place and not width and not decorative and not alt then
-      return nil   -- untouched: the byte-identity guarantee
+      return nil -- untouched: the byte-identity guarantee
     end
     -- Honour alt, width, and strip house keys (mutating through fig:walk,
     -- since a bare first_image hands back a copy).
-    fig = fig:walk({ Image = function(img)
-      return finalize_image(img, decorative, alt)
-    end })
-    if not latex or not place then return fig end
+    fig = fig:walk({
+      Image = function(img)
+        return finalize_image(img, decorative, alt)
+      end,
+    })
+    if not latex or not place then
+      return fig
+    end
     local cap = inlines_to_latex(caption_inlines(fig))
     local by_place = placed(image, place, width, image.attributes.outset, "", cap, "")
-    if by_place then return by_place end
-    return fig      -- inline/plate: the ordinary in-flow figure
+    if by_place then
+      return by_place
+    end
+    return fig -- inline/plate: the ordinary in-flow figure
   end
 
   local function transform(fig)
     local image = first_image(fig)
-    if not image then return fig end
+    if not image then
+      return fig
+    end
     local kind = image.classes[1]
     local decorative = is_true(image.attributes.decorative)
     local numbered = kind ~= nil and NUMBERED[kind] and not decorative
@@ -273,7 +341,9 @@ function Pandoc(doc)
       fign = fign + 1
       local numstr = (chapter > 0) and (chapter .. "." .. fign) or tostring(fign)
       has_numbered = true
-      if fig.identifier ~= "" then numbers[fig.identifier] = numstr end
+      if fig.identifier ~= "" then
+        numbers[fig.identifier] = numstr
+      end
       return numbered_block(fig, image, numstr)
     end
     return plate_block(fig, image, decorative)
@@ -338,13 +408,19 @@ function Pandoc(doc)
     Cite = function(cite)
       local cid = cite.citations[1] and cite.citations[1].id or ""
       local num = numbers[cid]
-      if not num then return nil end
+      if not num then
+        return nil
+      end
       if latex then
-        return pandoc.RawInline("latex",
-          "\\hyperref[" .. cid .. "]{Figure~" .. num .. "}")
+        return pandoc.RawInline(
+          "latex",
+          "\\hyperref[" .. cid .. "]{Figure~" .. num .. "}"
+        )
       end
       return pandoc.Link(
-        { pandoc.Str("Figure"), pandoc.Space(), pandoc.Str(num) }, "#" .. cid)
+        { pandoc.Str("Figure"), pandoc.Space(), pandoc.Str(num) },
+        "#" .. cid
+      )
     end,
   })
 

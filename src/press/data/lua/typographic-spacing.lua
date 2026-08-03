@@ -18,10 +18,22 @@ local NBSP = utf8.char(0xA0)
 
 -- Titles that bind to a following capitalized word (a name).
 local TITLES = {
-  ["Mr."] = true, ["Mrs."] = true, ["Ms."] = true, ["Dr."] = true,
-  ["Prof."] = true, ["St."] = true, ["Mt."] = true, ["Sr."] = true,
-  ["Jr."] = true, ["Rev."] = true, ["Hon."] = true, ["Capt."] = true,
-  ["Sgt."] = true, ["Gen."] = true, ["Col."] = true, ["Lt."] = true,
+  ["Mr."] = true,
+  ["Mrs."] = true,
+  ["Ms."] = true,
+  ["Dr."] = true,
+  ["Prof."] = true,
+  ["St."] = true,
+  ["Mt."] = true,
+  ["Sr."] = true,
+  ["Jr."] = true,
+  ["Rev."] = true,
+  ["Hon."] = true,
+  ["Capt."] = true,
+  ["Sgt."] = true,
+  ["Gen."] = true,
+  ["Col."] = true,
+  ["Lt."] = true,
   ["Fr."] = true,
 }
 
@@ -29,19 +41,40 @@ local TITLES = {
 -- whose plain word is not a common sentence word, so a period that is really a
 -- full stop is never swept up.
 local REFS = {
-  ["p."] = true, ["pp."] = true, ["No."] = true, ["Nos."] = true,
-  ["Fig."] = true, ["Figs."] = true, ["Ch."] = true, ["Vol."] = true,
-  ["Pt."] = true, ["Eq."] = true, ["\u{00A7}"] = true, ["\u{00B6}"] = true,
+  ["p."] = true,
+  ["pp."] = true,
+  ["No."] = true,
+  ["Nos."] = true,
+  ["Fig."] = true,
+  ["Figs."] = true,
+  ["Ch."] = true,
+  ["Vol."] = true,
+  ["Pt."] = true,
+  ["Eq."] = true,
+  ["\u{00A7}"] = true,
+  ["\u{00B6}"] = true,
 }
 
-local function is_number(s) return s:match("^%d") ~= nil end
-local function is_capitalized(s) return s:match("^%u") ~= nil end
-local function is_initial(s) return s:match("^%u%.$") ~= nil end
+local function is_number(s)
+  return s:match("^%d") ~= nil
+end
+local function is_capitalized(s)
+  return s:match("^%u") ~= nil
+end
+local function is_initial(s)
+  return s:match("^%u%.$") ~= nil
+end
 
 local function binds(a, b)
-  if TITLES[a] and is_capitalized(b) then return true end
-  if REFS[a] and is_number(b) then return true end
-  if is_initial(a) and (is_initial(b) or is_capitalized(b)) then return true end
+  if TITLES[a] and is_capitalized(b) then
+    return true
+  end
+  if REFS[a] and is_number(b) then
+    return true
+  end
+  if is_initial(a) and (is_initial(b) or is_capitalized(b)) then
+    return true
+  end
   return false
 end
 
@@ -50,11 +83,18 @@ function Inlines(inlines)
   local i, n = 1, #inlines
   while i <= n do
     local a, sp, b = inlines[i], inlines[i + 1], inlines[i + 2]
-    if a and a.t == "Str" and sp and sp.t == "Space"
-        and b and b.t == "Str" and binds(a.text, b.text) then
+    if
+      a
+      and a.t == "Str"
+      and sp
+      and sp.t == "Space"
+      and b
+      and b.t == "Str"
+      and binds(a.text, b.text)
+    then
       out:insert(a)
       out:insert(pandoc.Str(NBSP))
-      i = i + 2            -- keep b as the next head, so initials chain
+      i = i + 2 -- keep b as the next head, so initials chain
     else
       out:insert(a)
       i = i + 1

@@ -49,6 +49,13 @@ repos:
         # constructs the checkers must strip); linting them to
         # cleanliness would defeat their purpose.
         exclude: "(known-bad/|tests/corpus/jargon_parity/inputs/)"
+  - repo: https://github.com/JohnnyMorganz/StyLua
+    rev: v2.5.2
+    hooks:
+      # Formats the pandoc Lua filters against stylua.toml. stylua-github
+      # fetches the single static binary, so CI needs no Lua toolchain.
+      - id: stylua-github
+        files: ^src/press/data/lua/.*\.lua$
   - repo: local
     hooks:
       - id: roadmap
