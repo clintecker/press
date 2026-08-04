@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 
 # Toolchain image for building and verifying books. CI pulls this instead of
 # apt-installing two gigabytes of TeX Live on every run (about 2 minutes
