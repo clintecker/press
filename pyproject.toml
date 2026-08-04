@@ -44,7 +44,7 @@ dependencies = [
 # The operator desk is optional: a bare install builds books from the
 # command line without Textual, and `press desk` asks for this extra.
 tui = [
-    "textual>=8,<9",
+    "textual>=8.2.8,<9",
 ]
 dev = [
     "ruff>=0.5",
@@ -57,7 +57,7 @@ dev = [
     "pytest-cov>=7.1.0",
     "pytest-xdist>=3.6",
     "hypothesis>=6.100",
-    "textual>=8,<9",
+    "textual>=8.2.8,<9",
     # The quality framework press's gate runs (public repo, no token; the
     # three-part tag is immutable by celebrimbor's release contract, so a
     # pinned dev env resolves the same bytes). Dev/CI only -- never a book
