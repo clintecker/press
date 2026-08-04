@@ -56,7 +56,7 @@ dev = [
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
     "pytest-xdist>=3.6",
-    "hypothesis>=6.100",
+    "hypothesis>=6.164.0",
     "textual>=8,<9",
     # The quality framework press's gate runs (public repo, no token; the
     # three-part tag is immutable by celebrimbor's release contract, so a
