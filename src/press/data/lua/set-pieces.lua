@@ -14,20 +14,15 @@
 -- searchable, and accessible, and the plain-text edition shows them as verse.
 -- A book that uses none of these renders byte-for-byte as before.
 
-local CASCADE_STEP = 2.4 -- em added per cascade line
-local TAIL_AMP = 3.0 -- em, the serpentine's horizontal swing
--- The size ramp down a tail, from the head to the tip.
-local TAIL_SIZES = {
-  "\\normalsize",
-  "\\normalsize",
-  "\\small",
-  "\\small",
-  "\\footnotesize",
-  "\\footnotesize",
-  "\\scriptsize",
-  "\\scriptsize",
-  "\\tiny",
-}
+-- The pure set-piece geometry (cascade step, tail sine/size ramp) lives in
+-- press-util.lua beside this filter; load it by its own directory so `require`
+-- resolves whatever working directory pandoc runs from. docs/LUA-QUALITY-PLAN.md §4.
+local here = (PANDOC_SCRIPT_FILE or ""):match("^(.*[/\\])") or "./"
+package.path = here .. "?.lua;" .. package.path
+local util = require("press-util")
+local cascade_indent = util.cascade_indent
+local tail_ramp = util.tail_ramp
+local tail_web_size = util.tail_web_size
 
 -- Only html and epub carry the styled geometry; every other writer (markdown,
 -- plain text, docx) gets a clean native line block instead of the fenced divs
@@ -70,7 +65,7 @@ local function cascade(lines)
     for i, line in ipairs(lines) do
       local pre = pandoc.RawInline(
         "latex",
-        string.format("\\noindent\\hspace*{%.2fem}", (i - 1) * CASCADE_STEP)
+        string.format("\\noindent\\hspace*{%.2fem}", cascade_indent(i))
       )
       out[#out + 1] = pandoc.Plain(
         with_tail({ pre }, with_tail(line, { pandoc.RawInline("latex", "\\par") }))
@@ -89,7 +84,7 @@ local function cascade(lines)
       pandoc.Attr(
         "",
         { "cascade-line" },
-        { { "style", string.format("padding-left:%.1fem", (i - 1) * CASCADE_STEP) } }
+        { { "style", string.format("padding-left:%.1fem", cascade_indent(i)) } }
       )
     )
   end
@@ -138,16 +133,10 @@ end
 -- not coordinates in the manuscript.
 local function tail(lines)
   local n = #lines
-  local function ramp(i)
-    local t = (i - 1) / math.max(n - 1, 1) -- 0 at the head, 1 at the tip
-    local offset = TAIL_AMP * math.sin(t * 2 * math.pi)
-    local size = TAIL_SIZES[math.min(#TAIL_SIZES, 1 + math.floor(t * #TAIL_SIZES))]
-    return offset, size
-  end
   if FORMAT:match("latex") then
     local out = { pandoc.RawBlock("latex", "\\par\\addvspace{1.1em}\\begin{center}") }
     for i, line in ipairs(lines) do
-      local offset, size = ramp(i)
+      local offset, size = tail_ramp(i, n)
       local pre =
         pandoc.RawInline("latex", string.format("\\hspace*{%.2fem}{%s ", offset, size))
       out[#out + 1] = pandoc.Plain(
@@ -161,20 +150,9 @@ local function tail(lines)
     return pandoc.LineBlock(lines)
   end
   local items = {}
-  local pct = {
-    "1em",
-    "1em",
-    "0.92em",
-    "0.92em",
-    "0.84em",
-    "0.84em",
-    "0.76em",
-    "0.76em",
-    "0.68em",
-  }
   for i, line in ipairs(lines) do
-    local offset, _ = ramp(i)
-    local sz = pct[math.min(#pct, 1 + math.floor((i - 1) / math.max(n - 1, 1) * #pct))]
+    local offset, _ = tail_ramp(i, n)
+    local sz = tail_web_size(i, n)
     items[#items + 1] = pandoc.Div(
       pandoc.Plain(line),
       pandoc.Attr(

@@ -37,6 +37,31 @@ eq(util.is_true(""), false, "is_true empty")
 eq(util.MEASURE_PERCENT["half-measure"], "50%", "MEASURE_PERCENT half")
 eq(util.MEASURE_GUARD["full-measure"], 20, "MEASURE_GUARD full")
 
+local function approx(got, want, msg)
+  if type(got) ~= "number" or math.abs(got - want) > 1e-9 then
+    failed = failed + 1
+    io.stderr:write(
+      string.format("FAIL %s: got %s want ~%s\n", msg, tostring(got), tostring(want))
+    )
+  end
+end
+
+-- cascade_indent: each line one 2.4em step deeper, the first flush.
+approx(util.cascade_indent(1), 0, "cascade_indent first")
+approx(util.cascade_indent(3), 4.8, "cascade_indent third")
+
+-- tail_ramp: sine swing (0 at the head, peak a quarter down) with the size ramp.
+local off, size = util.tail_ramp(1, 9)
+approx(off, 0, "tail_ramp head offset")
+eq(size, "\\normalsize", "tail_ramp head size")
+off, size = util.tail_ramp(3, 9)
+approx(off, 3.0, "tail_ramp quarter offset")
+eq(size, "\\small", "tail_ramp quarter size")
+
+-- tail_web_size: the web font-size ramp, head to tip.
+eq(util.tail_web_size(1, 9), "1em", "tail_web_size head")
+eq(util.tail_web_size(9, 9), "0.68em", "tail_web_size tip")
+
 if failed > 0 then
   io.stderr:write(failed .. " assertion(s) failed\n")
   os.exit(1)
