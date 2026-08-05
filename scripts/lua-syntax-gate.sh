@@ -15,8 +15,13 @@ if ! command -v pandoc >/dev/null 2>&1; then
 fi
 
 status=0
+# loadfile COMPILES without running, so this catches syntax errors without
+# executing a filter's top-level code (a filter may `require` a sibling module
+# by a package.path only pandoc sets when it runs the filter). The path goes
+# through the environment, not a positional arg -- `pandoc lua -e CODE -- FILE`
+# would run CODE and then execute FILE as a script.
 for f in src/press/data/lua/*.lua; do
-  if ! err=$(pandoc lua -e "assert(loadfile(arg[1]))" -- "$f" 2>&1); then
+  if ! err=$(LUA_SYNTAX_FILE="$f" pandoc lua -e 'assert(loadfile(os.getenv("LUA_SYNTAX_FILE")))' 2>&1); then
     echo "Lua syntax error in $f:"
     echo "$err"
     status=1

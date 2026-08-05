@@ -16,6 +16,8 @@ globals:
     property: read-only
   PANDOC_READER_OPTIONS:
     property: read-only
+  PANDOC_SCRIPT_FILE:
+    property: read-only
   Pandoc:
     property: full-write
   Meta:
