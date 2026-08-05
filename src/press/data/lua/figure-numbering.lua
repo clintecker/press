@@ -14,6 +14,18 @@
 -- image attributes (width=…-measure, place=…, outset=…) and is applied for
 -- the PDF; other formats keep the width and fall back to an in-flow figure.
 
+-- Pure helpers (the measure vocabulary and small predicates) live in
+-- press-util.lua beside this filter; load it by its own directory so `require`
+-- resolves whatever working directory pandoc runs from. docs/LUA-QUALITY-PLAN.md §4.
+local here = (PANDOC_SCRIPT_FILE or ""):match("^(.*[/\\])") or "./"
+package.path = here .. "?.lua;" .. package.path
+local util = require("press-util")
+local MEASURE_WIDTH = util.MEASURE_WIDTH
+local MEASURE_PERCENT = util.MEASURE_PERCENT
+local MEASURE_GUARD = util.MEASURE_GUARD
+local is_true = util.is_true
+local width_opt = util.width_opt
+
 local NUMBERED = {
   figure = true,
   chart = true,
@@ -21,35 +33,6 @@ local NUMBERED = {
   photo = true,
   diagram = true,
 }
-
--- A relative width measure -> the graphics width option, against the line.
-local MEASURE_WIDTH = {
-  ["full-measure"] = "\\linewidth",
-  ["half-measure"] = "0.5\\linewidth",
-  ["third-measure"] = "0.3333\\linewidth",
-}
--- The same, as a pandoc width value other writers understand.
-local MEASURE_PERCENT = {
-  ["full-measure"] = "100%",
-  ["half-measure"] = "50%",
-  ["third-measure"] = "33%",
-}
--- Roughly how many text lines tall a wrapped figure at each measure is: a plate
--- is about square, so a fraction of the line width is that fraction of the text
--- block's ~24 lines, plus a couple for the caption. A wrap needs at least this
--- many lines left on the page; short of them \Needspace moves the whole wrap to
--- the next page instead of letting it hang off the foot with too few lines to
--- close under it. A shade under square, so a wide-short plate is not over-moved.
-local MEASURE_GUARD = {
-  ["full-measure"] = 20,
-  ["half-measure"] = 13,
-  ["third-measure"] = 9,
-}
-
-local function is_true(v)
-  v = tostring(v or ""):lower()
-  return v == "true" or v == "yes" or v == "1"
-end
 
 -- The first Image inline anywhere inside a Figure.
 local function first_image(fig)
@@ -73,21 +56,6 @@ end
 local function inlines_to_latex(inls)
   local tex = pandoc.write(pandoc.Pandoc({ pandoc.Plain(inls) }), "latex")
   return (tex:gsub("%s+$", ""))
-end
-
--- The LaTeX \includegraphics width option for a declared width, or "".
-local function width_opt(width)
-  if not width or width == "" then
-    return ""
-  end
-  if MEASURE_WIDTH[width] then
-    return ",width=" .. MEASURE_WIDTH[width]
-  end
-  local pct = width:match("^(%d+)%%$")
-  if pct then
-    return ",width=" .. (tonumber(pct) / 100) .. "\\linewidth"
-  end
-  return ",width=" .. width -- a raw length passes through unchanged
 end
 
 -- The house-only attributes that must never leak into the output (pandoc

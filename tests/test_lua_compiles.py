@@ -13,6 +13,7 @@ pandoc is a hard failure, never a silent skip where a release is cut (§7).
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -39,8 +40,13 @@ def test_lua_filters_are_found():
 @_needs_pandoc
 @pytest.mark.parametrize("lua", FILTERS, ids=lambda p: p.name)
 def test_lua_filter_compiles(lua: Path):
+    # loadfile COMPILES without running, so a filter's top-level `require` (of a
+    # sibling module, resolvable only when pandoc runs the filter) is not
+    # executed here. The path goes through the environment, not a positional
+    # arg: `pandoc lua -e CODE -- FILE` would run CODE and then execute FILE.
     result = subprocess.run(
-        ["pandoc", "lua", "-e", "assert(loadfile(arg[1]))", "--", str(lua)],
+        ["pandoc", "lua", "-e", 'assert(loadfile(os.getenv("LUA_SYNTAX_FILE")))'],
+        env={**os.environ, "LUA_SYNTAX_FILE": str(lua)},
         capture_output=True,
         text=True,
     )
