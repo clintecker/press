@@ -74,6 +74,19 @@ def test_constructs_carry_their_class_into_html():
 
 @_needs_pandoc
 @pytest.mark.layer("integration")
+def test_constructs_degrade_to_a_clean_line_block_in_plaintext():
+    # markdown/plain/docx carry no styled geometry: each construct becomes a
+    # native line block, so the words stay live and the plain-text edition shows
+    # them as verse -- none of the html divs or latex machinery leaking in.
+    for md in (_CASCADE, _VERSE, _TAIL):
+        out = _render(md, to="markdown")
+        assert "| " in out  # a pandoc line block
+        assert 'class="' not in out and "padding-left" not in out and "margin-left" not in out
+        assert "wrapfigure" not in out and "\\hspace" not in out and "PressVerse" not in out
+
+
+@_needs_pandoc
+@pytest.mark.layer("integration")
 @pytest.mark.proof("negative")
 def test_ordinary_div_is_untouched():
     # A div without a set-piece class is left exactly as pandoc renders it.
