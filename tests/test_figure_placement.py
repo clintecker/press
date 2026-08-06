@@ -85,6 +85,33 @@ def test_web_keeps_a_clean_in_flow_figure():
 
 @_needs_pandoc
 @pytest.mark.layer("integration")
+def test_wrap_outer_and_margin_take_the_outer_side():
+    # wrap-outer and margin both wrap on the OUTER edge (the {o} anchor); only
+    # wrap-inner takes the inner {i} edge. half-measure is a 0.5\linewidth column.
+    outer = _render(_WRAP.replace("place=wrap-inner", "place=wrap-outer"))
+    assert "\\begin{wrapfigure}{o}{0.5\\linewidth}" in outer
+    margin = _render(_WRAP.replace("place=wrap-inner", "place=margin"))
+    assert "\\begin{wrapfigure}{o}" in margin
+
+
+@_needs_pandoc
+@pytest.mark.layer("integration")
+def test_wrap_column_and_needspace_guard_scale_with_the_measure():
+    # Each measure fixes the wrap column AND the \Needspace guard (how many lines
+    # must remain, else the wrap moves to the next page): half -> 0.5\linewidth /
+    # 13, third -> 0.3333 / 9. A width outside the vocabulary falls back to
+    # 0.4\linewidth and an 11-line guard.
+    third = _render(_WRAP.replace("width=half-measure", "width=third-measure"))
+    assert "\\begin{wrapfigure}{i}{0.3333\\linewidth}" in third
+    assert "\\Needspace*{9\\baselineskip}" in third
+    assert "\\Needspace*{13\\baselineskip}" in _render(_WRAP)
+    raw = _render(_WRAP.replace("width=half-measure", "width=3in"))
+    assert "\\begin{wrapfigure}{i}{0.4\\linewidth}" in raw
+    assert "\\Needspace*{11\\baselineskip}" in raw
+
+
+@_needs_pandoc
+@pytest.mark.layer("integration")
 @pytest.mark.proof("negative")
 def test_bare_plate_is_untouched():
     # No kind, no place, no width, no alt: the byte-identity guarantee.
