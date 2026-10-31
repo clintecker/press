@@ -32,7 +32,7 @@ classifiers = [
 requires-python = ">=3.10"
 dependencies = [
     "Pillow>=10.0",
-    "pypdf>=4.0",
+    "pypdf>=6.21.4",
     # ruamel.yaml is the package's one YAML library (see press.yamlio): it
     # reads and writes at YAML 1.2 so a bare no/yes/on is always a string,
     # and its round-trip mode lets `press config` edit a book's YAML in
