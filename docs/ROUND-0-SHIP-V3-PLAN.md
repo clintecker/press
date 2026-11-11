@@ -290,6 +290,43 @@ git commit -m "EPUB corrections (parity M0): figure overflow, drop-cap clearfix,
 
 ---
 
+### Task 3b: Fold smart dashes in the site witness normaliser (added during execution)
+
+Found while proving Task 3 in the toolchain: `press all` on the Alice example fails at the reader-site witness check with `reader site is missing 02-the-pool-of-tears.md: its witness line "myself about you: you must manage the best way you..." appears on no page`. Diagnosis (ledgered): pandoc's smart extension renders the source's `--` as U+2013 on the page; `verify_formats.normalized()` (`:36`) straightens quotes but not dashes, and `_verify_site_chapter_identity` (`:492`) matches the whole witness line as a substring, so a correct build goes red. The HTML/EPUB checks pass because they match 8-word fragments or a dash-free line. A verifier false negative, pre-existing since the site check was written (c7ccb1a), on no CI gate (the docs site builds example PDFs only), affecting any book whose chapter witness line carries `--`, `---`, or `...`.
+
+**Files:**
+- Modify: `src/press/verify_formats.py:33-37` (`STRAIGHTEN`, `normalized`)
+- Test: `tests/test_verify_site_witness.py` (new)
+
+**Interfaces:**
+- Produces: `normalized()` additionally folds U+2014 → `---`, U+2013 → `--`, U+2026 → `...` on both sides, so a witness taken from source and a page rendered by pandoc's smart extension compare equal. `sentinel_present` is unchanged (sentinels are exact-case and already documented as quote-only).
+
+- [ ] **Step 1: Write the failing tests**
+
+```python
+# tests/test_verify_site_witness.py
+from press import verify_formats as vf
+
+def test_normalized_folds_smart_dashes_and_ellipsis():
+    assert vf.normalized("x -- y") == vf.normalized("x – y")
+    assert vf.normalized("x --- y") == vf.normalized("x — y")
+    assert vf.normalized("wait...") == vf.normalized("wait…")
+
+def test_site_chapter_identity_accepts_a_smart_dashed_witness(tmp_path, monkeypatch):
+    # one chapter whose longest line carries `--`; one site page rendering it with U+2013
+    ...  # build the minimal book root + page the way the existing site tests in tests/ do, then
+    vf._verify_site_chapter_identity([page])  # must not raise
+```
+
+- [ ] **Step 2: Run to verify they fail** (`.venv/bin/python -m pytest tests/test_verify_site_witness.py -v`; the first fails on the en dash).
+- [ ] **Step 3: Implement**: extend the fold in `normalized()` (a `str.replace` chain or a second translate table for the single-codepoint cases plus `replace` for the multi-char targets; order em dash before en dash).
+- [ ] **Step 4: Tests pass; run `tests/test_verify_editions.py` too.**
+- [ ] **Step 5: Prove on the real book**: `scripts/dev-render.sh site` then, from `examples/alice-in-wonderland`, call `verify_formats.verify_site(<built site dir>)` with `.venv/bin/python`; it must pass. Then `scripts/dev-render.sh all` must exit 0.
+- [ ] **Step 6: CHANGELOG `### Fixed` bullet** (one sentence: the reader-site witness check no longer refuses a correct build whose witness line carries a smart dash or ellipsis).
+- [ ] **Step 7: Commit**: `Fold smart dashes in the site witness check so a correct build is not refused`.
+
+---
+
 ### Task 4: A scheduled early warning for expiring ledger entries
 
 **Files:**
