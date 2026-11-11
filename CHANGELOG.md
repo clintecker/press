@@ -9,6 +9,27 @@ audit).
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-11-10
+
+A design major. Two changes move the typography of every book: a fine-press
+craft pass on the house interior (optical margins, oldstyle figures, ligature
+suppression across morpheme seams, a widow/orphan/runt/hyphenation discipline,
+and non-breaking spaces after a curated set of abbreviations), and a figure
+treatment that numbers informative figures, lists them apart from the
+Victorian plates, and resolves cross-references to them. Both move glyph
+positions and line breaks, so a book repinned from `@v2` to `@v3` is a
+re-proof of its PDF, not a byte-identical repin; `docs/MIGRATION.md` says
+what to expect. Around them: set-piece constructs, an ornate opening and
+aesthetic scene breaks, a hardened placement vocabulary, a repeatable
+print-profile lifecycle, a provider support matrix enforced by `press check`,
+and the Alice gallery example. The within-major work that rode along is
+listed under Fixed and Changed: the producer ledger's expired pending list
+retired through real verifiers, EPUB figure corrections, a figure-label
+parity check across editions, two false negatives in the reader-site witness
+check, and a Monday early warning for the ledger's review dates. Dependencies
+move with it: the runtime lock carries pypdf 6.21.4 and the dev floors are
+current.
+
 ### Added
 
 - **Set-piece typographic constructs: `::: cascade`, `::: verse`, `::: tail`.**

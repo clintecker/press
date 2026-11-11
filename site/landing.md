@@ -42,7 +42,7 @@ produced:
 ## Start a book
 
 ```sh
-pip install "press @ git+https://github.com/clintecker/press@v2" && \
+pip install "press @ git+https://github.com/clintecker/press@v3" && \
   press new my-book && \
   cd my-book && \
   press all

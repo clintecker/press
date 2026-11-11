@@ -1,6 +1,6 @@
 # Migrating between press majors
 
-A book pins the press to a major — `@v1`, and now `@v2` — and that pin is a
+A book pins the press to a major — `@v1`, `@v2`, and now `@v3` — and that pin is a
 contract: it resolves the same pipeline, action, and toolchain bytes for as
 long as you leave it. Moving to a new major is opting into a new contract,
 and this page is how you do it safely, prove what changed, and reverse it if
@@ -32,6 +32,50 @@ places a book pins it, and leaves everything else alone.
 
 An immutable pin (`@v1.20.0`) is floated to the new major (`@v2`); pin a
 three-part v2 tag afterward if you want to freeze the exact release.
+
+## What v2 → v3 actually changes
+
+More than v2 did, and in every book. v3 is a design major: it moves the
+typography of the house interior, so a book that repins from `@v2` to `@v3`
+does **not** render byte-for-byte as before. Two things change on every
+page, and two more appear only when a manuscript asks for them.
+
+- **A fine-press craft pass on the house typography.** Optical margins and
+  even colour through microtype protrusion and expansion; oldstyle text
+  figures for the aesthetic's PDF font; ligatures suppressed across a
+  morpheme seam; and a widow, orphan, runt, and hyphenation discipline that
+  no longer lets a paragraph end on a hyphen, stack two hyphenated lines,
+  carry a hyphen across a page turn, or leave a lone word on a paragraph's
+  last line. A curated set of abbreviations (`Mr. Smith`, `p. 42`,
+  `C. L. Dodgson`) binds to what follows with a non-breaking space in every
+  edition. Glyph positions and line breaks move; page counts may move with
+  them.
+- **Figures earn numbers, a list, and cross-references.** A figure that
+  declares an informative kind (`.figure`, `.chart`, `.map`, `.photo`,
+  `.diagram`) is numbered by chapter, listed in a List of Figures kept apart
+  from the List of Plates, and reachable with `@id`. A plate stays
+  unnumbered. A book that declares no numbered figure sees no change here.
+- **A placement vocabulary for images** (`width`, `place`, `outset`,
+  `fig-alt`, `decorative`), laid in the PDF as real wraps, cleared leaves,
+  and frontispieces, and refused by `press check` when malformed. A book
+  that uses none of it is unchanged by this item.
+- **Set-piece constructs** (`::: cascade`, `::: verse`, `::: tail`), an
+  `ornate` chapter opening, and aesthetic-driven scene breaks. All opt-in.
+
+So a v3 migration is a re-proof of your PDF, not a quiet repin: after
+`press migrate apply`, build the book and look at it, because the pages
+have been reset. The migration itself is still only the pin, and
+`press migrate rollback` still restores the exact v2 pin if you want the old
+pages back.
+
+| Site | Before | After |
+| --- | --- | --- |
+| `requirements.txt` | `clintecker/press@v2` | `clintecker/press@v3` |
+| `.github/workflows/<ci>.yml` | `…/build.yml@v2` | `…/build.yml@v3` |
+
+The full list of what shipped in 3.0.0, with the within-major fixes that
+rode along, is in the
+[changelog](https://github.com/clintecker/press/blob/main/CHANGELOG.md).
 
 ## The four moves
 
