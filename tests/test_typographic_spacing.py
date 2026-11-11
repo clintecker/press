@@ -26,8 +26,10 @@ FILTER = (
 _needs_pandoc = lua_coverage.needs_pandoc
 
 
-def _render(markdown: str, to: str = "latex") -> str:
-    args = ["pandoc", "-f", "markdown", "-t", to, lua_coverage.filter_arg(FILTER)]
+def _render(markdown: str, to: str = "latex", filtered: bool = True) -> str:
+    args = ["pandoc", "-f", "markdown", "-t", to]
+    if filtered:
+        args.append(lua_coverage.filter_arg(FILTER))
     result = subprocess.run(args, input=markdown, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     return result.stdout
@@ -63,9 +65,12 @@ def test_ties_carry_into_html_as_nbsp():
 
 @_needs_pandoc
 @pytest.mark.layer("integration")
-@pytest.mark.parametrize("title", ["Col.", "Lt.", "Fr.", "Mt.", "Sr."])
+@pytest.mark.parametrize("title", ["Col.", "Lt.", "Mt."])
 def test_titles_pandoc_does_not_know_tie_to_the_name(title):
-    # pandoc's reader already ties its own abbreviations (Mr., Dr., ...); these
-    # house titles it leaves as a breakable space, so the tie is the filter's.
-    out = _render(f"Then {title} Brown arrived.")
-    assert f"{title}~Brown" in out
+    # pandoc's reader already ties its own abbreviations (Mr., Dr., Fr., Sr.,
+    # ...); these house titles it leaves as a breakable space, so the tie is
+    # the filter's. The unfiltered render proves it: without the filter the
+    # space stays breakable, so a title pandoc learns to tie fails here.
+    source = f"Then {title} Brown arrived."
+    assert f"{title} Brown" in _render(source, filtered=False)
+    assert f"{title}~Brown" in _render(source)

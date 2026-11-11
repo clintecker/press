@@ -10,6 +10,7 @@ filter runs pandoc directly.
 
 from __future__ import annotations
 
+import re
 import subprocess
 from pathlib import Path
 
@@ -161,5 +162,7 @@ def test_a_wrap_with_no_following_paragraph_is_flushed_standalone():
     # A heading next means there is no paragraph to fuse to: the wrapfigure is
     # emitted on its own rather than dropped, and the heading follows intact.
     out = _render("# C\n\n![Cap.](x.png){.figure place=wrap-inner}\n\n# D\n\nText.\n")
-    assert "\\end{wrapfigure}\n\n\\section{D}" in out
+    # pandoc 3.1 wraps a heading in \hypertarget{d}{%...}; newer pandoc does
+    # not. Either way nothing may sit between the wrap and the heading.
+    assert re.search(r"\\end\{wrapfigure\}\n\n(?:\\hypertarget\{d\}\{%\n)?\\section\{D\}", out)
     assert "\\end{wrapfigure}%" not in out
