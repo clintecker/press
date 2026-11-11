@@ -63,7 +63,11 @@ def eligible_lines(source: str) -> set[int]:
 
 
 def read_hits(cov_dir: Path) -> dict[str, set[int]]:
-    """Fold every ``hits-*.tsv`` under ``cov_dir`` into filename -> hit lines."""
+    """Fold every ``hits-*.tsv`` under ``cov_dir`` into filename -> hit lines.
+
+    A malformed row raises here, unlike ``tests/lua_coverage.merge`` which skips:
+    the hook's ``.part`` rename makes one unreachable from a finished run.
+    """
     hits: dict[str, set[int]] = {}
     for path in sorted(cov_dir.glob("hits-*.tsv")):
         for row in path.read_text(encoding="utf-8").splitlines():
@@ -118,10 +122,15 @@ def parse_report(text: str) -> dict[str, float]:
     return floors
 
 
-def failures(counts: dict[str, tuple[int, int]], floors: dict[str, float]) -> list[str]:
+def failures(
+    counts: dict[str, tuple[int, int]], floors: dict[str, float], lua_dir: Path
+) -> list[str]:
     bad = []
     for name, floor in floors.items():
         hit, eligible = counts.get(name, (0, 0))
+        if eligible == 0 and hit == 0:
+            bad.append(f"{name}: no such filter in {lua_dir}")
+            continue
         got = pct(hit, eligible)
         if hit == 0 or got < floor:
             bad.append(f"{name}: got {got}% floor {floor}%")
@@ -148,7 +157,7 @@ def cmd_check(args: argparse.Namespace) -> int:
     if _no_hits(args.cov_dir):
         return 1
     floors = yamlio.load(args.baseline)["floors"]
-    bad = failures(report(args.cov_dir, args.lua_dir), floors)
+    bad = failures(report(args.cov_dir, args.lua_dir), floors, args.lua_dir)
     bad += new_filters(args.lua_dir, floors)
     if bad:
         print("\n".join(bad))

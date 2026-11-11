@@ -73,7 +73,9 @@ def merge(cov_dir: Path) -> dict[str, set[int]]:
         for row in hits.read_text(encoding="utf-8").splitlines():
             fields = row.split("\t")
             # A malformed row (no tab, or a non-integer line) is skipped, not
-            # fatal; the hook's write-then-rename means a finished run has none.
+            # fatal: the truncation case a test pins, from before the hook's
+            # rename. The ratchet's read_hits raises instead, since the rename
+            # makes a malformed row unreachable from a finished run.
             if len(fields) != 2 or not fields[1].isdigit():
                 continue
             merged.setdefault(fields[0], set()).add(int(fields[1]))

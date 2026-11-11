@@ -63,6 +63,12 @@ def test_report_reports_unhit_filter_as_zero(tmp_path):
     assert r.report(cov, lua) == {"f.lua": (2, 4), "g.lua": (0, 2)}
 
 
+def test_failures_names_a_baseline_filter_absent_from_lua_dir(tmp_path):
+    lua, _cov = _two_filters(tmp_path)
+    bad = r.failures({"f.lua": (2, 4)}, {"f.lua": 50.0, "gone.lua": 50.0}, lua)
+    assert bad == [f"gone.lua: no such filter in {lua}"]
+
+
 def test_check_fails_below_floor_and_on_zero_hits(tmp_path, capsys):
     lua, cov = _two_filters(tmp_path)
     base = _baseline(tmp_path, {"f.lua": 60.0, "g.lua": 10.0})

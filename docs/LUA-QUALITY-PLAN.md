@@ -125,8 +125,11 @@ format matrix in `figure-numbering.lua` and the format branches in
 Every Lua test is `skipif(no pandoc)`. Add the epubcheck-style guard (see
 `verify_formats.py:353-368`): when `PRESS_TOOLCHAIN` is set, a missing pandoc is a
 hard error, not a skip, so the Lua suite and the syntax gate can never green-skip
-where a release is cut. Add luacheck/selene, stylua, and luacov to the toolchain
-image so §1–§5 have their tools in CI, and document them in `press doctor`.
+where a release is cut. CI's quality job, which has no toolchain image, sets
+`PRESS_REQUIRE_LUA=1` beside it to turn the same pandoc skip into a failure.
+Add luacheck/selene and stylua to the toolchain image so §1–§4 have their tools
+in CI (the §5 hook harness needs nothing installed), and document them in
+`press doctor`.
 
 ## Sequencing
 

@@ -16,7 +16,5 @@ floors:
   set-pieces.lua: 93.0
   typographic-spacing.lua: 87.9
 reasons:
-- "initial floors, provisional: set 5 points under a macOS measurement; replaced by CI's numbers in Task 5"
-- closers widened; remeasured
 - 'floors set from CI run 42968750375 (PR #263 quality job, ubuntu-24.04); CI and the macOS measurement agreed to the decimal'
 - '§6 backfill: floors raised from CI run 42971980816 (PR #263 quality job)'

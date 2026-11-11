@@ -141,6 +141,9 @@ def test_bare_plate_is_untouched():
     ],
 )
 def test_a_placed_plate_takes_the_house_container(place, container, caption):
+    # The inline case is a coverage touch: the filter emits nothing there that
+    # the unfiltered writer does not (verified identical), so no unfiltered
+    # guard is possible for it; the other placements are the filter's work.
     out = _render(f"# C\n\n![A plate.](x.png){{place={place}}}\n\nText after.\n")
     assert container in out
     assert caption in out

@@ -26,12 +26,12 @@ jobs:
           chmod +x "$HOME/.local/bin/selene"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           "$HOME/.local/bin/selene" --version
-      - name: Every format's linter, exactly as the pre-commit hook runs them
-        run: pre-commit run --all-files --show-diff-on-failure
-      - name: Install pandoc, so the Lua filter suite runs here rather than skipping
+      - name: Install pandoc, so the Lua filter suite and the lua-syntax hook run here rather than skipping
         run: |
           sudo apt-get update -q
           sudo apt-get install -y --no-install-recommends pandoc
+      - name: Every format's linter, exactly as the pre-commit hook runs them
+        run: pre-commit run --all-files --show-diff-on-failure
       - name: Quality gate (celebrimbor)
         env:
           PRESS_REQUIRE_LUA: "1"
