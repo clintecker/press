@@ -159,6 +159,10 @@ audit).
 
 ### Changed
 
+- **The macOS selftest job runs on `macos-15`.** GitHub retired the
+  `macos-14` runner image (the job was cancelled within a second with
+  "configuration not supported"), so the package test suite's macOS leg
+  moves to macOS 15; `docs/COMPATIBILITY.md` states the new floor.
 - **Plates are kept as alpha PNG masters, composited per surface** (#226).
   `press art accept --as plate:<name>` no longer bakes a white background into
   a JPEG: it keeps the plate as an alpha PNG master -- ink on transparency,

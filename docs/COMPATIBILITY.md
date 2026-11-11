@@ -36,7 +36,8 @@ costs.
 
 Linux (the Ubuntu 24.04 toolchain image) is the release and CI family:
 every artifact is built and verified there before a tag ships. macOS
-14 is supported for authoring and runs the package test suite in CI.
+15 is supported for authoring and runs the package test suite in CI
+(GitHub retired the macOS 14 runner image in November 2026).
 Windows is not tested.
 
 ## Unsupported combinations
