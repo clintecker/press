@@ -28,8 +28,16 @@ jobs:
           "$HOME/.local/bin/selene" --version
       - name: Every format's linter, exactly as the pre-commit hook runs them
         run: pre-commit run --all-files --show-diff-on-failure
-      - name: Quality gate (celebrimbor)
+      - name: Install pandoc, so the Lua filter suite runs here rather than skipping
         run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends pandoc
+      - name: Quality gate (celebrimbor)
+        env:
+          PRESS_REQUIRE_LUA: "1"
+          PRESS_LUA_COV_DIR: ${{ runner.temp }}/lua-cov
+        run: |
+          mkdir -p "$PRESS_LUA_COV_DIR"
           # celebrimbor gate runs press's own domain checks (via
           # [tool.celebrimbor] check_modules) plus surface, invariants,
           # producers, known-bad, imports, impact, the coverage ratchet, and
@@ -54,10 +62,15 @@ jobs:
             git fetch origin "${{ github.event.before }}" --depth=1 || true
             celebrimbor gate --diff-base "${{ github.event.before }}"
           fi
+      - name: "Lua filter coverage: report and ratchet"
+        env:
+          PRESS_REQUIRE_LUA: "1"
+          PRESS_LUA_COV_DIR: ${{ runner.temp }}/lua-cov
+        run: |
+          python3 scripts/lua_coverage_ratchet.py report --cov-dir "$PRESS_LUA_COV_DIR"
+          python3 scripts/lua_coverage_ratchet.py check --cov-dir "$PRESS_LUA_COV_DIR"
       - name: Site builds from these docs
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y --no-install-recommends pandoc
           python3 scripts/build_site.py
       - name: Clean distributions install and run from a fresh environment
         run: |

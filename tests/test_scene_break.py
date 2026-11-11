@@ -8,7 +8,6 @@ emitted markup in each format.
 
 from __future__ import annotations
 
-import shutil
 import subprocess
 from pathlib import Path
 
@@ -20,9 +19,7 @@ FILTER = (
     Path(__file__).resolve().parent.parent / "src" / "press" / "data" / "lua" / "scene-break.lua"
 )
 
-_needs_pandoc = pytest.mark.skipif(
-    shutil.which("pandoc") is None, reason="requires capability: pandoc"
-)
+_needs_pandoc = lua_coverage.needs_pandoc
 
 # A chapter with one thematic break -- Alice's shrink/grow marker.
 _MD = "# A chapter\n\nBefore the shift.\n\n---\n\nAfter the shift.\n"

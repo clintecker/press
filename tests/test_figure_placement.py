@@ -10,7 +10,6 @@ filter runs pandoc directly.
 
 from __future__ import annotations
 
-import shutil
 import subprocess
 from pathlib import Path
 
@@ -27,9 +26,7 @@ FILTER = (
     / "figure-numbering.lua"
 )
 
-_needs_pandoc = pytest.mark.skipif(
-    shutil.which("pandoc") is None, reason="requires capability: pandoc"
-)
+_needs_pandoc = lua_coverage.needs_pandoc
 
 
 def _render(markdown: str, to: str = "latex") -> str:

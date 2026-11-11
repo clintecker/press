@@ -9,7 +9,6 @@ only incidentally through a full print build. docs/LUA-QUALITY-PLAN.md §6.
 from __future__ import annotations
 
 import re
-import shutil
 import subprocess
 from pathlib import Path
 
@@ -26,9 +25,7 @@ FILTER = (
     / "print-safe-images.lua"
 )
 
-_needs_pandoc = pytest.mark.skipif(
-    shutil.which("pandoc") is None, reason="requires capability: pandoc"
-)
+_needs_pandoc = lua_coverage.needs_pandoc
 
 
 def _rewrite(src: str) -> str:

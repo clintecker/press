@@ -9,6 +9,15 @@ audit).
 
 ## [Unreleased]
 
+### Changed
+
+- The Lua filter tests now run in CI's quality job: pandoc is installed before
+  the gate, and `PRESS_REQUIRE_LUA=1` forbids the silent skip, so a missing
+  pandoc fails the suite instead of passing it unrun (the filter tests had
+  skipped on every CI run until now). A per-filter line-coverage floor, measured
+  through a hook harness and held by `scripts/lua_coverage_ratchet.py`, is
+  enforced after the gate.
+
 ## [3.0.1] - 2026-11-10
 
 A correctness release for the migration tool. `press migrate` opened every

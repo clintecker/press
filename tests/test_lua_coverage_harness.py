@@ -16,7 +16,6 @@ from pathlib import Path
 
 import pytest
 
-from press import adapters
 from tests import lua_coverage
 
 LUA_DIR = Path(__file__).resolve().parent.parent / "src" / "press" / "data" / "lua"
@@ -24,10 +23,7 @@ SCENE_BREAK = LUA_DIR / "scene-break.lua"
 SET_PIECES = LUA_DIR / "set-pieces.lua"
 _DOC = "a\n\n* * *\n\nb\n"
 
-_needs_pandoc = pytest.mark.skipif(
-    shutil.which("pandoc") is None and not adapters.environment.get("PRESS_TOOLCHAIN"),
-    reason="requires capability: pandoc",
-)
+_needs_pandoc = lua_coverage.needs_pandoc
 
 
 def _pandoc(arg: str, doc: str = _DOC, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -168,3 +164,14 @@ def test_merge_skips_malformed_rows(tmp_path):
         "f.lua\t3\n\nf.lua\nf.lua\tx\nf.lua\t4\textra\ng.lua\t-1\nf.lua\t7\n"
     )
     assert lua_coverage.merge(tmp_path) == {"f.lua": {3, 7}}
+
+
+def test_require_flag_forbids_the_silent_skip(monkeypatch: pytest.MonkeyPatch) -> None:
+    """With pandoc absent the filter tests skip, unless PRESS_REQUIRE_LUA says
+    they must run (and so fail on the missing binary)."""
+    monkeypatch.setattr(shutil, "which", lambda *_a, **_k: None)
+    monkeypatch.delenv("PRESS_TOOLCHAIN", raising=False)
+    monkeypatch.delenv("PRESS_REQUIRE_LUA", raising=False)
+    assert lua_coverage.pandoc_missing_and_optional() is True
+    monkeypatch.setenv("PRESS_REQUIRE_LUA", "1")
+    assert lua_coverage.pandoc_missing_and_optional() is False

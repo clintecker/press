@@ -12,7 +12,12 @@ document finishes. :func:`merge` folds every hits file into one map.
 from __future__ import annotations
 
 import os
+import shutil
 from pathlib import Path
+
+import pytest
+
+from press import adapters
 
 ENV = "PRESS_LUA_COV_DIR"
 HOOK = Path(__file__).resolve().parent / "lua" / "coverage-hook.lua"
@@ -73,3 +78,21 @@ def merge(cov_dir: Path) -> dict[str, set[int]]:
                 continue
             merged.setdefault(fields[0], set()).add(int(fields[1]))
     return merged
+
+
+REQUIRE_ENV = "PRESS_REQUIRE_LUA"
+
+
+def pandoc_missing_and_optional() -> bool:
+    """True when the Lua filter tests should skip: pandoc is absent and nothing
+    says it must be there. ``PRESS_TOOLCHAIN`` (the toolchain image) or
+    ``PRESS_REQUIRE_LUA`` (CI) turn the skip off, so a missing pandoc fails the
+    tests loudly instead of letting the whole suite pass unrun."""
+    return shutil.which("pandoc") is None and not (
+        adapters.environment.get("PRESS_TOOLCHAIN") or adapters.environment.get(REQUIRE_ENV)
+    )
+
+
+needs_pandoc = pytest.mark.skipif(
+    pandoc_missing_and_optional(), reason="requires capability: pandoc"
+)

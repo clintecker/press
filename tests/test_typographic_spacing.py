@@ -7,7 +7,6 @@ directly (no LaTeX) to prove the emitted markup.
 
 from __future__ import annotations
 
-import shutil
 import subprocess
 from pathlib import Path
 
@@ -24,9 +23,7 @@ FILTER = (
     / "typographic-spacing.lua"
 )
 
-_needs_pandoc = pytest.mark.skipif(
-    shutil.which("pandoc") is None, reason="requires capability: pandoc"
-)
+_needs_pandoc = lua_coverage.needs_pandoc
 
 
 def _render(markdown: str, to: str = "latex") -> str:

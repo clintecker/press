@@ -24,9 +24,7 @@ FILTER = (
     / "chapter-dropcap.lua"
 )
 
-pytestmark = pytest.mark.skipif(
-    shutil.which("pandoc") is None, reason="requires capability: pandoc"
-)
+pytestmark = lua_coverage.needs_pandoc
 
 
 def _render(markdown: str, to: str = "latex", style: str = "drop-cap") -> str:
