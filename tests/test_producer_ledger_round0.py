@@ -9,7 +9,18 @@ from press import yamlio
 ROOT = Path(__file__).resolve().parents[1]
 LEDGER = yamlio.load(ROOT / ".celebrimbor" / "producers.yaml")
 SURFACES = yamlio.load(ROOT / ".celebrimbor" / "surfaces.yaml")
-WRITE_MARKERS = ("write_text", "write_bytes", "open(", "yamlio.write", "subprocess")
+WRITE_MARKERS = (
+    "write_text",
+    "write_bytes",
+    ".write(",
+    "open(",
+    "yamlio.write",
+    "subprocess",
+    "unlink",
+    "mkdir",
+    "shutil",
+    "os.replace",
+)
 
 
 def test_no_pending_producer_has_an_expired_review_date():
@@ -56,3 +67,10 @@ def test_reclassified_callables_write_nothing():
     for subject in RECLASSIFIED:
         body = _source_of(subject)
         assert not any(m in body for m in WRITE_MARKERS), subject
+
+
+def test_reclassified_callables_are_ratified_pure():
+    for subject in RECLASSIFIED:
+        module, _, name = subject.partition(":")
+        entry = SURFACES["modules"][module]
+        assert entry.get("overrides", {}).get(name, entry["role"]) == "pure", subject

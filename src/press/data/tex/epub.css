@@ -41,5 +41,4 @@ code, pre { font-family: monospace; }
    floated initial. No colour, border, or shadow: the reader owns the theme. */
 figure { margin: 1.5em 0; text-align: center; page-break-inside: avoid; }
 figure img { max-width: 100%; height: auto; }
-figcaption { font-size: 0.9em; line-height: 1.4; font-style: italic; }
 .chapter-opening::after { content: ""; display: block; clear: both; }

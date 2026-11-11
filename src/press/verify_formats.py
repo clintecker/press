@@ -303,18 +303,19 @@ def _plate_count() -> int:
 def numbered_figure_count(root: Path) -> int:
     """How many numbered (informative) figures the source declares."""
 
+    # The build's own file set (booklib.chapter_files), so a draft the build
+    # never typesets is not counted; it resolves ``root`` through booklib.
     total = 0
-    for directory in ("chapters", "appendices"):
-        for md in sorted((root / "book" / directory).glob("*.md")):
-            parsed = figures.parse(md.read_text(encoding="utf-8"))
-            total += sum(1 for fig in parsed if fig.numbered)
+    for md in booklib.chapter_files():
+        parsed = figures.parse(md.read_text(encoding="utf-8"))
+        total += sum(1 for fig in parsed if fig.numbered)
     return total
 
 
 def require_figure_labels(text: str, expected: int, label: str) -> None:
-    """The edition carries at least ``expected`` ``Figure C.N.`` labels."""
+    """The edition carries at least ``expected`` ``Figure C.N.`` (or ``Figure N.``) labels."""
 
-    found = len(re.findall(r"Figure \d+\.\d+\.", text))
+    found = len(re.findall(r"Figure \d+(?:\.\d+)?\.", text))
     if found < expected:
         raise SystemExit(
             f"{label} carries {found} numbered-figure labels; the source declares {expected}"
