@@ -48,7 +48,7 @@ def test_eligible_lines_skips_blank_comment_and_closers():
 
 
 def test_eligible_lines_skips_every_closer_form_and_long_comments():
-    src = "--[[ a\nb\n]]\nx()\n  end)\nend,\n},\nend end\n)\nelse\n}\n--[==[\nz\n]==]\ny()\n"
+    src = "--[[ a\nb\n]]\nx()\n  end)\nend,\n},\nend end\n)\nelse\n}\n--[==[\nz\n]==]\ny()\n})\n}),\n"
     assert r.eligible_lines(src) == {4, 15}
 
 
@@ -75,10 +75,11 @@ def test_check_fails_below_floor_and_on_zero_hits(tmp_path, capsys):
 
 def test_check_passes_at_or_above_floor(tmp_path, capsys):
     lua, cov = _two_filters(tmp_path)
-    base = _baseline(tmp_path, {"f.lua": 50.0})
+    base = _baseline(tmp_path, {"f.lua": 50.0, "g.lua": 0.0})
+    (cov / "hits-2.tsv").write_text("g.lua\t1\n")
     code = r.main(["check", "--cov-dir", str(cov), "--lua-dir", str(lua), "--baseline", str(base)])
     assert code == 0
-    assert "lua coverage: 1 filter(s) at or above floor" in capsys.readouterr().out
+    assert "lua coverage: 2 filter(s) at or above floor" in capsys.readouterr().out
 
 
 def test_check_fails_when_the_harness_was_not_switched_on(tmp_path, capsys):
@@ -134,3 +135,24 @@ def test_update_keeps_the_baseline_header_comment(tmp_path):
     argv = ["--lua-dir", str(lua), "--baseline", str(base), "--reason", "r"]
     assert r.main(["update", "--cov-dir", str(cov), *argv]) == 0
     assert base.read_text().startswith("# house header\n")
+
+
+def test_check_fails_for_a_filter_with_no_floor(tmp_path, capsys):
+    lua, cov = _two_filters(tmp_path)
+    (lua / "new.lua").write_text("a()\n")
+    base = _baseline(tmp_path, {"f.lua": 0.0, "g.lua": 0.0})
+    (cov / "hits-2.tsv").write_text("g.lua\t1\n")
+    code = r.main(["check", "--cov-dir", str(cov), "--lua-dir", str(lua), "--baseline", str(base)])
+    assert code == 1
+    assert "new filter new.lua has no floor" in capsys.readouterr().out
+
+
+def test_update_from_cov_dir_without_hits_refuses_and_writes_nothing(tmp_path, capsys):
+    lua, cov = _two_filters(tmp_path)
+    (cov / "hits-1.tsv").unlink()
+    base = _baseline(tmp_path, {"f.lua": 5.0})
+    before = base.read_text()
+    argv = ["--lua-dir", str(lua), "--baseline", str(base), "--reason", "x"]
+    assert r.main(["update", "--cov-dir", str(cov), *argv]) == 1
+    assert "PRESS_LUA_COV_DIR" in capsys.readouterr().out
+    assert base.read_text() == before

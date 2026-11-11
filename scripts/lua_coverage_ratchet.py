@@ -13,6 +13,9 @@ floors in ``.celebrimbor/baselines/lua-coverage.yaml``.
 ``report`` prints one ``name<TAB>hit<TAB>eligible<TAB>pct`` row per filter, a
 blank line, then ``name: 12, 14-19`` uncovered lines; ``update --from-report``
 reads that same text back, so a CI log excerpt can set the floors.
+
+``check`` also fails for any ``*.lua`` filter that has no floor in the baseline:
+a new filter must be given one with ``update``.
 """
 
 from __future__ import annotations
@@ -27,7 +30,7 @@ from press import yamlio
 ROOT = Path(__file__).resolve().parents[1]
 LUA_DIR = ROOT / "src" / "press" / "data" / "lua"
 BASELINE = ROOT / ".celebrimbor" / "baselines" / "lua-coverage.yaml"
-CLOSERS = {"end", "else", "}", ")", "end)", "end,", "},", "end end"}
+CLOSERS = {"end", "else", "}", ")", "end)", "end,", "},", "end end", "})", "}),"}
 LONG_OPEN = re.compile(r"--\[(=*)\[")
 
 
@@ -125,12 +128,28 @@ def failures(counts: dict[str, tuple[int, int]], floors: dict[str, float]) -> li
     return bad
 
 
+def _no_hits(cov_dir: Path) -> bool:
+    if list(cov_dir.glob("hits-*.tsv")):
+        return False
+    print(f"lua coverage: no hits files in {cov_dir}; was PRESS_LUA_COV_DIR set?")
+    return True
+
+
+def new_filters(lua_dir: Path, floors: dict[str, float]) -> list[str]:
+    return [
+        f'new filter {p.name} has no floor: run scripts/lua_coverage_ratchet.py update '
+        '--cov-dir DIR --reason "..."'
+        for p in sorted(lua_dir.glob("*.lua"))
+        if p.name not in floors
+    ]
+
+
 def cmd_check(args: argparse.Namespace) -> int:
-    if not list(args.cov_dir.glob("hits-*.tsv")):
-        print(f"lua coverage: no hits files in {args.cov_dir}; was PRESS_LUA_COV_DIR set?")
+    if _no_hits(args.cov_dir):
         return 1
     floors = yamlio.load(args.baseline)["floors"]
     bad = failures(report(args.cov_dir, args.lua_dir), floors)
+    bad += new_filters(args.lua_dir, floors)
     if bad:
         print("\n".join(bad))
         return 1
@@ -155,6 +174,8 @@ def _header(path: Path) -> str:
 
 
 def cmd_update(args: argparse.Namespace) -> int:
+    if args.cov_dir and _no_hits(args.cov_dir):
+        return 1
     if args.from_report:
         measured = parse_report(args.from_report.read_text(encoding="utf-8"))
     else:

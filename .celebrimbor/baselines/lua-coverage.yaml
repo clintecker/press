@@ -12,8 +12,9 @@ floors:
   figure-numbering.lua: 76.7
   press-util.lua: 85.0
   print-safe-images.lua: 95.0
-  scene-break.lua: 69.2
+  scene-break.lua: 71.7
   set-pieces.lua: 83.0
   typographic-spacing.lua: 81.4
 reasons:
   - "initial floors, provisional: set 5 points under a macOS measurement; replaced by CI's numbers in Task 5"
+  - "closers widened; remeasured"
