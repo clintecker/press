@@ -38,3 +38,18 @@ def test_issue_title_is_stable_and_body_lists_each_subject():
 def test_issue_action_edits_an_existing_issue_and_creates_otherwise():
     assert w.issue_action(None) == "create"
     assert w.issue_action(412) == "edit"
+
+
+def test_pick_existing_prefers_exact_title_over_decoys():
+    issues = [
+        {"number": 5, "title": "Re: " + w.TITLE + " (discussion)"},
+        {"number": 9, "title": w.TITLE},
+        {"number": 7, "title": w.TITLE},
+    ]
+    assert w.pick_existing(issues, w.TITLE) == 7
+
+
+def test_pick_existing_returns_none_when_only_decoys():
+    issues = [{"number": 5, "title": "Re: " + w.TITLE + " (discussion)"}]
+    assert w.pick_existing(issues, w.TITLE) is None
+    assert w.pick_existing([], w.TITLE) is None

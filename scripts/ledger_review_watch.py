@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import json
 import subprocess
 import sys
 import tempfile
@@ -74,6 +75,16 @@ def render_issue(rows: list[Row]) -> tuple[str, str]:
     return TITLE, "\n".join(lines) + "\n"
 
 
+def pick_existing(issues: list[dict[str, Any]], title: str) -> int | None:
+    """Number of the open issue whose title equals `title` exactly.
+
+    Search is fuzzy, so decoys containing the phrase are ignored; with several
+    exact matches the lowest number wins.
+    """
+    numbers = [int(i["number"]) for i in issues if i.get("title") == title]
+    return min(numbers) if numbers else None
+
+
 def issue_action(existing_number: int | None) -> str:
     """Which `gh issue` subcommand to run given the number found, if any."""
     return "create" if existing_number is None else "edit"
@@ -90,10 +101,10 @@ def open_issue(title: str, body: str) -> None:
         [
             "issue", "list", "--repo", REPO, "--state", "open",
             "--search", f'"{title}" in:title',
-            "--json", "number", "--jq", ".[0].number",
+            "--json", "number,title", "--limit", "100",
         ]
-    ).strip()
-    number = int(found) if found else None
+    )
+    number = pick_existing(json.loads(found or "[]"), title)
     with tempfile.TemporaryDirectory() as tmp:
         body_file = Path(tmp) / "body.md"
         body_file.write_text(body, encoding="utf-8")
