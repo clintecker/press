@@ -78,9 +78,9 @@ producers:
     negative_fixture:
       tests/test_print_safe.py::test_check_print_safe_rejects_a_logo_print_safe_left_transparent
   profiles:write_geometry_tex:
-    verifier: profile_lifecycle:validate
+    verifier: profile_lifecycle:verify_geometry_tex
     negative_fixture:
-      tests/test_profiles.py::test_seal_gate_rejects_geometry_tex_written_from_a_drifted_profile
+      tests/test_profiles.py::test_verify_geometry_tex_rejects_a_corrupted_emitted_fragment
   qualification:render_packaged:
     verifier: qualification:validate
     negative_fixture:

@@ -177,6 +177,24 @@ def validate(
     return problems
 
 
+def verify_geometry_tex(path: Path, profile_id: str) -> list[str]:
+    """Every way the geometry fragment emitted at ``path`` fails its sealed
+    profile: the profile itself fails its seal, the file is absent, or its
+    bytes are not exactly ``profiles.geometry_tex`` of that profile. Reads the
+    emitted file, so a writer regression (wrong units, a dropped key, the
+    wrong path) is refused even when the profile is unchanged."""
+
+    problems = _validate_profile(profile_id, load_seals())
+    if problems:
+        return problems
+    if not path.is_file():
+        return [f"geometry fragment {path} was not written"]
+    expected = profiles.geometry_tex(profiles.load(profile_id))
+    if path.read_text(encoding="utf-8") != expected:
+        return [f"geometry fragment {path} does not match sealed profile {profile_id!r}"]
+    return []
+
+
 def _parse_trim(spec: str) -> tuple[float, float]:
     """A ``WxH`` trim spec in inches, e.g. ``6x9`` or ``5.5x8.5``."""
 

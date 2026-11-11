@@ -280,27 +280,20 @@ def test_trim_profiles_are_offered_by_the_providers_that_cut_them():
 
 
 @pytest.mark.layer("unit")
-def test_seal_gate_rejects_geometry_tex_written_from_a_drifted_profile(tmp_path, monkeypatch):
-    # The no-blind-verifier fixture for write_geometry_tex: the fragment it
-    # writes is a pure projection of the profile, so a page whose margins
-    # moved without a re-seal reaches the build through this file. Drift the
-    # house inner margin in an isolated profiles directory, write the
-    # fragment through the producer, and the seal gate must refuse the
-    # profile the fragment came from.
-    from press import booklib, yamlio
+def test_verify_geometry_tex_rejects_a_corrupted_emitted_fragment(tmp_path):
+    # The no-blind-verifier fixture for write_geometry_tex: write the fragment
+    # through the producer from the unchanged house profile, then corrupt the
+    # emitted bytes only (a writer regression: inches become points). The
+    # verifier reads the file, so it must name the mismatch although the
+    # profile and its seal are untouched.
     from press import profile_lifecycle as pl
 
-    sealed_tex = profiles.write_geometry_tex(profiles.load(), tmp_path / "sealed.tex")
-    data = yamlio.load(booklib.DATA / "profiles" / f"{profiles.HOUSE}.yaml")
-    data["interior"]["margins"]["inner"] = 0.5
-    shelf = tmp_path / "profiles"
-    shelf.mkdir()
-    yamlio.write(shelf / f"{profiles.HOUSE}.yaml", data)
-    monkeypatch.setattr(profiles, "profiles_dir", lambda: shelf)
+    out = profiles.write_geometry_tex(profiles.load(), tmp_path / "build" / "geometry.tex")
+    assert pl.verify_geometry_tex(out, profiles.HOUSE) == []
 
-    drifted_tex = profiles.write_geometry_tex(profiles.load(), tmp_path / "drifted.tex")
-    assert "inner=0.5in" in drifted_tex.read_text(encoding="utf-8")
-    assert drifted_tex.read_text(encoding="utf-8") != sealed_tex.read_text(encoding="utf-8")
-
-    problems = pl.validate(pl.load_seals(), profile_ids=[profiles.HOUSE])
-    assert any("drifted from its seal" in p and profiles.HOUSE in p for p in problems)
+    out.write_text(out.read_text(encoding="utf-8").replace("in,", "pt,"), encoding="utf-8")
+    problems = pl.verify_geometry_tex(out, profiles.HOUSE)
+    assert problems == [f"geometry fragment {out} does not match sealed profile {profiles.HOUSE!r}"]
+    assert pl.verify_geometry_tex(tmp_path / "absent.tex", profiles.HOUSE) == [
+        f"geometry fragment {tmp_path / 'absent.tex'} was not written"
+    ]

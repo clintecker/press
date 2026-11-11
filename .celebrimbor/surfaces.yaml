@@ -394,7 +394,8 @@ modules:
       load_seals: parser
       main: presenter
       validate: verifier
-    pin: "e8e2d3f95d82"
+      verify_geometry_tex: verifier
+    pin: "16325df5f2e6"
     role: producer
     status: ratified
   profiles:
