@@ -91,3 +91,24 @@ def test_ordinary_div_is_untouched():
     # A div without a set-piece class is left exactly as pandoc renders it.
     out = _render("::: note\nJust a note.\n:::\n")
     assert "PressVerse" not in out and "\\hspace*" not in out
+
+
+@_needs_pandoc
+@pytest.mark.layer("integration")
+@pytest.mark.parametrize(
+    ("construct", "expected"),
+    [
+        (
+            "cascade",
+            "\\noindent\\hspace*{0.00em}First,\\par\n\n\\noindent\\hspace*{2.40em}Second,\\par",
+        ),
+        ("verse", "\\begin{PressVerse}\n\nFirst,\\\\\nSecond,\n\n\\end{PressVerse}"),
+        ("tail", "{\\normalsize First,}\\par\n\n\\hspace*{-0.00em}{\\tiny Second,}\\par"),
+    ],
+)
+def test_a_set_piece_written_as_paragraphs_takes_each_paragraph_as_a_line(construct, expected):
+    # No line block: each paragraph is one line of the set piece, and a block
+    # that is neither (a list here) is not a line and is dropped.
+    out = _render(f"::: {construct}\nFirst,\n\nSecond,\n\n- not a line\n:::\n")
+    assert expected in out
+    assert "not a line" not in out

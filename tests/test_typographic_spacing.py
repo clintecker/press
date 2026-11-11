@@ -59,3 +59,13 @@ def test_ties_carry_into_html_as_nbsp():
     # pandoc writes the tie as a literal U+00A0 in HTML (and EPUB).
     out = _render("See Fig. 3 by C. L. Dodgson.", to="html")
     assert chr(0xA0) in out
+
+
+@_needs_pandoc
+@pytest.mark.layer("integration")
+@pytest.mark.parametrize("title", ["Col.", "Lt.", "Fr.", "Mt.", "Sr."])
+def test_titles_pandoc_does_not_know_tie_to_the_name(title):
+    # pandoc's reader already ties its own abbreviations (Mr., Dr., ...); these
+    # house titles it leaves as a breakable space, so the tie is the filter's.
+    out = _render(f"Then {title} Brown arrived.")
+    assert f"{title}~Brown" in out

@@ -95,3 +95,16 @@ def test_default_leaves_the_rule_unchanged():
     assert "\\rule" in _render(_MD)  # latex
     html = _render(_MD, to="html")
     assert "<hr" in html and 'class="asterism"' not in html
+
+
+@_needs_pandoc
+@pytest.mark.layer("integration")
+@pytest.mark.parametrize("ornament", ["asterism", "fairy-dust"])
+@pytest.mark.parametrize("to", ["plain", "markdown"])
+def test_a_format_without_a_centering_idiom_keeps_the_plain_rule(ornament, to):
+    # Neither LaTeX nor HTML: the ornament has no idiom to set it in, so the
+    # break degrades to the writer's own rule instead of vanishing or leaking
+    # raw markup into the text.
+    out = _render(_MD, to=to, ornament=ornament)
+    assert "Before the shift.\n\n" + "-" * 72 + "\n\nAfter the shift." in out
+    assert "asterism" not in out and "fairy-dust" not in out and "PressFairyDust" not in out
