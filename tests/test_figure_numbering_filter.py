@@ -8,11 +8,12 @@ toolchain.
 
 from __future__ import annotations
 
-import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
+
+from tests import lua_coverage
 
 FILTER = (
     Path(__file__).resolve().parent.parent
@@ -23,9 +24,7 @@ FILTER = (
     / "figure-numbering.lua"
 )
 
-pytestmark = pytest.mark.skipif(
-    shutil.which("pandoc") is None, reason="requires capability: pandoc"
-)
+pytestmark = lua_coverage.needs_pandoc
 
 
 def _render(markdown: str, to: str = "latex", filtered: bool = True) -> str:
@@ -39,7 +38,7 @@ def _render(markdown: str, to: str = "latex", filtered: bool = True) -> str:
         "--number-sections",
     ]
     if filtered:
-        args.append(f"--lua-filter={FILTER}")
+        args.append(lua_coverage.filter_arg(FILTER))
     result = subprocess.run(args, input=markdown, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     return result.stdout
@@ -103,6 +102,21 @@ def test_width_measure_becomes_a_relative_graphics_width():
 
 
 @pytest.mark.layer("integration")
+@pytest.mark.parametrize(
+    ("width", "option"),
+    [
+        # a percentage becomes the same fraction of the measure
+        ("50%", "width=0.5\\linewidth"),
+        # a raw length outside the vocabulary passes through unchanged
+        ("3in", "width=3in"),
+    ],
+)
+def test_a_numbered_figure_honours_a_percent_or_raw_width(width, option):
+    out = _render(f"# One\n\n![Cap.](x.png){{.figure width={width}}}\n")
+    assert f"\\includegraphics[keepaspectratio,{option}]{{x.png}}" in out
+
+
+@pytest.mark.layer("integration")
 @pytest.mark.proof("negative")
 def test_a_book_with_no_numbered_figures_is_byte_identical():
     # The load-bearing guarantee: adding the filter changes nothing for a book
@@ -126,3 +140,36 @@ def test_a_decorative_image_carries_no_descriptive_alt():
     assert 'alt="An ornament"' not in html and "data-decorative" not in html
     # Decorative wins over numbering: it earns no "Figure N".
     assert "Figure 1.1" not in html and "Figure~1.1" not in html
+
+
+@pytest.mark.layer("integration")
+def test_figures_inside_divs_and_quotes_are_numbered_in_sequence():
+    # The walk descends into fenced divs and block quotes, so a figure there
+    # counts in the chapter's sequence like any other.
+    out = _render("# One\n\n::: aside\n![Cap.](x.png){.figure}\n:::\n\n> ![Q.](q.png){.chart}\n")
+    assert "\\textbf{Figure~1.1.}}\\enspace Cap." in out
+    assert "\\begin{quote}\n\\begin{figure}[H]" in out
+    assert "\\textbf{Figure~1.2.}}\\enspace Q." in out
+
+
+@pytest.mark.layer("integration")
+def test_an_unnumbered_chapter_does_not_advance_the_chapter_count():
+    # A {.unnumbered} preface is not chapter 1: a figure before the first
+    # numbered chapter takes a bare sequence number, and the first real
+    # chapter's figure is still 1.1.
+    out = _render(
+        "# Preface {.unnumbered}\n\n![Cap.](x.png){.figure}\n\n# One\n\n![Next.](y.png){.figure}\n"
+    )
+    assert "\\textbf{Figure~1.}}\\enspace Cap." in out
+    assert "\\textbf{Figure~1.1.}}\\enspace Next." in out
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("negative")
+@pytest.mark.parametrize("fmt", ["latex", "html"])
+def test_a_citation_that_is_not_a_figure_is_left_alone(fmt):
+    # Only a known figure id resolves; an ordinary citation and an unknown
+    # @fig: id pass through untouched, never as a dangling "Figure".
+    out = _render(_MIXED + "\nSee @smith and @fig:none.\n", to=fmt)
+    assert "@smith" in out and "@fig:none" in out
+    assert "#fig:none" not in out

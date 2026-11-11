@@ -9,11 +9,12 @@ only incidentally through a full print build. docs/LUA-QUALITY-PLAN.md §6.
 from __future__ import annotations
 
 import re
-import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
+
+from tests import lua_coverage
 
 FILTER = (
     Path(__file__).resolve().parent.parent
@@ -24,16 +25,14 @@ FILTER = (
     / "print-safe-images.lua"
 )
 
-_needs_pandoc = pytest.mark.skipif(
-    shutil.which("pandoc") is None, reason="requires capability: pandoc"
-)
+_needs_pandoc = lua_coverage.needs_pandoc
 
 
 def _rewrite(src: str) -> str:
     """The image src after the filter runs, read from the HTML output."""
     md = f"![a figure]({src})\n"
     result = subprocess.run(
-        ["pandoc", "-f", "markdown", "-t", "html", f"--lua-filter={FILTER}"],
+        ["pandoc", "-f", "markdown", "-t", "html", lua_coverage.filter_arg(FILTER)],
         input=md,
         capture_output=True,
         text=True,

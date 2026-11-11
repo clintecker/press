@@ -10,11 +10,13 @@ filter runs pandoc directly.
 
 from __future__ import annotations
 
-import shutil
+import re
 import subprocess
 from pathlib import Path
 
 import pytest
+
+from tests import lua_coverage
 
 FILTER = (
     Path(__file__).resolve().parent.parent
@@ -25,13 +27,11 @@ FILTER = (
     / "figure-numbering.lua"
 )
 
-_needs_pandoc = pytest.mark.skipif(
-    shutil.which("pandoc") is None, reason="requires capability: pandoc"
-)
+_needs_pandoc = lua_coverage.needs_pandoc
 
 
 def _render(markdown: str, to: str = "latex") -> str:
-    args = ["pandoc", "-f", "markdown+fenced_divs", "-t", to, f"--lua-filter={FILTER}"]
+    args = ["pandoc", "-f", "markdown+fenced_divs", "-t", to, lua_coverage.filter_arg(FILTER)]
     result = subprocess.run(args, input=markdown, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     return result.stdout
@@ -117,3 +117,55 @@ def test_bare_plate_is_untouched():
     # No kind, no place, no width, no alt: the byte-identity guarantee.
     out = _render("# C\n\n![A plate.](x.png)\n")
     assert "wrapfigure" not in out and "figwrap" not in out and "figure[p]" not in out
+
+
+@_needs_pandoc
+@pytest.mark.layer("integration")
+@pytest.mark.parametrize(
+    ("place", "container", "caption"),
+    [
+        # A plate (no declared kind) honours a runaround like a numbered
+        # figure, its own caption as the \caption*, no List-of-Figures line.
+        ("wrap-inner", "\\begin{wrapfigure}{i}{0.4\\linewidth}", "\\caption*{A plate.}"),
+        ("wrap-outer", "\\begin{wrapfigure}{o}{0.4\\linewidth}", "\\caption*{A plate.}"),
+        # A full-page plate takes its cleared leaf, the caption on that leaf.
+        ("full-bleed", "\\clearpage\n\\thispagestyle{empty}", "\\captionof{figure}{A plate.}"),
+        (
+            "frontispiece",
+            "\\cleardoubleevenpage\n\\thispagestyle{empty}",
+            "\\captionof{figure}{A plate.}",
+        ),
+        # A placement outside the print vocabulary stays the ordinary in-flow
+        # figure, its caption the List-of-Plates \caption.
+        ("inline", "\\begin{figure}\n\\centering", "\\caption{A plate.}"),
+    ],
+)
+def test_a_placed_plate_takes_the_house_container(place, container, caption):
+    # The inline case is a coverage touch: the filter emits nothing there that
+    # the unfiltered writer does not (verified identical), so no unfiltered
+    # guard is possible for it; the other placements are the filter's work.
+    out = _render(f"# C\n\n![A plate.](x.png){{place={place}}}\n\nText after.\n")
+    assert container in out
+    assert caption in out
+    assert "lof2" not in out and "Figure~" not in out
+
+
+@_needs_pandoc
+@pytest.mark.layer("integration")
+def test_a_numbered_full_page_figure_carries_its_cross_reference_label():
+    # The label rides inside the centred leaf, before the graphic, so a
+    # \hyperref to the figure lands on the plate's own page.
+    out = _render("# C\n\n![Cap.](x.png){#fig:big .figure place=full-bleed}\n")
+    assert "\\begin{center}\n\\phantomsection\\label{fig:big}\n\\pandocbounded" in out
+
+
+@_needs_pandoc
+@pytest.mark.layer("integration")
+def test_a_wrap_with_no_following_paragraph_is_flushed_standalone():
+    # A heading next means there is no paragraph to fuse to: the wrapfigure is
+    # emitted on its own rather than dropped, and the heading follows intact.
+    out = _render("# C\n\n![Cap.](x.png){.figure place=wrap-inner}\n\n# D\n\nText.\n")
+    # pandoc 3.1 wraps a heading in \hypertarget{d}{%...}; newer pandoc does
+    # not. Either way nothing may sit between the wrap and the heading.
+    assert re.search(r"\\end\{wrapfigure\}\n\n(?:\\hypertarget\{d\}\{%\n)?\\section\{D\}", out)
+    assert "\\end{wrapfigure}%" not in out

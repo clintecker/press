@@ -50,6 +50,14 @@ book in another org) stay CI/human-only. Do not run
 `scripts/coverage_ratchet.py --update`: it re-measures on your machine and
 can push the committed baselines above the floor CI enforces.
 
+The Lua filters have their own floor, `.celebrimbor/baselines/lua-coverage.yaml`.
+`scripts/verify.sh` checks it when pandoc is installed (a new filter with no
+floor fails the check until `update` gives it one); to see the numbers and
+the uncovered lines, run the Lua tests with `PRESS_LUA_COV_DIR` set to an empty
+directory, then `python3 scripts/lua_coverage_ratchet.py report --cov-dir` that
+directory. Never `update` it from a macOS measurement either; feed it CI's report
+with `update --from-report`.
+
 ## Iterating on a render
 
 `scripts/verify.sh --full` runs the whole gauntlet; when you are tuning one

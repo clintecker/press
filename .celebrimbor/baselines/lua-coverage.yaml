@@ -1,0 +1,20 @@
+# lua coverage ratchet -- per-filter line floors that may only rise, measured
+# in CI by the line-hook harness (tests/lua_coverage.py, switched on by
+# PRESS_LUA_COV_DIR) and enforced by scripts/lua_coverage_ratchet.py. A floor
+# is the percent of a filter's executable lines the Lua test suite runs; a
+# filter with no hits at all fails regardless of its floor. Never `update`
+# from a macOS measurement: CI's numbers are the ones that count.
+version: 1
+environment: ci
+tool: lua-line-hook
+floors:
+  chapter-dropcap.lua: 91.1
+  figure-numbering.lua: 87.8
+  press-util.lua: 96.7
+  print-safe-images.lua: 100.0
+  scene-break.lua: 83.3
+  set-pieces.lua: 93.0
+  typographic-spacing.lua: 87.9
+reasons:
+- 'floors set from CI run 42968750375 (PR #263 quality job, ubuntu-24.04); CI and the macOS measurement agreed to the decimal'
+- '§6 backfill: floors raised from CI run 42971980816 (PR #263 quality job)'

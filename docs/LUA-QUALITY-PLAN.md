@@ -99,18 +99,18 @@ fast, deterministic, no render, runnable on any dev box. The AST-shaping stays
 integration-tested through pandoc. The split also removes the measure tables now
 duplicated between `figure-numbering.lua` and the CSS-side logic.
 
-### 5. Coverage + ratchet — luacov — `[within-major]` · effort L · risk M
+### 5. Coverage + ratchet — line hook — `[within-major]` · effort L · risk M
 
-Measure line coverage of the filters and gate it. Mechanism: put luacov on
-`LUA_PATH`, run the integration + unit suites with `require("luacov")` active
-(pandoc's embedded Lua honours it when the module loads at filter start, or via a
-tiny wrapper filter prepended in a coverage mode), collect `luacov.stats.out`, and
-add `scripts/lua_coverage_ratchet.py` in the exact shape of
-`scripts/coverage_ratchet.py` — a committed floor CI refuses to drop below.
-Fallback if hooking pandoc's embedded Lua proves unreliable: measure coverage of
-the extracted pure module (§4) under standalone lua + luacov, and keep the AST
-paths on the integration suite's pass/fail. Wire into `scripts/gauntlet.sh` and
-`scripts/verify.sh` beside the Python ratchets.
+Measure line coverage of the filters and gate it. Mechanism: not luacov, but a
+`debug.sethook` line hook (`tests/lua/coverage-hook.lua`). With
+`PRESS_LUA_COV_DIR` set, the filter tests (`tests/lua_coverage.py`) hand pandoc a
+generated shim that traces every executed line under the filter directory, runs
+the real filter, and writes `file<TAB>line` rows to a `hits-*.tsv` when the
+document finishes. `scripts/lua_coverage_ratchet.py` turns the hits into a
+per-filter percentage of eligible lines (not blank, comment, or a lone closer)
+against the committed floors in `.celebrimbor/baselines/lua-coverage.yaml`, in the
+shape of `scripts/coverage_ratchet.py`: floors only rise, and a filter with no
+hits fails. It runs beside the Python ratchets in `scripts/verify.sh`.
 
 ### 6. Close the test gaps — `[within-major]` · effort S · risk low
 
@@ -125,8 +125,11 @@ format matrix in `figure-numbering.lua` and the format branches in
 Every Lua test is `skipif(no pandoc)`. Add the epubcheck-style guard (see
 `verify_formats.py:353-368`): when `PRESS_TOOLCHAIN` is set, a missing pandoc is a
 hard error, not a skip, so the Lua suite and the syntax gate can never green-skip
-where a release is cut. Add luacheck/selene, stylua, and luacov to the toolchain
-image so §1–§5 have their tools in CI, and document them in `press doctor`.
+where a release is cut. CI's quality job, which has no toolchain image, sets
+`PRESS_REQUIRE_LUA=1` beside it to turn the same pandoc skip into a failure.
+Add luacheck/selene and stylua to the toolchain image so §1–§4 have their tools
+in CI (the §5 hook harness needs nothing installed), and document them in
+`press doctor`.
 
 ## Sequencing
 
@@ -135,8 +138,8 @@ image so §1–§5 have their tools in CI, and document them in `press doctor`.
   zero output change.
 - **M2: real tests.** Pure-logic extraction + unit tests (§4); the missing
   print-safe test and the first matrix cases (§6).
-- **M3: coverage.** luacov + ratchet (§5), wired into the gauntlet beside the
-  Python ratchets; backfill §6 against the coverage report.
+- **M3: coverage.** Shipped 2026-11-11: line-hook harness + ratchet (§5), wired
+  into the verify ladder beside the Python ratchets; backfill §6 against the coverage report.
 
 ## Non-goals
 

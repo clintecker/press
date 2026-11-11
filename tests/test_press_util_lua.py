@@ -10,21 +10,17 @@ integration-tested through pandoc). docs/LUA-QUALITY-PLAN.md §4.
 from __future__ import annotations
 
 import os
-import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
 
-from press import adapters
+from tests import lua_coverage
 
 LUA_DIR = Path(__file__).resolve().parent.parent / "src" / "press" / "data" / "lua"
 SCRIPT = Path(__file__).resolve().parent / "lua" / "test_press_util.lua"
 
-_needs_pandoc = pytest.mark.skipif(
-    shutil.which("pandoc") is None and not adapters.environment.get("PRESS_TOOLCHAIN"),
-    reason="requires capability: pandoc",
-)
+_needs_pandoc = lua_coverage.needs_pandoc
 
 
 @_needs_pandoc

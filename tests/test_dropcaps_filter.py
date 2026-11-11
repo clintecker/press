@@ -13,6 +13,8 @@ from pathlib import Path
 
 import pytest
 
+from tests import lua_coverage
+
 FILTER = (
     Path(__file__).resolve().parent.parent
     / "src"
@@ -22,13 +24,11 @@ FILTER = (
     / "chapter-dropcap.lua"
 )
 
-pytestmark = pytest.mark.skipif(
-    shutil.which("pandoc") is None, reason="requires capability: pandoc"
-)
+pytestmark = lua_coverage.needs_pandoc
 
 
 def _render(markdown: str, to: str = "latex", style: str = "drop-cap") -> str:
-    args = ["pandoc", "-f", "markdown", "-t", to, f"--lua-filter={FILTER}"]
+    args = ["pandoc", "-f", "markdown", "-t", to, lua_coverage.filter_arg(FILTER)]
     if style is not None:
         args += ["-M", f"chapter-opening-style={style}"]
     result = subprocess.run(args, input=markdown, capture_output=True, text=True)
@@ -148,6 +148,54 @@ def test_only_the_first_paragraph_of_a_chapter_is_capped():
     md = "# One\n\nFirst paragraph here.\n\nSecond paragraph should be plain.\n"
     out = _render(md)
     assert out.count("\\PressDropCap") == 1
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.parametrize(
+    ("opener", "expected"),
+    [
+        # a combining accent rides with its base letter into the initial
+        ("E\u0301lan, it said.", "\\PressDropCap{}{E\u0301}{lan,} it said."),
+        # a leading no-break space is dropped before the initial
+        ("&nbsp;Alice was here.", "\\PressDropCap{}{A}{lice} was here."),
+        # a no-break space ends the first word; the rest of the Str follows it
+        ("Alice&nbsp;was here.", "\\PressDropCap{}{A}{lice}~was here."),
+    ],
+)
+def test_opening_word_split_edges(opener, expected):
+    out = _render(f"# One\n\n{opener}\n")
+    assert expected in out
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("negative")
+@pytest.mark.parametrize(
+    ("opener", "expected"),
+    [
+        # nothing but lead punctuation: no letter to drop
+        ("--- then nothing.", "\n--- then nothing."),
+        # lead punctuation then a no-break space: the initial is not a letter
+        ("---&nbsp;then nothing.", "---~then nothing."),
+        # an opener that is neither text nor a wrapper around text (a link)
+        ("[Alice](x) was here.", "\\href{x}{Alice} was here."),
+        # a quotation that opens on emphasis is left for no shallow dive to cap
+        ('"*Curiouser*" said Alice.', "``\\emph{Curiouser}'' said Alice."),
+    ],
+)
+def test_an_opener_with_no_letter_to_drop_is_left_alone(opener, expected):
+    out = _render(f"# One\n\n{opener}\n")
+    assert expected in out
+    assert "\\PressDropCap" not in out
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("negative")
+def test_a_chapter_opening_on_a_section_heading_is_not_capped():
+    # The block after the chapter heading is a heading, not prose: no opener,
+    # and the section's own paragraph is not promoted to one.
+    out = _render("# One\n\n## Two\n\nText here.\n")
+    assert "\\subsection{Two}" in out and "\nText here." in out
+    assert "\\PressDropCap" not in out
 
 
 def _lettrine_available() -> bool:

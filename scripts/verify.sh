@@ -37,6 +37,24 @@ step "the celebrimbor quality gate (surface, invariants, producers, known-bad, i
 python3 -m pytest -q -p no:cacheprovider --cov=press --cov-report=
 celebrimbor gate
 
+step "the Lua filter coverage ratchet"
+if command -v pandoc >/dev/null 2>&1; then
+  (
+    # a subshell, so the trap removes the temp dir on success and on failure
+    # alike while a failing step still fails the ladder under set -e
+    d="$(mktemp -d)"
+    trap 'rm -rf "$d"' EXIT
+    export PRESS_LUA_COV_DIR="$d"
+    python3 -m pytest -q -p no:cacheprovider \
+      tests/test_figure_numbering_filter.py tests/test_figure_placement.py \
+      tests/test_set_pieces.py tests/test_scene_break.py tests/test_dropcaps_filter.py \
+      tests/test_typographic_spacing.py tests/test_print_safe_images_filter.py
+    python3 scripts/lua_coverage_ratchet.py check --cov-dir "$d"
+  )
+else
+  echo "lua coverage: pandoc absent, skipped (CI enforces it)"
+fi
+
 step "the documentation site builds and its checks pass"
 python3 scripts/build_site.py >/dev/null
 
