@@ -93,6 +93,12 @@ So the bar is the artifact, not the line count:
   by feeding it something that must fail, not only something that passes.
 - **A low coverage floor is a decision on the record.** Below 50% a module must
   give its reason in `LOW_FLOOR_ALLOWED`; the floor is not a place for silence.
+- **A pending producer is debt with a deadline.** Each `pending` entry in
+  `.celebrimbor/producers.yaml` carries a `review_by` date, and the gate fails
+  every push once it passes. The Monday ledger-review job
+  (`.github/workflows/ledger-review.yml`) opens or updates one issue whenever
+  any entry is within 30 days of that date. Resolving it means writing the
+  verifier and its known-bad fixture, not moving the date.
 
 ## Filing and proposing
 
