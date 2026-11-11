@@ -163,6 +163,8 @@ NOT_PUBLISHED = {
     "docs/THIRD-PARTY-EXTENSIONS-PLAN.md": "internal decision record for the v3 "
     "extension contract; lives in the repo and "
     "issues, not the docs site",
+    "docs/ROUND-0-SHIP-V3-PLAN.md": "internal round plan for unblocking the gate "
+    "and cutting v3.0.0; lives in the repo and issues, not the docs site",
 }
 
 
