@@ -165,6 +165,8 @@ NOT_PUBLISHED = {
     "issues, not the docs site",
     "docs/ROUND-0-SHIP-V3-PLAN.md": "internal round plan for unblocking the gate "
     "and cutting v3.0.0; lives in the repo and issues, not the docs site",
+    "docs/ROUND-1A-LUA-COVERAGE-PLAN.md": "internal round plan for v3.0.1 and the Lua "
+    "coverage ratchet; lives in the repo and issues, not the docs site",
 }
 
 
