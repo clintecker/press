@@ -118,6 +118,12 @@ audit).
 
 ### Fixed
 
+- **The reader-site witness check no longer refuses a correct build.** Its
+  chapter witness is now folded for pandoc's smart dashes and ellipsis, joined
+  across the drop cap's split first word, and never a line that opens with a
+  block marker (a definition, list item, or quote) that the page renders
+  without it, so Alice and the signal-and-noise manual both pass.
+
 - **EPUB figures no longer overflow or sit flush-left, and a short dialogue
   opener no longer overlaps the drop cap.** The EPUB stylesheet now fits a
   figure to the screen, centres it, and clears the floated initial after the

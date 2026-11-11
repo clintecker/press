@@ -33,8 +33,16 @@ class VisibleText(html.parser.HTMLParser):
 STRAIGHTEN = str.maketrans("\u2018\u2019\u201c\u201d", "''\"\"")
 
 
+# Pandoc's smart extension renders `---`, `--`, `...` as these; fold them back
+# (em dash before en dash, so `---` is never partly folded).
+SMART_FOLDS = (("\u2014", "---"), ("\u2013", "--"), ("\u2026", "..."))
+
+
 def normalized(text: str) -> str:
-    return " ".join(text.split()).casefold().translate(STRAIGHTEN)
+    folded = " ".join(text.split()).casefold().translate(STRAIGHTEN)
+    for rendered, source in SMART_FOLDS:
+        folded = folded.replace(rendered, source)
+    return folded
 
 
 def sentinel_present(sentinel: str, text: str) -> bool:
@@ -62,6 +70,11 @@ def _manuscript_witness() -> str:
     return normalized(best)
 
 
+# A line opening with a block marker (definition, list item, quote, ordered
+# item) renders without it, so it could never match the page as written.
+BLOCK_MARKER = re.compile(r"(?:[:+>-]|\d+\.)\s")
+
+
 def chapter_witnesses() -> dict[str, str]:
     """Each chapter's own longest markup-free line of 40+ characters.
 
@@ -77,7 +90,7 @@ def chapter_witnesses() -> dict[str, str]:
             line = line.strip()
             if len(line) <= len(best) or len(line) < 40:
                 continue
-            if any(ch in line for ch in "*_`[]()<>\"'&#!|"):
+            if any(ch in line for ch in "*_`[]()<>\"'&#!|") or BLOCK_MARKER.match(line):
                 continue
             best = line
         if best:
@@ -498,7 +511,9 @@ def _verify_site_chapter_identity(chapter_pages: list[Path]) -> None:
     for page in chapter_pages:
         parser = VisibleText()
         parser.feed(page.read_text(encoding="utf-8", errors="replace"))
-        page_texts[page.name] = normalized(" ".join(parser.parts))
+        # Joined with "" so a word the house splits across inline spans (the
+        # chapter's drop cap) stays whole; block breaks carry source whitespace.
+        page_texts[page.name] = normalized("".join(parser.parts))
     for chapter, witness in chapter_witnesses().items():
         carriers = [name for name, text in page_texts.items() if witness in text]
         if not carriers:

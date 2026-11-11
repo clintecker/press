@@ -122,4 +122,4 @@ docker run --rm \
   '
 
 echo "dev-render: artifacts in $out/dist"
-[[ -n "$preview" ]] && echo "dev-render: previews  in $out/preview"
+if [[ -n "$preview" ]]; then echo "dev-render: previews  in $out/preview"; fi
