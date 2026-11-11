@@ -24,7 +24,9 @@ book repository that consumes this package.
   with `--require-hashes`, then press itself with `--no-deps`, so a pinned
   release resolves immutable dependency bytes (#194), not whatever PyPI
   serves today. Regenerate the lock with `scripts/lock-deps.sh` after
-  changing `[project.dependencies]`, then run the gauntlet.
+  changing `[project.dependencies]`, then run the gauntlet; pip-compile keeps
+  existing pins, so a security bump is `scripts/lock-deps.sh --upgrade-package
+  <name>`.
 - `scripts/build_site.py` + `site/press.css` build the press's own
   documentation site (its home is `site/landing.md`, written for a
   first-time author; then the `docs/` suite, CHANGELOG, ROADMAP, and
