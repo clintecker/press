@@ -158,6 +158,33 @@ def diagnose(root: Path) -> Diagnosis:
     return Diagnosis(sites=sites, overrides=overrides, problems=tuple(problems))
 
 
+DESIGN_NOTES: dict[int, str] = {
+    2: (
+        "design is unchanged: with the house profile, v{to} reproduces "
+        "the v{from_} geometry byte-for-byte. Selecting a non-house "
+        "print.profile is a separate, explicit choice."
+    ),
+    3: (
+        "design changes: v3 is a design major (a fine-press typography pass "
+        "and numbered figures move glyph positions and line breaks in every "
+        "book), so after apply, rebuild and look at the pages; "
+        "docs/MIGRATION.md 'What v2 → v3 actually changes' lists what moved."
+    ),
+}
+
+
+def design_note(from_major: int, to_major: int) -> str:
+    """The first plan note: what the target major does to the design.
+    Keyed by target major, because parity held for v2 and not for v3."""
+
+    template = DESIGN_NOTES.get(
+        to_major,
+        "design: see docs/MIGRATION.md for what v{to} changes relative to "
+        "v{from_}; nothing here is rewritten but the pin.",
+    )
+    return template.format(to=to_major, from_=from_major)
+
+
 def plan(root: Path, to_major: int) -> MigrationPlan:
     """The exact repin ``apply`` would perform, plus every consequence to
     weigh, computed from a dry read. Raises only when the book cannot be
@@ -180,9 +207,7 @@ def plan(root: Path, to_major: int) -> MigrationPlan:
         for site in diagnosis.sites
     )
     notes = [
-        f"design is unchanged: with the house profile, v{to_major} reproduces "
-        f"the v{from_major} geometry byte-for-byte. Selecting a non-house "
-        "print.profile is a separate, explicit choice.",
+        design_note(from_major, to_major),
         "the manuscript, config, and accepted art are not touched.",
     ]
     for rel, note in diagnosis.overrides:

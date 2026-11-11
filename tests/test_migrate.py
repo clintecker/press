@@ -161,3 +161,27 @@ def test_diagnose_rejects_a_book_rollback_restored_from_a_bad_backup(tmp_path):
     diagnosis = migrate.diagnose(book)
     assert diagnosis.from_major is None
     assert any("more than one major" in p for p in diagnosis.problems)
+
+
+REQ_V2 = "press @ git+https://github.com/clintecker/press@v2\n"
+WF_V2 = "    uses: clintecker/press/.github/workflows/build.yml@v2\n"
+
+
+@pytest.mark.layer("unit")
+def test_v2_to_v3_plan_does_not_claim_byte_for_byte_parity(tmp_path):
+    plan = migrate.plan(_book(tmp_path, REQ_V2, WF_V2), 3)
+    joined = " ".join(plan.notes)
+    assert "byte-for-byte" not in joined
+    assert "design major" in joined and "MIGRATION.md" in joined
+
+
+@pytest.mark.layer("unit")
+def test_v1_to_v2_plan_still_states_geometry_parity(tmp_path):
+    plan = migrate.plan(_book(tmp_path, REQ_V1, WF_V1), 2)
+    assert any("byte-for-byte" in n for n in plan.notes)
+
+
+@pytest.mark.layer("unit")
+def test_unknown_major_gets_the_neutral_note():
+    note = migrate.design_note(3, 9)
+    assert "byte-for-byte" not in note and "MIGRATION.md" in note and "v9" in note

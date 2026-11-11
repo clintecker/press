@@ -86,6 +86,9 @@ press migrate status     # what you're pinned to, and any recorded migration
 press migrate rollback   # restore the exact prior pin
 ```
 
+The plan's first note is specific to the target major: it says whether the
+design moves, so read it before you apply.
+
 ### `press migrate` (plan) — see everything first
 
 The dry run reports every change it would make and every consequence to

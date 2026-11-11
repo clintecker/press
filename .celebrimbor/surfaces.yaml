@@ -345,7 +345,7 @@ modules:
       render_plan: pure
       rollback: producer
       status: presenter
-    pin: "0c0e4fe1b6c2"
+    pin: "5720b1dbd0b7"
     role: pure
     status: ratified
   mutation:

@@ -485,7 +485,7 @@ def _migration_dry_run_leaves_disk(book, start, target, owned, migrate) -> None:
     plan = migrate.plan(book, target)
     assert plan.from_major == start and plan.to_major == target
     assert plan.changes, "plan produced no changes"
-    assert any("design is unchanged" in note for note in plan.notes)
+    assert plan.notes[0] == migrate.design_note(start, target)
     for path, original in owned.items():
         assert path.read_bytes() == original, f"plan touched {path}"
     assert not (book / migrate.STATE_DIR / migrate.BACKUP).is_file()

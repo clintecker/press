@@ -9,6 +9,22 @@ audit).
 
 ## [Unreleased]
 
+## [3.0.1] - 2026-11-10
+
+A correctness release for the migration tool. `press migrate` opened every
+plan with a promise that the target major reproduces the old geometry
+byte-for-byte, which was true for v1 to v2 and false for v2 to v3, a design
+major. The first note now comes from the target major. Compatible within v3;
+no build changes a valid book's typography or layout.
+
+### Fixed
+
+- **`press migrate` states what the target major changes** -- the plan's
+  first note is keyed by the target major: v2 keeps its geometry-parity
+  statement, v3 says it is a design major and points to the migration
+  guide, and any other major gets a neutral pointer instead of a false
+  byte-for-byte promise (#262).
+
 ## [3.0.0] - 2026-11-10
 
 A design major. Two changes move the typography of every book: a fine-press
