@@ -59,12 +59,17 @@ def filter_arg(filter_path: Path) -> str:
 
 
 def merge(cov_dir: Path) -> dict[str, set[int]]:
-    """Every ``hits-*.tsv`` in ``cov_dir`` merged to ``{filter filename: lines hit}``."""
+    """Every ``hits-*.tsv`` in ``cov_dir`` merged to ``{filter filename: lines hit}``.
+
+    An in-progress ``*.tsv.part`` file is never matched by the glob.
+    """
     merged: dict[str, set[int]] = {}
     for hits in sorted(cov_dir.glob("hits-*.tsv")):
         for row in hits.read_text(encoding="utf-8").splitlines():
-            if not row:
+            fields = row.split("\t")
+            # A malformed row (no tab, or a non-integer line) is skipped, not
+            # fatal; the hook's write-then-rename means a finished run has none.
+            if len(fields) != 2 or not fields[1].isdigit():
                 continue
-            name, line = row.split("\t")
-            merged.setdefault(name, set()).add(int(line))
+            merged.setdefault(fields[0], set()).add(int(fields[1]))
     return merged

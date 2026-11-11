@@ -148,3 +148,23 @@ def test_output_is_byte_identical_with_and_without_the_harness(filt, tmp_path, m
     traced = _pandoc(lua_coverage.filter_arg(filt), doc)
     assert traced.stdout == plain.stdout
     assert list(tmp_path.glob("hits-*.tsv"))
+
+
+@pytest.mark.layer("unit")
+@_needs_pandoc
+def test_hits_are_renamed_into_place_and_part_files_are_ignored(tmp_path, monkeypatch):
+    # A run killed mid-write leaves only a .part file; merge must never read it.
+    (tmp_path / "hits-x.tsv.part").write_text("scene-break.lua\t99999\nscene-bre")
+    monkeypatch.setenv("PRESS_LUA_COV_DIR", str(tmp_path))
+    _pandoc(lua_coverage.filter_arg(SCENE_BREAK))
+    assert [p.name for p in tmp_path.glob("*.part")] == ["hits-x.tsv.part"]
+    assert len(list(tmp_path.glob("hits-*.tsv"))) == 1
+    assert 99999 not in lua_coverage.merge(tmp_path)["scene-break.lua"]
+
+
+@pytest.mark.layer("unit")
+def test_merge_skips_malformed_rows(tmp_path):
+    (tmp_path / "hits-a.tsv").write_text(
+        "f.lua\t3\n\nf.lua\nf.lua\tx\nf.lua\t4\textra\ng.lua\t-1\nf.lua\t7\n"
+    )
+    assert lua_coverage.merge(tmp_path) == {"f.lua": {3, 7}}

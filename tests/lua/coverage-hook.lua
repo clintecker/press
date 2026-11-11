@@ -44,7 +44,10 @@ local function write_hits()
   local reservation = os.tmpname()
   local unique = reservation:match("[^/\\]+$")
   local name = PRESS_COV_DIR .. "/hits-" .. unique .. "-" .. os.time() .. ".tsv"
-  local fh = assert(io.open(name, "w"))
+  -- Write aside and rename: a run killed mid-write leaves only a .part file,
+  -- which the hits-*.tsv glob never reads, so no truncated row is ever merged.
+  local part = name .. ".part"
+  local fh = assert(io.open(part, "w"))
   for path, lines in pairs(hits) do
     local base = path:match("[^/\\]+$")
     for ln in pairs(lines) do
@@ -52,6 +55,7 @@ local function write_hits()
     end
   end
   fh:close()
+  assert(os.rename(part, name))
   os.remove(reservation)
 end
 
