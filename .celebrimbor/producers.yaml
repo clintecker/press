@@ -1,73 +1,24 @@
 pending:
   aesthetic:write_tex_overrides:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
+    reason: owes a TeX-overrides verifier that compiles or structurally checks
+      the emitted build/aesthetic.tex, and its negative fixture (#255)
+    review_by: '2027-02-01'
   art_commission:commission:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
+    reason: owes an intake geometry verifier, reused from `press art accept`,
+      over the art/candidates/ it writes, and its negative fixture (#256)
+    review_by: '2027-02-01'
   art_enhance:enhance:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
-  catalog:render_command_help:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
-  catalog:render_global_help:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
-  catalog:render_usage:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
+    reason: owes an intake geometry verifier, reused from `press art accept`,
+      over the finished PNG it writes, and its negative fixture (#257)
+    review_by: '2027-02-01'
   desk_model:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
-  edition:build:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
-  invariants:render:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
-  migrate:apply:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
-  migrate:rollback:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
-  print_safe:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
-  profiles:write_geometry_tex:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
-  qualification:render:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
-  qualification:render_packaged:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
-  receipts:assemble_release:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
-  receipts:build_full_chain:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
-  receipts:build_release_receipt:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
-  receipts:emit:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
-  scenarios:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
-  selftest:render_reference:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
-  yamlio:dump:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
+    reason: owes a verifier over the desk's typed status model, and its negative
+      fixture (#258)
+    review_by: '2027-02-01'
   yamlio:write:
-    reason: verifier fixture not yet migrated from press
-    review_by: '2026-10-01'
+    reason: owes a yamlio:verify_roundtrip verifier that reloads the written file
+      and compares it to the data, and its negative fixture (#259)
+    review_by: '2027-02-01'
   reader_meta:
     reason: reader metadata injected into the site; proven by verify_pages,
       ledger entry pending
@@ -110,3 +61,43 @@ producers:
     verifier: selftest_book:check_scaffold_neutrality
     negative_fixture:
       tests/test_selftest_checks.py::test_invariant_check_passes[check_scaffold_neutrality]
+  edition:build:
+    verifier: edition:verify
+    negative_fixture:
+      tests/test_edition.py::test_verify_rejects_a_built_manifest_whose_interior_bytes_changed
+  migrate:apply:
+    verifier: migrate:diagnose
+    negative_fixture:
+      tests/test_migrate.py::test_diagnose_rejects_a_book_apply_repinned_only_halfway
+  migrate:rollback:
+    verifier: migrate:diagnose
+    negative_fixture:
+      tests/test_migrate.py::test_diagnose_rejects_a_book_rollback_restored_from_a_bad_backup
+  print_safe:
+    verifier: verify_coverwrap:check_print_safe
+    negative_fixture:
+      tests/test_print_safe.py::test_check_print_safe_rejects_a_logo_print_safe_left_transparent
+  profiles:write_geometry_tex:
+    verifier: profile_lifecycle:validate
+    negative_fixture:
+      tests/test_profiles.py::test_seal_gate_rejects_geometry_tex_written_from_a_drifted_profile
+  qualification:render_packaged:
+    verifier: qualification:validate
+    negative_fixture:
+      tests/test_qualification.py::test_a_comment_only_edit_to_the_packaged_copy_is_refused
+  receipts:assemble_release:
+    verifier: receipts:verify_ci_release
+    negative_fixture:
+      tests/test_receipts.py::test_ci_release_fails_closed_when_a_job_did_not_run
+  receipts:build_full_chain:
+    verifier: receipts:verify_complete
+    negative_fixture:
+      tests/test_receipts.py::test_verify_complete_refuses_a_built_chain_missing_a_layer
+  receipts:build_release_receipt:
+    verifier: receipts:verify_release
+    negative_fixture:
+      tests/test_receipts.py::test_verify_release_refuses_a_built_release_receipt_for_another_package
+  receipts:emit:
+    verifier: receipts:verify_chain
+    negative_fixture:
+      tests/test_receipts.py::test_verify_chain_refuses_an_emitted_receipt_whose_inputs_drifted

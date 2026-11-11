@@ -180,6 +180,19 @@ audit).
   moves glyph positions and line breaks by design, the visual and structural
   regression baselines are re-recorded with a reason.
 
+- **The producer ledger's expired pending list is retired** (the gate had been
+  red on every push since its 2026-10-01 review date). Ten former-pending
+  producers are now proved through real verifiers, each with a negative fixture
+  that breaks the producer's own output and watches the verifier refuse it:
+  the edition manifest, the print-safe cover assets, the profile geometry
+  fragment, the packaged provider record, the four trust-receipt builders, and
+  migrate's apply and rollback (`migrate.diagnose` is now classified a
+  verifier). Eight renderers that return text and write nothing (the catalog's
+  three help renderers, `yamlio.dump`, the invariants, reference, and
+  qualification renderers, and the scenario generator) are reclassified
+  `pure`. The pending list now holds six dated entries, each naming the
+  verifier it owes and its tracking issue (#255 to #259, plus `reader_meta`).
+
 ## [2.3.1] - 2026-07-24
 
 A hardening release. Two output bugs are corrected -- a retail barcode that

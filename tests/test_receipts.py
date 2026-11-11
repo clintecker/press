@@ -349,6 +349,51 @@ def test_ci_release_fails_on_a_package_mismatch(monkeypatch):
     )
 
 
+# ---- no-blind-verifier fixtures: each producer's own output, broken ----
+
+
+def test_verify_chain_refuses_an_emitted_receipt_whose_inputs_drifted(monkeypatch):
+    # emit records the inputs it saw. A manifest that changed between a layer
+    # and the layer it extends is the drift verify_chain exists to refuse.
+    inputs = _clean_ci(monkeypatch)
+    collection = receipts.emit("collection", proofs=[], toolchain_digest="sha-abc")
+    steady = receipts.emit(
+        "unit", proofs=[], prerequisites=[collection], toolchain_digest="sha-abc"
+    )
+    assert receipts.verify_chain([collection, steady]) == []
+
+    drifted = {**inputs, "fixtures": "changed-under-the-chain"}
+    monkeypatch.setattr(
+        receipts, "current_inputs", lambda toolchain_digest="unpinned": (drifted, "c", True)
+    )
+    unit = receipts.emit("unit", proofs=[], prerequisites=[collection], toolchain_digest="sha-abc")
+    problems = receipts.verify_chain([collection, unit])
+    assert any("input 'fixtures' differs from prerequisite 'collection'" in p for p in problems)
+
+
+def test_verify_complete_refuses_a_built_chain_missing_a_layer(monkeypatch):
+    # build_full_chain's spine, with one layer dropped on the way to release,
+    # is the placeholder chain completeness exists to refuse.
+    _clean_ci(monkeypatch)
+    chain = receipts.build_full_chain("PKG", "sha-abc")
+    assert receipts.verify_complete(chain) == []
+    problems = receipts.verify_complete([r for r in chain if r.layer != "scenario"])
+    assert any("missing ['scenario']" in p for p in problems)
+
+
+def test_verify_release_refuses_a_built_release_receipt_for_another_package(monkeypatch):
+    # build_release_receipt names the package it was given. One cut for a
+    # stale package must not release the package actually built.
+    _clean_ci(monkeypatch)
+    chain = receipts.build_full_chain("PKG", "sha-abc")[:-1]
+    assert (
+        receipts.verify_release([*chain, receipts.build_release_receipt("PKG", chain)], "PKG") == []
+    )
+    stale = receipts.build_release_receipt("STALE", chain)
+    problems = receipts.verify_release([*chain, stale], "PKG")
+    assert "release receipt package digest does not match the built package" in problems
+
+
 def test_verify_release_refuses_a_package_mismatch(monkeypatch):
     from press import receipts
 

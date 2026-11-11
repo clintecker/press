@@ -277,3 +277,30 @@ def test_trim_profiles_are_offered_by_the_providers_that_cut_them():
     assert offered("lulu", "mass-market-4.25x6.87")
     assert not offered("kdp", "mass-market-4.25x6.87")
     assert not offered("ingramspark", "mass-market-4.25x6.87")
+
+
+@pytest.mark.layer("unit")
+def test_seal_gate_rejects_geometry_tex_written_from_a_drifted_profile(tmp_path, monkeypatch):
+    # The no-blind-verifier fixture for write_geometry_tex: the fragment it
+    # writes is a pure projection of the profile, so a page whose margins
+    # moved without a re-seal reaches the build through this file. Drift the
+    # house inner margin in an isolated profiles directory, write the
+    # fragment through the producer, and the seal gate must refuse the
+    # profile the fragment came from.
+    from press import booklib, yamlio
+    from press import profile_lifecycle as pl
+
+    sealed_tex = profiles.write_geometry_tex(profiles.load(), tmp_path / "sealed.tex")
+    data = yamlio.load(booklib.DATA / "profiles" / f"{profiles.HOUSE}.yaml")
+    data["interior"]["margins"]["inner"] = 0.5
+    shelf = tmp_path / "profiles"
+    shelf.mkdir()
+    yamlio.write(shelf / f"{profiles.HOUSE}.yaml", data)
+    monkeypatch.setattr(profiles, "profiles_dir", lambda: shelf)
+
+    drifted_tex = profiles.write_geometry_tex(profiles.load(), tmp_path / "drifted.tex")
+    assert "inner=0.5in" in drifted_tex.read_text(encoding="utf-8")
+    assert drifted_tex.read_text(encoding="utf-8") != sealed_tex.read_text(encoding="utf-8")
+
+    problems = pl.validate(pl.load_seals(), profile_ids=[profiles.HOUSE])
+    assert any("drifted from its seal" in p and profiles.HOUSE in p for p in problems)

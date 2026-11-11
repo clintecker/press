@@ -149,3 +149,76 @@ def test_one_alpha_plate_master_composites_per_surface(tmp_path):
     assert cloth.getpixel((0, 0)) == (0, 0, 0) and cloth.getpixel((3, 3)) == (150, 40, 40)
     # The master on disk is untouched, so the web edition still serves alpha.
     assert Image.open(master).getchannel("A").getextrema() == (0, 255)
+
+
+def _image_stream(mode_data: bytes, size, colorspace: str):
+    from pypdf.generic import DecodedStreamObject, NameObject, NumberObject
+
+    stream = DecodedStreamObject()
+    stream.set_data(mode_data)
+    stream[NameObject("/Type")] = NameObject("/XObject")
+    stream[NameObject("/Subtype")] = NameObject("/Image")
+    stream[NameObject("/Width")] = NumberObject(size[0])
+    stream[NameObject("/Height")] = NumberObject(size[1])
+    stream[NameObject("/ColorSpace")] = NameObject(colorspace)
+    stream[NameObject("/BitsPerComponent")] = NumberObject(8)
+    return stream
+
+
+def _wrap_with(image_path, wrap):
+    """A one-page PDF embedding one image the way lualatex embeds a raster
+    in the cover wrap: the colour samples as an image XObject and, when the
+    image carries alpha, that alpha as its /SMask soft mask -- the
+    transparency a print preflight flags."""
+
+    from pypdf import PdfWriter
+    from pypdf.generic import DictionaryObject, NameObject
+
+    with Image.open(image_path) as image:
+        image.load()
+    writer = PdfWriter()
+    page = writer.add_blank_page(width=72, height=72)
+    xobject = _image_stream(image.convert("RGB").tobytes(), image.size, "/DeviceRGB")
+    if "A" in image.getbands():
+        alpha = _image_stream(image.getchannel("A").tobytes(), image.size, "/DeviceGray")
+        xobject[NameObject("/SMask")] = writer._add_object(alpha)
+    page[NameObject("/Resources")] = DictionaryObject(
+        {
+            NameObject("/XObject"): DictionaryObject(
+                {NameObject("/Im0"): writer._add_object(xobject)}
+            )
+        }
+    )
+    with open(wrap, "wb") as handle:
+        writer.write(handle)
+    return wrap
+
+
+@pytest.mark.layer("unit")
+def test_check_print_safe_rejects_a_logo_print_safe_left_transparent(tmp_path, monkeypatch):
+    # The no-blind-verifier fixture for print_safe: regress the flatten step
+    # (sanitize becomes a plain copy, the bug this module exists to prevent),
+    # embed the logo prepare_cover then emits, and the coverwrap verifier must
+    # refuse the wrap. The real producer's output, embedded the same way,
+    # passes, so the refusal is about the transparency and nothing else.
+    import shutil
+
+    from press import adapters, verify_coverwrap
+    from press.adapters import fakes
+
+    # Resolution is a separate arm needing pdfimages; keep this fixture about
+    # transparency alone, the same on every machine.
+    monkeypatch.setattr(adapters, "environment", fakes.FakeEnvironment(present_tools=[]))
+    _save(tmp_path / "assets" / "press-logo.png", (40, 40), "RGBA", (0, 0, 0, 0))
+
+    made = print_safe.prepare_cover(tmp_path, (201, 191, 191), 3000, 640)
+    verify_coverwrap.check_print_safe(_wrap_with(made["logo"], tmp_path / "good.pdf"))
+
+    def copy_unflattened(src, dst, *_args, **_kwargs):
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(src, dst)
+
+    monkeypatch.setattr(print_safe, "sanitize", copy_unflattened)
+    made = print_safe.prepare_cover(tmp_path, (201, 191, 191), 3000, 640)
+    with pytest.raises(SystemExit, match="with transparency"):
+        verify_coverwrap.check_print_safe(_wrap_with(made["logo"], tmp_path / "bad.pdf"))

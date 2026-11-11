@@ -144,9 +144,9 @@ modules:
     status: ratified
   catalog:
     overrides:
-      render_command_help: producer
-      render_global_help: producer
-      render_usage: producer
+      render_command_help: pure
+      render_global_help: pure
+      render_usage: pure
     pin: "abae723b91c2"
     role: pure
     status: ratified
@@ -326,7 +326,7 @@ modules:
   invariants:
     overrides:
       load: parser
-      render: producer
+      render: pure
     pin: "7d571c9b840d"
     role: verifier
     status: ratified
@@ -340,7 +340,7 @@ modules:
     overrides:
       Diagnosis.from_major: pure
       apply: producer
-      diagnose: parser
+      diagnose: verifier
       pin_sites: parser
       render_plan: pure
       rollback: producer
@@ -464,7 +464,7 @@ modules:
       load: parser
       providers: parser
       qualify: pure
-      render: producer
+      render: pure
       render_packaged: producer
     pin: "9fd2f914efad"
     role: verifier
@@ -521,7 +521,7 @@ modules:
       scenario_id: pure
       surface_dimensions: pure
     pin: "6ad8765b4616"
-    role: producer
+    role: pure
     status: ratified
   selftest_book:
     pin: "9c44e2195b0c"
@@ -537,7 +537,7 @@ modules:
       clear_book_caches: pure
       main: presenter
       modules: pure
-      render_reference: producer
+      render_reference: pure
     pin: "545fc61510a2"
     role: verifier
     status: ratified
@@ -603,7 +603,7 @@ modules:
     status: ratified
   yamlio:
     overrides:
-      dump: producer
+      dump: pure
       write: producer
     pin: "65608d47effe"
     role: parser

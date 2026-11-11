@@ -293,3 +293,39 @@ def test_build_from_artifacts_then_verify(scaffolded_book, monkeypatch):
     # refuse it (a rebuild after payment is forbidden).
     _write_pdf(edition.interior_path(root, slug), 97)
     assert any("interior digest" in p or "page count" in p for p in edition.verify(manifest, root))
+
+
+@pytest.mark.layer("integration")
+def test_verify_rejects_a_built_manifest_whose_interior_bytes_changed(scaffolded_book, monkeypatch):
+    # The no-blind-verifier fixture for edition.build: cut a manifest through
+    # the producer, then change the interior's bytes while keeping its page
+    # count, so only the digest and byte-size checks can see it. A verifier
+    # that matched on page count alone would pass this tampered edition.
+    from pypdf import PdfReader, PdfWriter
+
+    from press import booklib, receipts
+
+    root = booklib.root()
+    slug = booklib.slug()
+    (root / "dist").mkdir(exist_ok=True)
+    interior = edition.interior_path(root, slug)
+    _write_pdf(interior, 96)
+    _write_pdf(edition.cover_path(root, slug), 1)
+    monkeypatch.setattr(
+        receipts,
+        "current_inputs",
+        lambda toolchain_digest="unpinned": ({"invariants": "d"}, "c0ffee", True),
+    )
+    monkeypatch.setattr(receipts, "pinned_toolchain_digest", lambda: "sha-xyz")
+    manifest = edition.build([receipts.emit("collection", proofs=[])], root=root)
+    assert edition.verify(manifest, root) == []
+
+    writer = PdfWriter(clone_from=PdfReader(str(interior)))
+    writer.add_metadata({"/Title": "a rebuild after payment"})
+    with open(interior, "wb") as handle:
+        writer.write(handle)
+    assert len(PdfReader(str(interior)).pages) == manifest.page_count
+
+    problems = edition.verify(manifest, root)
+    assert "interior digest does not match the artifact on disk" in problems
+    assert not any("page count" in p for p in problems)

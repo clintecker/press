@@ -117,3 +117,47 @@ def test_status_reports_pin_and_receipt(tmp_path):
     reported = migrate.status(book)
     assert "pinned to v2" in reported
     assert "rollback" in reported
+
+
+@pytest.mark.layer("unit")
+def test_diagnose_rejects_a_book_apply_repinned_only_halfway(tmp_path, monkeypatch):
+    # The no-blind-verifier fixture for apply: regress the plan so apply
+    # rewrites requirements.txt but skips the workflow, the half-migrated
+    # book a lost pin site leaves. Diagnosis must name the split major
+    # rather than read the book as migrated.
+    book = _book(tmp_path, REQ_V1, WF_V1)
+    real_plan = migrate.plan
+
+    def plan_missing_the_workflow(root, to_major):
+        full = real_plan(root, to_major)
+        kept = tuple(c for c in full.changes if c.path == "requirements.txt")
+        return migrate.MigrationPlan(full.from_major, full.to_major, kept, full.notes)
+
+    monkeypatch.setattr(migrate, "plan", plan_missing_the_workflow)
+    migrate.apply(book, 2)
+
+    diagnosis = migrate.diagnose(book)
+    assert diagnosis.from_major is None
+    assert any("more than one major" in p for p in diagnosis.problems)
+
+
+@pytest.mark.layer("unit")
+def test_diagnose_rejects_a_book_rollback_restored_from_a_bad_backup(tmp_path):
+    # The no-blind-verifier fixture for rollback: restore from a backup that
+    # no longer holds the pre-migration bytes of one site (it was edited
+    # after apply wrote it). The restored book is split across two majors,
+    # and diagnosis must refuse it instead of reading it as rolled back.
+    import json
+
+    book = _book(tmp_path, REQ_V1, WF_V1)
+    migrate.apply(book, 2)
+    backup_path = book / migrate.STATE_DIR / migrate.BACKUP
+    backup = json.loads(backup_path.read_text(encoding="utf-8"))
+    backup["files"][".github/workflows/book.yml"] = WF_V1.replace("@v1", "@v3")
+    backup_path.write_text(json.dumps(backup), encoding="utf-8")
+
+    migrate.rollback(book)
+
+    diagnosis = migrate.diagnose(book)
+    assert diagnosis.from_major is None
+    assert any("more than one major" in p for p in diagnosis.problems)
