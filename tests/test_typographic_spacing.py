@@ -13,6 +13,8 @@ from pathlib import Path
 
 import pytest
 
+from tests import lua_coverage
+
 FILTER = (
     Path(__file__).resolve().parent.parent
     / "src"
@@ -28,7 +30,7 @@ _needs_pandoc = pytest.mark.skipif(
 
 
 def _render(markdown: str, to: str = "latex") -> str:
-    args = ["pandoc", "-f", "markdown", "-t", to, f"--lua-filter={FILTER}"]
+    args = ["pandoc", "-f", "markdown", "-t", to, lua_coverage.filter_arg(FILTER)]
     result = subprocess.run(args, input=markdown, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     return result.stdout

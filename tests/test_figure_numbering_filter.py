@@ -14,6 +14,8 @@ from pathlib import Path
 
 import pytest
 
+from tests import lua_coverage
+
 FILTER = (
     Path(__file__).resolve().parent.parent
     / "src"
@@ -39,7 +41,7 @@ def _render(markdown: str, to: str = "latex", filtered: bool = True) -> str:
         "--number-sections",
     ]
     if filtered:
-        args.append(f"--lua-filter={FILTER}")
+        args.append(lua_coverage.filter_arg(FILTER))
     result = subprocess.run(args, input=markdown, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     return result.stdout

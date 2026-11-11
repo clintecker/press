@@ -13,6 +13,8 @@ from pathlib import Path
 
 import pytest
 
+from tests import lua_coverage
+
 FILTER = (
     Path(__file__).resolve().parent.parent
     / "src"
@@ -28,7 +30,7 @@ pytestmark = pytest.mark.skipif(
 
 
 def _render(markdown: str, to: str = "latex", style: str = "drop-cap") -> str:
-    args = ["pandoc", "-f", "markdown", "-t", to, f"--lua-filter={FILTER}"]
+    args = ["pandoc", "-f", "markdown", "-t", to, lua_coverage.filter_arg(FILTER)]
     if style is not None:
         args += ["-M", f"chapter-opening-style={style}"]
     result = subprocess.run(args, input=markdown, capture_output=True, text=True)

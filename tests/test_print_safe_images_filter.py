@@ -15,6 +15,8 @@ from pathlib import Path
 
 import pytest
 
+from tests import lua_coverage
+
 FILTER = (
     Path(__file__).resolve().parent.parent
     / "src"
@@ -33,7 +35,7 @@ def _rewrite(src: str) -> str:
     """The image src after the filter runs, read from the HTML output."""
     md = f"![a figure]({src})\n"
     result = subprocess.run(
-        ["pandoc", "-f", "markdown", "-t", "html", f"--lua-filter={FILTER}"],
+        ["pandoc", "-f", "markdown", "-t", "html", lua_coverage.filter_arg(FILTER)],
         input=md,
         capture_output=True,
         text=True,

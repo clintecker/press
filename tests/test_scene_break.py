@@ -14,6 +14,8 @@ from pathlib import Path
 
 import pytest
 
+from tests import lua_coverage
+
 FILTER = (
     Path(__file__).resolve().parent.parent / "src" / "press" / "data" / "lua" / "scene-break.lua"
 )
@@ -43,7 +45,7 @@ def test_scene_break_ornament_reads_the_aesthetic(monkeypatch):
 
 
 def _render(markdown: str, to: str = "latex", ornament: str | None = None) -> str:
-    args = ["pandoc", "-f", "markdown", "-t", to, f"--lua-filter={FILTER}"]
+    args = ["pandoc", "-f", "markdown", "-t", to, lua_coverage.filter_arg(FILTER)]
     if ornament is not None:
         args += ["-M", f"scene-break-ornament={ornament}"]
     result = subprocess.run(args, input=markdown, capture_output=True, text=True)
