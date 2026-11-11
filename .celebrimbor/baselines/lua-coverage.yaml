@@ -8,14 +8,15 @@ version: 1
 environment: ci
 tool: lua-line-hook
 floors:
-  chapter-dropcap.lua: 85.9
-  figure-numbering.lua: 81.7
-  press-util.lua: 90.0
+  chapter-dropcap.lua: 91.1
+  figure-numbering.lua: 87.8
+  press-util.lua: 96.7
   print-safe-images.lua: 100.0
-  scene-break.lua: 76.7
-  set-pieces.lua: 88.0
-  typographic-spacing.lua: 86.4
+  scene-break.lua: 83.3
+  set-pieces.lua: 93.0
+  typographic-spacing.lua: 87.9
 reasons:
 - "initial floors, provisional: set 5 points under a macOS measurement; replaced by CI's numbers in Task 5"
 - closers widened; remeasured
 - 'floors set from CI run 42968750375 (PR #263 quality job, ubuntu-24.04); CI and the macOS measurement agreed to the decimal'
+- '§6 backfill: floors raised from CI run 42971980816 (PR #263 quality job)'
