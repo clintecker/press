@@ -261,9 +261,10 @@ In `epub.css`, append:
    floated initial. No colour, border, or shadow: the reader owns the theme. */
 figure { margin: 1.5em 0; text-align: center; page-break-inside: avoid; }
 figure img { max-width: 100%; height: auto; }
-figcaption { font-size: 0.9em; line-height: 1.4; font-style: italic; }
 .chapter-opening::after { content: ""; display: block; clear: both; }
 ```
+
+(Execution ruling: this block originally carried a `figcaption { font-size: 0.9em; line-height: 1.4; font-style: italic; }` line. The final whole-branch review found it is a restyle of every valid EPUB's caption, not a correction, so it was removed in the final fix wave; caption typography belongs to the v4 parity major.)
 
 Delete the line `.verse .verse-line { margin: 0; }` from `epub.css`, `reader.css`, and `book.css` (it matches no emitted element; `set-pieces.lua` emits verse as one block with `<br>`). Confirm with `grep -rn "verse-line" src/press/data/lua` that no filter emits that class.
 
@@ -383,7 +384,7 @@ Expected: 3 passed.
 
 - [ ] **Step 5: Add the workflow**
 
-`.github/workflows/ledger-review.yml`: `on: schedule: - cron: "17 8 * * 1"` plus `workflow_dispatch`; `permissions: contents: read, issues: write`; one job on `ubuntu-24.04` that checks out with the same pinned `actions/checkout` SHA as `roadmap.yml`, sets up Python with the same pinned `actions/setup-python`, `pip install -e .`, and runs `python3 scripts/ledger_review_watch.py --open-issue` with `GH_TOKEN: ${{ github.token }}`.
+`.github/workflows/ledger-review.yml`: `on: schedule: - cron: "17 8 * * 1"` plus `workflow_dispatch`; `permissions: contents: read, issues: write`; one job on `ubuntu-24.04` that checks out with the same pinned `actions/checkout` SHA as `roadmap.yml`, sets up Python with the same pinned `actions/setup-python`, installs with `pip install --require-hashes -r requirements-lock.txt` then `pip install --no-deps -e .` (execution ruling: the plan first said `pip install -e .`; the final review flagged unpinned PyPI bytes in a job holding `issues: write`, so the install follows `action.yml`'s lock-and-hashes law), a `concurrency` group mirroring `roadmap.yml`'s write job, and runs `python3 scripts/ledger_review_watch.py --open-issue` with `GH_TOKEN: ${{ github.token }}`.
 
 - [ ] **Step 6: Run it once by hand to prove the dedupe**
 
