@@ -9,8 +9,25 @@ audit).
 
 ## [Unreleased]
 
+## [3.0.2] - 2026-11-11
+
+A security release. The hash-locked runtime dependencies move Pillow from
+12.3.0 to 13.0.0, closing the 41 advisories GitHub reported against the
+lock (five critical: heap overflows in the JPEG and FlashPix decoders and
+in TIFF writing, a stale-storage reuse in multi-frame loaders, and an
+argument injection in the Ghostscript call). Pillow 13 requires Python 3.11,
+which the toolchain image's 3.12 satisfies; the package's own floor stays
+`Pillow>=10.0`, so an authoring install on 3.10 keeps resolving 12.x. Also
+carries the Lua filter coverage work merged in #263 (test and CI only).
+Compatible within v3; no build changes a valid book's typography or layout.
+
 ### Changed
 
+- **`requirements-lock.txt` pins Pillow 13.0.0**, regenerated in the pinned
+  toolchain container. `scripts/lock-deps.sh` now passes extra arguments to
+  pip-compile, because pip-compile keeps existing pins unless told to move
+  one: `scripts/lock-deps.sh --upgrade-package pillow` is the one-package
+  security bump, `--upgrade` the full refresh.
 - The Lua filter tests now run in CI's quality job: pandoc is installed before
   the gate, and `PRESS_REQUIRE_LUA=1` forbids the silent skip, so a missing
   pandoc fails the suite instead of passing it unrun (the filter tests had
