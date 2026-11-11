@@ -101,6 +101,11 @@ As @fig:press shows, the platen does the pressing.
 A mixed book prints both lists; a book with only plates prints only the List of
 Plates, byte-for-byte as before. Plates are **never** numbered.
 
+Every edition is checked for these labels. The HTML and EPUB verifiers count
+the numbered figures the source declares and require at least that many
+`Figure C.N.` labels in the finished edition, so a figure whose label is lost
+in conversion fails the build instead of shipping unnumbered.
+
 ## Placing a figure: relative and parity-aware
 
 Where and how a figure sits rides on its image attributes, in a vocabulary that

@@ -33,6 +33,13 @@ code, pre { font-family: monospace; }
 .cascade { margin: 1.5em 0; }
 .cascade .cascade-line { margin: 0; }
 .verse { margin: 1.5em 0 1.5em 2.4em; }
-.verse .verse-line { margin: 0; }
 .tail { margin: 1.8em 0; text-align: center; line-height: 1.3; }
 .tail .tail-line { margin: 0; }
+
+/* Corrections (edition-parity M0): a figure wider than the screen overflowed,
+   a half-measure figure sat flush-left, and a short opener could overlap the
+   floated initial. No colour, border, or shadow: the reader owns the theme. */
+figure { margin: 1.5em 0; text-align: center; page-break-inside: avoid; }
+figure img { max-width: 100%; height: auto; }
+figcaption { font-size: 0.9em; line-height: 1.4; font-style: italic; }
+.chapter-opening::after { content: ""; display: block; clear: both; }

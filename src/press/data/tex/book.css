@@ -111,6 +111,5 @@ pre { overflow-x: auto; background: #efefeb; padding: 1rem; }
 .cascade { margin: 1.5em 0; }
 .cascade .cascade-line { margin: 0; }
 .verse { margin: 1.5em 0 1.5em 2.4em; }
-.verse .verse-line { margin: 0; }
 .tail { margin: 1.8em 0; text-align: center; line-height: 1.3; }
 .tail .tail-line { margin: 0; }

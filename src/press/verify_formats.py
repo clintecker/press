@@ -8,7 +8,7 @@ import re
 import zipfile
 from pathlib import Path
 
-from . import adapters, booklib
+from . import adapters, booklib, figures
 
 
 class VisibleText(html.parser.HTMLParser):
@@ -45,7 +45,7 @@ def sentinel_present(sentinel: str, text: str) -> bool:
     return needle in " ".join(text.split()).translate(STRAIGHTEN)
 
 
-def manuscript_witness() -> str:
+def _manuscript_witness() -> str:
     """One long plain line of the manuscript, markup-free, that every
     format must carry: content survival proven even with an empty
     sentinel list."""
@@ -272,7 +272,7 @@ def require_witnesses(text: str, label: str) -> None:
     title = normalized(booklib.book().title)
     if title and title not in haystack:
         raise SystemExit(f"{label} does not carry the book title: {booklib.book().title}")
-    witness = manuscript_witness()
+    witness = _manuscript_witness()
     if not witness:
         raise SystemExit(
             f"{label}: no manuscript witness derivable; the book has no "
@@ -283,8 +283,29 @@ def require_witnesses(text: str, label: str) -> None:
         raise SystemExit(f"{label} lost the manuscript witness line: {witness[:60]}...")
 
 
-def plate_count() -> int:
+def _plate_count() -> int:
     return len(booklib.plate_files(booklib.root() / "assets" / "woodcuts"))
+
+
+def numbered_figure_count(root: Path) -> int:
+    """How many numbered (informative) figures the source declares."""
+
+    total = 0
+    for directory in ("chapters", "appendices"):
+        for md in sorted((root / "book" / directory).glob("*.md")):
+            parsed = figures.parse(md.read_text(encoding="utf-8"))
+            total += sum(1 for fig in parsed if fig.numbered)
+    return total
+
+
+def require_figure_labels(text: str, expected: int, label: str) -> None:
+    """The edition carries at least ``expected`` ``Figure C.N.`` labels."""
+
+    found = len(re.findall(r"Figure \d+\.\d+\.", text))
+    if found < expected:
+        raise SystemExit(
+            f"{label} carries {found} numbered-figure labels; the source declares {expected}"
+        )
 
 
 def verify_html(path: Path) -> None:
@@ -297,6 +318,7 @@ def verify_html(path: Path) -> None:
     if "<html" not in path.read_text(encoding="utf-8", errors="ignore").lower():
         raise SystemExit("HTML output has no html element")
     require_witnesses(text, "HTML")
+    require_figure_labels(text, numbered_figure_count(booklib.root()), "HTML")
 
 
 def _require_sentinels(text: str, label: str) -> None:
@@ -357,6 +379,7 @@ def verify_epub(path: Path) -> None:
         text = " ".join(" ".join(parser.parts).split())
         _require_sentinels(text, "EPUB")
         require_witnesses(text, "EPUB")
+        require_figure_labels(text, numbered_figure_count(booklib.root()), "EPUB")
 
 
 def epubcheck(path: Path) -> None:
@@ -442,7 +465,7 @@ def verify_docx(path: Path) -> None:
         if not sentinel_present(sentinel, flattened):
             raise SystemExit(f"docx missing sentinel: {sentinel}")
     require_witnesses(flattened, "docx")
-    expected_plates = plate_count()
+    expected_plates = _plate_count()
     if len(media) < expected_plates:
         raise SystemExit(
             f"docx embeds {len(media)} images; expected at least {expected_plates} plates"
@@ -493,7 +516,7 @@ def _verify_site_chapter_identity(chapter_pages: list[Path]) -> None:
 def _verify_site_plates(path: Path) -> None:
     """Every source plate carried into the site's woodcuts directory."""
 
-    source_plates = plate_count()
+    source_plates = _plate_count()
     if source_plates:
         woodcuts = booklib.plate_files(path / "assets" / "woodcuts")
         if len(woodcuts) < source_plates:
@@ -555,7 +578,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     verify_editions_agree(editions, witnesses)
 
-    witness = manuscript_witness()
+    witness = _manuscript_witness()
     print(
         f"Verified {', '.join(verified)} "
         f"({len(booklib.sentinels())} sentinel(s), the title, and the "

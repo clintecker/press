@@ -118,6 +118,13 @@ audit).
 
 ### Fixed
 
+- **EPUB figures no longer overflow or sit flush-left, and a short dialogue
+  opener no longer overlaps the drop cap.** The EPUB stylesheet now fits a
+  figure to the screen, centres it, and clears the floated initial after the
+  opening paragraph. The dead `.verse .verse-line` rule (no filter emits that
+  class) is gone from all three stylesheets, and the HTML and EPUB verifiers now
+  prove numbered-figure label parity: every `Figure C.N.` the source declares
+  survives into the edition.
 - **A plate on a gradient or textured ground is refused at intake, not
   ghosted.** The luminance key reads every dark pixel as ink, so a ground that
   is not a flat light colour survives as a smudge (its darker end keys only

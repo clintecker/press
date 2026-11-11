@@ -570,7 +570,7 @@ modules:
       normalized: normalizer
       plate_count: pure
       sentinel_present: pure
-    pin: "fd210683bb0f"
+    pin: "896d4621570f"
     role: verifier
     status: ratified
   verify_pages:
