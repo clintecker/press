@@ -156,6 +156,9 @@ def test_the_paragraph_after_a_frontispiece_keeps_its_indent(tmp_path):
     assert first - second > 6, (
         f"the paragraph after the frontispiece lost its indent: first line at "
         f"x={first}, second at x={second}"
+    )
+
+
 # Two 76-column lines, one in an untagged fence and one tagged ``text``:
 # about twelve columns past the house measure (64 columns of Source Code Pro
 # at 0.86 on the 6x9 trim), so neither fits without wrapping. The chapter
