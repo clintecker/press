@@ -398,13 +398,15 @@ def stranded_lines(image: Image.Image) -> int:
     folio, when that is one or two and nothing else (no plate, no rule
     block); 0 otherwise. A band in the top or bottom tenth of the page is the
     head or the folio; a band taller than three per cent of the page is not a
-    line of text."""
+    line of text. A page with no running head (a dedication, an epigraph, a
+    half-title, a chapter opening) is a designed page and never counts."""
 
     height = image.size[1]
+    bands = ink_bands(image)
+    if not any(bottom < 0.10 * height for _, bottom in bands):
+        return 0
     body = [
-        (top, bottom)
-        for top, bottom in ink_bands(image)
-        if top > 0.10 * height and bottom < 0.90 * height
+        (top, bottom) for top, bottom in bands if top > 0.10 * height and bottom < 0.90 * height
     ]
     if not 1 <= len(body) <= 2:
         return 0

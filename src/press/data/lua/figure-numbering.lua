@@ -222,9 +222,9 @@ local function table_keep(tbl)
   )
 end
 
--- Room the last two Contents entries need together (each chapter entry is a
--- line and the space KOMA sets before it).
-local TOC_KEEP = 3
+-- Room the last two Contents entries need together: two lines and the
+-- space KOMA sets before each chapter entry, about four baselines.
+local TOC_KEEP = 4
 
 -- Dispatch a placement to its LaTeX container, given the figure's pre-built
 -- inner pieces. Returns {wrap=<string>} for a runaround (walk_blocks fuses it

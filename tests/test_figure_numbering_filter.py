@@ -276,7 +276,7 @@ def test_last_two_contents_entries_carry_over_together():
     """#291: a one-line Contents overflow set the last entry alone on a page.
     The second-to-last listed chapter (an unlisted heading makes no entry and
     is not counted) writes a \\Needspace into the .toc ahead of its entry."""
-    keep = "\\addtocontents{toc}{\\protect\\Needspace{3\\baselineskip}}"
+    keep = "\\addtocontents{toc}{\\protect\\Needspace{4\\baselineskip}}"
     out = _render(
         "# One\n\nx\n\n# Two\n\nx\n\n::: part\n# Three {.unnumbered}\n\nx\n:::\n\n"
         "# Hidden {.unnumbered .unlisted}\n\nx\n"

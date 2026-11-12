@@ -52,6 +52,13 @@ def test_a_plate_page_and_a_text_page_are_not_warned(tmp_path):
     assert verify_pdf.warn_stranded_pages([plate, opener, folio_only]) == []
 
 
+def test_a_page_with_no_running_head_is_not_warned(tmp_path):
+    # A dedication, an epigraph, or a half-title: one line and a folio, but no
+    # running head, so it is a designed page, not a stranded line.
+    dedication = _page(tmp_path, "dedication", lines=1, head=False)
+    assert verify_pdf.warn_stranded_pages([dedication]) == []
+
+
 def test_ink_bands_split_lines_of_text(tmp_path):
     with Image.open(_page(tmp_path, "bands", lines=3)) as image:
         bands = verify_pdf.ink_bands(image)

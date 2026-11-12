@@ -189,7 +189,10 @@ selected geometry. The wrap is checked against the *same* geometry the
 generator used, so a size regression cannot ship. It also prints a layout
 warning, never a failure, for any page whose only ink is its running head, its
 folio, and one or two lines of text: a page that passes the ink check but reads
-as nearly blank, such as a last Contents entry carried over alone. As always, a physical
+as nearly blank, such as a last Contents entry carried over alone. A page
+with no running head (a dedication, an epigraph) is never warned; a chapter's
+last page holding one or two lines still is, by design, since that is a
+stranded line too. As always, a physical
 golden-copy inspection (see
 [print ordering](https://github.com/clintecker/press/blob/main/docs/PRINT-ORDERING.md))
 is what actually qualifies an edition for sale.

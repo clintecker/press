@@ -79,7 +79,8 @@ A valid book that never hit one of these faults typesets as before.
   `.toc` ahead of the second-to-last entry, so the last two carry over
   together, and the PDF verifier prints a layout warning (never a failure)
   for any page whose ink is only its running head, its folio, and one or two
-  lines of text.
+  lines of text (a page with no running head, such as a dedication, is never
+  warned; a chapter's last page of one or two lines is, by design).
 
 ## [3.0.2] - 2026-11-11
 
