@@ -26,6 +26,20 @@ audit).
   one kept a phantom `page-385.png`), and a page review could read a page
   the PDF no longer had. The directory is now rebuilt from scratch on
   every render, matching the print-assets pattern (#285).
+||||||| fee8e42
+- **The witness pickers no longer choose a line the editions cannot render
+  verbatim (#261, #281).** `_manuscript_witness` and `chapter_witnesses` now
+  share one candidate rule: the 40-character floor, the inline-markup
+  character set, the block-marker exclusion (a definition, list item, or
+  quote renders without its marker, which only the per-chapter picker had
+  applied), and a new exclusion for any pandoc citation token: a
+  pandoc-crossref reference (`@fig:`, `@tbl:`, `@sec:`, `@eq:`), a
+  colonless `@id` naming a numbered figure (the house figure-numbering
+  filter rewrites it the same way), or a `[@key]` citation, all of which
+  render as "Figure 3.3" or a formatted citation in HTML, EPUB, text, DOCX,
+  and the reader site so the source line matched nowhere and
+  `verify-formats` refused a correct build. An e-mail address, whose `@`
+  follows a word character, stays an ordinary witness.
 
 ## [3.0.2] - 2026-11-11
 
