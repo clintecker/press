@@ -644,6 +644,13 @@ The subprocess runner strips ambient GIT_* repo-binding vars for git commands so
 - enforced by `adapters.production:SubprocessRunner.run`
 - proven by `tests/test_git_isolation.py::test_ambient_git_index_does_not_hide_a_nested_repos_files`
 
+## INV-table-shape
+
+Every table in an HTML surface is a wrapped grid with labelled cells or a ledger with entries; a bare table is refused.
+
+- enforced by `verify_table_shape:verify_tables`
+- proven by `tests/test_verify_table_shape.py::test_an_unwrapped_table_is_refused`
+
 ## INV-transport-empty-body-and-signals
 
 An empty response body parses as an empty mapping, and the transport's timeout and error signals stay distinct types.

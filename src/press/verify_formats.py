@@ -9,6 +9,7 @@ import zipfile
 from pathlib import Path
 
 from . import adapters, booklib, figures
+from .verify_table_shape import verify_tables
 
 
 class VisibleText(html.parser.HTMLParser):
@@ -333,6 +334,7 @@ def verify_html(path: Path) -> None:
         raise SystemExit("HTML output has no html element")
     require_witnesses(text, "HTML")
     require_figure_labels(text, numbered_figure_count(booklib.root()), "HTML")
+    verify_tables(path.read_text(encoding="utf-8", errors="ignore"), "HTML")
 
 
 def _require_sentinels(text: str, label: str) -> None:
@@ -382,6 +384,11 @@ def _epub_check_metadata(opf: str) -> None:
         raise SystemExit(f"EPUB metadata is missing the registered ISBN {epub_isbn}")
 
 
+# The EPUB's own navigation and cover documents are pandoc's scaffolding, not
+# book content; their markup is not the book's tables.
+_EPUB_SKIP = frozenset({"nav.xhtml", "cover.xhtml"})
+
+
 def verify_epub(path: Path) -> None:
     with zipfile.ZipFile(path) as archive:
         names = archive.namelist()
@@ -394,6 +401,10 @@ def verify_epub(path: Path) -> None:
         _require_sentinels(text, "EPUB")
         require_witnesses(text, "EPUB")
         require_figure_labels(text, numbered_figure_count(booklib.root()), "EPUB")
+        for name in names:
+            if name.endswith((".xhtml", ".html")) and Path(name).name not in _EPUB_SKIP:
+                markup = archive.read(name).decode("utf-8", errors="ignore")
+                verify_tables(markup, f"EPUB {name}", labels=False)
 
 
 def epubcheck(path: Path) -> None:
@@ -543,6 +554,10 @@ def verify_site(path: Path) -> None:
     chapter_pages = _verify_site_scaffold(path)
     _verify_site_chapter_identity(chapter_pages)
     _verify_site_plates(path)
+    for page in sorted(chapter_pages):
+        verify_tables(
+            page.read_text(encoding="utf-8", errors="replace"), f"reader site {page.name}"
+        )
     site_text = site_visible_text(path)
     _require_sentinels(site_text, "reader site")
     require_witnesses(site_text, "reader site")

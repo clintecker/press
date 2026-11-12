@@ -134,6 +134,7 @@ modules:
     status: ratified
   build:
     overrides:
+      _build_html: producer
       build_target: orchestrator
       cover_fragment_html: pure
       download_names: pure
@@ -570,7 +571,11 @@ modules:
       normalized: normalizer
       plate_count: pure
       sentinel_present: pure
-    pin: "7eba48d4f84f"
+    pin: "da1b4134bae0"
+    role: verifier
+    status: ratified
+  verify_table_shape:
+    pin: "cacf5793a496"
     role: verifier
     status: ratified
   verify_pages:

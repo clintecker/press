@@ -836,6 +836,15 @@ invariants:
     layers:
     - pytest
     risk: An inherited git index would silently redirect git to the outer repo, corrupting a nested book.
+  INV-table-shape:
+    statement: Every table in an HTML surface is a wrapped grid with labelled cells or a ledger with entries; a bare table is refused.
+    enforced_by: verify_table_shape:verify_tables
+    negative_proof: tests/test_verify_table_shape.py::test_an_unwrapped_table_is_refused
+    owner: verify_table_shape
+    criticality: standard
+    layers:
+    - pytest
+    risk: A table renders in the one form that crushes on a phone and nothing notices.
   INV-config-store-never-guess:
     statement: 'Config coercion never guesses a collection type: a collection field requires explicit JSON.'
     enforced_by: config_store:coerce
