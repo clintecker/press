@@ -672,6 +672,25 @@ def test_run_render_routes_pdftoppm_through_runner(scaffolded_book, fake_runner,
     assert recorded.check is True
 
 
+def test_run_render_clears_stale_pages_before_pdftoppm(scaffolded_book, fake_runner, monkeypatch):
+    """A shorter render after a longer one must not keep the longer one's
+    trailing pages: pdftoppm overwrites only what it writes (#285)."""
+    from press import __main__ as cli
+    from press import build
+
+    monkeypatch.setattr(build, "build_target", lambda name: None)
+    out = scaffolded_book / "build" / "rendered-book"
+    out.mkdir(parents=True)
+    stale = out / "page-385.png"
+    stale.write_bytes(b"phantom")
+
+    assert cli._run_render([]) == 0
+
+    assert not stale.exists()
+    assert out.is_dir()  # pdftoppm needs its output directory to exist
+    assert fake_runner.runs[-1].argv[0] == "pdftoppm"
+
+
 # booklib reads BOOK_ROOT and PRESS_RELEASE through the environment
 # --------------------------------------------------------------------------
 
