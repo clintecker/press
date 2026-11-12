@@ -89,7 +89,16 @@
 % figure-numbering filter follows each such heading with
 % \PressUnnumberedChapter{<title>}, which sets the title as the mark with no
 % number -- KOMA's own \addchapmark, the mark \addchap sets.
-\newcommand*{\PressUnnumberedChapter}[1]{\addchapmark{#1}}
+% An unnumbered chapter also contributes no chapter number to the List of
+% Plates (#288): the figure counter runs on from the last numbered chapter,
+% so a colophon's plate listed as "16.1". Its plates list by caption alone
+% (caption's empty list format), and the filter's \PressNumberedChapter
+% restores the numbered entries at the next numbered chapter.
+\newcommand*{\PressUnnumberedChapter}[1]{%
+  \addchapmark{#1}%
+  \captionsetup{listformat=empty}%
+}
+\newcommand*{\PressNumberedChapter}{\captionsetup{listformat=default}}
 
 \addtokomafont{chapter}{\normalfont\bfseries\color{ink}}
 \addtokomafont{section}{\normalfont\bfseries\color{ink}}

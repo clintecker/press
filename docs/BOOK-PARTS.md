@@ -240,7 +240,9 @@ of terms, each with the patterns that count as a mention:
 ```
 
 Press searches the manuscript for those patterns and builds the index from
-what it finds. Delete the file to remove the index.
+what it finds. Delete the file to remove the index. A location is a chapter
+number, an appendix letter, or, for an unnumbered back-matter part not titled
+as an appendix (a colophon), the part's own title.
 
 ::: {.callout}
 **Press will not print a wrong page number.** A term that matches nothing in

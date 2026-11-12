@@ -212,3 +212,34 @@ def test_unnumbered_chapter_sets_its_own_running_head_mark():
     assert out.index("\\chapter*") < out.index("\\PressUnnumberedChapter")
     html = _render("# Preface {.unnumbered}\n\nx\n", to="html")
     assert "PressUnnumberedChapter" not in html
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("negative")
+def test_unnumbered_chapter_contributes_no_chapter_number():
+    """#288: a colophon after Chapter 2 numbered its figure 2.2, counting on
+    from the last numbered chapter. An unnumbered chapter takes no chapter
+    number: its figures number plainly, on one book-wide sequence shared with
+    any front part (so they never collide), and its plates list with no
+    number (the header's \\PressUnnumberedChapter empties the list format;
+    \\PressNumberedChapter restores it at the next numbered chapter)."""
+    out = _render(
+        "# Preface {.unnumbered}\n\n![Early](a.png){.figure}\n\n"
+        "# One\n\n![First](b.png){.figure}\n\n"
+        "# Two\n\n![Second](c.png){.figure}\n\n"
+        "# Colophon {.unnumbered}\n\n![Late](d.png){.figure}\n\n![A plate](e.png)\n\n"
+        "# Three\n\n![Third](f.png){.figure}\n"
+    )
+    assert "\\textbf{Figure~1.}}\\enspace Early" in out
+    assert "\\textbf{Figure~1.1.}}\\enspace First" in out
+    assert "\\textbf{Figure~2.1.}}\\enspace Second" in out
+    assert "\\textbf{Figure~2.}}\\enspace Late" in out
+    assert "Figure~2.2" not in out
+    assert "\\textbf{Figure~3.1.}}\\enspace Third" in out
+    # the list format is restored once, at the first numbered chapter after
+    # each unnumbered one (One and Three), never after Two
+    assert out.count("\\PressNumberedChapter") == 2
+    one = out.index("\\chapter{One}")
+    assert out.index("\\PressNumberedChapter", one) < out.index("\\chapter{Two}")
+    plain = _render("# One\n\n![First](b.png){.figure}\n\n# Two\n\nx\n")
+    assert "\\PressNumberedChapter" not in plain

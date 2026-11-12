@@ -231,3 +231,35 @@ def test_unnumbered_chapter_sets_its_own_running_head(tmp_path):
     assert "about the appendix" in pages[opening + 1]
     assert "Appendix A: Extra matter" in second[0], second[0]
     assert "The opening chapter" not in second[0], second[0]
+
+
+@requires_pdf_toolchain
+@pytest.mark.layer("integration")
+def test_unnumbered_chapter_plate_lists_without_a_chapter_number(tmp_path):
+    """#288: a plate in a colophon after Chapter 1 listed as "1.2", counted
+    into the last numbered chapter. It lists by its caption alone, and the
+    numbered chapter's plate keeps its number."""
+
+    handle = (
+        factories.BookFactory(slug="int-colophon")
+        .with_sentinels("the witness of the colophon book")
+        .with_chapter(
+            "01-one.md",
+            "# One\n\nHere the witness of the colophon book stands.\n\n"
+            "![The chapter plate](assets/woodcuts/one.png)\n\nAfter the plate.\n",
+        )
+        .with_appendix(
+            "z-colophon.md",
+            "# Colophon {.unnumbered}\n\n![The colophon plate](assets/woodcuts/two.png)\n\n"
+            "Set in a plain face.\n",
+        )
+        .build(tmp_path)
+    )
+    _plate(handle.root / "assets" / "woodcuts" / "one.png")
+    _plate(handle.root / "assets" / "woodcuts" / "two.png")
+    pages = _pages(_build_pdf(handle))
+    plates = _lines(pages[_first_page_with(pages, "List of Plates")])
+    chapter_line = next(line for line in plates if "The chapter plate" in line)
+    colophon_line = next(line for line in plates if "The colophon plate" in line)
+    assert chapter_line.startswith("1.1"), chapter_line
+    assert colophon_line.startswith("The colophon plate"), colophon_line

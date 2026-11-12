@@ -31,6 +31,16 @@ A valid book that never hit one of these faults typesets as before.
   `\PressUnnumberedChapter{<title>}`, which sets the title as the mark with
   no number (KOMA's `\addchapmark`). The issue filed this as a probable v4
   item; the owner ruled it a correction of broken output for v3.
+- **An unnumbered chapter contributes no chapter number (#288).** A colophon
+  after the last chapter was counted into it: its plate listed as "16.1" in
+  the List of Plates, a numbered figure in it took the next "16.N", and the
+  index located it as "Z", an appendix the Contents does not have. Its plates
+  now list by caption alone (`\PressUnnumberedChapter` empties caption's list
+  format, `\PressNumberedChapter` restores it at the next numbered chapter),
+  its numbered figures take plain numbers from one book-wide sequence, and an
+  unnumbered back-matter part not titled "Appendix" locates in the index by
+  its own title ("Colophon"); the index head note says so only in a book that
+  has such a part.
 
 ## [3.0.2] - 2026-11-11
 

@@ -99,7 +99,10 @@ As @fig:press shows, the platen does the pressing.
 ```
 
 A mixed book prints both lists; a book with only plates prints only the List of
-Plates, byte-for-byte as before. Plates are **never** numbered. Both lists are
+Plates, byte-for-byte as before. Plates are **never** numbered. A chapter
+whose heading is `{.unnumbered}` (a preface, a colophon) contributes no chapter
+number: its figures take plain numbers ("Figure 2") from one sequence for the
+whole book, and its plates list by caption alone. Both lists are
 front matter: they follow the Contents on roman folios, so the arabic folios
 begin at the first page of the Preface (or Chapter 1).
 

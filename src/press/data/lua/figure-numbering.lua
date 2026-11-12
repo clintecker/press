@@ -191,6 +191,10 @@ end
 function Pandoc(doc)
   local latex = FORMAT == "latex" or FORMAT == "beamer"
   local chapter, fign = 0, 0
+  -- An unnumbered chapter (a preface, a colophon) contributes no chapter
+  -- number (#288): its figures take plain numbers from one book-wide `loose`
+  -- sequence, shared with whatever precedes Chapter 1, so they never collide.
+  local unnumbered, loose = false, 0
   local numbers = {}
   local has_numbered = false
 
@@ -320,8 +324,14 @@ function Pandoc(doc)
     local decorative = is_true(image.attributes.decorative)
     local numbered = kind ~= nil and NUMBERED[kind] and not decorative
     if numbered then
-      fign = fign + 1
-      local numstr = (chapter > 0) and (chapter .. "." .. fign) or tostring(fign)
+      local numstr
+      if chapter > 0 and not unnumbered then
+        fign = fign + 1
+        numstr = chapter .. "." .. fign
+      else
+        loose = loose + 1
+        numstr = tostring(loose)
+      end
       has_numbered = true
       if fig.identifier ~= "" then
         numbers[fig.identifier] = numstr
@@ -352,8 +362,15 @@ function Pandoc(doc)
         chapter = chapter + 1
         fign = 0
         out[#out + 1] = b
+        -- The first numbered chapter after an unnumbered one restores the
+        -- numbered list format the unnumbered chapter emptied.
+        if unnumbered and latex then
+          out[#out + 1] = pandoc.RawBlock("latex", "\\PressNumberedChapter")
+        end
+        unnumbered = false
       elseif b.t == "Header" and b.level == 1 then
         flush()
+        unnumbered = true
         out[#out + 1] = b
         if latex then
           out[#out + 1] = unnumbered_mark(b)
