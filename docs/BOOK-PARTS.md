@@ -250,7 +250,7 @@ Authored, and a gap like "also by": press does not generate or check a
 glossary the way it does the index. Make one as a back-matter page and
 fill it with a Markdown definition list, or with a two-column pipe table of
 term and meaning: when the meanings run to a sentence, press sets that table
-as a ledger, the same hanging entries (see [tables](tables.html)):
+as a ledger, hanging entries in the manpage form (see [tables](tables.html)):
 
 ```sh
 press add appendix glossary             # -> book/appendices/x-glossary.md

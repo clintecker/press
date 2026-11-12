@@ -97,9 +97,12 @@ so a book with tables does not render byte-for-byte as it did under v3.
 - **Two new verifiers.** Every table on an HTML surface must be a wrapped
   grid or a ledger, so a raw HTML `<table>` in the manuscript is now refused;
   and no PDF page may ink past its text block. A v3 book that built green can
-  turn red on either, and each failure names the page or the table.
+  turn red on either, and each failure names the PDF page, or the edition
+  and page file that holds the table.
 
-A book with no tables and no raw HTML tables is not changed by this round.
+A book with no tables renders as it did under v3, apart from new
+stylesheet rules, but the text-block verifier judges every book: a code line
+that ran into the margin under v3 now fails the build.
 After `press migrate apply`, rebuild and look at every page that carries a
 table; `press migrate rollback` restores the exact v3 pin.
 

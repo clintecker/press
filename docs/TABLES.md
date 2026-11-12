@@ -43,7 +43,7 @@ short as `pandoc`. A ledger is the manpage form:
 - each row's first cell is the entry's key, on a line of its own;
 - the prose is set beneath it at the full measure, hanging a little in;
 - in a three-column table, the middle cell sits between them as a short
-  constant-width line;
+  line of its own (in constant width on the Web and in the EPUB);
 - the header row survives as one small-capitals legend above the entries,
   its cells joined by a middle dot, and the caption is kept;
 - a row whose key cell is empty continues the entry above it, as a further
@@ -100,10 +100,10 @@ grid.
 | Edition | Ledger | Grid |
 | --- | --- | --- |
 | PDF and print | A hanging description list: the key on its own line, the entry indented 1.6 em, a check before each key so it never strands at a page foot; the caption and the small-capitals legend above. | A smaller table with relative column widths that wrap, 0.5 em cell padding, room asked for before the head, and code that never hyphenates. |
-| Reader site and HTML | A definition list in `.ledger`: the key at full weight, a hairline between entries, the middle column (`.ledger-sub`) in constant width. | The table in `.grid` at reading width, scrolling inside its own box if it is wider than the page. On a phone each row stacks into a card, each cell labelled with its column's header, and code wraps inside the card. |
+| Reader site and HTML | A definition list in `.ledger`: the key in semibold, a hairline between entries, the middle column (`.ledger-sub`) in constant width. | The table in `.grid` at reading width, scrolling inside its own box if it is wider than the page. On a phone each row stacks into a card, each cell labelled with its column's header, and code wraps inside the card. |
 | EPUB | The same `.ledger` list, plain: no colour and no web fonts, because the reader's device owns the theme. | The table in `.grid`, with the same widths. |
 | DOCX | A native Word definition list, in pandoc's `DefinitionTerm` and `Definition` paragraph styles. House ledger styles arrive with the generated reference document. | The table, with the same relative column widths, which Word honours. |
-| Markdown and plain text | The Markdown edition is your stitched source and keeps the pipe table; plain text prints an indented list. | Unchanged. |
+| Markdown and plain text | The Markdown edition is your stitched source and keeps the pipe table; plain text prints an indented list. | The Markdown edition keeps the pipe table. Plain text prints the grid as a full-width table with ruled top and bottom, its columns in the same proportions as the other editions. |
 
 A book with no tables renders as it did before, apart from the new rules in
 the stylesheets the editions carry: the shapes are added only where a table
@@ -122,8 +122,9 @@ verifiers run on every `press all`. Both are listed in the
   phone cards wear, and every `.ledger` must hold at least one entry. The
   EPUB is checked for wrappers and entries only, because it stacks no phone
   cards. A raw HTML `<table>` typed into the manuscript is refused too: the
-  filter cannot see inside raw HTML, so it reaches the page bare. Write it as
-  a pipe table.
+  filter cannot see inside raw HTML, so it reaches the page bare (unless it
+  sits inside your own `::: {.grid}`, whose div keeps its class and so
+  passes). Write it as a pipe table.
 - **No page inks past its text block** (`INV-pdf-text-block`, enforced by
   `verify_pdf.verify_text_block`). Each body page of the PDF is rendered and
   refused when its ink runs more than 6 pixels (0.05 inch) past the right
@@ -132,9 +133,3 @@ verifiers run on every `press all`. Both are listed in the
   margin. Front matter and the running-head and folio bands are not judged.
   The raster cannot tell a deliberately outset figure from overflowing text,
   so such a figure is refused as well.
-
-For maintainers, `scripts/measure_tables.py` runs the headless-browser
-measurement that motivated this design over a built reader site at 1280,
-820, and 390 pixels wide, counting clipped cells, code tokens split inside
-themselves, and pages that scroll sideways. It is a tool for checking the
-house design against a real book, not a build target.
