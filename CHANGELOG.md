@@ -9,6 +9,50 @@ audit).
 
 ## [Unreleased]
 
+This is the v4 line: a design major. Nothing here is released yet.
+
+### Changed (v4, design)
+
+- **Tables are set by shape, in every edition** (`table-shapes.lua`,
+  `docs/TABLES.md`). A reference list (two or three columns, exactly one
+  prose column averaging eight words or more, and that column last) renders
+  as a ledger: a definition list with each key on its own line, the
+  description at full measure, the header cells kept as a legend line, and
+  the caption kept. Every other table is a grid, with relative column widths
+  from mean cell length and the longest code token (a 0.12 floor; equal
+  shares at nine or more columns). `::: {.ledger}` and `::: {.grid}` force
+  a shape; a forcing div around one table becomes its wrapper, id and
+  classes kept. A one-column table is always a grid.
+- **The PDF changes.** Ledgers set as hanging entries (`PressLedger`: 1.6 em
+  hang, `\Needspace` before each key, caption and small-capitals legend);
+  grids set small with 0.5 em cell padding, `\Needspace` before the head,
+  `p{}` columns that wrap, and code that never hyphenates (an existing
+  hyphen is a last-resort break). Page breaks and page counts of books with
+  tables move. This amends Round 1B's constraint that v4 leaves the PDF
+  untouched.
+- **Web, EPUB, DOCX.** Reader site and HTML: `.ledger` entries with a
+  hairline between them and a constant-width `.ledger-sub`; grids scroll in
+  their own box at reading width and stack into cards on a phone, where grid
+  code may wrap. EPUB: the same forms, without colour. DOCX: a native
+  definition list in pandoc's `DefinitionTerm`/`Definition` styles (house
+  styles arrive with Round 1B's reference document), and grids with the same
+  column widths.
+- **Two new verifiers.** `verify_table_shape.verify_tables`
+  (`INV-table-shape`): every table in the HTML and reader site is a wrapped
+  grid with labelled cells or a ledger with entries; the EPUB is checked for
+  wrappers and entries only; a raw HTML `<table>` in a manuscript is refused.
+  `verify_pdf.verify_text_block` (`INV-pdf-text-block`): a body page whose
+  ink runs more than 6 px past the profile's text block is refused.
+
+### Fixed
+
+- **Phone cards fired on no CI-built table** (#283): `label_table_cells`
+  matched only a bare `<tr>`, and pandoc writes `<tr class="odd">`, so no
+  cell was labelled. The row pattern now accepts attributes.
+- **A table head or definition term stranded at a page foot** (#286, the
+  description-list and longtable halves): every ledger key and every grid
+  head now asks for room before it starts.
+
 ## [3.0.2] - 2026-11-11
 
 A security release. The hash-locked runtime dependencies move Pillow from
