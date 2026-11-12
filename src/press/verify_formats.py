@@ -53,6 +53,43 @@ def sentinel_present(sentinel: str, text: str) -> bool:
     return needle in " ".join(text.split()).translate(STRAIGHTEN)
 
 
+# The one candidate rule both witness pickers share (#261, #281). A witness
+# must survive every edition verbatim, so a line is refused when it is short,
+# carries inline markup, opens with a block marker, or holds a reference that
+# pandoc-crossref or citeproc rewrites.
+_WITNESS_MIN_LENGTH = 40
+_WITNESS_MARKUP_CHARS = "*_`[]()<>\"'&#!|"
+
+# A line opening with a block marker (definition, list item, quote, ordered
+# item) renders without it, so it could never match the page as written.
+BLOCK_MARKER = re.compile(r"(?:[:+>-]|\d+\.)\s")
+
+# A pandoc-crossref reference (`@fig:x`, `@tbl:x`, `@sec:x`, `@eq:x`) renders
+# as "Figure 3.3" in every non-PDF edition, and a `[@key]` citation renders as
+# its formatted form; the source line then appears verbatim nowhere.
+CROSSREF = re.compile(r"(?<!\w)@[a-z]+:|\[@")
+
+
+def _witness_candidate(line: str) -> bool:
+    """True when a stripped manuscript line may serve as a witness."""
+
+    if len(line) < _WITNESS_MIN_LENGTH:
+        return False
+    if any(ch in line for ch in _WITNESS_MARKUP_CHARS):
+        return False
+    return not (BLOCK_MARKER.match(line) or CROSSREF.search(line))
+
+
+def _longest_witness(path: Path, best: str = "") -> str:
+    """The longest candidate line of one chapter that beats `best`."""
+
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if len(line) > len(best) and _witness_candidate(line):
+            best = line
+    return best
+
+
 def _manuscript_witness() -> str:
     """One long plain line of the manuscript, markup-free, that every
     format must carry: content survival proven even with an empty
@@ -60,19 +97,8 @@ def _manuscript_witness() -> str:
 
     best = ""
     for path in booklib.chapter_files():
-        for line in path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if len(line) <= len(best) or len(line) < 40:
-                continue
-            if any(ch in line for ch in "*_`[]()<>\"'&#!|"):
-                continue
-            best = line
+        best = _longest_witness(path, best)
     return normalized(best)
-
-
-# A line opening with a block marker (definition, list item, quote, ordered
-# item) renders without it, so it could never match the page as written.
-BLOCK_MARKER = re.compile(r"(?:[:+>-]|\d+\.)\s")
 
 
 def chapter_witnesses() -> dict[str, str]:
@@ -85,14 +111,7 @@ def chapter_witnesses() -> dict[str, str]:
 
     witnesses: dict[str, str] = {}
     for path in booklib.chapter_files():
-        best = ""
-        for line in path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if len(line) <= len(best) or len(line) < 40:
-                continue
-            if any(ch in line for ch in "*_`[]()<>\"'&#!|") or BLOCK_MARKER.match(line):
-                continue
-            best = line
+        best = _longest_witness(path)
         if best:
             witnesses[path.name] = normalized(best)
     return witnesses

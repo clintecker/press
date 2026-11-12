@@ -9,6 +9,19 @@ audit).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The witness pickers no longer choose a line the editions cannot render
+  verbatim (#261, #281).** `_manuscript_witness` and `chapter_witnesses` now
+  share one candidate rule: the 40-character floor, the inline-markup
+  character set, the block-marker exclusion (a definition, list item, or
+  quote renders without its marker, which only the per-chapter picker had
+  applied), and a new exclusion for pandoc-crossref references (`@fig:`,
+  `@tbl:`, `@sec:`, `@eq:`) and `[@key]` citations, which render as
+  "Figure 3.3" or a formatted citation in HTML, EPUB, text, DOCX, and the
+  reader site so the source line matched nowhere and `verify-formats`
+  refused a correct build.
+
 ## [3.0.2] - 2026-11-11
 
 A security release. The hash-locked runtime dependencies move Pillow from
