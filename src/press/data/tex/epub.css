@@ -42,3 +42,19 @@ code, pre { font-family: monospace; }
 figure { margin: 1.5em 0; text-align: center; page-break-inside: avoid; }
 figure img { max-width: 100%; height: auto; }
 .chapter-opening::after { content: ""; display: block; clear: both; }
+
+/* Ledgers and grids (table-shapes.lua). No colour and no web font stacks: the
+   reader owns the theme; the hairline takes the text colour. */
+.ledger { margin: 1.4em 0; }
+.ledger-caption { font-style: italic; font-size: .9em; text-align: center; margin: 0 0 .6em; }
+.ledger-legend { font-variant: small-caps; letter-spacing: .04em; font-size: .85em; margin: 0 0 .4em; }
+.ledger-caption p, .ledger-legend p { margin: 0; }
+.ledger dt { font-weight: 600; margin-top: .55em; padding-top: .45em; border-top: 1px solid; }
+.ledger dt:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+.ledger dd { margin: .15em 0 0 1.6rem; }
+.ledger-sub { font-family: monospace; font-size: .85em; margin: 0 0 .2em; }
+.ledger-sub p { margin: 0; }
+.grid { overflow-x: auto; margin: 1.4em 0; }
+.grid table { font-size: .9em; border-collapse: collapse; }
+.grid th { font-variant: small-caps; letter-spacing: .04em; text-align: left; }
+.grid td code, .grid th code { white-space: nowrap; }

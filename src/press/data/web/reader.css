@@ -248,7 +248,26 @@ p.author, p.date { font-variant: small-caps; letter-spacing: .16em;
   html { scroll-behavior: auto; }
 }
 
-/* 12. Tables, on a narrow screen only
+/* 14. Ledgers and grids
+   A key-plus-prose table arrives as a definition list (the key is the term,
+   the prose its entry) and a many-column table as a grid, both from
+   table-shapes.lua. The ledger reads at any width; the grid scrolls in its
+   own box so a wide table never widens the page. */
+.ledger { margin: 1.4em 0; }
+.ledger-caption { font-style: italic; font-size: .9em; text-align: center; margin: 0 0 .6em; }
+.ledger-legend { font-variant: small-caps; letter-spacing: .04em; color: var(--ink-soft); font-size: .85em; margin: 0 0 .4em; }
+.ledger-caption p, .ledger-legend p { margin: 0; }
+.ledger dt { font-weight: 600; margin-top: .55em; padding-top: .45em; border-top: 1px solid var(--hairline); }
+.ledger dt:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+.ledger dd { margin: .15em 0 0 1.6rem; }
+.ledger-sub { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: .85em; margin: 0 0 .2em; }
+.ledger-sub p { margin: 0; }
+.grid { overflow-x: auto; margin: 1.4em 0; }
+.grid table { font-size: .9em; border-collapse: collapse; }
+.grid th { font-variant: small-caps; letter-spacing: .04em; text-align: left; }
+.grid td code, .grid th code { white-space: nowrap; }
+
+/* 15. Tables, on a narrow screen only
    A multi-column table cannot be read across on a phone: the columns crush,
    or a wide one pushes the page sideways. Each row becomes a card on the
    warm field instead, and every cell wears its column's header -- carried

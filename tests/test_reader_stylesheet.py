@@ -47,3 +47,25 @@ def test_plate_images_stay_within_the_column():
     assert "max-width" in body and "100%" in body, (
         "figure img must cap at max-width:100% so a wide plate cannot overflow"
     )
+
+
+DATA = READER_CSS.parent.parent
+
+
+def test_the_reader_stylesheet_styles_ledgers_and_grids():
+    css = READER_CSS.read_text()
+    for rule in (
+        ".ledger dt",
+        ".ledger dd",
+        ".ledger-sub",
+        ".grid { overflow-x: auto",
+        "td code, .grid th code { white-space: nowrap",
+    ):
+        assert rule in css
+    assert css.count("/* 12.") == 1
+
+
+def test_book_and_epub_stylesheets_carry_the_same_classes():
+    for name in ("tex/book.css", "tex/epub.css"):
+        css = (DATA / name).read_text()
+        assert ".ledger" in css and ".grid" in css

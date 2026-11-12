@@ -248,7 +248,7 @@ def label_table_cells(markup: str) -> str:
         body = _re.search(r"<tbody>.*?</tbody>", table, _re.S)
         if not body:
             return table
-        labelled = _re.sub(r"<tr>.*?</tr>", one_row, body.group(0), flags=_re.S)
+        labelled = _re.sub(r"<tr\b[^>]*>.*?</tr>", one_row, body.group(0), flags=_re.S)
         return table.replace(body.group(0), labelled)
 
     return _re.sub(r"<table\b.*?</table>", one_table, markup, flags=_re.S)

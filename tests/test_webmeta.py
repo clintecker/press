@@ -170,3 +170,11 @@ def test_two_tables_on_one_page_get_their_own_headers():
     out = webmeta.label_table_cells(first + second)
     assert 'data-label="Stage">A' in out
     assert 'data-label="Reading">B' in out
+
+
+def test_rows_with_a_class_are_labelled_too():
+    """pandoc classes rows (odd/even); the phone cards must fire on them."""
+    out = webmeta.label_table_cells(
+        _headed('<tr class="odd"><td>Detect</td><td>turns RF into audio</td></tr>')
+    )
+    assert '<td data-label="Stage">Detect</td>' in out
