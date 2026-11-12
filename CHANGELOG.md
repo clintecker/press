@@ -101,7 +101,10 @@ audit).
   sets a tab eight spaces wide instead of one, and forbids a page break
   after a block's first line and before its last), so the rebind also
   carries the options that restore the kernel's spacing, tab width, and
-  page-break penalties. A fence that already fit is proven pixel-identical
+  page-break penalties. The overlap option is passed only where fvextra
+  defines it: the pinned toolchain image's fvextra 1.6.1 has neither the key
+  nor the -0.25pt skip, and xkeyval stops the build on an unknown key, which
+  failed every PDF in the container gauntlet. A fence that already fit is proven pixel-identical
   to the previous release by rendering one book twice, under the house
   header and under the kernel verbatim it replaces, and comparing every
   page at 300 dpi: only the page carrying an overlong line differs. The

@@ -258,7 +258,15 @@
 %       so page breaks inside a block must stay where they were.
 % The Highlighting environment above keeps fvextra's defaults: changing its
 % spacing would move every tagged fence, which is a design change.
+% backgroundcolorboxoverlap exists only in the fvextra releases that
+% added the overlap \vspace; the pinned toolchain image's fvextra (1.6.1)
+% has neither the key nor the shortened pitch, and an unknown key is a fatal
+% xkeyval error, so the option is passed only where fvextra defines it.
+\ifcsname KV@FV@backgroundcolorboxoverlap\endcsname
 \RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere,backgroundcolorboxoverlap=0pt,tabsize=1,listparameters={\clubpenalty=0 \widowpenalty=0 }}
+\else
+\RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere,tabsize=1,listparameters={\clubpenalty=0 \widowpenalty=0 }}
+\fi
 
 % Plain title page driven by document metadata (books that want the
 % treatise front matter include tex/title-page.tex after this file).

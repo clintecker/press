@@ -89,3 +89,29 @@ def test_highlighting_spacing_is_untouched():
         "the kernel-spacing options belong to the plain verbatim rebind only; "
         "applying them to Highlighting restyles tagged fences"
     )
+
+
+def test_an_older_fvextra_gets_the_rebind_without_the_overlap_key():
+    """backgroundcolorboxoverlap is unknown to the pinned toolchain image's
+    fvextra (1.6.1), and xkeyval stops the build on an unknown key, so every
+    PDF died in the container gauntlet. The rebind is guarded on the key
+    existing; the fallback keeps every other option, so an untagged fence
+    still wraps there and keeps the kernel's tab and page-break behaviour."""
+
+    text = HEADER.read_text("utf-8")
+    guard = re.search(
+        r"^\\ifcsname KV@FV@backgroundcolorboxoverlap\\endcsname\n(.*?)\n\\else\n(.*?)\n\\fi$",
+        text,
+        re.M | re.S,
+    )
+    assert guard is not None, "the overlap option is passed without checking fvextra defines it"
+    branches = []
+    for body in guard.groups():
+        match = re.fullmatch(
+            _ENV.format(command="RecustomVerbatimEnvironment", name="verbatim"), body
+        )
+        assert match is not None, f"guard branch is not a single verbatim rebind: {body!r}"
+        branches.append({opt.strip() for opt in match.group(1).split(",") if opt.strip()})
+    with_key, without_key = branches
+    assert with_key == IDENTITY_OPTIONS | BREAK_OPTIONS
+    assert without_key == with_key - {"backgroundcolorboxoverlap=0pt"}
