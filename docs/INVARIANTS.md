@@ -600,6 +600,14 @@ Retail verification rebuilds each artifact through the registry before verifying
 - enforced by `publish:verify_retail`
 - proven by `tests/test_publish_rebuild.py::test_verify_retail_rebuilds_before_bless_and_main_fails_on_a_bad_verifier`
 
+## INV-reader-cross-page-anchors
+
+After the chunked write, a reader-site link to an id that no element on its own page carries, and that exactly one other page defines, is rewritten to point at that page; same-page anchors are left as written, an id defined on several pages is never guessed between, and a second pass changes nothing.
+
+- enforced by `reader_links:resolve_anchors`
+- proven by `tests/test_reader_links.py::test_an_id_defined_on_two_pages_is_not_guessed_and_is_refused`
+- does not cover: The rewrite owns only the resolvable case; a link it leaves alone is refused by verify_formats:require_anchors_resolve (INV-format-anchors-resolve).
+
 ## INV-reader-no-phantom-canonical
 
 Without a configured site-url, the reader landing claims no canonical URL or image (#158).

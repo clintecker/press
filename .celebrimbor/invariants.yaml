@@ -516,6 +516,27 @@ invariants:
       than pointed at one of them.
     - Links are followed inside the reader site only; a link out of the site
       (an absolute path, a URL) is the Pages verifier's to prove.
+  INV-reader-cross-page-anchors:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: reader_links:resolve_anchors
+    layers:
+    - unit
+    - integration
+    owner: reader_links
+    risk: A cross-chapter reference written as a bare `#id` ships pointing at
+      the page it sits on, where no element carries the id (#270); or the
+      rewrite guesses between two pages that both define the id.
+    statement: After the chunked write, a reader-site link to an id that no
+      element on its own page carries, and that exactly one other page defines,
+      is rewritten to point at that page; same-page anchors are left as
+      written, an id defined on several pages is never guessed between, and a
+      second pass changes nothing.
+    negative_proof:
+      tests/test_reader_links.py::test_an_id_defined_on_two_pages_is_not_guessed_and_is_refused
+    limitations:
+    - The rewrite owns only the resolvable case; a link it leaves alone is
+      refused by verify_formats:require_anchors_resolve (INV-format-anchors-resolve).
   INV-format-site-identity:
     ci_tier: quality
     criticality: standard
