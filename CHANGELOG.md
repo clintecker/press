@@ -9,6 +9,8 @@ audit).
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-11-12
+
 The v3 correction wave. Its layout corrections are seven issues found
 producing *Publishing with Press* (#282, #286, #287, #288, #289, #291, and
 the opt-in #290), each a correction of broken output under the design
