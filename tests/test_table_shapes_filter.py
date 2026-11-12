@@ -155,3 +155,30 @@ def test_a_document_with_no_tables_is_byte_identical():
 def test_docx_gets_a_definition_list():
     out = _render(LEDGER, to="native")
     assert "DefinitionList" in out
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_every_grid_column_keeps_its_floor_after_normalising():
+    # Mean cell lengths 1 / 2 / 59: a plain max-then-normalise leaves the two
+    # short columns near 0.10. Every final width must hold the 0.12 floor.
+    long = "x" * 59
+    md = f"# Ch\n\n| A | B | C |\n|---|---|---|\n| a | bb | {long} |\n"
+    out = _render(md, to="native")
+    widths = [float(w) for w in re.findall(r"ColWidth ([0-9.eE+-]+)", out)]
+    assert len(widths) == 3
+    assert abs(sum(widths) - 1.0) < 1e-6
+    assert all(w >= 0.12 - 1e-9 for w in widths), widths
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_grid_too_wide_for_the_floor_shares_the_measure_equally():
+    # Nine columns at 0.12 overfill the measure, so every column takes 1/9.
+    head = "|" + "|".join(f" c{i} " for i in range(9)) + "|\n"
+    rule = "|" + "|".join("---" for _ in range(9)) + "|\n"
+    row = "|" + "|".join(" " + "x" * (i + 1) + " " for i in range(9)) + "|\n"
+    out = _render("# Ch\n\n" + head + rule + row, to="native")
+    widths = [float(w) for w in re.findall(r"ColWidth ([0-9.eE+-]+)", out)]
+    assert len(widths) == 9
+    assert all(abs(w - 1 / 9) < 1e-9 for w in widths), widths

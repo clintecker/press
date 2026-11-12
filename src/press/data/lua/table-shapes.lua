@@ -202,24 +202,49 @@ local function to_ledger(tbl, ncols)
   return classed(blocks, "ledger")
 end
 
--- Each column's share of the measure: its mean character length's share,
--- floored at MIN_SHARE, then normalised so the shares sum to 1.
+-- Each column's share of the measure: its mean character length's share, with
+-- every column held at MIN_SHARE or more in the final widths. A column whose
+-- share would fall below the floor is pinned at it, and the rest of the measure
+-- is shared among the others in proportion to their lengths, repeating until no
+-- column drops below; when the floors alone overfill the measure, the columns
+-- share it equally. The shares sum to 1.
 local function shares(rows, ncols)
   local means = column_means(rows, ncols, cell_chars)
-  local total = 0
-  for i = 1, ncols do
-    total = total + means[i]
+  if ncols * MIN_SHARE > 1 then
+    local out = {}
+    for i = 1, ncols do
+      out[i] = 1 / ncols
+    end
+    return out
   end
-  local out, sum = {}, 0
-  for i = 1, ncols do
-    local share = (total > 0) and (means[i] / total) or (1 / ncols)
-    out[i] = math.max(MIN_SHARE, share)
-    sum = sum + out[i]
+  local pinned, out = {}, {}
+  while true do
+    local npinned, free_len, nfree = 0, 0, 0
+    for i = 1, ncols do
+      if pinned[i] then
+        npinned = npinned + 1
+      else
+        free_len = free_len + means[i]
+        nfree = nfree + 1
+      end
+    end
+    local room = 1 - npinned * MIN_SHARE
+    local grew = false
+    for i = 1, ncols do
+      if pinned[i] then
+        out[i] = MIN_SHARE
+      else
+        out[i] = (free_len > 0) and (room * means[i] / free_len) or (room / nfree)
+        if out[i] < MIN_SHARE then
+          pinned[i] = true
+          grew = true
+        end
+      end
+    end
+    if not grew then
+      return out
+    end
   end
-  for i = 1, ncols do
-    out[i] = out[i] / sum
-  end
-  return out
 end
 
 local function to_grid(tbl, ncols)
