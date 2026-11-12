@@ -141,7 +141,11 @@
     \@starttoc{lof2}%
   \endgroup
 }
-\pretocmd{\mainmatter}{\ifPressListOfFigures\PressListOfFigures\fi}{}{}
+\pretocmd{\mainmatter}{\ifPressListOfFigures\PressListOfFigures\fi}{}{%
+  \PackageError{press}{could not patch \string\mainmatter\space for the List of
+    Figures}{The house header prints the List of Figures just before
+    \string\mainmatter; the patch failed, so the list would be silently
+    dropped.}}
 \makeatother
 
 % Woodcut figures: no "Figure N" labels, quiet small italic captions,
@@ -288,14 +292,15 @@
 % setting scoped to the span cannot forbid that break; the box can.) So a
 % long identifier is not left with no break at all and pushed into the
 % margin, a span may break after a "/", "_", or "." with no glyph added --
-% the character stays at the line end, so nothing is invented -- at a small
-% penalty that prefers the spaces around it. Spaces inside a span still
+% the character stays at the line end, so nothing is invented -- at a high
+% penalty, so it is a last resort taken only when the line has no better
+% break. Spaces inside a span still
 % break, prose hyphenation is unchanged, and code blocks are verbatim and
 % never hyphenated.
 \makeatletter
 \NewCommandCopy{\PressPlainTT}{\texttt}
 \newcommand*{\PressCodeSpan}{\ifdefined\l@nohyphenation\language\l@nohyphenation\fi}
-\newcommand*{\PressCodeBreak}{\penalty100\relax}
+\newcommand*{\PressCodeBreak}{\penalty3000\relax}
 \makeatother
 \ExplSyntaxOn
 \tl_new:N \l__press_code_tl
