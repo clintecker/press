@@ -5,12 +5,21 @@ A figure is a reader-facing image, but the words that caption it and the words
 that *direct* it are different things: a caption is a label, an art-direction
 description says what the picture depicts and how (#225). So the manuscript
 carries both, separately. The kind rides on the image's pandoc attributes and
-the description rides in the comment that follows it::
+the description rides in the comment that follows it, **one blank line
+after** the image::
 
     ![A compositor at the case](assets/fig/compositor.jpg){.plate style=wood-engraving}
+
     <!-- art: a compositor's left hand holding a brass composing stick, thumb
          setting the measure; type in the case behind; 19th-c workshop, high
          contrast line, no lettering -->
+
+The blank line is load-bearing (#280). pandoc makes a ``Figure`` only of an
+image that stands alone in its paragraph; a comment on the very next line is
+a raw inline in the same paragraph, so the block becomes a ``Para`` -- no
+caption, no number, no list entry, no cross-reference target. The parser
+still attaches a next-line directive (so nothing is silently lost) but
+records the form, and ``validate`` refuses it with the fix named.
 
 The *kind* decides the treatment. ``plate``/``figure``/``map``/``photo`` are
 drawn by an image model from their ``art:`` description; ``chart``/``diagram``
@@ -39,6 +48,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from pathlib import Path
 
 # Kinds an image model may draw, and kinds that route away from it.
 GENERATABLE_KINDS = ("plate", "figure", "map", "photo")
@@ -88,15 +98,23 @@ _ABSOLUTE_LENGTH = re.compile(r"^\d+(\.\d+)?(pt|px|in|cm|mm|%)$")
 _RELATIVE_OUTSET = re.compile(r"^\d+(\.\d+)?em$")
 
 # An image, its optional {.kind style=…} attributes, and the optional
-# art:/data:/source: directive comment that immediately follows it (one blank
-# line tolerated). The directive body runs to the first ``-->``.
+# art:/data:/source: directive comment that follows it. The ``gap`` between
+# them is captured: two newlines (one blank line) is the lawful form, one
+# newline is the next-line form that pandoc sets as inline text (#280). The
+# directive body runs to the first ``-->``.
 _FIGURE_RE = re.compile(
     r"!\[(?P<caption>[^\]]*)\]\((?P<src>[^)]+)\)"
     r"(?:\{(?P<attrs>[^}]*)\})?"
-    r"(?:(?:[ \t]*\r?\n){1,2}[ \t]*<!--[ \t]*"
+    r"(?:(?P<gap>(?:[ \t]*\r?\n){1,2})[ \t]*<!--[ \t]*"
     r"(?P<key>art|data|source)[ \t]*:(?P<body>.*?)-->)?",
     re.DOTALL,
 )
+
+# How a directive comment sits against its image: after one blank line (the
+# form pandoc keeps as a Figure) or on the very next line (which pandoc folds
+# into the image's paragraph, demoting the figure to inline text).
+DIRECTIVE_BLANK_LINE = "blank-line"
+DIRECTIVE_NEXT_LINE = "next-line"
 
 # Pandoc attribute tokens: #id, .class, and key=value (value optionally
 # quoted, and free to contain spaces when quoted).
@@ -128,6 +146,7 @@ class Figure:
     alt: str | None = None  # fig-alt: the accessible alt text
     decorative: bool = False  # an ornament: alt="" / role=presentation
     kind_declared: bool = False  # was .kind spelled, or is this a bare image?
+    directive_form: str = ""  # DIRECTIVE_BLANK_LINE | DIRECTIVE_NEXT_LINE | ""
 
     @property
     def generatable(self) -> bool:
@@ -203,6 +222,19 @@ def _parse_attrs(attrs: str) -> dict[str, object]:
     }
 
 
+def _directive_form(gap: str | None) -> str:
+    """Which form the directive comment took, from the newlines between the
+    image and the comment: none when no directive followed, ``blank-line``
+    when one blank line separates them, ``next-line`` when the comment sits
+    on the line directly after the image."""
+
+    if gap is None:
+        return ""
+    if gap.count("\n") >= 2:
+        return DIRECTIVE_BLANK_LINE
+    return DIRECTIVE_NEXT_LINE
+
+
 def parse(markdown: str) -> list[Figure]:
     """Every figure declared in a manuscript, in source order, with its kind,
     style, art-direction description, and placement. All of the attributes are
@@ -228,6 +260,7 @@ def parse(markdown: str) -> list[Figure]:
                 alt=attrs["alt"],  # type: ignore[arg-type]
                 decorative=bool(attrs["decorative"]),
                 kind_declared=bool(attrs["kind_declared"]),
+                directive_form=_directive_form(match.group("gap")),
             )
         )
     return figures
@@ -286,6 +319,13 @@ def _validate_figure(fig: Figure) -> list[str]:
             f"{where}: a decorative image takes an empty alt; drop either "
             "fig-alt or decorative=true, not both"
         )
+    if fig.directive_form == DIRECTIVE_NEXT_LINE:
+        problems.append(
+            f"{where}: the <!-- {fig.directive}: … --> comment sits on the line "
+            "after the image, so pandoc sets the image as inline text, not a "
+            "figure (no caption, number, list entry, or cross-reference); "
+            "insert one blank line between the image and the comment"
+        )
     return problems
 
 
@@ -294,8 +334,9 @@ def validate(figures: list[Figure]) -> list[str]:
     messages. The vocabulary is relative and parity-aware by law: a ``place``
     outside the grammar, a left/right side, an absolute width where a measure
     belongs, an ``outset`` that is not a relative em gap, a measure on a
-    plate, or a decorative image that still carries alt text are all
-    refused here, before pandoc or TeX ever runs."""
+    plate, a decorative image that still carries alt text, or a directive
+    comment on the line directly after its image (#280) are all refused
+    here, before pandoc or TeX ever runs."""
 
     problems: list[str] = []
     for fig in figures:
@@ -313,6 +354,7 @@ def as_dict(fig: Figure) -> dict[str, object]:
         "kind": fig.kind,
         "style": fig.style,
         "directive": fig.directive,
+        "directive_form": fig.directive_form,
         "description": fig.description,
         "generatable": fig.generatable,
         "identifier": fig.identifier,
@@ -323,6 +365,15 @@ def as_dict(fig: Figure) -> dict[str, object]:
         "decorative": fig.decorative,
         "numbered": fig.numbered,
     }
+
+
+def diagnostics_for(path: Path) -> list[str]:
+    """Every figure-vocabulary problem in one file, book-free: the in-process
+    seam celebrimbor's known-bad gate (and press's own fixture auditor) calls
+    per fixture, substring-matching the declared diagnostic."""
+
+    text = Path(path).read_text(encoding="utf-8")
+    return [f"{Path(path).name}: {problem}" for problem in validate(parse(text))]
 
 
 def main(argv: list[str]) -> int:

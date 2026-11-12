@@ -269,8 +269,9 @@ modules:
   figures:
     overrides:
       as_dict: pure
+      diagnostics_for: verifier
       main: presenter
-    pin: "63f71f0efb7e"
+    pin: "9473fffb2bf7"
     role: parser
     status: ratified
   gen_authorities:

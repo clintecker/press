@@ -56,6 +56,32 @@ def test_wrap_fuses_to_the_following_paragraph_in_latex():
     assert "\\caption*" in out
 
 
+_WRAP_WITH_DIRECTIVE = (
+    "# C\n\nBefore.\n\n"
+    "![A cap.](x.png){.figure width=half-measure place=wrap-outer "
+    'fig-alt="a"}\n\n'
+    "<!-- art: a hand press, the platen raised; high contrast line -->\n\n"
+    "The wrapping paragraph runs on at length.\n"
+)
+
+
+@_needs_pandoc
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_wrap_with_an_art_directive_between_still_fuses_to_its_paragraph():
+    # A directive comment after the blank line is a RawBlock between the wrap
+    # and its paragraph. The filter skips it when fusing (#280), so a wrapped
+    # figure can carry art direction and keep its runaround; the comment
+    # itself never reaches the LaTeX.
+    out = _render(_WRAP_WITH_DIRECTIVE)
+    assert "\\begin{wrapfigure}{o}" in out
+    assert "\\end{wrapfigure}%\nThe wrapping paragraph" in out
+    assert "art:" not in out
+    # Without the skip, the comment flushed the wrap standalone: \par between
+    # the wrap and the text. Pin the absence of that shape.
+    assert "\\end{wrapfigure}\n\nThe wrapping paragraph" not in out
+
+
 @_needs_pandoc
 @pytest.mark.layer("integration")
 def test_full_page_placements_take_their_own_leaf():

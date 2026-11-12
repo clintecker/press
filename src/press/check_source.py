@@ -106,8 +106,10 @@ def _figure_failures(root: Path, seen: set[Path]) -> list[str]:
     """Refuse a malformed figure-placement vocabulary before pandoc or TeX
     runs (#225 kin). The grammar is relative and parity-aware by law -- an
     absolute width, a left/right side, an out-of-vocabulary place, a non-em
-    outset, a measure on a plate, or a decorative image that still carries alt
-    text is a mistake located here, not a silent mis-typeset later."""
+    outset, a measure on a plate, a decorative image that still carries alt
+    text, or an art:/data:/source: comment on the line directly after its image
+    (pandoc then sets the image as inline text, #280) is a mistake located
+    here, not a silent mis-typeset later."""
 
     from . import figures
 

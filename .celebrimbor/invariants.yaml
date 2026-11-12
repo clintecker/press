@@ -1052,6 +1052,15 @@ invariants:
     layers:
     - pytest
     risk: An illegal figure geometry would reach LaTeX and misplace or break the layout.
+  INV-figure-directive-blank-line:
+    statement: A directive comment on the line directly after its image is refused with the fix named, because pandoc sets that image as inline text (#280).
+    enforced_by: figures:validate
+    negative_proof: tests/test_figures.py::test_a_directive_on_the_next_line_is_refused_with_the_fix_named
+    owner: figures
+    criticality: standard
+    layers:
+    - pytest
+    risk: A figure would ship as inline text with no caption, number, list entry, or cross-reference, and nothing would warn the author.
   INV-idlookup-fails-closed:
     statement: An LCCN record for a different number is a mismatch, and lookups fail closed on entities, size, and media.
     enforced_by: idlookup:lookup_lccn

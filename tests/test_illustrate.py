@@ -143,7 +143,7 @@ def test_illustrate_reads_the_art_description_and_the_figures_style(tmp_path, ca
             "01-fig.md",
             "# Fig\n\n"
             "![A compositor at the case](assets/fig/compositor.jpg)"
-            "{.plate style=engraved-map}\n"
+            "{.plate style=engraved-map}\n\n"
             "<!-- art: a compositor's hand on a brass composing stick, "
             "high contrast line, no lettering -->\n",
         )
@@ -187,7 +187,7 @@ def test_find_figure_matches_on_the_image_file_stem(tmp_path):
         factories.minimal()
         .with_chapter(
             "01-fig.md",
-            "# Fig\n\n![A scene](assets/fig/harbour.jpg){.plate}\n<!-- art: a harbour -->\n",
+            "# Fig\n\n![A scene](assets/fig/harbour.jpg){.plate}\n\n<!-- art: a harbour -->\n",
         )
         .build(tmp_path)
     )
