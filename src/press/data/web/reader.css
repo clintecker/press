@@ -305,6 +305,8 @@ p.author, p.date { font-variant: small-caps; letter-spacing: .16em;
     letter-spacing: .06em; color: var(--ink-soft); margin-bottom: .1rem;
   }
   table:has(td[data-label]) td:empty { display: none; }
+  /* A stacked card is only as wide as the screen: let a code token wrap. */
+  .grid td code, .grid th code { white-space: normal; overflow-wrap: anywhere; }
 }
 
 /* Set-piece constructs (::: cascade / verse / tail): a staircase, a verse

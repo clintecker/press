@@ -69,3 +69,13 @@ def test_book_and_epub_stylesheets_carry_the_same_classes():
     for name in ("tex/book.css", "tex/epub.css"):
         css = (DATA / name).read_text()
         assert ".ledger" in css and ".grid" in css
+
+
+def test_grid_code_wraps_inside_phone_cards_in_reader_and_book():
+    """nowrap holds at reading width; the phone block overrides it so a long
+    token wraps inside its card instead of running past the border."""
+    for path in (READER_CSS, DATA / "tex" / "book.css"):
+        css = re.sub(r"/\*.*?\*/", "", path.read_text(), flags=re.S)
+        assert ".grid td code, .grid th code { white-space: nowrap; }" in css
+        phone = css[css.index("@media (max-width: 34rem)") :]
+        assert ".grid td code, .grid th code { white-space: normal; overflow-wrap: anywhere; }" in phone
