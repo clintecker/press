@@ -69,8 +69,13 @@
 \setlength{\parindent}{1.1em}
 \setlength{\parskip}{0pt}
 \linespread{1.045}
-\setlist[itemize]{leftmargin=1.25em,itemsep=0.18em,topsep=0.35em}
-\setlist[enumerate]{leftmargin=1.35em,itemsep=0.18em,topsep=0.35em}
+% The label separation is stated, at the class's own value captured here, so
+% a list nested inside a ledger entry (whose description sets labelsep=1.6em)
+% does not inherit the ledger's wide hang; every other list is unchanged.
+\newlength{\PressLabelSep}
+\setlength{\PressLabelSep}{\labelsep}
+\setlist[itemize]{leftmargin=1.25em,itemsep=0.18em,topsep=0.35em,labelsep=\PressLabelSep}
+\setlist[enumerate]{leftmargin=1.35em,itemsep=0.18em,topsep=0.35em,labelsep=\PressLabelSep}
 
 % A key-plus-prose table arrives from the table-shapes filter as a ledger: a
 % description list inside PressLedger, set in the manpage form -- the key on a

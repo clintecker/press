@@ -289,6 +289,53 @@ def test_the_paragraph_after_a_frontispiece_keeps_its_indent(tmp_path):
     )
 
 
+# A grid-table ledger whose entry holds a bullet list of its own.
+_LEDGER_WITH_BULLETS = """\
++-----------+------------------------------------------------+
+| Key       | Meaning                                        |
++===========+================================================+
+| `opts`    | The options this entry accepts, set out as a   |
+|           | list of their own beneath it, one per line.    |
+|           |                                                |
+|           | - Bulletword names the first option            |
++-----------+------------------------------------------------+
+"""
+
+
+@requires_pdf_toolchain
+@pytest.mark.layer("integration")
+def test_a_list_nested_in_a_ledger_entry_keeps_the_house_label_gap(tmp_path):
+    # The ledger's description sets labelsep=1.6em for its hang, and a list
+    # nested in an entry inherited it: a bullet sat 1.6em from its text. The
+    # house itemize and enumerate state the class's own label gap (about
+    # 0.5em), so the nested bullet sits as close as any other.
+    from press import booklib, registry
+
+    handle = _book_with(tmp_path, _LEDGER_WITH_BULLETS)
+    with handle.use():
+        registry.build("pdf")
+        pdf = booklib.root() / "dist" / f"{booklib.slug()}.pdf"
+        xml = subprocess.run(
+            ["pdftotext", "-bbox-layout", str(pdf), "-"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+    # (x0, y0, x1, word) for every word; Poppler may split a wide gap into
+    # two lines, so the bullet is found by its baseline, not its line.
+    words = [
+        (float(x0), float(y0), float(x1), word)
+        for x0, y0, x1, word in re.findall(
+            r'<word xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)"[^>]*>([^<]*)</word>', xml
+        )
+    ]
+    text = next(w for w in words if w[3] == "Bulletword")
+    bullet = next(w for w in words if w[3] == "\u2022" and abs(w[1] - text[1]) < 3)
+    gap = text[0] - bullet[2]
+    # 1.6em at 10pt is 16pt; the house gap is 5pt.
+    assert gap < 8, f"the nested bullet sits {gap:.1f}pt from its text"
+
+
 def _wrapped(lead: str) -> str:
     """A paragraph led by *lead* (a word found nowhere else) long enough to
     wrap, so its first and second lines can be told apart."""
