@@ -186,7 +186,10 @@ never hand-copied. To add a provider or correct a citation, follow the
 
 `press verify-print` builds and verifies the interior and cover wrap at the
 selected geometry. The wrap is checked against the *same* geometry the
-generator used, so a size regression cannot ship. As always, a physical
+generator used, so a size regression cannot ship. It also prints a layout
+warning, never a failure, for any page whose only ink is its running head, its
+folio, and one or two lines of text: a page that passes the ink check but reads
+as nearly blank, such as a last Contents entry carried over alone. As always, a physical
 golden-copy inspection (see
 [print ordering](https://github.com/clintecker/press/blob/main/docs/PRINT-ORDERING.md))
 is what actually qualifies an edition for sale.

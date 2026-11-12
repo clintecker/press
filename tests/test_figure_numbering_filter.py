@@ -269,3 +269,19 @@ def test_table_is_kept_with_its_head_and_first_two_rows():
     one_row = _render("| a | b |\n|---|---|\n| 1 | 2 |\n")
     assert "\\Needspace{4\\baselineskip}" in one_row
     assert "Needspace" not in _render("| a |\n|---|\n| 1 |\n", to="html")
+
+
+@pytest.mark.layer("integration")
+def test_last_two_contents_entries_carry_over_together():
+    """#291: a one-line Contents overflow set the last entry alone on a page.
+    The second-to-last listed chapter (an unlisted heading makes no entry and
+    is not counted) writes a \\Needspace into the .toc ahead of its entry."""
+    keep = "\\addtocontents{toc}{\\protect\\Needspace{3\\baselineskip}}"
+    out = _render(
+        "# One\n\nx\n\n# Two\n\nx\n\n::: part\n# Three {.unnumbered}\n\nx\n:::\n\n"
+        "# Hidden {.unnumbered .unlisted}\n\nx\n"
+    )
+    assert out.count(keep) == 1
+    assert out.index("{One}") < out.index(keep) < out.index("{Two}")
+    assert keep not in _render("# Only\n\nx\n")
+    assert "Needspace" not in _render("# One\n\nx\n\n# Two\n\nx\n", to="html")

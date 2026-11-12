@@ -59,6 +59,14 @@ A valid book that never hit one of these faults typesets as before.
   the margin instead, a span may break after a `/`, `_`, or `.` with no glyph
   added, at a small penalty that prefers spaces. Prose hyphenation is
   unchanged.
+- **The Contents never strands its last entry alone (#291).** With one entry
+  more than a page holds, the last ("Colophon ... 372") landed alone on a page
+  under a running head and a folio, and verify-print passed the page because
+  it had ink. The figure-numbering filter now writes a `\Needspace` into the
+  `.toc` ahead of the second-to-last entry, so the last two carry over
+  together, and the PDF verifier prints a layout warning (never a failure)
+  for any page whose ink is only its running head, its folio, and one or two
+  lines of text.
 
 ## [3.0.2] - 2026-11-11
 

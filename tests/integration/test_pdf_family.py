@@ -365,3 +365,28 @@ def test_code_spans_never_hyphenate(tmp_path):
     assert not [e for e in ends if re.search(r"(-|\(225-|--paper-)$", e)], (
         "a span broke at a hyphen"
     )
+
+
+@requires_pdf_toolchain
+@pytest.mark.layer("integration")
+def test_contents_never_strands_a_lone_entry(tmp_path):
+    """#291: with 24 entries the Contents held 23 and set the last alone on a
+    page under a running head and a folio. The last two entries now carry
+    over together, so no Contents page holds exactly one entry."""
+
+    factory = factories.BookFactory(slug="int-toc").with_sentinels("the witness of the toc book")
+    factory.with_chapter(
+        "00-preface.md",
+        "# Preface {.unnumbered}\n\nHere the witness of the toc book stands.\n",
+    )
+    for k in range(1, 23):
+        factory.with_chapter(f"{k:02d}-part.md", f"# Chapter entry {k}\n\nA line of chapter {k}.\n")
+    factory.with_appendix("z-colophon.md", "# Colophon {.unnumbered}\n\nThe colophon line.\n")
+    pages = _pages(_build_pdf(factory.build(tmp_path)))
+    body = _first_page_with(pages, "Here the witness")
+    entry = re.compile(r"(Preface|Chapter entry \d+|Colophon)\s.*\d+$")
+    toc = [
+        n for n in (sum(1 for line in _lines(p) if entry.search(line)) for p in pages[:body]) if n
+    ]
+    assert sum(toc) == 24, toc
+    assert 1 not in toc, f"a Contents page holds a lone entry: {toc}"

@@ -371,6 +371,67 @@ def drop_structural_blank(blank_pages: list[int]) -> list[int]:
     return [page for page in blank_pages if page not in structural]
 
 
+def ink_bands(image: Image.Image, threshold: int = 128) -> list[tuple[int, int]]:
+    """The horizontal bands of ink down a rendered page, top to bottom, as
+    (first row, last row): a line of text, a running head, a folio, a plate.
+    A row is inked when any pixel in it is darker than *threshold*."""
+
+    gray = image.convert("L").point(lambda v: 255 if v < threshold else 0)
+    width, height = gray.size
+    data = gray.tobytes()
+    bands: list[tuple[int, int]] = []
+    start: int | None = None
+    for y in range(height):
+        inked = any(data[y * width : (y + 1) * width])
+        if inked and start is None:
+            start = y
+        elif not inked and start is not None:
+            bands.append((start, y - 1))
+            start = None
+    if start is not None:
+        bands.append((start, height - 1))
+    return bands
+
+
+def stranded_lines(image: Image.Image) -> int:
+    """How many lines of text a page carries besides its running head and
+    folio, when that is one or two and nothing else (no plate, no rule
+    block); 0 otherwise. A band in the top or bottom tenth of the page is the
+    head or the folio; a band taller than three per cent of the page is not a
+    line of text."""
+
+    height = image.size[1]
+    body = [
+        (top, bottom)
+        for top, bottom in ink_bands(image)
+        if top > 0.10 * height and bottom < 0.90 * height
+    ]
+    if not 1 <= len(body) <= 2:
+        return 0
+    if any(bottom - top > 0.03 * height for top, bottom in body):
+        return 0
+    return len(body)
+
+
+def warn_stranded_pages(images: list[Path]) -> list[int]:
+    """A layout warning, never a failure (#291): a page whose ink is only its
+    running head, its folio, and fewer than three lines of text -- a lone
+    Contents entry, a last line carried over -- passes the ink check but
+    reads as a near-blank page. Returns the 1-based page numbers warned."""
+
+    warned: list[int] = []
+    for index, image_path in enumerate(images, start=1):
+        with Image.open(image_path) as image:
+            lines = stranded_lines(image)
+        if lines:
+            warned.append(index)
+            print(
+                f"  warning: page {index} carries only its running head, its folio, "
+                f"and {lines} line(s) of text; check for a stranded line"
+            )
+    return warned
+
+
 def verify_page_ink(images: list[Path], profile: str) -> None:
     """Every rendered page must carry ink, keep it off the edge, and share
     one set of dimensions."""
@@ -422,6 +483,7 @@ def main(argv: list[str] | None = None) -> int:
 
     images = render_pages(pdf, args.render_dir.resolve(), expected_pages)
     verify_page_ink(images, args.profile)
+    warn_stranded_pages(images)
 
     profile_note = ""
     if args.profile == "print":

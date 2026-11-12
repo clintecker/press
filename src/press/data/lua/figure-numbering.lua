@@ -222,6 +222,10 @@ local function table_keep(tbl)
   )
 end
 
+-- Room the last two Contents entries need together (each chapter entry is a
+-- line and the space KOMA sets before it).
+local TOC_KEEP = 3
+
 -- Dispatch a placement to its LaTeX container, given the figure's pre-built
 -- inner pieces. Returns {wrap=<string>} for a runaround (walk_blocks fuses it
 -- to the next paragraph), a full-page RawBlock, or nil to fall through to the
@@ -393,6 +397,41 @@ function Pandoc(doc)
     return plate_block(fig, image, decorative)
   end
 
+  -- The Contents never strands its last entry alone on a page (#291): the
+  -- second-to-last listed chapter writes a \Needspace into the .toc ahead of
+  -- its own entry, so when the last two entries do not both fit, they carry
+  -- over together. `listed` counts the level-1 headings that make an entry,
+  -- in the same order walk_blocks meets them.
+  local function listed_heading(b)
+    return b.t == "Header" and b.level == 1 and not b.classes:includes("unlisted")
+  end
+  local function count_listed(blocks)
+    local n = 0
+    for _, b in ipairs(blocks) do
+      if listed_heading(b) then
+        n = n + 1
+      elseif b.t == "Div" or b.t == "BlockQuote" then
+        n = n + count_listed(b.content)
+      end
+    end
+    return n
+  end
+  local listed_total = latex and count_listed(doc.blocks) or 0
+  local listed_seen = 0
+  local function toc_keep(b)
+    if not listed_heading(b) then
+      return nil
+    end
+    listed_seen = listed_seen + 1
+    if listed_total >= 2 and listed_seen == listed_total - 1 then
+      return pandoc.RawBlock(
+        "latex",
+        "\\addtocontents{toc}{\\protect\\Needspace{" .. TOC_KEEP .. "\\baselineskip}}"
+      )
+    end
+    return nil
+  end
+
   local walk_blocks
   walk_blocks = function(blocks)
     local out = {}
@@ -411,6 +450,7 @@ function Pandoc(doc)
     for _, b in ipairs(blocks) do
       if b.t == "Header" and b.level == 1 and not unnumbered_header(b) then
         flush()
+        out[#out + 1] = toc_keep(b)
         chapter = chapter + 1
         fign = 0
         out[#out + 1] = b
@@ -422,6 +462,7 @@ function Pandoc(doc)
         unnumbered = false
       elseif b.t == "Header" and b.level == 1 then
         flush()
+        out[#out + 1] = toc_keep(b)
         unnumbered = true
         out[#out + 1] = b
         if latex then
