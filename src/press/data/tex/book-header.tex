@@ -98,8 +98,13 @@
 % The ledger's caption sets as every house table caption does (the caption
 % package setup below: small, italic, centred, no label), and the header row
 % survives as a one-line legend in small capitals above the entries.
-\newcommand{\PressLedgerCaption}[1]{\captionof*{table}{#1}}
-\newcommand{\PressLedgerLegend}[1]{\par\noindent{\small\textsc{#1}}\par}
+% \captionof runs \noindent and \sloppy for its paragraph and, being a
+% command rather than an environment, leaves them set: bare, one ledger
+% caption killed the house paragraph indent and loosened the spacing of every
+% page after it (the #292 fault). Each macro is its own group, and the
+% legend's \par sits inside the group so \small sets its baselines.
+\newcommand{\PressLedgerCaption}[1]{{\captionof*{table}{#1}}}
+\newcommand{\PressLedgerLegend}[1]{\par{\noindent\small\textsc{#1}\par}}
 
 \clearpairofpagestyles
 \makeatletter

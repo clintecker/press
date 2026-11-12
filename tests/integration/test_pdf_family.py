@@ -289,6 +289,76 @@ def test_the_paragraph_after_a_frontispiece_keeps_its_indent(tmp_path):
     )
 
 
+def _wrapped(lead: str) -> str:
+    """A paragraph led by *lead* (a word found nowhere else) long enough to
+    wrap, so its first and second lines can be told apart."""
+
+    return (
+        f"{lead} the paragraph runs on long enough to break across several lines "
+        "of the measure, so that its first line and its second line can be told "
+        "apart by where each begins on the page, and the house indent, if the "
+        "ledger caption above left it alive, shows as the difference.\n"
+    )
+
+
+def _line_starts(pdf, lead: str) -> tuple[float, float]:
+    """The x of the line whose first word is *lead* and of the line after it,
+    in Poppler's reading order across blocks (an indent-less paragraph merges
+    into the block before it, which _first_two_line_starts would miss)."""
+
+    xml = subprocess.run(
+        ["pdftotext", "-bbox-layout", str(pdf), "-"], capture_output=True, text=True, check=True
+    ).stdout
+    starts = [
+        (float(m.group(1)), m.group(2))
+        for line in re.findall(r"<line[^>]*>(.*?)</line>", xml, re.S)
+        if (m := re.search(r'<word xMin="([\d.]+)"[^>]*>([^<]*)</word>', line))
+    ]
+    for (x, word), (after, _next) in zip(starts, starts[1:]):
+        if word == lead:
+            return x, after
+    raise AssertionError(f"no wrapped paragraph begins with {lead!r}")
+
+
+@requires_pdf_toolchain
+@pytest.mark.layer("integration")
+def test_the_paragraphs_after_a_captioned_ledger_keep_their_indent(tmp_path):
+    # \PressLedgerCaption ran \captionof* bare, which leaves \noindent and
+    # \sloppy in force: every paragraph after the first captioned ledger lost
+    # the 1.1em house indent for the rest of the book (the #292 class, found
+    # on the v4 build of a real book). The caption is grouped now, so the
+    # second paragraph after the ledger, and one pages later, each begin a
+    # house indent (well over 6pt) right of their own second lines.
+    from press import booklib, registry
+
+    chapter = (
+        LEDGER
+        + "\n"
+        + _wrapped("Firstafter")
+        + "\n"
+        + _wrapped("Afterledger")
+        + "\n"
+        + _PROSE
+        + "\n\n"
+        + _wrapped("Laterpage")
+    )
+    handle = _book_with(tmp_path, chapter)
+    with handle.use():
+        registry.build("pdf")
+        pdf = booklib.root() / "dist" / f"{booklib.slug()}.pdf"
+        pages = _pages(pdf)
+        near = _line_starts(pdf, "Afterledger")
+        later = _line_starts(pdf, "Laterpage")
+
+    ledger_page = _first_page_with(pages, "humanizer")
+    assert _first_page_with(pages, "Laterpage") > ledger_page, "the later paragraph is not later"
+    for name, (first, second) in (("Afterledger", near), ("Laterpage", later)):
+        assert first - second > 6, (
+            f"{name}: the paragraph after a captioned ledger lost its indent: first "
+            f"line at x={first}, second at x={second}"
+        )
+
+
 # Two 76-column lines, one in an untagged fence and one tagged ``text``:
 # about twelve columns past the house measure (64 columns of Source Code Pro
 # at 0.86 on the 6x9 trim), so neither fits without wrapping. The chapter
