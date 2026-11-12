@@ -8,7 +8,7 @@ import re
 import zipfile
 from pathlib import Path
 
-from . import adapters, booklib, figures
+from . import adapters, booklib, figures, reader_links
 
 
 class VisibleText(html.parser.HTMLParser):
@@ -205,7 +205,7 @@ def site_visible_text(path: Path) -> str:
     return " ".join(" ".join(aggregate.parts).split())
 
 
-def docx_file_text(path: Path) -> str:
+def _docx_file_text(path: Path) -> str:
     """The visible w:t text of a DOCX on disk."""
 
     with zipfile.ZipFile(path) as archive:
@@ -264,7 +264,7 @@ def gather_editions(
         ("EPUB", epub, epub_visible_text),
         ("markdown", markdown, plaintext_text),
         ("text", text, plaintext_text),
-        ("docx", docx, docx_file_text),
+        ("docx", docx, _docx_file_text),
     )
     for label, path, extract in file_editions:
         if path is not None and path.is_file():
@@ -539,10 +539,36 @@ def _verify_site_plates(path: Path) -> None:
             raise SystemExit(f"site carries {len(woodcuts)} plates; expected {source_plates}")
 
 
+def require_anchors_resolve(pages: list[Path], label: str) -> None:
+    """Every anchor link across the pages lands on an id that exists where
+    the link points: a bare ``#id`` on its own page, a ``<page>#id`` on
+    that page. pandoc's chunked writer leaves a manuscript's cross-chapter
+    reference as a bare fragment (#270); ``reader_links.resolve_anchors``
+    rewrites it, and this refuses whatever that pass could not place."""
+
+    ids = {page.resolve(): reader_links.anchor_ids(page) for page in pages}
+    for page in pages:
+        own = ids[page.resolve()]
+        for fragment in reader_links.local_anchors(page):
+            if fragment not in own:
+                raise SystemExit(
+                    f"{label}: {page.name} carries an unresolved anchor #{fragment}; "
+                    "no element on that page has the id"
+                )
+        for target, fragment in reader_links.sibling_anchors(page):
+            home = (page.parent / target).resolve()
+            if home in ids and fragment not in ids[home]:
+                raise SystemExit(
+                    f"{label}: {page.name} carries an unresolved anchor "
+                    f"{target}#{fragment}; no element on {home.name} has the id"
+                )
+
+
 def verify_site(path: Path) -> None:
     chapter_pages = _verify_site_scaffold(path)
     _verify_site_chapter_identity(chapter_pages)
     _verify_site_plates(path)
+    require_anchors_resolve(sorted(path.rglob("*.html")), "reader site")
     site_text = site_visible_text(path)
     _require_sentinels(site_text, "reader site")
     require_witnesses(site_text, "reader site")

@@ -20,6 +20,7 @@ from . import booklib
 from . import gen_authorities
 from . import gen_front_matter
 from . import gen_index
+from . import reader_links
 from . import reader_meta
 from . import yamlio
 
@@ -324,6 +325,7 @@ def site_build(output_dir: str) -> None:
     if out.exists():
         shutil.rmtree(out)
     pandoc_build("chunked", output_dir, extra=["--to=chunkedhtml"])
+    reader_links.resolve_anchors(out)  # cross-chapter `#id` links land (#270)
     (out / "reader.css").write_text(site_stylesheet(), encoding="utf-8")
     cover = root / "assets" / "cover.jpg"
     if cover.is_file():
@@ -336,8 +338,6 @@ def site_build(output_dir: str) -> None:
     # the URL-shaped tags on an offline build with no site-url.
     inject_reader_metadata(out, booklib.book())
     archive = root / "dist" / f"{booklib.slug()}-site"
-    if archive.with_suffix(".zip").exists():
-        archive.with_suffix(".zip").unlink()
     shutil.make_archive(str(archive), "zip", root_dir=root / "dist", base_dir="site")
 
 

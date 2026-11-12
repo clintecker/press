@@ -344,6 +344,15 @@ Every chapter's content appears in every built edition; an edition that silently
 - proven by `tests/test_verify_editions.py::test_an_edition_that_drops_a_chapter_is_named_and_refused`
 - does not cover: Presence of a distinctive multi-word fragment per chapter, not a full diff: an edition that keeps each chapter's witness fragment but scrambles or truncates the surrounding prose is not caught. The PDF joins the agreement set only where pdftotext is present (the toolchain tier); the other editions are checked with no external tool.
 
+## INV-format-anchors-resolve
+
+Every anchor link in the reader site lands on an element that carries the id, on the page the link points at; a cross-page reference is rewritten to its home page after the chunked write (reader_links:resolve_anchors) and any anchor left dangling is refused.
+
+- enforced by `verify_formats:require_anchors_resolve`
+- proven by `tests/test_reader_links.py::test_require_anchors_resolve_refuses_a_dangling_anchor`
+- does not cover: Resolution needs exactly one page to define the id; an id defined on several pages is not guessed between them and the link is refused rather than pointed at one of them.
+- does not cover: Links are followed inside the reader site only; a link out of the site (an absolute path, a URL) is the Pages verifier's to prove.
+
 ## INV-format-site-identity
 
 Each chapter's witness appears exactly once across the reader site.

@@ -53,6 +53,10 @@ producers:
     verifier: check_source:main
     negative_fixture:
       tests/test_properties_policy.py::test_secret_named_file_is_never_admitted
+  reader_links:resolve_anchors:
+    verifier: verify_formats:require_anchors_resolve
+    negative_fixture:
+      tests/test_reader_links.py::test_require_anchors_resolve_refuses_a_dangling_anchor
   profile_lifecycle:
     verifier: profile_lifecycle:validate
     negative_fixture:

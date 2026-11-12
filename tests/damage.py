@@ -167,6 +167,17 @@ def dead_fragment(page: Path) -> DamageRecord:
     return rec
 
 
+def dangling_anchor(page: Path) -> DamageRecord:
+    """A reader-site page linking a bare ``#id`` no page defines: the shape a
+    cross-chapter reference takes when the resolver cannot place it (#270)."""
+
+    rec = DamageRecord("site.dangling_anchor", {"page": page.name}, _digest(page.read_bytes()))
+    text = page.read_text(encoding="utf-8")
+    page.write_text(text + '<a href="#fig:on-no-page">Figure 9.9</a>', encoding="utf-8")
+    rec.result_digest = _digest(page.read_bytes())
+    return rec
+
+
 # The map from every operator to the invariant it attacks and the
 # diagnostic substring the verifier must emit. A verifier failure class
 # without an entry here is an undefended branch; test_damage proves each.
@@ -185,4 +196,8 @@ DAMAGE_INVARIANTS: dict[str, dict[str, str]] = {
     "site.duplicate_chapter": {"invariant": "INV-format-site-identity", "diagnostic": "duplicates"},
     "site.dead_css_url": {"invariant": "INV-pages-refs", "diagnostic": "missing-asset.png"},
     "site.dead_fragment": {"invariant": "INV-pages-refs", "diagnostic": "dead fragment"},
+    "site.dangling_anchor": {
+        "invariant": "INV-format-anchors-resolve",
+        "diagnostic": "unresolved anchor",
+    },
 }
