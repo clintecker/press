@@ -195,9 +195,13 @@ target can follow once the measurement has proved stable.
 
 Measured on *Publishing with Press* rebuilt under the branch:
 
-- Reader site at 1280, 820, and 390 px: zero in-token code splits, zero
-  clipped cells, zero pages scrolling sideways; the 106 reference lists
-  render as ledgers, the 10 grids as wrapped tables.
+- Reader site at 1280, 820, and 390 px: zero in-token code splits in
+  grids, zero clipped cells, zero pages scrolling sideways; the 106
+  reference lists render as ledgers, the 10 grids as wrapped tables.
+  (Amended after the Task 8 measurement: inline code in ledger and body
+  prose breaks at its own hyphens in Chrome, a site-wide fault that
+  predates this round and is issue #297, so the split count is judged on
+  grids.)
 - PDF: `verify_text_block` passes; Table 16.1 reads as a ledger; the page
   count change is recorded in the book's ledger.
 - EPUB passes epubcheck with the new stylesheet.

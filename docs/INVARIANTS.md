@@ -548,7 +548,8 @@ No body page of a PDF edition inks past its text block, whose right edge is the 
 - proven by `tests/test_verify_pdf_print_profile.py::test_a_page_overrunning_the_measure_is_rejected`
 - does not cover: Front matter is not judged; it ends at the first arabic page label, or after the first 20 percent of pages when the PDF carries no labels.
 - does not cover: The raster cannot tell a deliberately outset or full-bleed figure from overflowing text; such a figure is refused too (the house caps figures at the line width).
-- does not cover: Only the right edge is judged, and the top and bottom 8 percent of each page (running head, folio) are not.
+- does not cover: Only the right edge is judged (the left, top, and bottom edges are not), and the top and bottom 8 percent of each page (running head, folio) are not.
+- does not cover: The slack is 6 px at the 120 dpi render, about 3.6 pt, wider than the 2 pt the design spec named; microtype's protruded punctuation and antialiasing reach 4 px on the example books' justified prose, past the 3.3 px that 2 pt would allow.
 
 ## INV-plate-alpha-preserved
 

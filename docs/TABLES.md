@@ -43,7 +43,8 @@ short as `pandoc`. A ledger is the manpage form:
 - each row's first cell is the entry's key, on a line of its own;
 - the prose is set beneath it at the full measure, hanging a little in;
 - in a three-column table, the middle cell sits between them as a short
-  line of its own (in constant width on the Web and in the EPUB);
+  line of its own (in constant width on the Web and in the EPUB, and set
+  ragged right in the PDF so a run of filenames never stretches);
 - the header row survives as one small-capitals legend above the entries,
   its cells joined by a middle dot, and the caption is kept;
 - a row whose key cell is empty continues the entry above it, as a further
@@ -63,13 +64,15 @@ it honest:
 - no column falls below 12 percent of the measure; a table of nine or more
   columns, where those floors alone would fill the line, shares it equally;
 - in the PDF the grid is set a size smaller, with half-em cell padding,
-  and it asks for room for its head and a few rows before it starts, so a
-  head is never stranded at a page foot;
-- code in a grid cell is never hyphenated, so `--foil-bright` is never
-  split as `--foil-` / `bright`. A hyphen the identifier already has is a
-  break of last resort, taken only when the token is wider than its whole
-  column, because ink past the text block is a fault in print and a split
-  identifier is only ugly.
+  and the house's table keep (the room every table asks for before its
+  head, sized from its own rows) holds, so a head is never stranded at a
+  page foot;
+- code in a grid cell follows the house rule for every code span: it is
+  never hyphenated, so `--foil-bright` is never split as `--foil-` /
+  `bright`. A hyphen the identifier already has is a break of last resort,
+  taken only when the token is wider than its whole column, because ink
+  past the text block is a fault in print and a split identifier is only
+  ugly.
 
 ## Force a shape
 
@@ -93,16 +96,17 @@ still has its anchor and its extra class.
 
 A one-column table is always a grid: a ledger needs a key and something to
 say about it, so `::: {.ledger}` around a one-column table still renders a
-grid.
+grid. So does a table that is all header row: with no body rows there is no
+entry to list.
 
 ## What each edition renders
 
 | Edition | Ledger | Grid |
 | --- | --- | --- |
-| PDF and print | A hanging description list: the key on its own line, the entry indented 1.6 em, a check before each key so it never strands at a page foot; the caption and the small-capitals legend above. | A smaller table with relative column widths that wrap, 0.5 em cell padding, room asked for before the head, and code that never hyphenates. |
+| PDF and print | A hanging description list: the key on its own line, the entry indented 1.6 em, a check before each key so it never strands at a page foot; the caption and the small-capitals legend above, kept on the page with the first entry. | A smaller table with relative column widths that wrap, 0.5 em cell padding, room asked for before the head, and code that never hyphenates. |
 | Reader site and HTML | A definition list in `.ledger`: the key in semibold, a hairline between entries, the middle column (`.ledger-sub`) in constant width. | The table in `.grid` at reading width, scrolling inside its own box if it is wider than the page. On a phone each row stacks into a card, each cell labelled with its column's header, and code wraps inside the card. |
 | EPUB | The same `.ledger` list, plain: no colour and no web fonts, because the reader's device owns the theme. | The table in `.grid`, with the same widths. |
-| DOCX | A native Word definition list, in pandoc's `DefinitionTerm` and `Definition` paragraph styles. House ledger styles arrive with the generated reference document. | The table, with the same relative column widths, which Word honours. |
+| DOCX | A native Word definition list, in pandoc's `DefinitionTerm` and `Definition` paragraph styles. The caption and legend arrive as ordinary body paragraphs, unstyled, until the house ledger styles land with the generated reference document. | The table, with the same relative column widths, which Word honours. |
 | Markdown and plain text | The Markdown edition is your stitched source and keeps the pipe table; plain text prints an indented list. | The Markdown edition keeps the pipe table. Plain text prints the grid as a full-width table with ruled top and bottom, its columns in the same proportions as the other editions. |
 
 A book with no tables renders as it did before, apart from the new rules in
@@ -126,9 +130,10 @@ verifiers run on every `press all`. Both are listed in the
   sits inside your own `::: {.grid}`, whose div keeps its class and so
   passes). Write it as a pipe table.
 - **No page inks past its text block** (`INV-pdf-text-block`, enforced by
-  `verify_text_block.verify_text_block`, run by `verify_pdf`). Each body page of the PDF is rendered and
-  refused when its ink runs more than 6 pixels (0.05 inch) past the right
-  edge of the text block the trim profile declares. This catches a table
+  `verify_text_block.verify_text_block`, run by `verify_pdf`). Each body
+  page of the PDF is rendered at 120 dpi and refused when its ink runs more
+  than 6 pixels (0.05 inch, about 3.6 points) past the right edge of the
+  text block the trim profile declares. Only the right edge is judged. This catches a table
   cell, a code line, or anything else that will not break and runs into the
   margin. Front matter and the running-head and folio bands are not judged.
   The raster cannot tell a deliberately outset figure from overflowing text,

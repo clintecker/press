@@ -24,14 +24,15 @@ This is the v4 line: a design major. Nothing here is released yet.
   a shape; a forcing div around one table becomes its wrapper, id and
   classes kept. A one-column table is always a grid.
 - **The PDF changes.** Ledgers set as hanging entries (`PressLedger`: 1.6 em
-  hang, `\Needspace` before each key, caption and small-capitals legend);
-  grids set small with 0.5 em cell padding, `\Needspace` before the head,
-  `p{}` columns that wrap, and code that never hyphenates (an existing
-  hyphen is a last-resort break). Page breaks and page counts of books with
-  tables move. This amends Round 1B's constraint that v4 leaves the PDF
+  hang, `\Needspace` before each key, a grouped caption and a small-capitals
+  legend kept on the page with the first entry, a three-column ledger's
+  middle line set ragged right, and a list nested in an entry at the house
+  label gap); grids set small with 0.5 em cell padding and `p{}` columns
+  that wrap. Page breaks and page counts of books with tables move. This amends Round 1B's constraint that v4 leaves the PDF
   untouched.
 - **Web, EPUB, DOCX.** Reader site and HTML: `.ledger` entries with a
-  hairline between them and a constant-width `.ledger-sub`; grids scroll in
+  hairline between them, a constant-width `.ledger-sub`, and keys and
+  entries that wrap a long URL rather than widen the page; grids scroll in
   their own box at reading width and stack into cards on a phone, where grid
   code may wrap. EPUB: the same forms, without colour. DOCX: a native
   definition list in pandoc's `DefinitionTerm`/`Definition` styles (house

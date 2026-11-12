@@ -95,7 +95,9 @@ so a book with tables does not render byte-for-byte as it did under v3.
   kept as a table wraps it in `::: {.grid}`; `::: {.ledger}` forces the other
   way.
 - **Two new verifiers.** Every table on an HTML surface must be a wrapped
-  grid or a ledger, so a raw HTML `<table>` in the manuscript is now refused;
+  grid or a ledger, so a raw HTML `<table>` in the manuscript is now refused,
+  and so is a table nested inside a grid-table cell (the press shapes the
+  outer table and leaves the inner one bare; lift it out of the cell);
   and no PDF page may ink past its text block. A v3 book that built green can
   turn red on either, and each failure names the PDF page, or the edition
   and page file that holds the table.
