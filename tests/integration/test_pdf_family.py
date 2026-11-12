@@ -161,10 +161,11 @@ def _rightmost_ink_px(pdf, page: int, out_dir) -> int:
     return bbox[2]
 
 
-def _text_block_right_px(page: int) -> int:
-    # A recto (odd) page binds on its left, so its right margin is the outer one.
-    margin = OUTER_IN if page % 2 else INNER_IN
-    return round((TRIM_WIDTH_IN - margin) * RENDER_DPI)
+def _text_block_right_px(dpi: int = RENDER_DPI) -> int:
+    # The reading edition is set ``oneside`` (pdf.yaml), so geometry's inner
+    # margin is the left and the outer the right on every page; only the
+    # print profile mirrors them.
+    return round((TRIM_WIDTH_IN - OUTER_IN) * dpi)
 
 
 @requires_pdf_toolchain
@@ -207,9 +208,156 @@ def test_untagged_code_fence_wraps_inside_the_measure(tmp_path):
     squashed = "".join(page_text.replace("↪", "").split())
     for line in (UNTAGGED_LINE, TEXT_LINE):
         assert "".join(line.split()) in squashed, f"a column of {line!r} ran off the page"
-    limit = _text_block_right_px(page) + PROTRUSION_PX
+    limit = _text_block_right_px() + PROTRUSION_PX
     assert rightmost <= limit, (
         f"ink reaches {rightmost}px on page {page}; the text block ends at {limit}px "
         f"(page width {TRIM_WIDTH_IN * RENDER_DPI:.0f}px), so a code line overran the measure"
     )
     assert "SourceCodePro" in fonts, "the untagged fence was not set in Source Code Pro"
+
+
+# --- A fence that already fit renders exactly as it did ----------------------
+#
+# The v3 contract: a fix may correct broken output but must not move a valid
+# book's typography or layout. The rebind of plain verbatim to fvextra's
+# Verbatim (#279) is proven against that contract by rendering one book
+# twice: once with the house header, once with the kernel verbatim restored
+# through the book's own tex/title-page.tex (the last include, so it wins).
+# Every page before the overlong fence must be pixel-identical; the final
+# page, which carries the overlong line, must differ, which proves the
+# restore took effect and the fix bites.
+KERNEL_VERBATIM_TEX = r"""
+% Restore LaTeX's own verbatim, as the header left it before #279. These are
+% the kernel's definitions verbatim (latex.ltx), so the control render is
+% what a book pinned to v3 saw before the rebind.
+\makeatletter
+\renewcommand\verbatim{\@verbatim \frenchspacing\@vobeyspaces \@xverbatim}
+\renewcommand\endverbatim{\if@newlist \leavevmode\fi\endtrivlist}
+\makeatother
+"""
+FITTING_FENCE = (
+    "alpha = 1\n"
+    "beta = alpha + 2\n"
+    "\n"
+    "    gamma(beta)  # indented, with a blank line above\n"
+    "delta = 'fits within sixty columns'\n"
+)
+# Longer than a page of lines, so a page foot falls inside the block and the
+# page-break behaviour (club and widow penalties, the strut at a page head)
+# is exercised, not just the pitch between lines.
+SPANNING_FENCE = "".join(f"line {i:02d} of a block that crosses a page foot\n" for i in range(60))
+IDENTITY_PROSE = (
+    "The quick brown fox jumps over the lazy dog and keeps on running "
+    "through the paragraph until it fills a few lines of the measure. "
+) * 3
+IDENTITY_DPI = 300
+
+
+def _identity_book(root, title_tex: str):
+    body = (
+        "# Code\n\n"
+        "Here the first witness of the code runner stands in a plain sentence.\n\n"
+        f"{IDENTITY_PROSE}\n\n```\n{FITTING_FENCE}```\n\n"
+        f"{IDENTITY_PROSE}\n\n```text\n{FITTING_FENCE}```\n\n"
+        f"{IDENTITY_PROSE}\n\n"
+        "Here the second witness of the code runner stands in a plain sentence.\n\n"
+        + "\n\n".join([IDENTITY_PROSE] * 6)
+        + f"\n\n```\n{SPANNING_FENCE}```\n\n{IDENTITY_PROSE}\n\n"
+        # The one overlong line, last in the book: the only page allowed to
+        # differ is the one it lands on.
+        f"```\n{UNTAGGED_LINE}\n```\n"
+    )
+    return (
+        factories.BookFactory(slug="int-fence")
+        .with_sentinels(
+            "first witness of the code runner",
+            "second witness of the code runner",
+        )
+        .with_chapter("00-code.md", body)
+        .with_title_tex(title_tex)
+        .build(root)
+    )
+
+
+def _render_pages(root, title_tex: str):
+    """Build the identity book under ``title_tex`` and rasterise every page."""
+
+    from press import booklib, registry, verify_pdf
+
+    handle = _identity_book(root, title_tex)
+    with handle.use():
+        registry.build("pdf")
+        pdf = booklib.root() / "dist" / f"{booklib.slug()}.pdf"
+        out = root / "png"
+        out.mkdir()
+        verify_pdf.run_capture(
+            ["pdftoppm", "-png", "-r", str(IDENTITY_DPI), str(pdf), str(out / "p")]
+        )
+        digest = digest_outputs(pdf.parent, [pdf.name])
+    return sorted(out.glob("p*.png")), digest
+
+
+def _differing_pages(house, kernel) -> list[int]:
+    from PIL import Image, ImageChops
+
+    differing = []
+    for number, (a, b) in enumerate(zip(house, kernel, strict=True), start=1):
+        with Image.open(a) as left, Image.open(b) as right:
+            if left.size != right.size:
+                differing.append(number)
+                continue
+            box = ImageChops.difference(left.convert("L"), right.convert("L")).getbbox()
+        if box is not None:
+            differing.append(number)
+    return differing
+
+
+@requires_pdf_toolchain
+@pytest.mark.layer("integration")
+@pytest.mark.invariant("INV-design-layout-stable")
+@pytest.mark.proof("positive")
+def test_fitting_code_fence_is_pixel_identical_to_kernel_verbatim(tmp_path):
+    """Every page of a book whose fences fit renders pixel-identical under
+    the rebound verbatim and under the kernel verbatim it replaced; only the
+    page carrying an overlong line differs, and there the rebind keeps the
+    ink inside the measure where the kernel let it reach the page edge."""
+
+    evidence = Evidence(
+        family="pdf-fence-identity",
+        required_tools=REQUIRED,
+        tool_versions=tool_versions(REQUIRED),
+    )
+    house, house_digest = _render_pages(tmp_path / "house", "% house header, unmodified\n")
+    kernel, kernel_digest = _render_pages(tmp_path / "kernel", KERNEL_VERBATIM_TEX)
+    evidence.outputs = {"house": house_digest, "kernel": kernel_digest}
+    evidence.record_invariant("INV-design-layout-stable")
+    evidence.record_invariant("INV-pdf-ink")
+
+    assert len(house) == len(kernel) > 3, (
+        f"page counts differ ({len(house)} vs {len(kernel)}): the rebind moved a page break"
+    )
+    last = len(house)
+    differing = _differing_pages(house, kernel)
+    evidence.notes["differing_pages"] = ",".join(map(str, differing))
+    evidence.write(tmp_path)
+
+    assert differing == [last], (
+        f"pages {differing} differ between the rebound verbatim and the kernel verbatim at "
+        f"{IDENTITY_DPI} dpi; only page {last}, which carries the overlong line, may differ. "
+        "A fence that already fit must not move: that is a design change within v3."
+    )
+    # The control is live and the fix bites: on the last page the kernel
+    # verbatim ran the overlong line to the page edge, the rebind wraps it.
+    from PIL import Image
+
+    from press import verify_pdf
+
+    with Image.open(kernel[-1]) as image:
+        kernel_right = verify_pdf.ink_bbox(image)[2]
+    with Image.open(house[-1]) as image:
+        house_right = verify_pdf.ink_bbox(image)[2]
+    limit = _text_block_right_px(IDENTITY_DPI) + PROTRUSION_PX * IDENTITY_DPI // RENDER_DPI
+    assert kernel_right > limit, "the kernel verbatim control did not overrun: the restore is dead"
+    assert house_right <= limit, (
+        f"the rebound verbatim still overruns ({house_right}px > {limit}px)"
+    )
