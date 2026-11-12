@@ -503,6 +503,16 @@ Every rendered page carries ink and keeps it off the edge.
 - proven by `tests/test_sabotage.py::test_sabotage_removed_graph_edge_reddens_state_model`
 - does not cover: Tolerates one structural blank verso in the print profile.
 
+## INV-pdf-text-block
+
+No body page of a PDF edition inks past its text block; the measure is the median ink right edge of the body pages, per recto and verso in print.
+
+- enforced by `verify_pdf:verify_text_block`
+- proven by `tests/test_verify_pdf_print_profile.py::test_a_page_overrunning_the_measure_is_rejected`
+- does not cover: Front matter is not judged; it ends at the first arabic page label, or after the first 20 percent of pages when the PDF carries no labels.
+- does not cover: The raster cannot tell a deliberately outset or full-bleed figure from overflowing text; such a figure is refused too (the house caps figures at the line width).
+- does not cover: Only the right edge is judged, and the top and bottom 8 percent of each page (running head, folio) are not.
+
 ## INV-plate-alpha-preserved
 
 Enhancing a plate master preserves its alpha (ink on transparency); it is never baked onto white.

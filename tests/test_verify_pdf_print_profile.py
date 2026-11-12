@@ -123,3 +123,120 @@ def test_a_colored_region_passes_under_a_color_profile(tmp_path):
     tinted = tmp_path / "page-02.png"
     colored.save(tinted)
     assert verify_pdf.verify_black_ink([clean, tinted], "color") is None
+
+
+# --- verify_text_block -------------------------------------------------------
+
+# Twelve pages at the render geometry of a 6 x 9 trim at 120 dpi; the first
+# 20 percent are front matter and are not judged.
+_TB_W, _TB_H = 720, 1080
+_TB_PAGES = 12
+
+
+def _measure_page(
+    tmp_path: Path, index: int, right: int, *, folio_right: int | None = None
+) -> Path:
+    """A body page whose text block runs from x=90 to x=right; a folio may
+    sit in the bottom band at folio_right."""
+
+    img = Image.new("RGB", (_TB_W, _TB_H), (255, 255, 255))
+    draw = ImageDraw.Draw(img)
+    for top in range(120, _TB_H - 120, 24):
+        draw.rectangle([90, top, right, top + 10], fill=(10, 10, 10))
+    if folio_right is not None:
+        draw.rectangle([folio_right - 20, _TB_H - 50, folio_right, _TB_H - 40], fill=(10, 10, 10))
+    dest = tmp_path / f"tb-{index:02d}.png"
+    img.save(dest)
+    return dest
+
+
+@pytest.mark.invariant("INV-pdf-text-block")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
+def test_a_page_overrunning_the_measure_is_rejected(tmp_path):
+    # Eleven pages end their lines at x=380; one sets a code line that runs
+    # 30 px past the measure, the overflow a too-wide table cell produces.
+    pages = [_measure_page(tmp_path, i, 410 if i == 9 else 380) for i in range(1, _TB_PAGES + 1)]
+    with pytest.raises(SystemExit, match=r"print profile: page 9 runs 30 px past the text block"):
+        verify_pdf.verify_text_block(pages, "print")
+
+
+@pytest.mark.invariant("INV-pdf-text-block")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("positive")
+def test_pages_within_the_measure_pass(tmp_path):
+    # Every page ends at the measure; a folio in the bottom band sits further
+    # right (outside the text block) and must not count against the page.
+    pages = [
+        _measure_page(tmp_path, i, 380, folio_right=600 if i == 7 else None)
+        for i in range(1, _TB_PAGES + 1)
+    ]
+    assert verify_pdf.verify_text_block(pages, "print") is None
+
+
+@pytest.mark.invariant("INV-pdf-text-block")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("positive")
+def test_the_measure_is_judged_per_parity_in_print(tmp_path):
+    # A bound interior shifts the recto's block right by the gutter: the
+    # recto ends at 410, the verso at 380. Neither is an overrun.
+    pages = [_measure_page(tmp_path, i, 410 if i % 2 else 380) for i in range(1, _TB_PAGES + 1)]
+    assert verify_pdf.text_block_right(pages, "print") == {
+        1: 411,
+        0: 381,
+    }  # bbox edges are exclusive
+    assert verify_pdf.verify_text_block(pages, "print") is None
+
+
+@pytest.mark.invariant("INV-pdf-text-block")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
+def test_the_reading_profile_judges_one_measure(tmp_path):
+    # The reading PDF does not mirror, so one median serves every page; a
+    # recto running past it is caught even though it is odd.
+    pages = [_measure_page(tmp_path, i, 395 if i == 5 else 380) for i in range(1, _TB_PAGES + 1)]
+    assert verify_pdf.text_block_right(pages, "reading") == {0: 381}  # bbox edges are exclusive
+    with pytest.raises(SystemExit, match=r"reading profile: page 5 runs 15 px past the text block"):
+        verify_pdf.verify_text_block(pages, "reading")
+
+
+@pytest.mark.invariant("INV-pdf-text-block")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("positive")
+def test_front_matter_is_not_judged(tmp_path):
+    # Page 2 (a Contents page whose right-aligned folios ink past the body
+    # measure) sits in the front matter and is skipped; an overrun of 6 px
+    # or less is within tolerance.
+    pages = [
+        _measure_page(tmp_path, i, 480 if i == 2 else 386 if i == 10 else 380)
+        for i in range(1, _TB_PAGES + 1)
+    ]
+    assert verify_pdf.verify_text_block(pages, "reading") is None
+
+
+@pytest.mark.invariant("INV-pdf-text-block")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
+def test_a_short_books_contents_is_skipped_by_its_page_labels(tmp_path):
+    # A short book's Contents can sit past the 20 percent guess (Alice's is
+    # page 5 of 23). main hands the first arabic-labelled page as the start,
+    # so the Contents, inking 100 px past the measure, is front matter.
+    from pypdf import PdfWriter
+
+    pages = [_measure_page(tmp_path, i, 480 if i == 5 else 380) for i in range(1, _TB_PAGES + 1)]
+    with pytest.raises(SystemExit, match=r"page 5 runs 100 px past"):
+        verify_pdf.verify_text_block(pages, "reading")
+    writer = PdfWriter()
+    for _ in range(_TB_PAGES):
+        writer.add_blank_page(width=432, height=648)
+    writer.set_page_label(0, 5, style="/r")
+    writer.set_page_label(6, _TB_PAGES - 1, style="/D")
+    pdf = tmp_path / "labelled.pdf"
+    writer.write(pdf)
+    assert verify_pdf.first_body_index(pdf) == 6
+    assert verify_pdf.verify_text_block(pages, "reading", verify_pdf.first_body_index(pdf)) is None
+    unlabelled = tmp_path / "plain.pdf"
+    bare = PdfWriter()
+    bare.add_blank_page(width=432, height=648)
+    bare.write(unlabelled)
+    assert verify_pdf.first_body_index(unlabelled) is None

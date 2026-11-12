@@ -845,6 +845,19 @@ invariants:
     layers:
     - pytest
     risk: A table renders in the one form that crushes on a phone and nothing notices.
+  INV-pdf-text-block:
+    statement: No body page of a PDF edition inks past its text block; the measure is the median ink right edge of the body pages, per recto and verso in print.
+    enforced_by: verify_pdf:verify_text_block
+    negative_proof: tests/test_verify_pdf_print_profile.py::test_a_page_overrunning_the_measure_is_rejected
+    owner: verify_pdf
+    criticality: standard
+    layers:
+    - pytest
+    risk: A code line or table cell that will not break runs into the margin and prints cut or crammed against the trim.
+    limitations:
+    - Front matter is not judged; it ends at the first arabic page label, or after the first 20 percent of pages when the PDF carries no labels.
+    - The raster cannot tell a deliberately outset or full-bleed figure from overflowing text; such a figure is refused too (the house caps figures at the line width).
+    - Only the right edge is judged, and the top and bottom 8 percent of each page (running head, folio) are not.
   INV-config-store-never-guess:
     statement: 'Config coercion never guesses a collection type: a collection field requires explicit JSON.'
     enforced_by: config_store:coerce

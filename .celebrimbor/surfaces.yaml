@@ -138,6 +138,7 @@ modules:
       build_target: orchestrator
       cover_fragment_html: pure
       download_names: pure
+      pandoc_build: producer
       run: adapter
       subtitle_stack_html: pure
     pin: "a81106139217"
@@ -590,13 +591,15 @@ modules:
     status: ratified
   verify_pdf:
     overrides:
+      body_start: pure
       edge_has_ink: pure
+      first_body_index: parser
       ink_bbox: pure
       looks_blank: pure
       parse_args: parser
       render_pages: verifier
       run_capture: parser
-    pin: "32f650c8bad5"
+    pin: "e8835bf9d474"
     role: verifier
     status: ratified
   webmeta:

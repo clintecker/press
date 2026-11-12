@@ -182,11 +182,34 @@ def ink_bbox(image: Image.Image) -> tuple[int, int, int, int] | None:
     return mask.getbbox()
 
 
+def body_start(images: list[Path]) -> int:
+    """Index of the first body page when the PDF states none: the first 20
+    percent of a book (and never fewer than two pages) is taken to be cover,
+    title, and front matter."""
+
+    return max(2, int(len(images) * 0.2))
+
+
+def first_body_index(pdf: Path) -> int | None:
+    """Index of the first page whose label is arabic (folio 1 of the main
+    matter); None when the PDF carries no such label. The house numbers
+    front matter in roman, so this is exactly where the Contents ends."""
+
+    from pypdf import PdfReader
+
+    reader = PdfReader(pdf)
+    # pypdf invents decimal labels for a PDF without /PageLabels; those say
+    # nothing about where the front matter ends.
+    if "/PageLabels" not in cast("dict", reader.trailer["/Root"]):
+        return None
+    return next((i for i, label in enumerate(reader.page_labels) if label.isdigit()), None)
+
+
 def verify_mirrored_margins(images: list[Path]) -> None:
     """Print interiors bind: the inner margin must exceed the outer, and
     the excess must swap sides between recto and verso."""
 
-    start = max(2, int(len(images) * 0.2))
+    start = body_start(images)
     left_edges: dict[int, list[int]] = {0: [], 1: []}
     for index in range(start, len(images)):
         with Image.open(images[index]) as image:
@@ -203,6 +226,76 @@ def verify_mirrored_margins(images: list[Path]) -> None:
             "print profile: margins do not mirror (recto left edge "
             f"{median_recto}px, verso {median_verso}px); the gutter is missing"
         )
+
+
+# The running head and the folio sit outside the text block; a page is judged
+# on its middle 84 percent. An overrun of more than TEXT_BLOCK_SLACK px at the
+# 120 dpi render (0.05in) is ink past the measure, not antialiasing.
+TEXT_BLOCK_BAND = 0.08
+TEXT_BLOCK_SLACK = 6
+
+
+def _measure_class(index: int, profile: str) -> int:
+    """Pages that share a measure: recto (1) and verso (0) in a bound print
+    interior whose gutter shifts the block, one class (0) otherwise."""
+
+    return (index + 1) % 2 if profile == "print" else 0
+
+
+def _block_right_edges(
+    images: list[Path], profile: str, start: int | None = None
+) -> list[tuple[int, int, int]]:
+    """(page number, measure class, ink right edge) for every inked body page
+    from index ``start`` (default body_start), the running-head and folio
+    bands cropped away."""
+
+    edges: list[tuple[int, int, int]] = []
+    first = body_start(images) if start is None else start
+    for index in range(first, len(images)):
+        with Image.open(images[index]) as image:
+            width, height = image.size
+            band = int(height * TEXT_BLOCK_BAND)
+            box = ink_bbox(image.crop((0, band, width, height - band)))
+        if box is not None:
+            edges.append((index + 1, _measure_class(index, profile), box[2]))
+    return edges
+
+
+def text_block_right(
+    images: list[Path], profile: str = "reading", start: int | None = None
+) -> dict[int, int]:
+    """The text block's right edge, self-calibrated: the median ink right
+    edge of the body pages in each measure class (recto 1 / verso 0 under
+    the print profile, one class 0 otherwise). Most body pages are full
+    justified prose, so the median is the measure."""
+
+    return _medians(_block_right_edges(images, profile, start))
+
+
+def _medians(edges: list[tuple[int, int, int]]) -> dict[int, int]:
+    by_class: dict[int, list[int]] = {}
+    for _page, cls, right in edges:
+        by_class.setdefault(cls, []).append(right)
+    return {cls: sorted(rights)[len(rights) // 2] for cls, rights in by_class.items()}
+
+
+def verify_text_block(images: list[Path], profile: str, start: int | None = None) -> None:
+    """No body page inks past the text block: a code line or table cell that
+    will not break runs into the margin, and a reader sees it cut or cramped
+    against the trim. Front matter is not judged (pages before ``start``,
+    which main reads from the PDF's page labels), nor are the
+    running-head and folio bands. Limitation: the raster cannot tell a
+    deliberately outset figure from overflowing text, so such a figure would
+    be refused too; the house caps figures at the line width."""
+
+    edges = _block_right_edges(images, profile, start)
+    medians = _medians(edges)
+    for page, cls, right in edges:
+        overrun = right - medians[cls]
+        if overrun > TEXT_BLOCK_SLACK:
+            raise SystemExit(
+                f"{profile} profile: page {page} runs {overrun} px past the text block"
+            )
 
 
 def verify_black_ink(images: list[Path], ink: str = "single") -> None:
@@ -422,6 +515,7 @@ def main(argv: list[str] | None = None) -> int:
 
     images = render_pages(pdf, args.render_dir.resolve(), expected_pages)
     verify_page_ink(images, args.profile)
+    verify_text_block(images, args.profile, first_body_index(pdf))
 
     profile_note = ""
     if args.profile == "print":

@@ -126,6 +126,14 @@ def _book_with(root, chapter: str):
     )
 
 
+# Plain justified prose, enough for several full pages after a table.
+_PROSE = "\n\n".join(
+    "The house sets a plain paragraph here so that the measure of the page is "
+    "calibrated on justified text rather than on the table it follows. " * 6
+    for _ in range(24)
+)
+
+
 @requires_pdf_toolchain
 @pytest.mark.layer("integration")
 @pytest.mark.proof("positive")
@@ -163,17 +171,16 @@ def test_a_ledger_table_sets_in_the_pdf_without_a_longtable(tmp_path):
 @requires_pdf_toolchain
 @pytest.mark.layer("integration")
 @pytest.mark.proof("negative")
-def test_a_grid_with_a_long_identifier_stays_inside_the_measure(tmp_path):
-    from PIL import Image
-
+def test_a_grid_with_a_long_identifier_ends_within_the_body_measure(tmp_path):
     from press import booklib, registry, verify_pdf
 
     # One cell holds an identifier wider than any column it could get; another
-    # holds a hyphenated flag that fits, beside prose that must wrap.
+    # holds a hyphenated flag that fits, beside prose that must wrap. Pages of
+    # plain prose follow, so the body measure is calibrated on justified text.
     grid = GRID.replace("| pocket | 5 x 8 |", f"| pocket | `{LONG_IDENTIFIER}` |").replace(
         "| 0.78in |", "| `--foil-bright` sets the foil on every cover the house prints |"
     )
-    handle = _book_with(tmp_path, grid)
+    handle = _book_with(tmp_path, grid + "\n" + _PROSE)
     with handle.use():
         pdf = booklib.root() / "dist" / f"{booklib.slug()}.pdf"
         registry.build("pdf")
@@ -183,27 +190,16 @@ def test_a_grid_with_a_long_identifier_stays_inside_the_measure(tmp_path):
         ).stdout
         pages = text.split("\f")
         index = next(i for i, page in enumerate(pages) if "pocket" in page)
-        out = tmp_path / "grid-page"
-        subprocess.run(
-            [
-                "pdftoppm",
-                "-png",
-                "-r",
-                "120",
-                "-f",
-                str(index + 1),
-                "-l",
-                str(index + 1),
-                str(pdf),
-                str(out),
-            ],
-            check=True,
-        )
-        with Image.open(next(tmp_path.glob("grid-page*.png"))) as page:
-            width, height = page.size
-            band = int(height * 0.08)
-            # Drop the running head and folio bands; judge the text block only.
-            box = verify_pdf.ink_bbox(page.crop((0, band, width, height - band)))
+        out = tmp_path / "render"
+        out.mkdir()
+        subprocess.run(["pdftoppm", "-png", "-r", "120", str(pdf), str(out / "page")], check=True)
+        images = sorted(out.glob("page*.png"))
+        start = verify_pdf.first_body_index(pdf)
+        measure = verify_pdf.text_block_right(images, "reading", start)[0]
+        edges = {
+            page: right
+            for page, _cls, right in verify_pdf._block_right_edges(images, "reading", start)
+        }
 
     lines = [line.strip() for line in pages[index].splitlines()]
     assert any("--foil-bright" in line for line in lines), "a flag that fits was split"
@@ -212,5 +208,10 @@ def test_a_grid_with_a_long_identifier_stays_inside_the_measure(tmp_path):
     # (-layout interleaves the neighbouring column, so pick the pieces out.)
     pieces = [w for w in pages[index].split() if "-" in w and w in LONG_IDENTIFIER]
     assert "".join(pieces) == LONG_IDENTIFIER, f"the identifier was mangled: {pieces}"
-    assert box is not None, "the grid page rendered blank"
-    assert box[2] <= 0.90 * width, f"grid ink reaches x={box[2]} of {width}px, past the text block"
+    # The median is only a measure when prose pages outnumber the grid page.
+    assert len(edges) >= 3, f"too few body pages to calibrate the measure: {sorted(edges)}"
+    assert index + 1 in edges, "the grid page rendered blank or fell in the front matter"
+    overrun = edges[index + 1] - measure
+    assert overrun <= verify_pdf.TEXT_BLOCK_SLACK, (
+        f"grid ink ends at x={edges[index + 1]}, {overrun} px past the body measure {measure}"
+    )
