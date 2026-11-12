@@ -238,6 +238,27 @@
 % Better code blocks in narrow trim.
 \usepackage{fvextra}
 \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\}}
+% pandoc uses Highlighting only for a fence with a recognised language tag; an
+% untagged fence (or one tagged `text`) becomes plain verbatim, which does not
+% wrap, so a line past the measure ran off the page edge (#279). Rebind
+% verbatim to the same fvextra environment with the same break options, so
+% both kinds of fence wrap identically. The remaining options make a fence
+% that already fit render pixel-identical to the kernel verbatim it replaces
+% (the v3 contract: a fix must not move a valid book's layout):
+%   backgroundcolorboxoverlap=0pt  fvextra follows every line with
+%       \vspace{-0.25pt} even with no background colour, which shortened the
+%       pitch inside a block by 0.5pt a line; off, the strutted line boxes
+%       stack at exactly \baselineskip, as the kernel's one-line paragraphs do.
+%   tabsize=1  fancyvrb sets a tab as an 8-space box; the kernel sets it as
+%       one space. pandoc expands tabs before LaTeX sees them, so this only
+%       reaches a raw tex include, but it stays faithful there too.
+%   listparameters  fancyvrb inserts \clubpenalty and \widowpenalty (both
+%       10000 in this house) after a block's first line and before its last;
+%       the kernel sets each line as its own paragraph with no such penalty,
+%       so page breaks inside a block must stay where they were.
+% The Highlighting environment above keeps fvextra's defaults: changing its
+% spacing would move every tagged fence, which is a design change.
+\RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere,backgroundcolorboxoverlap=0pt,tabsize=1,listparameters={\clubpenalty=0 \widowpenalty=0 }}
 
 % Plain title page driven by document metadata (books that want the
 % treatise front matter include tex/title-page.tex after this file).

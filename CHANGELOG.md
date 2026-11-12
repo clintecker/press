@@ -88,6 +88,26 @@ audit).
   INV-format-anchors-resolve, with a known-bad damage operator). The
   rewrite touches only link targets; no page's typography or layout
   changes.
+- **Untagged code fences wrap in the PDF (#279).** pandoc sets a fence with
+  no language tag (or one tagged `text`, on the pandoc versions that treat it
+  as plain) in the `verbatim` environment, which the header had left without
+  fvextra's line breaking, so a line longer than the measure (about 64
+  columns on the 6x9 trim) ran off the page edge and was cut. The header now
+  rebinds `verbatim` to fvextra's `Verbatim` with the same
+  `breaklines,breakanywhere` options as the `Highlighting` environment, so
+  both kinds of fence wrap, with the same continuation mark. fvextra's
+  Verbatim does not space lines the way the kernel's verbatim does (it
+  follows every line with a -0.25pt skip even with no background colour,
+  sets a tab eight spaces wide instead of one, and forbids a page break
+  after a block's first line and before its last), so the rebind also
+  carries the options that restore the kernel's spacing, tab width, and
+  page-break penalties. A fence that already fit is proven pixel-identical
+  to the previous release by rendering one book twice, under the house
+  header and under the kernel verbatim it replaces, and comparing every
+  page at 300 dpi: only the page carrying an overlong line differs. The
+  tagged `Highlighting` environment is untouched. The reading-PDF verifier
+  still refuses only ink at the page edge, not ink that hangs into the
+  margin; that check is tracked as #294.
 
 ## [3.0.2] - 2026-11-11
 
