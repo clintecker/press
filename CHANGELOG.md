@@ -9,6 +9,23 @@ audit).
 
 ## [Unreleased]
 
+The v3 correction wave. Its layout corrections are seven issues found
+producing *Publishing with Press* (#282, #286, #287, #288, #289, #291, and
+the opt-in #290), each a correction of broken output under the design
+contract (approved by the repository owner on 2026-11-12), scoped to the
+broken case. A valid book that never hit one of these faults typesets as
+before.
+
+### Added
+
+- **`place=float` lets a numbered figure float (#290).** Every numbered figure
+  is pinned `[H]`, so one that does not fit moves whole to the next page and
+  the page before it ends short, a band of white at its foot (15 pages of one
+  379-page book). `place=float` is the opt-in: the figure is set as a
+  `figure[tbp]` float and the following text fills the page. It takes a width
+  measure; `press check` refuses it on a plate. The `[H]` default is
+  unchanged: the issue's v4 house-default change is not made here.
+
 ### Fixed
 
 - **Headed tables stack on a phone under the pinned toolchain's pandoc** (#283).
@@ -139,6 +156,64 @@ audit).
 - `figure-numbering.lua` skips an HTML comment between a `wrap-inner` /
   `wrap-outer` figure and the paragraph it wraps, so a wrapped figure can
   carry an `art:` directive without losing its runaround (#280).
+- **The List of Figures is front matter (#289).** It was emitted as the first
+  body block, after `\mainmatter`, so it took arabic folios 1 and 2 ahead of
+  the Preface and every chapter folio ran two high. The figure-numbering
+  filter now only raises a flag ahead of the contents, and the header prints
+  the list just before `\mainmatter`, on roman folios after the List of
+  Plates. The plates list heading now reads "List of Plates", the case of
+  "Contents" and "List of Figures" (it read "List of plates").
+- **An unnumbered chapter sets its own running head (#282).** A preface, an
+  appendix written `{.unnumbered}`, or a colophon comes through as
+  `\chapter*`, which sets no mark, so its pages carried the last numbered
+  chapter's head ("16 Inside the press" across six appendixes). The
+  figure-numbering filter now follows each unnumbered chapter heading with
+  `\PressUnnumberedChapter{<title>}`, which sets the title as the mark with
+  no number (KOMA's `\addchapmark`). The issue filed this as a probable v4
+  item; the owner ruled it a correction of broken output for v3.
+- **An unnumbered chapter contributes no chapter number (#288).** A colophon
+  after the last chapter was counted into it: its plate listed as "16.1" in
+  the List of Plates, a numbered figure in it took the next "16.N", and the
+  index located it as "Z", an appendix the Contents does not have. Its plates
+  now list by caption alone (`\PressUnnumberedChapter` empties caption's list
+  format, `\PressNumberedChapter` restores it at the next numbered chapter),
+  its numbered figures take plain numbers from one book-wide sequence, and an
+  unnumbered back-matter part not titled "Appendix" locates in the index by
+  its own title ("Colophon"); the index head note says so only in a book that
+  has such a part. The sources-and-authorities companion keeps its own
+  locator and still groups a colophon's claims under "appendix Z"; it is not
+  changed here.
+- **A table head keeps its first rows, and a definition term its definition
+  (#286).** A longtable could break after its head and one row, stranding
+  them at a page foot (seven tables in one build), and a definition term
+  could sit at a page foot with its definition overleaf. The figure-numbering
+  filter now sets a `\Needspace` before each table, sized from the table's own
+  cells to its caption, head, and first two body rows, and each `\item` of a
+  description list asks for two lines (the plain `\item` is copied once in
+  the preamble, so a definition list nested in a definition cannot make
+  `\item` call itself). Both change page breaks, mostly where the room was
+  short, though a `\Needspace` also carries a small break bonus near the page
+  foot; ordinary paragraphs are untouched.
+- **Constant-width text no longer hyphenates (#287).** Inline code broke at
+  line ends with a hyphen it does not have (`SUP-/PORTED_CONTRACT_MAJORS`), and
+  a span holding a real hyphen could break right after it (`--paper-/warm`),
+  losing the real character into the break. Inside `\texttt` the span now
+  sets in the no-hyphenation language and each real hyphen is boxed (LuaTeX
+  reads `\exhyphenpenalty` at the paragraph's end, so a penalty scoped to the
+  span cannot forbid the break). So that a long identifier is not pushed into
+  the margin instead, a span may break after a `/`, `_`, or `.` with no glyph
+  added, at a high penalty that makes it a last resort. Prose hyphenation is
+  unchanged. Paths set in italic (not code spans) are outside this fix and
+  still hyphenate as prose.
+- **The Contents never strands its last entry alone (#291).** With one entry
+  more than a page holds, the last ("Colophon ... 372") landed alone on a page
+  under a running head and a folio, and verify-print passed the page because
+  it had ink. The figure-numbering filter now writes a `\Needspace` into the
+  `.toc` ahead of the second-to-last entry, so the last two carry over
+  together, and the PDF verifier prints a layout warning (never a failure)
+  for any page whose ink is only its running head, its folio, and one or two
+  lines of text (a page with no running head, such as a dedication, is never
+  warned; a chapter's last page of one or two lines is, by design).
 
 ### Changed
 

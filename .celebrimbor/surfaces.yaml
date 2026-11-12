@@ -300,7 +300,7 @@ modules:
     role: producer
     status: ratified
   gen_index:
-    pin: "3b15fe3d8430"
+    pin: "0d3a85e9ab9f"
     role: producer
     status: ratified
   idlookup:
@@ -607,7 +607,7 @@ modules:
       parse_args: parser
       render_pages: verifier
       run_capture: parser
-    pin: "32f650c8bad5"
+    pin: "e58ca642673c"
     role: verifier
     status: ratified
   webmeta:

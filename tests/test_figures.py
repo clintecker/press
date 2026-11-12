@@ -283,3 +283,14 @@ def test_press_figures_prints_declared_figures_as_json(tmp_path, capsys):
     assert plate["directive_form"] == "blank-line"
     chart = next(r for r in records if r["kind"] == "chart")
     assert chart["directive"] == "data" and chart["generatable"] is False
+
+
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
+def test_place_float_is_for_a_numbered_figure_only():
+    # #290: place=float opts a numbered figure out of the [H] pin; a plate
+    # keeps its place, so the checker refuses float on one rather than ignore it.
+    ok = figures.validate(figures.parse("![A](a.png){.chart place=float width=half-measure}\n"))
+    assert ok == []
+    plate = figures.validate(figures.parse("![A](a.png){place=float}\n"))
+    assert plate and "numbered figure" in plate[0]

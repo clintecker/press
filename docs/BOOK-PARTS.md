@@ -206,6 +206,10 @@ press add chapter "The Long Winter"     # -> the next NN- chapter
 The title can carry spaces and apostrophes; press makes the filename from
 it and seeds the heading, so you never quote Markdown into a shell.
 
+A part whose heading is marked `{.unnumbered}` (or `{-}`) -- a preface, an
+appendix, a colophon -- takes no chapter number, and in the PDF its pages
+carry its own title in the running head, with no number.
+
 ## Footnotes [authored]{.tag .made}
 
 Footnotes are part of the Markdown you write. Use the standard syntax
@@ -267,7 +271,9 @@ of terms, each with the patterns that count as a mention:
 ```
 
 Press searches the manuscript for those patterns and builds the index from
-what it finds. Delete the file to remove the index.
+what it finds. Delete the file to remove the index. A location is a chapter
+number, an appendix letter, or, for an unnumbered back-matter part not titled
+as an appendix (a colophon), the part's own title.
 
 ::: {.callout}
 **Press will not print a wrong page number.** A term that matches nothing in

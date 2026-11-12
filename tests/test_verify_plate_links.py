@@ -6,7 +6,7 @@ plate link overshoots onto the following, imageless page. The checker guards
 that (verify_pdf.py, lines 51-75), but its only production caller builds a
 factory book with no plates, so ``lof_index`` is ``None`` and it returns before
 touching the substantive logic. A checker is only real once a known-bad
-rejects it: these cases synthesize a PDF whose "List of plates" page links at
+rejects it: these cases synthesize a PDF whose "List of Plates" page links at
 an imageless page (rejected) and one whose link lands on an illustrated page
 (passes), driving the exact link/destination/XObject inspection the checker
 performs.
@@ -45,7 +45,7 @@ def _image_xobject(writer: PdfWriter) -> DictionaryObject:
     return xobjects
 
 
-def _plate_pdf(path: Path, *, target_has_image: bool, label: str = "List of plates") -> Path:
+def _plate_pdf(path: Path, *, target_has_image: bool, label: str = "List of Plates") -> Path:
     """A two-page PDF: an illustration-list page (named *label*) whose link
     points at the second page, which carries an image only when
     ``target_has_image`` is set."""
@@ -92,8 +92,8 @@ def _plate_pdf(path: Path, *, target_has_image: bool, label: str = "List of plat
 def test_a_plate_link_to_an_imageless_page_is_rejected(tmp_path):
     pdf = _plate_pdf(tmp_path / "imageless.pdf", target_has_image=False)
     # The link genuinely resolves to a real page; that page just holds no image.
-    assert "List of plates" in (PdfReader(str(pdf)).pages[0].extract_text() or "")
-    with pytest.raises(SystemExit, match="List of plates links point at imageless pages"):
+    assert "List of Plates" in (PdfReader(str(pdf)).pages[0].extract_text() or "")
+    with pytest.raises(SystemExit, match="List of Plates links point at imageless pages"):
         verify_pdf.verify_plate_links(pdf)
 
 
