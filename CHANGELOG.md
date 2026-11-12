@@ -101,16 +101,16 @@ audit).
   sets a tab eight spaces wide instead of one, and forbids a page break
   after a block's first line and before its last), so the rebind also
   carries the options that restore the kernel's spacing, tab width, and
-  page-break penalties. The overlap option is passed only where fvextra
-  defines it: the pinned toolchain image's fvextra 1.6.1 has neither the key
-  nor the -0.25pt skip, and xkeyval stops the build on an unknown key, which
-  failed every PDF in the container gauntlet. A fence that already fit is proven pixel-identical
-  to the previous release by rendering one book twice, under the house
-  header and under the kernel verbatim it replaces, and comparing every
-  page at 300 dpi: only the page carrying an overlong line differs. The
-  tagged `Highlighting` environment is untouched. The reading-PDF verifier
-  still refuses only ink at the page edge, not ink that hangs into the
-  margin; that check is tracked as #294.
+  page-break penalties. The spacing option that cancels fvextra's line skip
+  is passed only where fvextra defines it: the pinned toolchain image's
+  fvextra 1.6.1 has neither the key nor the skip. A fence that already fit
+  is proven pixel-identical to the previous release under both fvextra 1.6.1
+  and 1.14 by rendering one book twice, under the house header and under the
+  kernel verbatim it replaces, and comparing every page at 300 dpi: only the
+  page carrying an overlong line differs. The tagged `Highlighting`
+  environment is untouched. The reading-PDF verifier still refuses only ink
+  at the page edge, not ink that hangs into the margin; that check is
+  tracked as #294.
 - **Syntax-highlighted code fences print in black** (#273). A fenced block
   tagged `yaml`, `python` or `sh` was coloured by skylighting's default
   pygments style, so `press verify-print` refused the interior with
@@ -124,8 +124,8 @@ audit).
   and EPUB are untouched for the same reason. The
   coverwrap integration runner's book now carries tagged fences, so the real
   print build and `verify_black_ink` prove the fix; unit tests hold the
-  theme to greys and to pandoc's acceptance through a defaults file. The
-  companion defect, untagged fences that do not wrap, is #279.
+  theme to greys and to pandoc's acceptance through a defaults file.
+  Untagged fences, which did not wrap, are fixed by #279 above.
 - **An `art:`/`data:`/`source:` comment on the line directly after its image
   is refused by `press check`** (#280). pandoc makes a figure only of an image
   that stands alone in its paragraph; the next-line comment joined that
@@ -138,7 +138,7 @@ audit).
   and `press illustrate` refusals show the blank-line form.
 - `figure-numbering.lua` skips an HTML comment between a `wrap-inner` /
   `wrap-outer` figure and the paragraph it wraps, so a wrapped figure can
-  carry an `art:` directive without losing its runaround.
+  carry an `art:` directive without losing its runaround (#280).
 
 ### Changed
 
@@ -148,6 +148,9 @@ audit).
   past the structure gate's 660-line ceiling. `press pages` and its output
   are unchanged; `build.py` keeps running pandoc over the manuscript, and
   `verify_pages` now reads the download list from `press.landing`.
+  `pages_build`, `download_names`, and `subtitle_stack_html` now live in
+  `press.landing`, not `press.build`, with no re-exports: nothing in the
+  repository used the old names.
 
 ## [3.0.2] - 2026-11-11
 

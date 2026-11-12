@@ -92,6 +92,7 @@ def test_require_anchors_resolve_refuses_a_dangling_anchor(tmp_path):
 
 
 @pytest.mark.invariant("INV-format-anchors-resolve")
+@pytest.mark.invariant("INV-reader-cross-page-anchors")
 @pytest.mark.layer("unit")
 @pytest.mark.proof("negative")
 def test_an_id_defined_on_two_pages_is_not_guessed_and_is_refused(tmp_path):
