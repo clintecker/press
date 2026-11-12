@@ -294,19 +294,24 @@
 % margin, a span may break after a "/", "_", or "." with no glyph added --
 % the character stays at the line end, so nothing is invented -- at a high
 % penalty, so it is a last resort taken only when the line has no better
-% break. Spaces inside a span still
-% break, prose hyphenation is unchanged, and code blocks are verbatim and
-% never hyphenated.
+% break. A hyphen the span already has is a legal break too, the least bad
+% place when nothing else fits: the boxed hyphen is followed by a break that
+% adds no glyph (\PressCodeHyphenBreak), at a higher penalty than the "/",
+% "_", "." points so TeX takes those first. Without it a run of hyphenated
+% identifiers had no break at all and ran off the page. Spaces inside a span
+% still break, prose hyphenation is unchanged, and code blocks are verbatim
+% and never hyphenated.
 \makeatletter
 \NewCommandCopy{\PressPlainTT}{\texttt}
 \newcommand*{\PressCodeSpan}{\ifdefined\l@nohyphenation\language\l@nohyphenation\fi}
 \newcommand*{\PressCodeBreak}{\penalty3000\relax}
+\newcommand*{\PressCodeHyphenBreak}{\penalty5000\relax}
 \makeatother
 \ExplSyntaxOn
 \tl_new:N \l__press_code_tl
 \DeclareRobustCommand*{\texttt}[1]{
   \tl_set:Nn \l__press_code_tl {#1}
-  \tl_replace_all:Nnn \l__press_code_tl { - } { \mbox{-} }
+  \tl_replace_all:Nnn \l__press_code_tl { - } { \mbox{-} \PressCodeHyphenBreak }
   \tl_replace_all:Nnn \l__press_code_tl { \_ } { \_ \PressCodeBreak }
   \tl_replace_all:Nnn \l__press_code_tl { / } { / \PressCodeBreak }
   \tl_replace_all:Nnn \l__press_code_tl { . } { . \PressCodeBreak }

@@ -735,6 +735,59 @@ def test_code_spans_never_hyphenate(tmp_path):
     )
 
 
+# Six hyphenated identifiers, each in its own code span, as a comma list too
+# long for one line (the shape of the folio-279 overrun in Publishing with
+# Press: "INV-provider-contract, INV-release-receipt-chain, and
+# INV-release-tag-grammar" had no break point and ran off the page).
+_HYPHENATED = (
+    "INV-extension-conformance-ledger",
+    "INV-release-receipt-chain-of-custody",
+    "INV-release-tag-grammar-is-strict",
+    "INV-provider-contract-qualification",
+    "INV-archive-source-policy-holds",
+    "INV-migration-safe-and-reversible",
+)
+
+
+@requires_pdf_toolchain
+@pytest.mark.layer("integration")
+def test_hyphenated_code_spans_break_at_a_real_hyphen_not_the_page_edge(tmp_path):
+    """#287 follow-up: with every real hyphen boxed, a run of hyphenated
+    identifiers had no break point at all, and the line ran past the trim.
+    An existing hyphen is now a last-resort break that adds no glyph, so the
+    ink stays inside the text block and no identifier gains a hyphen."""
+
+    spans = ", ".join(f"`{name}`" for name in _HYPHENATED[:-1])
+    paragraph = (
+        f"The ledger names {spans}, and `{_HYPHENATED[-1]}` among its critical "
+        "entries, each enforced by a real callable."
+    )
+    handle = (
+        factories.BookFactory(slug="int-hyph")
+        .with_sentinels("the witness of the hyphen book")
+        .with_chapter(
+            "01-hyph.md",
+            "# Hyphens\n\nHere the witness of the hyphen book stands in a plain "
+            "sentence long enough to survive typesetting.\n\n" + paragraph + "\n",
+        )
+        .build(tmp_path)
+    )
+    pdf = _build_pdf(handle)
+    pages = _pages(pdf)
+    page = _first_page_with(pages, "The ledger names") + 1
+    # A break after a real hyphen leaves that hyphen at the line end; rejoin
+    # it (and the "/" "_" "." breaks) and every identifier reads whole, once.
+    joined = re.sub(r"([-_/.])\n\s*", r"\1", pages[page - 1])
+    for name in _HYPHENATED:
+        assert joined.count(name) == 1, (name, joined.count(name))
+    rightmost = _rightmost_ink_px(pdf, page, tmp_path)
+    limit = _text_block_right_px() + PROTRUSION_PX
+    assert rightmost <= limit, (
+        f"ink reaches {rightmost}px on page {page}; the text block ends at {limit}px, "
+        "so a run of hyphenated code spans overran the measure"
+    )
+
+
 @requires_pdf_toolchain
 @pytest.mark.layer("integration")
 def test_contents_never_strands_a_lone_entry(tmp_path):
