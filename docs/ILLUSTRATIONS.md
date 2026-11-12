@@ -133,7 +133,7 @@ figure. The default is unchanged; a plate always keeps its place.
 
 | `place` | on the PDF page |
 |---|---|
-| (none) | pinned where written (`[H]`); the page before ends short if it does not fit |
+| `inline` (the default, also when `place` is omitted) | pinned where written (`[H]`); the page before ends short if it does not fit |
 | `float` | floats to the top, bottom, or its own page (`[tbp]`); text fills the gap |
 
 `press check` refuses a malformed placement before any render: an absolute

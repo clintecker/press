@@ -9,8 +9,8 @@ audit).
 
 ## [Unreleased]
 
-The v3 layout correction wave: eight faults found producing *Publishing
-with Press*, each a correction of broken output under the design contract
+The v3 layout correction wave: seven issues (#282, #286, #287, #288, #289,
+#291, and the opt-in #290) found producing *Publishing with Press*, each a correction of broken output under the design contract
 (approved by the repository owner on 2026-11-12), scoped to the broken case.
 A valid book that never hit one of these faults typesets as before.
 
@@ -50,7 +50,9 @@ A valid book that never hit one of these faults typesets as before.
   its numbered figures take plain numbers from one book-wide sequence, and an
   unnumbered back-matter part not titled "Appendix" locates in the index by
   its own title ("Colophon"); the index head note says so only in a book that
-  has such a part.
+  has such a part. The sources-and-authorities companion keeps its own
+  locator and still groups a colophon's claims under "appendix Z"; it is not
+  changed here.
 - **A table head keeps its first rows, and a definition term its definition
   (#286).** A longtable could break after its head and one row, stranding
   them at a page foot (seven tables in one build), and a definition term
