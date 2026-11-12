@@ -883,7 +883,7 @@ invariants:
     risk: A plate would ship as a baked-white master, breaking compositing onto any surface (#226).
   INV-logomark-ink-extracted:
     statement: An opaque logomark delivery accepted at intake has its ink extracted onto transparency; it never ships as an opaque box.
-    enforced_by: art:_logomark_master
+    enforced_by: art:accept
     negative_proof: tests/test_art.py::test_opaque_logomark_delivery_has_its_ink_extracted_to_transparency
     owner: art
     criticality: standard

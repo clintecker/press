@@ -564,13 +564,13 @@ modules:
     status: ratified
   verify_formats:
     overrides:
-      chapter_witnesses: adapter
+      chapter_witnesses: orchestrator
       docx_visible_text: parser
       manuscript_witness: adapter
       normalized: normalizer
       plate_count: pure
       sentinel_present: pure
-    pin: "7eba48d4f84f"
+    pin: "0f556617ed66"
     role: verifier
     status: ratified
   verify_pages:

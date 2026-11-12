@@ -439,7 +439,7 @@ The invariant marker plugin validates every @pytest.mark.invariant citation agai
 
 An opaque logomark delivery accepted at intake has its ink extracted onto transparency; it never ships as an opaque box.
 
-- enforced by `art:_logomark_master`
+- enforced by `art:accept`
 - proven by `tests/test_art.py::test_opaque_logomark_delivery_has_its_ink_extracted_to_transparency`
 
 ## INV-lulu-timeout-unknown
