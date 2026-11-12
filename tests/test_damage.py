@@ -152,6 +152,17 @@ def test_duplicate_chapter_is_caught(valid_site):
         verify_formats.verify_site(site)
 
 
+@pytest.mark.invariant("INV-format-anchors-resolve")
+@pytest.mark.layer("integration")
+@pytest.mark.proof("negative")
+def test_dangling_anchor_is_caught(valid_site):
+    site, _ = valid_site
+    record = damage.dangling_anchor(sorted(site.glob("*.html"))[-1])
+    expected = damage.DAMAGE_INVARIANTS[record.mutation_id]["diagnostic"]
+    with pytest.raises(SystemExit, match=expected):
+        verify_formats.verify_site(site)
+
+
 @pytest.mark.invariant("INV-pages-refs")
 @pytest.mark.layer("integration")
 @pytest.mark.proof("negative")
@@ -212,6 +223,7 @@ def test_deliberate_damage_invariants_have_an_operator():
         "INV-pages-refs",
         "INV-archive-source-policy",
         "INV-format-site-identity",
+        "INV-format-anchors-resolve",
         "INV-archive-site-bytes",
     }
     missing = sorted(required - attacked)

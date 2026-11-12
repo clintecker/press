@@ -101,6 +101,14 @@ As @fig:press shows, the platen does the pressing.
 A mixed book prints both lists; a book with only plates prints only the List of
 Plates, byte-for-byte as before. Plates are **never** numbered.
 
+A reference may point across chapters. In the chapter-per-page reader site,
+pandoc leaves a manuscript's own `#id` link as written on every page, so a
+`@fig:press` in chapter two naming a figure in chapter one would be a dead
+link on chapter two's page; the press points each such link at the page that
+carries the figure after the pages are written, and the site verifier refuses
+any anchor left dangling (an id no page defines, or one defined on several),
+so a cross-chapter reference either lands on its figure or fails the build.
+
 Every edition is checked for these labels. The HTML and EPUB verifiers count
 the numbered figures the source declares and require at least that many
 `Figure C.N.` labels in the finished edition, so a figure whose label is lost

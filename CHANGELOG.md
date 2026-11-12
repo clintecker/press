@@ -78,6 +78,16 @@ audit).
   indent, and a book with no full-page figure renders byte-identically. A
   filter test holds the caption inside braces and a PDF-family test measures
   the indent of the first paragraph on the page after a frontispiece (#292).
+- **Cross-chapter `@fig:` references resolve in the reader site** (#270).
+  pandoc's chunked writer leaves a manuscript's own `#id` link as written
+  on every page, so a reference to a figure in another chapter shipped as a
+  dead link on the page that made it. `press site` now rewrites every such
+  anchor to `<page>.html#id` after the chunked write
+  (`reader_links.resolve_anchors`), and the site verifier refuses any anchor
+  left dangling (`verify_formats.require_anchors_resolve`, invariant
+  INV-format-anchors-resolve, with a known-bad damage operator). The
+  rewrite touches only link targets; no page's typography or layout
+  changes.
 
 ## [3.0.2] - 2026-11-11
 
