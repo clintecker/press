@@ -48,7 +48,8 @@ if command -v pandoc >/dev/null 2>&1; then
     python3 -m pytest -q -p no:cacheprovider \
       tests/test_figure_numbering_filter.py tests/test_figure_placement.py \
       tests/test_set_pieces.py tests/test_scene_break.py tests/test_dropcaps_filter.py \
-      tests/test_typographic_spacing.py tests/test_print_safe_images_filter.py
+      tests/test_typographic_spacing.py tests/test_print_safe_images_filter.py \
+      tests/test_table_shapes_filter.py
     python3 scripts/lua_coverage_ratchet.py check --cov-dir "$d"
   )
 else
