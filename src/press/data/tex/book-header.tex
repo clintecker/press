@@ -258,6 +258,22 @@
 % Keep headings from being stranded at page bottoms.
 \pretocmd{\section}{\Needspace{5\baselineskip}}{}{}
 \pretocmd{\subsection}{\Needspace{4\baselineskip}}{}{}
+% Nor a definition term (#286): each \item of a description list asks for
+% two lines, the term and the first line under it, so a term never sits at a
+% page foot with its definition overleaf. Only an item of the description
+% itself asks (\@currenvir is the innermost environment, so a list nested in
+% a definition is untouched), and only a description list carries the rule.
+% (A table head is kept with its first rows by the figure-numbering filter,
+% which sizes a \Needspace from the table's own cells.)
+\makeatletter
+\AddToHook{env/description/begin}{%
+  \let\PressPlainItem\item
+  \def\item{%
+    \ifx\@currenvir\PressDescriptionEnv\Needspace{2\baselineskip}\fi
+    \PressPlainItem}%
+}
+\makeatother
+\newcommand*{\PressDescriptionEnv}{description}
 
 % Better code blocks in narrow trim.
 \usepackage{fvextra}

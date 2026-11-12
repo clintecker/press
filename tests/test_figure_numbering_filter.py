@@ -243,3 +243,29 @@ def test_unnumbered_chapter_contributes_no_chapter_number():
     assert out.index("\\PressNumberedChapter", one) < out.index("\\chapter{Two}")
     plain = _render("# One\n\n![First](b.png){.figure}\n\n# Two\n\nx\n")
     assert "\\PressNumberedChapter" not in plain
+
+
+_WIDE_CELL = "a cell long enough to wrap onto a second line in its column " * 2
+
+
+@pytest.mark.layer("integration")
+def test_table_is_kept_with_its_head_and_first_two_rows():
+    """#286: a longtable head stranded at a page foot with one row. Every
+    table is preceded by a \\Needspace sized to its caption, head, and first
+    two body rows, estimated from the cells: a narrow table asks for little,
+    a table of wrapping rows for more. An ordinary paragraph gets nothing."""
+    narrow = _render("Prose.\n\n| a | b |\n|---|---|\n| 1 | 2 |\n| 3 | 4 |\n| 5 | 6 |\n")
+    # \LTpre 1 + head 1 + rules 1 + two one-line rows
+    assert "\\Needspace{5\\baselineskip}" in narrow
+    assert narrow.index("\\Needspace") < narrow.index("\\begin{longtable}")
+    assert narrow.count("\\Needspace") == 1
+    rows = "\n".join(f"| r{k} | {_WIDE_CELL}|" for k in range(4))
+    wide = _render(
+        f"| key | Meaning |\n|------------------|{'-' * 50}|\n{rows}\n\n"
+        "Table: A caption over the table\n"
+    )
+    # \LTpre 1 + caption 1.5 + head 1 + rules 1 + two rows of 3 lines each
+    assert "\\Needspace{11\\baselineskip}" in wide
+    one_row = _render("| a | b |\n|---|---|\n| 1 | 2 |\n")
+    assert "\\Needspace{4\\baselineskip}" in one_row
+    assert "Needspace" not in _render("| a |\n|---|\n| 1 |\n", to="html")

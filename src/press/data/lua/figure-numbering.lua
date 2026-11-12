@@ -170,6 +170,58 @@ local function full_page(image, label, caption_latex, lof2_latex, frontis)
   return pandoc.RawBlock("latex", table.concat(parts, "\n"))
 end
 
+-- Keep a table's head with its first two body rows (#286). pandoc sets a
+-- table as a longtable, which may break after the head and one row and leave
+-- them stranded at a page foot with the rest overleaf. A \Needspace before the
+-- table, sized to the caption, head, rules, and first two rows, moves the whole
+-- opening to the next page when it cannot fit; it is a request for room, so a
+-- table that fits is untouched. A row's height is estimated from its cells: a
+-- cell in a relative-width column wraps at about that share of the measure
+-- (MEASURE_CHARS characters of the house face), a natural-width cell is one
+-- line.
+local MEASURE_CHARS = 70
+
+local function row_lines(row, widths)
+  local lines = 1
+  for i, cell in ipairs(row.cells) do
+    local frac = widths[i]
+    if frac then
+      local per = math.max(8, math.floor(frac * MEASURE_CHARS) - 2)
+      local text = pandoc.utils.stringify(cell.contents)
+      lines = math.max(lines, math.ceil(#text / per))
+    end
+  end
+  return lines
+end
+
+local function table_keep(tbl)
+  local widths = {}
+  for i, spec in ipairs(tbl.colspecs) do
+    widths[i] = type(spec[2]) == "number" and spec[2] or nil
+  end
+  local lines = 2 -- the \LTpre skip and the head's rules
+  local caption = pandoc.utils.stringify(tbl.caption.long or {})
+  if caption ~= "" then
+    lines = lines + math.ceil(#caption / MEASURE_CHARS) + 0.5
+  end
+  for _, row in ipairs(tbl.head.rows) do
+    lines = lines + row_lines(row, widths)
+  end
+  local taken = 0
+  for _, body in ipairs(tbl.bodies) do
+    for _, row in ipairs(body.body) do
+      if taken < 2 then
+        lines = lines + row_lines(row, widths)
+        taken = taken + 1
+      end
+    end
+  end
+  return pandoc.RawBlock(
+    "latex",
+    "\\Needspace{" .. math.ceil(lines) .. "\\baselineskip}"
+  )
+end
+
 -- Dispatch a placement to its LaTeX container, given the figure's pre-built
 -- inner pieces. Returns {wrap=<string>} for a runaround (walk_blocks fuses it
 -- to the next paragraph), a full-page RawBlock, or nil to fall through to the
@@ -383,6 +435,10 @@ function Pandoc(doc)
         else
           out[#out + 1] = r
         end
+      elseif b.t == "Table" and latex then
+        flush()
+        out[#out + 1] = table_keep(b)
+        out[#out + 1] = b
       elseif (b.t == "Para" or b.t == "Plain") and pending then
         table.insert(b.content, 1, pandoc.RawInline("latex", pending .. "%\n"))
         pending = nil

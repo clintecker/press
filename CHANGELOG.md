@@ -41,6 +41,14 @@ A valid book that never hit one of these faults typesets as before.
   unnumbered back-matter part not titled "Appendix" locates in the index by
   its own title ("Colophon"); the index head note says so only in a book that
   has such a part.
+- **A table head keeps its first rows, and a definition term its definition
+  (#286).** A longtable could break after its head and one row, stranding
+  them at a page foot (seven tables in one build), and a definition term
+  could sit at a page foot with its definition overleaf. The figure-numbering
+  filter now sets a `\Needspace` before each table, sized from the table's own
+  cells to its caption, head, and first two body rows, and each `\item` of a
+  description list asks for two lines. Both change page breaks only, and only
+  where the room was short; ordinary paragraphs are untouched.
 
 ## [3.0.2] - 2026-11-11
 

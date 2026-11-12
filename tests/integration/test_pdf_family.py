@@ -263,3 +263,64 @@ def test_unnumbered_chapter_plate_lists_without_a_chapter_number(tmp_path):
     colophon_line = next(line for line in plates if "The colophon plate" in line)
     assert chapter_line.startswith("1.1"), chapter_line
     assert colophon_line.startswith("The colophon plate"), colophon_line
+
+
+def _page_of(pages: list[str], needle: str, start: int = 0) -> int:
+    return next(i for i in range(start, len(pages)) if needle in pages[i])
+
+
+_KEEPS = 45
+
+
+@requires_pdf_toolchain
+@pytest.mark.layer("integration")
+def test_table_head_and_definition_term_keep_with_what_follows(tmp_path):
+    """#286: a longtable head stranded at a page foot with its rows overleaf,
+    and a definition term stranded with its definition overleaf. Forty-five
+    tables and as many terms, each after a lead-in of varying length, walk
+    the page foot through every offset; every table head shares its page
+    with its first two rows, and every term with the first line under it."""
+
+    tables = []
+    for k in range(_KEEPS):
+        lead = "A lead-in line of plain prose before the table. " * (1 + k % 5)
+        # wide rows: pandoc sets relative p-columns, so each row wraps to two
+        # or three lines, the shape of a real reference table
+        cell = "a cell long enough to wrap onto a second line in its column " * 2
+        rows = "\n".join(f"| row{k}x{r} | {cell}|" for r in range(5))
+        tables.append(
+            f"{lead}\n\n| head{k}col | Meaning |\n|------------------|{'-' * 50}|\n"
+            f"{rows}\n\nTable: Table {k}. A caption over the table\n"
+        )
+    terms = []
+    for k in range(_KEEPS):
+        lead = "A lead-in line of plain prose before the term. " * (1 + k % 4)
+        terms.append(
+            f"{lead}\n\nterm{k}word\n:   Press prints:\n\n    ```\n    code{k}first\n"
+            f"    code{k}second\n    ```\n"
+        )
+    handle = (
+        factories.BookFactory(slug="int-keeps")
+        .with_sentinels("the witness of the keeps book")
+        .with_chapter(
+            "01-tables.md",
+            "# Tables\n\nHere the witness of the keeps book stands.\n\n" + "\n".join(tables),
+        )
+        .with_chapter("02-terms.md", "# Terms\n\nTerms follow.\n\n" + "\n".join(terms))
+        .build(tmp_path)
+    )
+    pages = _pages(_build_pdf(handle))
+    body = _page_of(pages, "Here the witness")
+    stranded = [
+        k
+        for k in range(_KEEPS)
+        if _page_of(pages, f"head{k}col", body) != _page_of(pages, f"row{k}x1", body)
+    ]
+    assert not stranded, f"table heads stranded from their first two rows: {stranded}"
+    terms_at = _page_of(pages, "Terms follow.", body)
+    split = [
+        k
+        for k in range(_KEEPS)
+        if _page_of(pages, f"term{k}word", terms_at) != _page_of(pages, f"code{k}first", terms_at)
+    ]
+    assert not split, f"definition terms stranded from their definition: {split}"
