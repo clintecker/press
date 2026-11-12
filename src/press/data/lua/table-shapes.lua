@@ -92,37 +92,69 @@ local function cell_code_token(cell)
   return longest
 end
 
+-- Each row's cells keyed by the column they start in, leaving out a cell
+-- that spans columns (a grid table's colspan): its length belongs to no one
+-- column, and crediting it to the first would widen that column for nothing.
+-- A cell spanning rows holds its column in the rows below, so their cells
+-- shift right past it, as pandoc lays them out.
+local function placed(rows)
+  local out, held = {}, {}
+  for r, row in ipairs(rows) do
+    local slots, col = {}, 1
+    for _, cell in ipairs(row.cells) do
+      while (held[col] or 0) >= r do
+        col = col + 1
+      end
+      local span = cell.col_span or 1
+      if span == 1 then
+        slots[col] = cell
+      end
+      for k = col, col + span - 1 do
+        if (cell.row_span or 1) > 1 then
+          held[k] = r + cell.row_span - 1
+        end
+      end
+      col = col + span
+    end
+    out[r] = slots
+  end
+  return out
+end
+
 -- Per-column maxima of measure(cell) over the body rows.
 local function column_maxima(rows, ncols, measure)
+  local slots = placed(rows)
   local out = {}
   for i = 1, ncols do
     out[i] = 0
-    for _, row in ipairs(rows) do
-      if row.cells[i] then
-        out[i] = math.max(out[i], measure(row.cells[i]))
+    for _, row in ipairs(slots) do
+      if row[i] then
+        out[i] = math.max(out[i], measure(row[i]))
       end
     end
   end
   return out
 end
 
--- Per-column means of measure(cell) over the body rows.
+-- Per-column means of measure(cell) over the cells each column holds.
 local function column_means(rows, ncols, measure)
-  local sums = {}
+  local slots = placed(rows)
+  local sums, counts = {}, {}
   for i = 1, ncols do
-    sums[i] = 0
+    sums[i], counts[i] = 0, 0
   end
-  for _, row in ipairs(rows) do
+  for _, row in ipairs(slots) do
     for i = 1, ncols do
-      local cell = row.cells[i]
+      local cell = row[i]
       if cell then
         sums[i] = sums[i] + measure(cell)
+        counts[i] = counts[i] + 1
       end
     end
   end
   local means = {}
   for i = 1, ncols do
-    means[i] = (#rows > 0) and (sums[i] / #rows) or 0
+    means[i] = (counts[i] > 0) and (sums[i] / counts[i]) or 0
   end
   return means
 end
@@ -174,6 +206,19 @@ local function as_paras(blocks)
   return out
 end
 
+-- A caption, legend, or sub paragraph. The LaTeX writer drops a Div's
+-- classes, so for LaTeX the inlines go inside the header macro that styles
+-- them.
+local function styled(inlines, macro)
+  if not latex then
+    return pandoc.Para(inlines)
+  end
+  local out = pandoc.Inlines({ pandoc.RawInline("latex", "\\" .. macro .. "{") })
+  out:extend(inlines)
+  out:insert(pandoc.RawInline("latex", "}"))
+  return pandoc.Plain(out)
+end
+
 -- The middle cells (between key and prose) as one Div.ledger-sub, or nil.
 local function sub_block(row, ncols)
   local inl = pandoc.Inlines({})
@@ -189,19 +234,7 @@ local function sub_block(row, ncols)
   if #inl == 0 then
     return nil
   end
-  return classed({ pandoc.Para(inl) }, "ledger-sub")
-end
-
--- A caption or legend paragraph. The LaTeX writer drops a Div's classes, so
--- for LaTeX the inlines go inside the header macro that styles them.
-local function styled(inlines, macro)
-  if not latex then
-    return pandoc.Para(inlines)
-  end
-  local out = pandoc.Inlines({ pandoc.RawInline("latex", "\\" .. macro .. "{") })
-  out:extend(inlines)
-  out:insert(pandoc.RawInline("latex", "}"))
-  return pandoc.Plain(out)
+  return classed({ styled(inl, "PressLedgerSub") }, "ledger-sub")
 end
 
 local function to_ledger(tbl, ncols)
@@ -332,7 +365,10 @@ local function to_grid(tbl, ncols)
 end
 
 local function shape_of(tbl, ncols)
-  if forced == "ledger" and ncols >= 2 then
+  -- A forced ledger needs two columns and at least one body row: a table
+  -- that is all header has no entry to list, and an empty list would be
+  -- refused by the verifier, so it stays a grid.
+  if forced == "ledger" and ncols >= 2 and #body_rows(tbl) > 0 then
     return "ledger"
   elseif forced then
     return "grid"

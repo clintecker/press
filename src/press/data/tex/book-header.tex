@@ -110,6 +110,10 @@
 % legend's \par sits inside the group so \small sets its baselines.
 \newcommand{\PressLedgerCaption}[1]{{\captionof*{table}{#1}}}
 \newcommand{\PressLedgerLegend}[1]{\par{\noindent\small\textsc{#1}\par}}
+% A three-column ledger's middle cell (a line of filenames, say) sets ragged
+% right on its own line under the key: justified, a short run of code spans
+% stretched its spaces across the measure.
+\newcommand{\PressLedgerSub}[1]{{\raggedright #1\par}}
 
 \clearpairofpagestyles
 \makeatletter

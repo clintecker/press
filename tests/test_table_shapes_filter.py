@@ -257,3 +257,65 @@ def test_a_ledger_keeps_its_caption_and_legend_with_its_first_entry():
     assert "\\nopagebreak" not in bare
     # The web carries none of it.
     assert "Needspace" not in _render(LEDGER, to="html")
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("negative")
+def test_a_forced_ledger_over_a_header_only_table_falls_back_to_a_grid():
+    # An all-header table has no entry to list: forced to a ledger it once
+    # rendered an empty <dl>, which the verifier refuses. It stays a grid.
+    out = _render("# Ch\n\n::: {.ledger}\n| A | B |\n|---|---|\n:::\n", to="html")
+    assert '<div class="grid">' in out and "<table" in out
+    assert "<dl" not in out and 'class="ledger"' not in out
+
+
+def _grid_table(rows: list[str]) -> str:
+    rule = "+" + "+".join("-" * 22 for _ in range(3)) + "+\n"
+    head = "| A" + " " * 20 + "| B" + " " * 20 + "| C" + " " * 20 + "|\n"
+    return "# Ch\n\n" + rule + head + rule.replace("-", "=") + "".join(r + rule for r in rows)
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("negative")
+def test_a_cell_spanning_columns_is_not_credited_to_the_first():
+    # A 60-character cell spanning all three columns belongs to none of them:
+    # credited to column 1 it once took 0.76 of the measure. The three
+    # one-letter columns share it equally.
+    plain = "| a" + " " * 20 + "| b" + " " * 20 + "| c" + " " * 20 + "|\n"
+    span = "| " + "x" * 60 + " " * 7 + "|\n"
+    out = _render(_grid_table([plain, span]), to="native")
+    assert "ColSpan 3" in out, "the fixture lost its column span"
+    widths = [float(w) for w in re.findall(r"ColWidth ([0-9.eE+-]+)", out)]
+    assert len(widths) == 3
+    assert all(abs(w - 1 / 3) < 1e-9 for w in widths), widths
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("negative")
+def test_a_cell_below_a_row_span_is_credited_to_its_own_column():
+    # Column A's cell spans two rows, so the second row's only cell sits in
+    # column B; measured by its index it would have widened column A.
+    md = (
+        "# Ch\n\n"
+        "+------+----------------------+------+\n"
+        "| A    | B                    | C    |\n"
+        "+======+======================+======+\n"
+        "| a    | b                    | c    |\n"
+        "|      +----------------------+------+\n"
+        "|      | yyyyyyyyyyyyyyyyyyyy | c    |\n"
+        "+------+----------------------+------+\n"
+    )
+    out = _render(md, to="native")
+    assert "RowSpan 2" in out, "the fixture lost its row span"
+    widths = [float(w) for w in re.findall(r"ColWidth ([0-9.eE+-]+)", out)]
+    assert widths[1] > widths[0] and widths[1] > widths[2], widths
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_three_column_ledger_sets_its_sub_line_ragged_in_latex():
+    # The middle cell, a short run of code spans, once set as a justified
+    # paragraph that stretched its spaces; LaTeX gets \PressLedgerSub.
+    out = _render(LEDGER3)
+    assert "\\PressLedgerSub{\\texttt{build.py}, \\texttt{figures.py}}" in out
+    assert "PressLedgerSub" not in _render(LEDGER3, to="html")
