@@ -143,6 +143,26 @@ def test_key_for_refuses_when_unset(fake_env):
     assert "GEMINI_API_KEY" in str(excinfo.value)
 
 
+def test_logomark_commission_uses_the_one_openai_pin(fake_env, fake_http):
+    """#277: the transparent (logomark) path asked for gpt-image-1, which the
+    API rejects; every OpenAI image call now shares one accepted model pin and
+    the logomark keeps requesting a transparent ground at its proven size."""
+
+    from press import art_commission
+
+    fake_env(values={"OPENAI_API_KEY": "sk-live"})
+    client = fake_http([{"data": [{"b64_json": "AAA="}]}])
+    openai_spec, _gemini_spec = art_commission.shape_for("logomark", "")
+    art_commission.generate_openai("a mark", openai_spec, 1)
+    sent = client.requests[0].payload
+    assert sent["model"] == art_commission.OPENAI_FLAGSHIP == "gpt-image-2"
+    assert sent["model"] != "gpt-image-1"
+    assert sent["background"] == "transparent"
+    assert sent["size"] == "1024x1024"
+    models = {spec[0][0] for spec in art_commission.SHAPES.values()}
+    assert models == {"gpt-image-2"}
+
+
 def test_post_json_routes_through_http_client(fake_http):
     from press import art_commission
 

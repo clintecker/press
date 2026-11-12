@@ -9,6 +9,16 @@ audit).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`press art commission` of a logomark through OpenAI works again** (#277).
+  The transparent-background path was pinned to `gpt-image-1`, which the API
+  now rejects, while the cover and plate paths were already on `gpt-image-2`.
+  All three OpenAI image calls now share the one `gpt-image-2` pin; the
+  logomark keeps its 1024x1024 size and still asks for `background:
+  transparent`, and when the model returns an opaque ground instead,
+  intake's existing ink extraction keys it out.
+
 ## [3.0.2] - 2026-11-11
 
 A security release. The hash-locked runtime dependencies move Pillow from

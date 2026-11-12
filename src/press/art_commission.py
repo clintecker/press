@@ -23,13 +23,17 @@ from . import booklib
 # Model choices are print-driven, researched 2026-07: a 6 x 9 cover at
 # 300dpi needs ~1800x2700px, so drafts-at-1K models cannot serve finals.
 # gpt-image-2 takes arbitrary sizes (multiples of 16, max edge 3840,
-# max ~8.3MP) but dropped transparent backgrounds, so the logomark
-# stays on gpt-image-1 where transparency is supported and proven.
-# On Gemini, gemini-3-pro-image (best text rendering) takes the cover;
-# gemini-3.1-flash-image (the workhorse) takes plates and portrait;
-# both accept imageConfig {aspectRatio, imageSize} up to 4K.
+# max ~8.3MP). Every OpenAI image call -- cover, plates, portrait, and the
+# logomark -- is pinned to it: the logomark once stayed on gpt-image-1 for
+# its proven transparent background, but the API rejected that model in
+# 2026-11 and every logomark commission failed (#277). The logomark still
+# asks for `background: transparent`; when the model returns an opaque
+# ground instead, intake's ink extraction keys it out, so one pin serves
+# all three paths. On Gemini, gemini-3-pro-image (best text rendering)
+# takes the cover; gemini-3.1-flash-image (the workhorse) takes plates
+# and portrait; both accept imageConfig {aspectRatio, imageSize} up to 4K.
 OPENAI_FLAGSHIP = "gpt-image-2"
-OPENAI_TRANSPARENT = "gpt-image-1"
+OPENAI_TRANSPARENT = OPENAI_FLAGSHIP
 GEMINI_FLAGSHIP = "gemini-3-pro-image"
 GEMINI_WORKHORSE = "gemini-3.1-flash-image"
 
