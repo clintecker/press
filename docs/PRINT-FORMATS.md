@@ -132,21 +132,25 @@ reproduces on the physical copy as it does on screen. The
 [Hearthstone Table](https://github.com/clintecker/press/tree/main/examples/hearthstone-cookbook)
 example is a colour cookbook built this way.
 
-### Code listings print in black
+### Code listings print in black on a single-ink profile
 
 A fenced code block tagged with a language (```` ```python ````,
-```` ```yaml ````, ```` ```sh ````) is syntax-highlighted. In the print
-interior the highlighting is a single ink: the print profile sets pandoc's
+```` ```yaml ````, ```` ```sh ````) is syntax-highlighted. Under a
+single-ink print profile (every shipped profile except `house-6x9-color`)
+the highlighting is a single ink: the print build sets pandoc's
 `highlight-style` to the press's own monochrome theme
 (`src/press/data/press-mono.theme`), in which every token style is a grey or
 a weight (bold keywords, italic comments), so `press verify-print`'s
 black-ink rule holds for a technical book without retagging its examples
 as plain `text`. Before this the default style put colour on the page and
 `verify-print` refused the interior with `colored ink on pages [...]`
-(#273). The reading PDF, HTML and EPUB keep the default coloured style;
-retinting them is a house-wide design decision, not a print fix. Long
-lines in an untagged fence are the companion defect, #279: a tagged fence
-wraps at the measure, a plain one does not yet.
+(#273). A profile that declares `ink: color` keeps pandoc's default
+coloured highlighting: a colour interior was never refused, so it was a
+valid book before the fix, and the contract forbids restyling a valid book
+inside a major. The reading PDF, HTML and EPUB keep the default coloured
+style for the same reason; retinting them is a house-wide design decision,
+not a print fix. Long lines in an untagged fence are the companion defect,
+#279: a tagged fence wraps at the measure, a plain one does not yet.
 
 ## Binding sets the cover's shape
 

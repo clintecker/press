@@ -234,10 +234,11 @@ def chapter_count(book):
 ```
 ````
 
-In the print interior the highlighting is monochrome by design: the print
-profile highlights with the press's single-ink theme, so a tagged fence
-prints in black and passes `press verify-print` (#273). The reading PDF, HTML
-and EPUB show the default colours. Keep lines inside a fence under about
+Under a single-ink print profile the highlighting is monochrome by design:
+the print build highlights with the press's single-ink theme, so a tagged
+fence prints in black and passes `press verify-print` (#273). A profile that
+declares `ink: color` keeps the default coloured highlighting, as do the
+reading PDF, HTML and EPUB. Keep lines inside a fence under about
 sixty columns; an untagged fence does not yet wrap at the measure (#279).
 
 ## The index [generated]{.tag .gen}
@@ -368,7 +369,7 @@ press config set lang "en-GB"
 </div>
 <div class="part made">
 <span class="part-name">Code blocks</span>
-<p class="part-what">Tagged fences, highlighted; single-ink in print.</p>
+<p class="part-what">Tagged fences, highlighted; single-ink on a single-ink print profile.</p>
 <span class="part-where">inline Markdown</span>
 </div>
 <div class="part made">

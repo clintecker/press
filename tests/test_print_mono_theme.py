@@ -5,8 +5,10 @@ skylighting's default pygments style colours a fenced block tagged
 coloured print interior, so ``print.yaml`` sets ``highlight-style`` to the
 packaged ``press-mono.theme``. These tests hold the theme to its promise:
 every colour it names is a grey, pandoc accepts it as a highlight style, the
-LaTeX it emits for a tagged fence carries no coloured ink, and the print
-defaults resolve to the installed copy. The default style is rendered beside
+LaTeX it emits for a tagged fence carries no coloured ink, and the rendered
+print defaults resolve to the installed copy under a single-ink profile and
+omit it under an ``ink: color`` one, which was never broken and must not be
+restyled inside a major. The default style is rendered beside
 it as the negative: the same fence under pygments puts colour on the page,
 which is what the grey check must be able to tell apart. The real build and
 ``verify_black_ink`` run in the coverwrap integration runner, whose factory
@@ -21,9 +23,10 @@ import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 
 from press import booklib, build
-from tests import lua_coverage
+from tests import factories, lua_coverage
 
 THEME = booklib.DATA / "press-mono.theme"
 PRINT_DEFAULTS = booklib.DATA / "defaults" / "print.yaml"
@@ -68,15 +71,37 @@ def test_theme_is_json_naming_only_greys():
     assert styles["Keyword"]["bold"] and styles["Comment"]["italic"]
 
 
-@pytest.mark.layer("unit")
-def test_print_defaults_highlight_with_the_packaged_theme():
-    import yaml
+def _rendered_print_defaults(tmp_path, profile: str | None) -> dict:
+    book = factories.minimal()
+    if profile is not None:
+        book = book.with_metadata(print={"profile": profile})
+    with book.build(tmp_path).use():
+        return yaml.safe_load(build.render_defaults("print").read_text(encoding="utf-8"))
 
-    defaults = yaml.safe_load(PRINT_DEFAULTS.read_text(encoding="utf-8"))
-    assert defaults["highlight-style"] == "@press/press-mono.theme"
-    resolved = build._resolve_paths({"highlight-style": defaults["highlight-style"]})
-    assert Path(resolved["highlight-style"]) == THEME
+
+@pytest.mark.layer("unit")
+def test_print_yaml_leaves_highlighting_to_the_profile():
+    # The key is added per profile by render_defaults, not carried by the
+    # template, so a colour interior cannot inherit it by accident.
+    assert "highlight-style" not in yaml.safe_load(PRINT_DEFAULTS.read_text(encoding="utf-8"))
     assert THEME.is_file()
+
+
+@pytest.mark.layer("unit")
+@pytest.mark.parametrize("profile", [None, "house-6x9", "novella-5x8"])
+def test_single_ink_print_defaults_resolve_to_the_packaged_theme(tmp_path, profile):
+    defaults = _rendered_print_defaults(tmp_path, profile)
+    assert Path(defaults["highlight-style"]) == THEME
+
+
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
+def test_colour_ink_print_defaults_keep_the_default_highlighting(tmp_path):
+    # A colour interior (house-6x9-color, the Hearthstone cookbook's profile)
+    # was never refused by verify_black_ink, so it was a valid book before
+    # #273 and the contract forbids restyling it inside a major: no theme.
+    defaults = _rendered_print_defaults(tmp_path, "house-6x9-color")
+    assert "highlight-style" not in defaults
 
 
 @pytest.mark.layer("unit")

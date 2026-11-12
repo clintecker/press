@@ -87,8 +87,10 @@ column is the point: a guarantee whose edges are unstated is a
 guarantee waiting to be overtrusted. Universal fixtures live in
 `src/press/data/known-bad/`; a book adds its own under
 `tests/known-bad/`.
-The single-ink syntax theme the print profile highlights with is
-`src/press/data/press-mono.theme`, resolved into the defaults as
+The single-ink syntax theme a single-ink print profile highlights with is
+`src/press/data/press-mono.theme`; `build.render_defaults` adds it to the
+print defaults only when the active profile's ink is `single` (an `ink:
+color` profile keeps pandoc's default style), resolved as
 `@press/press-mono.theme` like every other packaged data file.
 
 ## Provenance and verification

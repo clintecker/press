@@ -196,7 +196,17 @@ def render_defaults(name: str) -> Path:
         # fragment included right after the house header, overriding its
         # defaults. The house profile carries the v1 numbers, so a v1 book is
         # unchanged; another profile changes the page (#172).
-        profiles.write_geometry_tex(profiles.active(), root / "build" / "profile-geometry.tex")
+        profile = profiles.active()
+        profiles.write_geometry_tex(profile, root / "build" / "profile-geometry.tex")
+        if name == "print" and profile.ink == "single":
+            # Syntax highlighting in a single ink (#273). skylighting's
+            # default pygments style colours a fence tagged yaml/python/sh,
+            # and verify_black_ink refuses a coloured single-ink interior, so
+            # the print build highlights with the house monochrome theme:
+            # greys and weight/slant only. An ink: color profile was never
+            # refused, so it keeps the default colours, as do the reading
+            # PDF, HTML and EPUB; retinting those is a house-wide design call.
+            defaults["highlight-style"] = "@press/press-mono.theme"
         if name == "print":
             # Flatten transparency and cap image resolution for the print
             # interior only; print-header.tex prepends build/print-assets to
