@@ -133,3 +133,11 @@ pre { overflow-x: auto; background: #efefeb; padding: 1rem; }
 .verse { margin: 1.5em 0 1.5em 2.4em; }
 .tail { margin: 1.8em 0; text-align: center; line-height: 1.3; }
 .tail .tail-line { margin: 0; }
+
+/* Example captions (listings.lua): small, the number bold, the title
+   italic, directly above the block it names. */
+.example-caption { font-size: .9em; margin: 1.4em 0 .35em; }
+.example-caption p { margin: 0; }
+.example-caption em em { font-style: normal; }
+.example-caption + pre, .example-caption + .sourceCode,
+.example-caption + .sourceCode pre { margin-top: 0; }

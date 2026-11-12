@@ -394,14 +394,42 @@
 
 % Better code blocks in narrow trim.
 \usepackage{fvextra}
-\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\}}
 % pandoc uses Highlighting only for a fence with a recognised language tag; an
-% untagged fence (or one tagged `text`) becomes plain verbatim, which does not
+% untagged fence (and, under the pinned image's pandoc 3.1, one tagged
+% `text`) becomes plain verbatim, which does not
 % wrap, so a line past the measure ran off the page edge (#279). Rebind
 % verbatim to the same fvextra environment with the same break options, so
-% both kinds of fence wrap identically. The remaining options make a fence
-% that already fit render pixel-identical to the kernel verbatim it replaces
-% (the v3 contract: a fix must not move a valid book's layout):
+% both kinds of fence wrap identically and wear the same listing design.
+%
+% The house listing (v4, #293): a reader must see where code starts and
+% stops, and a page of prose with three bare blocks in it reads as one grey
+% field. So every code block, tagged or not, is set at \small between two
+% hairline rules the full width of the measure, with 9pt plus 2pt above the
+% top rule and below the bottom one, and 4pt between each rule and the code.
+% The frame is fvextra's own (frame=lines), so a block that breaks across
+% pages is fancyvrb's problem, not ours: with frame=lines the rules are drawn
+% at the true top and bottom of the block only, never at a page break inside
+% it. That is the house decision: a rule mid-block would read as the end of
+% the listing, and the code's own continuation is plain from the next page's
+% first line. Both rules are held to the code by fancyvrb's \penalty\@M, so
+% a rule never strands alone at a page foot or head.
+%   fontsize=\small  the code face stays Source Code Pro at 0.86; \small sets
+%       the block a size below the prose, the house size for set-off matter.
+%   vspace  the skip fancyvrb adds above and below the block, in place of
+%       \topsep. partopsep is zeroed (listparameters): LaTeX adds it to a
+%       list that opens after a finished paragraph, which a pandoc block
+%       always does, so the 9pt would otherwise be 11pt.
+%   framerule=0.4pt, framesep=4pt  the hairline, and its air.
+%   No rulecolor: the rules print in the text ink, so a single-ink print
+%       interior gets a solid line rather than a screened grey one.
+%   listparameters  \clubpenalty and \widowpenalty zeroed as #279 set them:
+%       fancyvrb would otherwise insert the house's 10000 after a block's
+%       first line and before its last, and the inside of a block keeps the
+%       page breaks it had.
+% The remaining options make the inside of a block set exactly as the
+% kernel verbatim #279 replaced would at the same size (the pitch and breaks
+% that fix promised, now proven at \small inside the frame), and give a
+% tagged fence (Highlighting) the same inside as an untagged one:
 %   backgroundcolorboxoverlap=0pt  fvextra follows every line with
 %       \vspace{-0.25pt} even with no background colour, which shortened the
 %       pitch inside a block by 0.5pt a line; off, the strutted line boxes
@@ -409,21 +437,57 @@
 %   tabsize=1  fancyvrb sets a tab as an 8-space box; the kernel sets it as
 %       one space. pandoc expands tabs before LaTeX sees them, so this only
 %       reaches a raw tex include, but it stays faithful there too.
-%   listparameters  fancyvrb inserts \clubpenalty and \widowpenalty (both
-%       10000 in this house) after a block's first line and before its last;
-%       the kernel sets each line as its own paragraph with no such penalty,
-%       so page breaks inside a block must stay where they were.
-% The Highlighting environment above keeps fvextra's defaults: changing its
-% spacing would move every tagged fence, which is a design change.
 % backgroundcolorboxoverlap exists only in the fvextra releases that
 % added the overlap \vspace; the pinned toolchain image's fvextra (1.6.1)
 % has neither the key nor the shortened pitch, and an unknown key is a fatal
 % xkeyval error, so the option is passed only where fvextra defines it.
+% The options are written out per environment because fancyvrb reads them
+% as key-value text, not as a macro it would expand.
 \ifcsname KV@FV@backgroundcolorboxoverlap\endcsname
-\RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere,backgroundcolorboxoverlap=0pt,tabsize=1,listparameters={\clubpenalty=0 \widowpenalty=0 }}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\},backgroundcolorboxoverlap=0pt,tabsize=1,fontsize=\small,frame=lines,framerule=0.4pt,framesep=4pt,vspace=9pt plus 2pt,listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 }}
+\RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere,backgroundcolorboxoverlap=0pt,tabsize=1,fontsize=\small,frame=lines,framerule=0.4pt,framesep=4pt,vspace=9pt plus 2pt,listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 }}
 \else
-\RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere,tabsize=1,listparameters={\clubpenalty=0 \widowpenalty=0 }}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\},tabsize=1,fontsize=\small,frame=lines,framerule=0.4pt,framesep=4pt,vspace=9pt plus 2pt,listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 }}
+\RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere,tabsize=1,fontsize=\small,frame=lines,framerule=0.4pt,framesep=4pt,vspace=9pt plus 2pt,listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 }}
 \fi
+% fvextra (every release, 1.6.1 through 1.14) replaces fancyvrb's top rule
+% with an older form that backs up half a \baselineskip after the rule, so
+% framesep was not the space between the rule and the code: at \small the
+% first line sat under 2pt from the rule while the last sat 4pt above the
+% bottom one. fancyvrb 4.5 fixed its own copy (\nointerlineskip, then the
+% kern); this restores that form, the mirror of the bottom rule fancyvrb and
+% fvextra both still use, so the top and bottom air are the same 4pt.
+\makeatletter
+\def\FV@BeginListFrame@Lines{%
+  \begingroup
+  \lineskip\z@skip
+  \FV@SingleFrameLine{\z@}%
+  \nointerlineskip
+  \baselineskip\z@skip
+  \kern\FV@FrameSep\relax
+  \penalty\@M
+  \endgroup}
+% An example caption (the listings filter writes it before its block): bold
+% "Example C.N." and the title in italic, flush left, at the block's \small.
+% It asks for room for itself, the rule, and two lines of code, so a caption
+% never strands at a page foot with its listing over the leaf; \nopagebreak
+% and \@nobreaktrue after it hold it to the rule, and the latter tells
+% fancyvrb (as a heading does) to add no space of its own above the block,
+% so the 3pt here is the whole gap between the caption and the top rule.
+% \nointerlineskip makes that literal: the strut ends the caption at a fixed
+% depth, and the rule follows 3pt below it with no baseline glue in between.
+\newsavebox{\PressExampleCaptionBox}
+\newcommand{\PressExampleCaption}[2]{%
+  \par\addvspace{9pt plus 2pt}%
+  \sbox{\PressExampleCaptionBox}{\parbox{\linewidth}{\PressExampleCaptionText{#1}{#2}}}%
+  \Needspace{\dimexpr\ht\PressExampleCaptionBox+\dp\PressExampleCaptionBox
+    +3pt+0.4pt+4pt+2\baselineskip\relax}%
+  \PressExampleCaptionText{#1}{#2}%
+  \nopagebreak\vskip3pt\relax\nointerlineskip\@nobreaktrue}
+\newcommand{\PressExampleCaptionText}[2]{%
+  {\noindent\raggedright\small
+   \ifx\relax#1\relax\else\textbf{#1}\enspace\fi\emph{#2}\strut\par}}
+\makeatother
 
 % Plain title page driven by document metadata (books that want the
 % treatise front matter include tex/title-page.tex after this file).

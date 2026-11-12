@@ -175,7 +175,10 @@ DESIGN_NOTES: dict[int, str] = {
         "as the web editions. Tables are set by shape: a key-plus-prose table "
         "becomes a ledger (key on its own line, prose at full measure) and "
         "every other table a smaller grid whose columns wrap, so page counts "
-        "move a little; a `::: {{.grid}}` div keeps a table a table. After "
+        "move a little; a `::: {{.grid}}` div keeps a table a table. Every "
+        "code block is a listing, set a size smaller between hairline rules, "
+        "and a bold `Example C.N. Title` paragraph before a fence becomes its "
+        "caption, kept with it at a page foot; page breaks move. After "
         "apply, rebuild and look at the pages; docs/TABLES.md and "
         "docs/MIGRATION.md 'What v3 -> v4 actually changes' list what moved."
     ),

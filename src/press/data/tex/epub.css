@@ -60,3 +60,11 @@ figure img { max-width: 100%; height: auto; }
 .grid table { font-size: .9em; border-collapse: collapse; }
 .grid th { font-variant: small-caps; letter-spacing: .04em; text-align: left; }
 .grid td code, .grid th code { white-space: nowrap; }
+
+/* Example captions (listings.lua): small, the number bold, the title
+   italic, directly above the block it names. */
+.example-caption { font-size: .9em; margin: 1.4em 0 .35em; }
+.example-caption p { margin: 0; }
+.example-caption em em { font-style: normal; }
+.example-caption + pre, .example-caption + .sourceCode,
+.example-caption + .sourceCode pre { margin-top: 0; }

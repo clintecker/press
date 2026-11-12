@@ -6,6 +6,7 @@ number-sections: true
 metadata-file: "@book/config/metadata.yaml"
 filters:
   - "@press/lua/typographic-spacing.lua"
+  - "@press/lua/listings.lua"
   - "@press/lua/table-shapes.lua"
   - "@press/lua/set-pieces.lua"
   - "@press/lua/figure-numbering.lua"
