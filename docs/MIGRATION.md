@@ -101,12 +101,18 @@ so a book with tables does not render byte-for-byte as it did under v3.
   and no PDF page may ink past its text block. A v3 book that built green can
   turn red on either, and each failure names the PDF page, or the edition
   and page file that holds the table.
+- **Line breaking changes in every book, with or without tables.**
+  `\emergencystretch` is 10em (pandoc's 3em under v3), and a code span may
+  break as a last resort after an existing hyphen or after `/ _ . , ( ) ; = :`
+  with no glyph added. Paragraphs that held unbreakable code re-break, so page
+  breaks move (55 of 387 pages on *Publishing with Press*), and a code line
+  that overran the margin under v3 now either breaks or fails the text-block
+  verifier.
 
-A book with no tables renders as it did under v3, apart from new
-stylesheet rules, but the text-block verifier judges every book: a code line
-that ran into the margin under v3 now fails the build.
+Beyond that line breaking, a book with no tables differs from v3 only by
+new stylesheet rules, and the text-block verifier judges every book.
 After `press migrate apply`, rebuild and look at every page that carries a
-table; `press migrate rollback` restores the exact v3 pin.
+table or inline code; `press migrate rollback` restores the exact v3 pin.
 
 | Site | Before | After |
 | --- | --- | --- |

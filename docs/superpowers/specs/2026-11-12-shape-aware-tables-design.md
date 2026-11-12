@@ -196,7 +196,8 @@ target can follow once the measurement has proved stable.
 Measured on *Publishing with Press* rebuilt under the branch:
 
 - Reader site at 1280, 820, and 390 px: zero in-token code splits in
-  grids, zero clipped cells, zero pages scrolling sideways; the 106
+  grids, zero clipped cells, zero pages scrolling sideways because of a
+  table (the six at 390 px are body prose, #297); the 106
   reference lists render as ledgers, the 10 grids as wrapped tables.
   (Amended after the Task 8 measurement: inline code in ledger and body
   prose breaks at its own hyphens in Chrome, a site-wide fault that
