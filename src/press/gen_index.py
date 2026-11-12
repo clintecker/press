@@ -17,14 +17,38 @@ from . import yamlio
 from . import booklib, gen_authorities
 
 
+_HEADING = re.compile(r"^#\s+(?P<title>.*?)\s*(?:\{(?P<attrs>[^}]*)\})?\s*$")
+
+
+def _unnumbered_title(path: Path) -> str | None:
+    """The title of an unnumbered part that is not titled as an appendix (a
+    colophon, an about-the-author page), or None. Its first level-1 heading
+    must carry ``{.unnumbered}`` or ``{-}`` and not begin "Appendix"."""
+
+    for line in path.read_text(encoding="utf-8").splitlines():
+        match = _HEADING.match(line)
+        if not match:
+            continue
+        attrs = (match["attrs"] or "").split()
+        title = match["title"].strip()
+        unnumbered = ".unnumbered" in attrs or "-" in attrs
+        if unnumbered and title and not title.lower().startswith("appendix"):
+            return title
+        return None
+    return None
+
+
 def chapter_label(path: Path) -> str:
-    """Human label for a manuscript file, derived from its filename."""
+    """Human label for a manuscript file, derived from its filename. An
+    unnumbered back-matter part that is not an appendix locates by its own
+    title: its filename letter only orders it, and as a locator it read as an
+    appendix the Contents does not have (#288)."""
 
     name = path.name
     if name.startswith("00-"):
         return "Preface"
     if path.parent.name == "appendices":
-        return name[0].upper()
+        return _unnumbered_title(path) or name[0].upper()
     return str(int(name.split("-", 1)[0]))
 
 
@@ -65,10 +89,21 @@ def generate() -> Path | None:
         for path in booklib.chapter_files()
     ]
 
+    # A book whose back matter locates by title says so in the head note; a
+    # book with none keeps the note word for word.
+    titled = any(
+        len(label) > 1 and not label.isdigit() and label != "Preface" for label, _ in sources
+    )
+    opening = (
+        "Numbers are chapters, letters are appendices, and other back matter is"
+        " named by its title; all stay put across"
+        if titled
+        else "Numbers are chapters and letters are appendices; both stay put across"
+    )
     lines = [
         f"# Appendix {letter.upper()}: Index of subjects {{-}}",
         "",
-        "Numbers are chapters and letters are appendices; both stay put across",
+        opening,
         "editions, which page numbers do not. The locations below are found in",
         "the text on every build, so the index cannot drift from the book.",
         "",

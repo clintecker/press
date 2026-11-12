@@ -126,7 +126,7 @@ verifiers run on every `press all`. Both are listed in the
   sits inside your own `::: {.grid}`, whose div keeps its class and so
   passes). Write it as a pipe table.
 - **No page inks past its text block** (`INV-pdf-text-block`, enforced by
-  `verify_pdf.verify_text_block`). Each body page of the PDF is rendered and
+  `verify_text_block.verify_text_block`, run by `verify_pdf`). Each body page of the PDF is rendered and
   refused when its ink runs more than 6 pixels (0.05 inch) past the right
   edge of the text block the trim profile declares. This catches a table
   cell, a code line, or anything else that will not break and runs into the

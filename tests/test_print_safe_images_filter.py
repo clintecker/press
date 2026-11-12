@@ -71,3 +71,114 @@ def test_an_already_redirected_path_is_not_doubled():
     # again, so re-running the print defaults cannot nest the prefix.
     already = "build/print-assets/assets/plate.png"
     assert _rewrite(already) == already
+
+
+def _rewritten_srcs(chapter: Path) -> list[str]:
+    """Every Image src in ``chapter`` after the filter ran, read from pandoc's
+    own AST (the JSON writer), so the parity below is against what pandoc
+    parses -- a link title, angle brackets, a reference-style image, a nested
+    bracket in the caption -- not against a hand-written src string."""
+    import json
+
+    result = subprocess.run(
+        ["pandoc", "-f", "markdown", "-t", "json", lua_coverage.filter_arg(FILTER), str(chapter)],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    found: list[str] = []
+
+    def walk(node):
+        if isinstance(node, dict):
+            if node.get("t") == "Image":
+                found.append(node["c"][2][0])
+            walk(node.get("c"))
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    walk(json.loads(result.stdout)["blocks"])
+    return found
+
+
+# Every spelling pandoc accepts for an image under assets/, each naming a
+# distinct file: plain, ./ and / prefixed, a link title, angle brackets
+# around a path with a space, a percent-escaped space, a reference-style
+# image, a caption with a nested link, and an extensionless src that
+# lualatex resolves by extension search.
+_PARITY_CHAPTER = """\
+# One
+
+![P](assets/figures/pipeline.png){.figure}
+
+![H](./assets/fig/press.jpg)
+
+![W](/assets/woodcuts/w.png){.plate}
+
+![T](assets/fig/titled.png "A title")
+
+![B](<assets/fig/with space.png>)
+
+![E](assets/fig/with%20escape.png)
+
+![R][ref]
+
+![See [the docs](https://example.com)](assets/fig/nested.png)
+
+![X](assets/fig/extensionless)
+
+[ref]: assets/fig/referenced.png
+"""
+
+_PARITY_FILES = (
+    "assets/figures/pipeline.png",
+    "assets/fig/press.jpg",
+    "assets/woodcuts/w.png",
+    "assets/fig/titled.png",
+    "assets/fig/with space.png",
+    "assets/fig/with escape.png",
+    "assets/fig/referenced.png",
+    "assets/fig/nested.png",
+    "assets/fig/extensionless.png",
+)
+
+
+def _resolves(path: Path) -> bool:
+    """Whether lualatex would find ``path``: the file itself, or, for an
+    extensionless src, a sibling with any image extension."""
+    if path.is_file():
+        return True
+    return not path.suffix and any(p.is_file() for p in path.parent.glob(path.name + ".*"))
+
+
+@_needs_pandoc
+@pytest.mark.layer("integration")
+def test_the_rewrite_lands_on_the_file_prepare_writes(tmp_path):
+    # #272: the filter rewrites every assets/ src pandoc parses, so
+    # print_safe.prepare must write every one of them -- a figure in
+    # assets/figures/ as much as a plate in woodcuts/, however the markdown
+    # spells the path. Run both over the same manuscript and every rewritten
+    # src (from pandoc's AST, after the filter) must exist under
+    # build/print-assets: the rewrite set is a subset of the copy set.
+    from urllib.parse import unquote
+
+    from PIL import Image
+
+    from press import print_safe
+
+    for rel in _PARITY_FILES:
+        target = tmp_path / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        Image.new("RGB", (20, 20), (0, 0, 0)).save(target)
+    chapter = tmp_path / "book" / "chapters" / "01-one.md"
+    chapter.parent.mkdir(parents=True)
+    chapter.write_text(_PARITY_CHAPTER, encoding="utf-8")
+
+    print_safe.prepare(tmp_path)
+
+    rewritten = _rewritten_srcs(chapter)
+    assert len(rewritten) == len(_PARITY_FILES), rewritten
+    assert all(src.startswith("build/print-assets/assets/") for src in rewritten), rewritten
+    # pandoc's LaTeX writer unescapes a non-URI src before \includegraphics.
+    missing = [src for src in rewritten if not _resolves(tmp_path / unquote(src))]
+    assert not missing, f"rewritten by the filter, never written by prepare: {missing}"

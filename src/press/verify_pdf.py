@@ -17,6 +17,7 @@ from typing import cast
 from PIL import Image, ImageDraw, ImageStat
 
 from . import adapters, booklib, profiles
+from .verify_text_block import body_start, first_body_index, ink_bbox, verify_text_block
 
 RENDER_SCRIPT = Path("/home/oai/skills/pdfs/scripts/render_pdf.py")
 
@@ -100,7 +101,7 @@ def verify_plate_links(pdf: Path) -> None:
         return
 
     reader = PdfReader(str(pdf))
-    _list_links_land_on_images(reader, "List of plates")
+    _list_links_land_on_images(reader, "List of Plates")
     _list_links_land_on_images(reader, "List of Figures")
 
 
@@ -175,36 +176,6 @@ def edge_has_ink(image: Image.Image, border: int = 2) -> bool:
     return any(cast("tuple[int, int]", strip.getextrema())[0] < 245 for strip in strips)
 
 
-def ink_bbox(image: Image.Image) -> tuple[int, int, int, int] | None:
-    """Bounding box of dark pixels; None for an effectively empty page."""
-
-    mask = image.convert("L").point(lambda v: 255 if v < 160 else 0)
-    return mask.getbbox()
-
-
-def body_start(images: list[Path]) -> int:
-    """Index of the first body page when the PDF states none: the first 20
-    percent of a book (and never fewer than two pages) is taken to be cover,
-    title, and front matter."""
-
-    return max(2, int(len(images) * 0.2))
-
-
-def first_body_index(pdf: Path) -> int | None:
-    """Index of the first page whose label is arabic (folio 1 of the main
-    matter); None when the PDF carries no such label. The house numbers
-    front matter in roman, so this is exactly where the Contents ends."""
-
-    from pypdf import PdfReader
-
-    reader = PdfReader(pdf)
-    # pypdf invents decimal labels for a PDF without /PageLabels; those say
-    # nothing about where the front matter ends.
-    if "/PageLabels" not in cast("dict", reader.trailer["/Root"]):
-        return None
-    return next((i for i, label in enumerate(reader.page_labels) if label.isdigit()), None)
-
-
 def verify_mirrored_margins(images: list[Path]) -> None:
     """Print interiors bind: the inner margin must exceed the outer, and
     the excess must swap sides between recto and verso."""
@@ -226,114 +197,6 @@ def verify_mirrored_margins(images: list[Path]) -> None:
             "print profile: margins do not mirror (recto left edge "
             f"{median_recto}px, verso {median_verso}px); the gutter is missing"
         )
-
-
-# The running head and the folio sit outside the text block; a page is judged
-# on its middle 84 percent. An overrun of more than TEXT_BLOCK_SLACK px at the
-# 120 dpi render (0.05in) is ink past the measure, not antialiasing or a
-# protruded punctuation mark.
-TEXT_BLOCK_BAND = 0.08
-TEXT_BLOCK_SLACK = 6
-PRINT_HEADER = booklib.DATA / "tex" / "print-header.tex"
-
-# (trim width in inches, right margin in inches per measure class)
-Geometry = tuple[float, dict[int, float]]
-
-
-def _measure_class(index: int, profile: str) -> int:
-    """Pages that share a measure: recto (1) and verso (0) in a bound print
-    interior whose gutter shifts the block, one class (0) otherwise."""
-
-    return (index + 1) % 2 if profile == "print" else 0
-
-
-def print_margins() -> tuple[float, float]:
-    """(inner, outer) in inches of the print interior, read from the
-    print-header.tex the print build includes last: its ``\\geometry`` line
-    overrides the design profile's inner and outer for every print book."""
-
-    text = PRINT_HEADER.read_text(encoding="utf-8")
-    match = re.search(r"\\geometry\{inner=([\d.]+)in,outer=([\d.]+)in\}", text)
-    if match is None:
-        raise SystemExit(f"{PRINT_HEADER.name} states no inner/outer geometry")
-    return float(match.group(1)), float(match.group(2))
-
-
-def text_block_geometry(profile: str, design: profiles.Profile | None = None) -> Geometry:
-    """The text block's right edge as the build sets it: the design profile's
-    trim, and its right margin per measure class. The reading PDF is
-    one-sided, so every page's right margin is the profile's outer; a print
-    recto's right margin is the print header's outer and a verso's its
-    inner (the gutter swaps sides)."""
-
-    design = design or profiles.active()
-    width, _height = design.trim
-    if profile == "print":
-        inner, outer = print_margins()
-        right = {1: outer, 0: inner}
-    else:
-        right = {0: design.margins["outer"]}
-    if not all(0 < margin < width for margin in right.values()):
-        raise SystemExit(
-            f"{design.id}: right margins {sorted(right.values())}in leave no text block "
-            f"on a {width:g}in page"
-        )
-    return width, right
-
-
-def text_block_right(
-    images: list[Path], profile: str, geometry: Geometry | None = None
-) -> dict[int, int]:
-    """The text block's right edge in render pixels per measure class,
-    scaled from the geometry by the rendered page width (so the render dpi
-    never needs restating)."""
-
-    trim_width, right_margins = geometry or text_block_geometry(profile)
-    with Image.open(images[0]) as image:
-        width = image.width
-    scale = width / trim_width
-    return {cls: round(width - margin * scale) for cls, margin in right_margins.items()}
-
-
-def text_block_overruns(
-    images: list[Path], profile: str, start: int | None = None, geometry: Geometry | None = None
-) -> list[tuple[int, int]]:
-    """(page number, px past the text block) for every inked body page from
-    index ``start`` (default body_start); negative when the ink stops short,
-    as ragged verse and code do. The running-head and folio bands are
-    cropped away first."""
-
-    measure = text_block_right(images, profile, geometry)
-    first = body_start(images) if start is None else start
-    overruns: list[tuple[int, int]] = []
-    for index in range(first, len(images)):
-        with Image.open(images[index]) as image:
-            width, height = image.size
-            band = int(height * TEXT_BLOCK_BAND)
-            box = ink_bbox(image.crop((0, band, width, height - band)))
-        if box is not None:
-            overruns.append((index + 1, box[2] - measure[_measure_class(index, profile)]))
-    return overruns
-
-
-def verify_text_block(
-    images: list[Path], profile: str, start: int | None = None, geometry: Geometry | None = None
-) -> None:
-    """No body page inks past the text block: a code line or table cell that
-    will not break runs into the margin, and a reader sees it cut or cramped
-    against the trim. The measure is the build's own geometry, not a sample
-    of the pages, so a ragged book and a two-page book are judged alike.
-    Front matter (pages before ``start``, which main reads from the PDF's
-    page labels) and the running-head and folio bands are not judged.
-    Limitation: the raster cannot tell a deliberately outset figure from
-    overflowing text, so such a figure is refused too; the house caps
-    figures at the line width."""
-
-    for page, overrun in text_block_overruns(images, profile, start, geometry):
-        if overrun > TEXT_BLOCK_SLACK:
-            raise SystemExit(
-                f"{profile} profile: page {page} runs {overrun} px past the text block"
-            )
 
 
 def verify_black_ink(images: list[Path], ink: str = "single") -> None:
@@ -502,6 +365,69 @@ def drop_structural_blank(blank_pages: list[int]) -> list[int]:
     return [page for page in blank_pages if page not in structural]
 
 
+def ink_bands(image: Image.Image, threshold: int = 128) -> list[tuple[int, int]]:
+    """The horizontal bands of ink down a rendered page, top to bottom, as
+    (first row, last row): a line of text, a running head, a folio, a plate.
+    A row is inked when any pixel in it is darker than *threshold*."""
+
+    gray = image.convert("L").point(lambda v: 255 if v < threshold else 0)
+    width, height = gray.size
+    data = gray.tobytes()
+    bands: list[tuple[int, int]] = []
+    start: int | None = None
+    for y in range(height):
+        inked = any(data[y * width : (y + 1) * width])
+        if inked and start is None:
+            start = y
+        elif not inked and start is not None:
+            bands.append((start, y - 1))
+            start = None
+    if start is not None:
+        bands.append((start, height - 1))
+    return bands
+
+
+def stranded_lines(image: Image.Image) -> int:
+    """How many lines of text a page carries besides its running head and
+    folio, when that is one or two and nothing else (no plate, no rule
+    block); 0 otherwise. A band in the top or bottom tenth of the page is the
+    head or the folio; a band taller than three per cent of the page is not a
+    line of text. A page with no running head (a dedication, an epigraph, a
+    half-title, a chapter opening) is a designed page and never counts."""
+
+    height = image.size[1]
+    bands = ink_bands(image)
+    if not any(bottom < 0.10 * height for _, bottom in bands):
+        return 0
+    body = [
+        (top, bottom) for top, bottom in bands if top > 0.10 * height and bottom < 0.90 * height
+    ]
+    if not 1 <= len(body) <= 2:
+        return 0
+    if any(bottom - top > 0.03 * height for top, bottom in body):
+        return 0
+    return len(body)
+
+
+def warn_stranded_pages(images: list[Path]) -> list[int]:
+    """A layout warning, never a failure (#291): a page whose ink is only its
+    running head, its folio, and fewer than three lines of text -- a lone
+    Contents entry, a last line carried over -- passes the ink check but
+    reads as a near-blank page. Returns the 1-based page numbers warned."""
+
+    warned: list[int] = []
+    for index, image_path in enumerate(images, start=1):
+        with Image.open(image_path) as image:
+            lines = stranded_lines(image)
+        if lines:
+            warned.append(index)
+            print(
+                f"  warning: page {index} carries only its running head, its folio, "
+                f"and {lines} line(s) of text; check for a stranded line"
+            )
+    return warned
+
+
 def verify_page_ink(images: list[Path], profile: str) -> None:
     """Every rendered page must carry ink, keep it off the edge, and share
     one set of dimensions."""
@@ -554,6 +480,7 @@ def main(argv: list[str] | None = None) -> int:
     images = render_pages(pdf, args.render_dir.resolve(), expected_pages)
     verify_page_ink(images, args.profile)
     verify_text_block(images, args.profile, first_body_index(pdf))
+    warn_stranded_pages(images)
 
     profile_note = ""
     if args.profile == "print":

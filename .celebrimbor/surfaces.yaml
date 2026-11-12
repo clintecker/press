@@ -93,7 +93,7 @@ modules:
       normalize_reference: normalizer
       parse_commissions: parser
       shape_for: pure
-    pin: "994df98240ae"
+    pin: "c96b179020ed"
     role: adapter
     status: ratified
   art_enhance:
@@ -137,11 +137,9 @@ modules:
       _build_html: producer
       build_target: orchestrator
       cover_fragment_html: pure
-      download_names: pure
       pandoc_build: producer
       run: adapter
-      subtitle_stack_html: pure
-    pin: "a81106139217"
+    pin: "d52c9ae0096e"
     role: producer
     status: ratified
   catalog:
@@ -271,8 +269,9 @@ modules:
   figures:
     overrides:
       as_dict: pure
+      diagnostics_for: verifier
       main: presenter
-    pin: "63f71f0efb7e"
+    pin: "9473fffb2bf7"
     role: parser
     status: ratified
   gen_authorities:
@@ -303,7 +302,7 @@ modules:
     role: producer
     status: ratified
   gen_index:
-    pin: "3b15fe3d8430"
+    pin: "0d3a85e9ab9f"
     role: producer
     status: ratified
   idlookup:
@@ -337,6 +336,13 @@ modules:
       line_and_column: pure
     pin: "e1292b8a37d9"
     role: verifier
+    status: ratified
+  landing:
+    overrides:
+      download_names: pure
+      subtitle_stack_html: pure
+    pin: "605c416ee9f5"
+    role: producer
     status: ratified
   migrate:
     overrides:
@@ -476,6 +482,16 @@ modules:
     pin: "8916446d0630"
     role: pure
     status: ratified
+  reader_links:
+    overrides:
+      AnchorScan.handle_starttag: parser
+      anchor_ids: parser
+      local_anchors: parser
+      page_ids: parser
+      sibling_anchors: parser
+    pin: "fa1d26b068f5"
+    role: producer
+    status: ratified
   reader_meta:
     overrides:
       book_sitemap_locs: pure
@@ -566,17 +582,13 @@ modules:
     status: ratified
   verify_formats:
     overrides:
-      chapter_witnesses: adapter
+      chapter_witnesses: orchestrator
       docx_visible_text: parser
       manuscript_witness: adapter
       normalized: normalizer
       plate_count: pure
       sentinel_present: pure
-    pin: "da1b4134bae0"
-    role: verifier
-    status: ratified
-  verify_table_shape:
-    pin: "cacf5793a496"
+    pin: "8399e52e6c2a"
     role: verifier
     status: ratified
   verify_pages:
@@ -591,16 +603,25 @@ modules:
     status: ratified
   verify_pdf:
     overrides:
-      body_start: pure
       edge_has_ink: pure
-      first_body_index: parser
-      ink_bbox: pure
       looks_blank: pure
       parse_args: parser
-      print_margins: parser
       render_pages: verifier
       run_capture: parser
-    pin: "a4eb25ba1cce"
+    pin: "2dc605f1374a"
+    role: verifier
+    status: ratified
+  verify_table_shape:
+    pin: "bb30aa7d362b"
+    role: verifier
+    status: ratified
+  verify_text_block:
+    overrides:
+      body_start: pure
+      first_body_index: parser
+      ink_bbox: pure
+      print_margins: parser
+    pin: "698cb197e668"
     role: verifier
     status: ratified
   webmeta:

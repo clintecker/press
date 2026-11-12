@@ -19,7 +19,7 @@ import re
 import sys
 from pathlib import Path
 
-from . import adapters, booklib, style_audit
+from . import adapters, booklib, figures, style_audit
 
 EXPECT = re.compile(r"<!--\s*expect:\s*(.+?)\s*-->")
 """The declared-diagnostic convention: a fixture's first line names the
@@ -28,9 +28,9 @@ the checker agree on how a fixture states its expected diagnostic."""
 
 
 def diagnostics(fixture: Path) -> list[str]:
-    """Every diagnostic any prose checker emits for the fixture."""
+    """Every diagnostic any prose or figure checker emits for the fixture."""
 
-    found: list[str] = []
+    found: list[str] = list(figures.diagnostics_for(fixture))
     buffer = io.StringIO()
     with contextlib.redirect_stdout(buffer):
         style_audit.main([str(fixture)])

@@ -123,6 +123,20 @@ def test_every_row_restarts_at_the_first_column():
     assert out.count('data-label="What it does"') == 2
 
 
+def test_rows_pandoc_classes_odd_and_even_are_labelled_too():
+    # The pinned toolchain's pandoc writes body rows as <tr class="odd"> and
+    # <tr class="even">; a bare-<tr> match labelled nothing and the reader CSS
+    # could not stack the table on a phone (#283).
+    out = webmeta.label_table_cells(
+        _headed(
+            '<tr class="odd"><td>A</td><td>a</td></tr><tr class="even"><td>B</td><td>b</td></tr>'
+        )
+    )
+    assert '<tr class="odd"><td data-label="Stage">A</td>' in out
+    assert '<tr class="even"><td data-label="Stage">B</td>' in out
+    assert out.count('data-label="What it does"') == 2
+
+
 def test_a_table_without_a_header_row_is_untouched():
     # The reference records and the downloads table: the first cell IS the
     # label, so stacking them would invent a header that does not exist.

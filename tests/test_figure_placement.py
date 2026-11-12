@@ -56,6 +56,32 @@ def test_wrap_fuses_to_the_following_paragraph_in_latex():
     assert "\\caption*" in out
 
 
+_WRAP_WITH_DIRECTIVE = (
+    "# C\n\nBefore.\n\n"
+    "![A cap.](x.png){.figure width=half-measure place=wrap-outer "
+    'fig-alt="a"}\n\n'
+    "<!-- art: a hand press, the platen raised; high contrast line -->\n\n"
+    "The wrapping paragraph runs on at length.\n"
+)
+
+
+@_needs_pandoc
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_wrap_with_an_art_directive_between_still_fuses_to_its_paragraph():
+    # A directive comment after the blank line is a RawBlock between the wrap
+    # and its paragraph. The filter skips it when fusing (#280), so a wrapped
+    # figure can carry art direction and keep its runaround; the comment
+    # itself never reaches the LaTeX.
+    out = _render(_WRAP_WITH_DIRECTIVE)
+    assert "\\begin{wrapfigure}{o}" in out
+    assert "\\end{wrapfigure}%\nThe wrapping paragraph" in out
+    assert "art:" not in out
+    # Without the skip, the comment flushed the wrap standalone: \par between
+    # the wrap and the text. Pin the absence of that shape.
+    assert "\\end{wrapfigure}\n\nThe wrapping paragraph" not in out
+
+
 @_needs_pandoc
 @pytest.mark.layer("integration")
 def test_full_page_placements_take_their_own_leaf():
@@ -69,6 +95,28 @@ def test_full_page_placements_take_their_own_leaf():
     # a frontispiece clears to the verso, facing the next chapter's recto
     front = _render('# C\n\n![Cap.](x.png){.figure place=frontispiece fig-alt="a"}\n')
     assert "\\cleardoubleevenpage" in front
+
+
+@_needs_pandoc
+@pytest.mark.layer("integration")
+@pytest.mark.parametrize("place", ["frontispiece", "full-bleed"])
+def test_a_full_page_caption_is_set_inside_its_own_group(place):
+    # \captionof is a command, not an environment: it sets \noindent and
+    # \sloppy for the caption's paragraph and leaves them set. Emitted bare,
+    # one frontispiece killed the house \parindent and left \tolerance at
+    # 9999 for every page after it (#292). The caption must sit inside braces
+    # so its typesetting ends with the caption.
+    out = _render(f'# C\n\n![Cap.](x.png){{.figure place={place} fig-alt="a"}}\n')
+    (line,) = [ln for ln in out.splitlines() if "\\captionof{figure}" in ln]
+    assert line.startswith("{\\captionof{figure}{"), line
+    assert line.endswith("Cap.}}"), line
+    # the opening brace closes at the line's end, not somewhere inside the
+    # caption: the group is the caption's own
+    depth = 0
+    for i, ch in enumerate(line):
+        depth += {"{": 1, "}": -1}.get(ch, 0)
+        assert depth > 0 or i == len(line) - 1, line
+    assert depth == 0, line
 
 
 @_needs_pandoc
@@ -169,3 +217,22 @@ def test_a_wrap_with_no_following_paragraph_is_flushed_standalone():
     # not. Either way nothing may sit between the wrap and the heading.
     assert re.search(r"\\end\{wrapfigure\}\n\n(?:\\hypertarget\{d\}\{%\n)?\\section\{D\}", out)
     assert "\\end{wrapfigure}%" not in out
+
+
+@_needs_pandoc
+@pytest.mark.layer("integration")
+def test_place_float_lets_a_numbered_figure_float():
+    """#290: an [H] figure cannot float, so a figure that does not fit moves
+    whole to the next page and leaves a band of white at the foot of the one
+    before. place=float is the opt-in: the numbered figure is set as a
+    figure[tbp] float, so text may fill the page. The [H] default is
+    unchanged."""
+    floated = _render("# C\n\nBefore.\n\n![Yields.](y.png){.chart place=float width=half-measure}\n")
+    assert "\\begin{figure}[tbp]\\centering" in floated
+    assert "width=0.5\\linewidth" in floated
+    assert "\\textbf{Figure~1.1.}" in floated
+    default = _render("# C\n\nBefore.\n\n![Yields.](y.png){.chart}\n")
+    assert "\\begin{figure}[H]\\centering" in default
+    assert "[tbp]" not in default
+    html = _render("# C\n\n![Yields.](y.png){.chart place=float}\n", to="html")
+    assert "data-place" not in html and "float" not in html.split("<figure")[1].split(">")[0]

@@ -41,22 +41,247 @@ This is the v4 line: a design major. Nothing here is released yet.
   (`INV-table-shape`): every table in the HTML and reader site is a wrapped
   grid with labelled cells or a ledger with entries; the EPUB is checked for
   wrappers and entries only; a raw HTML `<table>` in a manuscript is refused.
-  `verify_pdf.verify_text_block` (`INV-pdf-text-block`): a body page whose
-  ink runs more than 6 px past the profile's text block is refused.
+  `verify_text_block.verify_text_block` (`INV-pdf-text-block`, run by
+  `verify_pdf`): a body page whose ink runs more than 6 px past the
+  profile's text block is refused. The text-block measure and the ink
+  primitives it shares with `verify_pdf` (`ink_bbox`, `body_start`) live in
+  the new `press.verify_text_block`, and the EPUB and reader-site table
+  sweeps in `press.verify_table_shape`, so neither verifier module outgrows
+  the structure gate once v3.1.0's own additions land beside them.
 - **`scripts/measure_tables.py`**, a maintainer's instrument: it loads a
   built reader site in headless Chrome at 1280, 820, and 390 px and reports
   code split inside a token, clipped cells, pages scrolling sideways,
   sparse and tall cells, and the `.ledger` and `.grid` counts. A heuristic
   for comparing builds, not a gate (`docs/TABLES.md`).
+- **Built on v3.1.0's corrections.** Ledgers and grids lean on v3's #286
+  keep (the sized `\Needspace` before every longtable and the house
+  `description` hook, which `PressLedger` calls rather than copies) and on
+  v3's #287 code spans (robust, unhyphenated `\texttt` with an existing
+  hyphen as a last-resort break), so the v4 header carries no code-span or
+  table-keep machinery of its own.
+
+## [3.1.0] - 2026-11-12
+
+The v3 correction wave. Its layout corrections are seven issues found
+producing *Publishing with Press* (#282, #286, #287, #288, #289, #291, and
+the opt-in #290), each a correction of broken output under the design
+contract (approved by the repository owner on 2026-11-12), scoped to the
+broken case. A valid book that never hit one of these faults typesets as
+before.
+
+### Added
+
+- **`place=float` lets a numbered figure float (#290).** Every numbered figure
+  is pinned `[H]`, so one that does not fit moves whole to the next page and
+  the page before it ends short, a band of white at its foot (15 pages of one
+  379-page book). `place=float` is the opt-in: the figure is set as a
+  `figure[tbp]` float and the following text fills the page. It takes a width
+  measure; `press check` refuses it on a plate. The `[H]` default is
+  unchanged: the issue's v4 house-default change is not made here.
 
 ### Fixed
 
-- **Phone cards fired on no CI-built table** (#283): `label_table_cells`
-  matched only a bare `<tr>`, and pandoc writes `<tr class="odd">`, so no
-  cell was labelled. The row pattern now accepts attributes.
-- **A table head or definition term stranded at a page foot** (#286, the
-  description-list and longtable halves): every ledger key and every grid
-  head now asks for room before it starts.
+- **Headed tables stack on a phone under the pinned toolchain's pandoc** (#283).
+  `webmeta.label_table_cells` matched only bare `<tr>` body rows, so the
+  `<tr class="odd">`/`<tr class="even">` rows the toolchain image's pandoc
+  writes got no `data-label` and the reader CSS had nothing to key on: a
+  chapter with a headed table scrolled sideways at 390px. Any `<tr>` opening
+  tag now matches, kept verbatim. Reader CSS and templates are untouched; a
+  book whose pandoc already wrote bare rows renders byte-identically.
+- **`press render` clears `build/rendered-book/` before rasterizing.**
+  pdftoppm only overwrites the pages it writes, so a rebuild with fewer
+  pages than the previous one left the earlier render's trailing
+  `page-NNN.png` files in place (a 385-page render followed by a 384-page
+  one kept a phantom `page-385.png`), and a page review could read a page
+  the PDF no longer had. The directory is now rebuilt from scratch on
+  every render, matching the print-assets pattern (#285).
+- **The witness pickers no longer choose a line the editions cannot render
+  verbatim (#261, #281).** `_manuscript_witness` and `chapter_witnesses` now
+  share one candidate rule: the 40-character floor, the inline-markup
+  character set, the block-marker exclusion (a definition, list item, or
+  quote renders without its marker, which only the per-chapter picker had
+  applied), and a new exclusion for any pandoc citation token: a
+  pandoc-crossref reference (`@fig:`, `@tbl:`, `@sec:`, `@eq:`), a
+  colonless `@id` naming a numbered figure (the house figure-numbering
+  filter rewrites it the same way), or a `[@key]` citation, all of which
+  render as "Figure 3.3" or a formatted citation in HTML, EPUB, text, DOCX,
+  and the reader site so the source line matched nowhere and
+  `verify-formats` refused a correct build. An e-mail address, whose `@`
+  follows a word character, stays an ordinary witness.
+- **`press art commission` of a logomark through OpenAI no longer asks for a
+  rejected model** (#277). The logomark path was pinned to `gpt-image-1`,
+  which the API now rejects, while the cover and plate paths were already on
+  `gpt-image-2`. All OpenAI image calls -- cover, plates, portrait, logomark,
+  `press cover`, and `press illustrate` -- now share the one `gpt-image-2` pin.
+  The logomark keeps its 1024x1024 size but no longer asks for `background:
+  transparent`: gpt-image-2 dropped transparent backgrounds and no live call
+  has proven otherwise, so the request is not sent. Transparency is made at
+  intake instead: `press art accept --as logomark` extracts the ink of an
+  opaque delivery onto transparency, the path that already cleaned the
+  issue's Gemini workaround. The model pin is proven against a fake client
+  only; the first live logomark commission is the proof the API accepts it.
+- The print-safe pass now prepares every image under `assets/`, whatever
+  directory it lives in. `print-safe-images.lua` rewrites every
+  `assets/...` figure path pandoc parses to `build/print-assets/assets/...`,
+  but `print_safe.prepare` copied only the logomark, the top-level
+  `assets/*.jpg`, and `assets/woodcuts/`, so a numbered figure at
+  `assets/figures/pipeline.png` built a reading PDF and then failed
+  `press print` with `File 'build/print-assets/assets/figures/pipeline.png'
+  not found`. `_targets` now sweeps the image files under `assets/` rather
+  than re-parsing the manuscript (a second parse would have to agree with
+  pandoc's on a link title, angle brackets, a percent-escape, a
+  reference-style image, a nested-bracket caption and an extensionless
+  src, and the first attempt did not), flattens and caps each raster it has
+  not already found, and copies a PDF, SVG or EPS drawing verbatim, so the
+  filter's rewrite set is a subset of the copy set in every spelling. The
+  filter test now reads the rewritten srcs from pandoc's own AST. No change
+  to any reading edition. (#272)
+- **A `place=frontispiece` or `place=full-bleed` figure no longer kills the
+  paragraph indent for the rest of the book.** `figure-numbering.lua` set the
+  full-page caption with a bare `\captionof`, which runs `\noindent` and
+  `\sloppy` for the caption's paragraph and, being a command rather than an
+  environment, leaves them set: from the plate on, every paragraph began flush
+  left (the house 1.1em `\parindent` was dead) and `\tolerance` sat at 9999,
+  loosening interword spacing on every following page. The caption now sits
+  inside its own group. This is a correction of broken output within the
+  design contract: a valid book's paragraphs were never meant to lose their
+  indent, and a book with no full-page figure renders byte-identically. A
+  filter test holds the caption inside braces and a PDF-family test measures
+  the indent of the first paragraph on the page after a frontispiece (#292).
+- **Cross-chapter `@fig:` references resolve in the reader site** (#270).
+  pandoc's chunked writer leaves a manuscript's own `#id` link as written
+  on every page, so a reference to a figure in another chapter shipped as a
+  dead link on the page that made it. `press site` now rewrites every such
+  anchor to `<page>.html#id` after the chunked write
+  (`reader_links.resolve_anchors`), and the site verifier refuses any anchor
+  left dangling (`verify_formats.require_anchors_resolve`, invariant
+  INV-format-anchors-resolve, with a known-bad damage operator). The
+  rewrite touches only link targets; no page's typography or layout
+  changes.
+- **Untagged code fences wrap in the PDF (#279).** pandoc sets a fence with
+  no language tag (or one tagged `text`, on the pandoc versions that treat it
+  as plain) in the `verbatim` environment, which the header had left without
+  fvextra's line breaking, so a line longer than the measure (about 64
+  columns on the 6x9 trim) ran off the page edge and was cut. The header now
+  rebinds `verbatim` to fvextra's `Verbatim` with the same
+  `breaklines,breakanywhere` options as the `Highlighting` environment, so
+  both kinds of fence wrap, with the same continuation mark. fvextra's
+  Verbatim does not space lines the way the kernel's verbatim does (it
+  follows every line with a -0.25pt skip even with no background colour,
+  sets a tab eight spaces wide instead of one, and forbids a page break
+  after a block's first line and before its last), so the rebind also
+  carries the options that restore the kernel's spacing, tab width, and
+  page-break penalties. The spacing option that cancels fvextra's line skip
+  is passed only where fvextra defines it: the pinned toolchain image's
+  fvextra 1.6.1 has neither the key nor the skip. A fence that already fit
+  is proven pixel-identical to the previous release under both fvextra 1.6.1
+  and 1.14 by rendering one book twice, under the house header and under the
+  kernel verbatim it replaces, and comparing every page at 300 dpi: only the
+  page carrying an overlong line differs. The tagged `Highlighting`
+  environment is untouched. The reading-PDF verifier still refuses only ink
+  at the page edge, not ink that hangs into the margin; that check is
+  tracked as #294.
+- **Syntax-highlighted code fences print in black** (#273). A fenced block
+  tagged `yaml`, `python` or `sh` was coloured by skylighting's default
+  pygments style, so `press verify-print` refused the interior with
+  `colored ink on pages [...]` and a book could not override the style. The
+  print build now sets `highlight-style` to a packaged monochrome theme,
+  `src/press/data/press-mono.theme` (greys, bold keywords, italic comments),
+  resolved as `@press/press-mono.theme`, when the active print profile's ink
+  is `single`. An `ink: color` profile (`house-6x9-color`) keeps the default
+  coloured highlighting: it was never refused, so it was a valid book, and
+  the contract forbids restyling one inside a major. The reading PDF, HTML
+  and EPUB are untouched for the same reason. The
+  coverwrap integration runner's book now carries tagged fences, so the real
+  print build and `verify_black_ink` prove the fix; unit tests hold the
+  theme to greys and to pandoc's acceptance through a defaults file.
+  Untagged fences, which did not wrap, are fixed by #279 above.
+- **An `art:`/`data:`/`source:` comment on the line directly after its image
+  is refused by `press check`** (#280). pandoc makes a figure only of an image
+  that stands alone in its paragraph; the next-line comment joined that
+  paragraph and set the image as inline text (no caption, number, list entry,
+  or cross-reference), while `press figures` reported the directive attached
+  and the docs showed that very form. The parser now records which form a
+  directive took (`directive_form` in `press figures` JSON), the source check
+  names the fix (insert one blank line) and never rewrites the manuscript, a
+  packaged known-bad fixture proves the refusal, and the illustrations guide
+  and `press illustrate` refusals show the blank-line form.
+- `figure-numbering.lua` skips an HTML comment between a `wrap-inner` /
+  `wrap-outer` figure and the paragraph it wraps, so a wrapped figure can
+  carry an `art:` directive without losing its runaround (#280).
+- **The List of Figures is front matter (#289).** It was emitted as the first
+  body block, after `\mainmatter`, so it took arabic folios 1 and 2 ahead of
+  the Preface and every chapter folio ran two high. The figure-numbering
+  filter now only raises a flag ahead of the contents, and the header prints
+  the list just before `\mainmatter`, on roman folios after the List of
+  Plates. The plates list heading now reads "List of Plates", the case of
+  "Contents" and "List of Figures" (it read "List of plates").
+- **An unnumbered chapter sets its own running head (#282).** A preface, an
+  appendix written `{.unnumbered}`, or a colophon comes through as
+  `\chapter*`, which sets no mark, so its pages carried the last numbered
+  chapter's head ("16 Inside the press" across six appendixes). The
+  figure-numbering filter now follows each unnumbered chapter heading with
+  `\PressUnnumberedChapter{<title>}`, which sets the title as the mark with
+  no number (KOMA's `\addchapmark`). The issue filed this as a probable v4
+  item; the owner ruled it a correction of broken output for v3.
+- **An unnumbered chapter contributes no chapter number (#288).** A colophon
+  after the last chapter was counted into it: its plate listed as "16.1" in
+  the List of Plates, a numbered figure in it took the next "16.N", and the
+  index located it as "Z", an appendix the Contents does not have. Its plates
+  now list by caption alone (`\PressUnnumberedChapter` empties caption's list
+  format, `\PressNumberedChapter` restores it at the next numbered chapter),
+  its numbered figures take plain numbers from one book-wide sequence, and an
+  unnumbered back-matter part not titled "Appendix" locates in the index by
+  its own title ("Colophon"); the index head note says so only in a book that
+  has such a part. The sources-and-authorities companion keeps its own
+  locator and still groups a colophon's claims under "appendix Z"; it is not
+  changed here.
+- **A table head keeps its first rows, and a definition term its definition
+  (#286).** A longtable could break after its head and one row, stranding
+  them at a page foot (seven tables in one build), and a definition term
+  could sit at a page foot with its definition overleaf. The figure-numbering
+  filter now sets a `\Needspace` before each table, sized from the table's own
+  cells to its caption, head, and first two body rows, and each `\item` of a
+  description list asks for two lines (the plain `\item` is copied once in
+  the preamble, so a definition list nested in a definition cannot make
+  `\item` call itself). Both change page breaks, mostly where the room was
+  short, though a `\Needspace` also carries a small break bonus near the page
+  foot; ordinary paragraphs are untouched.
+- **Constant-width text no longer hyphenates (#287).** Inline code broke at
+  line ends with a hyphen it does not have (`SUP-/PORTED_CONTRACT_MAJORS`), and
+  a span holding a real hyphen could break right after it (`--paper-/warm`),
+  losing the real character into the break. Inside `\texttt` the span now
+  sets in the no-hyphenation language and each real hyphen is boxed (LuaTeX
+  reads `\exhyphenpenalty` at the paragraph's end, so a penalty scoped to the
+  span cannot forbid the break). So that a long identifier is not pushed into
+  the margin instead, a span may break after a `/`, `_`, or `.` with no glyph
+  added, at a high penalty that makes it a last resort. A hyphen the span
+  already has is a legal break too, after those and at a higher penalty
+  still, again adding no glyph: a run of hyphenated identifiers otherwise had
+  no break point and ran off the page. A span never gains a hyphen it does
+  not have. Prose hyphenation is unchanged. Paths set in italic (not code
+  spans) are outside this fix and still hyphenate as prose.
+- **The Contents never strands its last entry alone (#291).** With one entry
+  more than a page holds, the last ("Colophon ... 372") landed alone on a page
+  under a running head and a folio, and verify-print passed the page because
+  it had ink. The figure-numbering filter now writes a `\Needspace` into the
+  `.toc` ahead of the second-to-last entry, so the last two carry over
+  together, and the PDF verifier prints a layout warning (never a failure)
+  for any page whose ink is only its running head, its folio, and one or two
+  lines of text (a page with no running head, such as a dedication, is never
+  warned; a chapter's last page of one or two lines is, by design).
+
+### Changed
+
+- The GitHub Pages assembly (the landing page, its downloads table, the
+  generated policy pages, and `pages_build`) moved out of `build.py` into
+  its own module, `press.landing`, after this wave's fixes grew `build.py`
+  past the structure gate's 660-line ceiling. `press pages` and its output
+  are unchanged; `build.py` keeps running pandoc over the manuscript, and
+  `verify_pages` now reads the download list from `press.landing`.
+  `pages_build`, `download_names`, and `subtitle_stack_html` now live in
+  `press.landing`, not `press.build`, with no re-exports: nothing in the
+  repository used the old names.
 
 ## [3.0.2] - 2026-11-11
 

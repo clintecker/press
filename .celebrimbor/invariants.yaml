@@ -492,6 +492,51 @@ invariants:
       the surrounding prose is not caught. The PDF joins the agreement set only where
       pdftotext is present (the toolchain tier); the other editions are checked with
       no external tool."
+  INV-format-anchors-resolve:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: verify_formats:require_anchors_resolve
+    layers:
+    - unit
+    - integration
+    owner: verify_formats
+    risk: pandoc's chunked writer leaves a manuscript's own `#id` link as
+      written on every page, so a `@fig:` reference to a figure in another
+      chapter ships as a dead link in the reader (#270), and nothing in the
+      site verifier ever followed one.
+    statement: Every anchor link in the reader site lands on an element that
+      carries the id, on the page the link points at; a cross-page reference
+      is rewritten to its home page after the chunked write
+      (reader_links:resolve_anchors) and any anchor left dangling is refused.
+    negative_proof:
+      tests/test_reader_links.py::test_require_anchors_resolve_refuses_a_dangling_anchor
+    limitations:
+    - Resolution needs exactly one page to define the id; an id defined on
+      several pages is not guessed between them and the link is refused rather
+      than pointed at one of them.
+    - Links are followed inside the reader site only; a link out of the site
+      (an absolute path, a URL) is the Pages verifier's to prove.
+  INV-reader-cross-page-anchors:
+    ci_tier: quality
+    criticality: standard
+    enforced_by: reader_links:resolve_anchors
+    layers:
+    - unit
+    - integration
+    owner: reader_links
+    risk: A cross-chapter reference written as a bare `#id` ships pointing at
+      the page it sits on, where no element carries the id (#270); or the
+      rewrite guesses between two pages that both define the id.
+    statement: After the chunked write, a reader-site link to an id that no
+      element on its own page carries, and that exactly one other page defines,
+      is rewritten to point at that page; same-page anchors are left as
+      written, an id defined on several pages is never guessed between, and a
+      second pass changes nothing.
+    negative_proof:
+      tests/test_reader_links.py::test_an_id_defined_on_two_pages_is_not_guessed_and_is_refused
+    limitations:
+    - The rewrite owns only the resolvable case; a link it leaves alone is
+      refused by verify_formats:require_anchors_resolve (INV-format-anchors-resolve).
   INV-format-site-identity:
     ci_tier: quality
     criticality: standard
@@ -847,9 +892,9 @@ invariants:
     risk: A table renders in the one form that crushes on a phone and nothing notices.
   INV-pdf-text-block:
     statement: No body page of a PDF edition inks past its text block, whose right edge is the build's own geometry (the profile's trim less its outer margin in reading; the print header's outer on a recto and inner on a verso in print), with 6 px (0.05in) for protrusion.
-    enforced_by: verify_pdf:verify_text_block
+    enforced_by: verify_text_block:verify_text_block
     negative_proof: tests/test_verify_pdf_print_profile.py::test_a_page_overrunning_the_measure_is_rejected
-    owner: verify_pdf
+    owner: verify_text_block
     criticality: standard
     layers:
     - pytest
@@ -903,6 +948,24 @@ invariants:
     layers:
     - pytest
     risk: A plate would ship as a baked-white master, breaking compositing onto any surface (#226).
+  INV-logomark-ink-extracted:
+    statement: An opaque logomark delivery accepted at intake has its ink extracted onto transparency; it never ships as an opaque box.
+    enforced_by: art:accept
+    negative_proof: tests/test_art.py::test_opaque_logomark_delivery_has_its_ink_extracted_to_transparency
+    owner: art
+    criticality: standard
+    layers:
+    - pytest
+    risk: Since no OpenAI image call asks for a transparent background (#277), an opaque logomark would ship with a baked ground that shows on every dark cover and reader panel.
+  INV-openai-one-model-pin:
+    statement: Every OpenAI image call shares the one gpt-image-2 pin and sends no background parameter.
+    enforced_by: art_commission:generate_openai
+    negative_proof: tests/test_adapters_routing.py::test_logomark_commission_uses_the_one_openai_pin
+    owner: art_commission
+    criticality: standard
+    layers:
+    - pytest
+    risk: A lagging pin (gpt-image-1) or an unsupported parameter makes a whole commission path fail at the API (#277).
   INV-cover-baked-guard:
     statement: A baked cover style fills every placeholder and carries the exact-text guardrail.
     enforced_by: cover:build_prompt
@@ -930,6 +993,15 @@ invariants:
     layers:
     - pytest
     risk: A no-op touch would invalidate verified artifacts, forcing needless rebuilds or false staleness.
+  INV-landing-editions-exact:
+    statement: The Pages landing labels a download by its exact `{slug}{suffix}` name, never by suffix alone, so the sources companion is never listed as a second manuscript edition and a file that is not a listed edition gets no row.
+    enforced_by: landing:pages_build
+    negative_proof: tests/test_landing_metadata.py::test_sources_companion_is_not_a_second_manuscript_edition
+    owner: landing
+    criticality: standard
+    layers:
+    - pytest
+    risk: The public landing would list one edition twice under the wrong label, or advertise a build intermediate as a download.
   INV-reader-no-phantom-canonical:
     statement: Without a configured site-url, the reader landing claims no canonical URL or image (#158).
     enforced_by: reader_meta:landing_head_metadata
@@ -1074,6 +1146,15 @@ invariants:
     layers:
     - pytest
     risk: An illegal figure geometry would reach LaTeX and misplace or break the layout.
+  INV-figure-directive-blank-line:
+    statement: A directive comment on the line directly after its image is refused with the fix named, because pandoc sets that image as inline text (#280).
+    enforced_by: figures:validate
+    negative_proof: tests/test_figures.py::test_a_directive_on_the_next_line_is_refused_with_the_fix_named
+    owner: figures
+    criticality: standard
+    layers:
+    - pytest
+    risk: A figure would ship as inline text with no caption, number, list entry, or cross-reference, and nothing would warn the author.
   INV-idlookup-fails-closed:
     statement: An LCCN record for a different number is a mismatch, and lookups fail closed on entities, size, and media.
     enforced_by: idlookup:lookup_lccn

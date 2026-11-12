@@ -329,6 +329,13 @@ The process fake answers by command name first, then from its queue, and records
 - enforced by `adapters.fakes:FakeProcessRunner.run`
 - proven by `tests/test_adapters.py::test_fake_runner_answers_by_command_and_from_queue`
 
+## INV-figure-directive-blank-line
+
+A directive comment on the line directly after its image is refused with the fix named, because pandoc sets that image as inline text (#280).
+
+- enforced by `figures:validate`
+- proven by `tests/test_figures.py::test_a_directive_on_the_next_line_is_refused_with_the_fix_named`
+
 ## INV-figures-refuse-illegal
 
 Figure validation refuses left/right placement with absolute width and a bad outset.
@@ -343,6 +350,15 @@ Every chapter's content appears in every built edition; an edition that silently
 - enforced by `verify_formats:verify_editions_agree`
 - proven by `tests/test_verify_editions.py::test_an_edition_that_drops_a_chapter_is_named_and_refused`
 - does not cover: Presence of a distinctive multi-word fragment per chapter, not a full diff: an edition that keeps each chapter's witness fragment but scrambles or truncates the surrounding prose is not caught. The PDF joins the agreement set only where pdftotext is present (the toolchain tier); the other editions are checked with no external tool.
+
+## INV-format-anchors-resolve
+
+Every anchor link in the reader site lands on an element that carries the id, on the page the link points at; a cross-page reference is rewritten to its home page after the chunked write (reader_links:resolve_anchors) and any anchor left dangling is refused.
+
+- enforced by `verify_formats:require_anchors_resolve`
+- proven by `tests/test_reader_links.py::test_require_anchors_resolve_refuses_a_dangling_anchor`
+- does not cover: Resolution needs exactly one page to define the id; an id defined on several pages is not guessed between them and the link is refused rather than pointed at one of them.
+- does not cover: Links are followed inside the reader site only; a link out of the site (an absolute path, a URL) is the Pages verifier's to prove.
 
 ## INV-format-site-identity
 
@@ -435,6 +451,20 @@ The invariant marker plugin validates every @pytest.mark.invariant citation agai
 - enforced by `invariants:load`
 - proven by `tests/test_collection_plugin.py::test_unknown_invariant_id_fails_collection`
 
+## INV-landing-editions-exact
+
+The Pages landing labels a download by its exact `{slug}{suffix}` name, never by suffix alone, so the sources companion is never listed as a second manuscript edition and a file that is not a listed edition gets no row.
+
+- enforced by `landing:pages_build`
+- proven by `tests/test_landing_metadata.py::test_sources_companion_is_not_a_second_manuscript_edition`
+
+## INV-logomark-ink-extracted
+
+An opaque logomark delivery accepted at intake has its ink extracted onto transparency; it never ships as an opaque box.
+
+- enforced by `art:accept`
+- proven by `tests/test_art.py::test_opaque_logomark_delivery_has_its_ink_extracted_to_transparency`
+
 ## INV-lulu-timeout-unknown
 
 A submit timeout is an UnknownOutcome that forces a lookup, never a retry or an assumed success.
@@ -472,6 +502,13 @@ The mutation engine enumerates every mutable operator in a pure module exactly o
 - enforced by `mutation:survivors`
 - proven by `tests/test_mutation.py::test_apply_mutates_exactly_one_site_and_leaves_the_rest`
 
+## INV-openai-one-model-pin
+
+Every OpenAI image call shares the one gpt-image-2 pin and sends no background parameter.
+
+- enforced by `art_commission:generate_openai`
+- proven by `tests/test_adapters_routing.py::test_logomark_commission_uses_the_one_openai_pin`
+
 ## INV-operator-counsel-touches-nothing
 
 A counsel-mode run (no --apply) leaves the manuscript and config byte-identical, aborting if anything changed.
@@ -507,7 +544,7 @@ Every rendered page carries ink and keeps it off the edge.
 
 No body page of a PDF edition inks past its text block, whose right edge is the build's own geometry (the profile's trim less its outer margin in reading; the print header's outer on a recto and inner on a verso in print), with 6 px (0.05in) for protrusion.
 
-- enforced by `verify_pdf:verify_text_block`
+- enforced by `verify_text_block:verify_text_block`
 - proven by `tests/test_verify_pdf_print_profile.py::test_a_page_overrunning_the_measure_is_rejected`
 - does not cover: Front matter is not judged; it ends at the first arabic page label, or after the first 20 percent of pages when the PDF carries no labels.
 - does not cover: The raster cannot tell a deliberately outset or full-bleed figure from overflowing text; such a figure is refused too (the house caps figures at the line width).
@@ -579,6 +616,14 @@ Retail verification rebuilds each artifact through the registry before verifying
 
 - enforced by `publish:verify_retail`
 - proven by `tests/test_publish_rebuild.py::test_verify_retail_rebuilds_before_bless_and_main_fails_on_a_bad_verifier`
+
+## INV-reader-cross-page-anchors
+
+After the chunked write, a reader-site link to an id that no element on its own page carries, and that exactly one other page defines, is rewritten to point at that page; same-page anchors are left as written, an id defined on several pages is never guessed between, and a second pass changes nothing.
+
+- enforced by `reader_links:resolve_anchors`
+- proven by `tests/test_reader_links.py::test_an_id_defined_on_two_pages_is_not_guessed_and_is_refused`
+- does not cover: The rewrite owns only the resolvable case; a link it leaves alone is refused by verify_formats:require_anchors_resolve (INV-format-anchors-resolve).
 
 ## INV-reader-no-phantom-canonical
 

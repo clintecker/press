@@ -9,7 +9,7 @@ import json
 import pytest
 
 from tests import factories
-from press import figures
+from press import booklib, figures
 
 
 @pytest.mark.layer("unit")
@@ -17,7 +17,7 @@ def test_a_plate_carries_kind_style_and_art_description():
     md = (
         "Some prose.\n\n"
         "![A compositor at the case](assets/fig/compositor.jpg)"
-        "{.plate style=wood-engraving}\n"
+        "{.plate style=wood-engraving}\n\n"
         "<!-- art: a compositor's left hand holding a brass composing stick;\n"
         "     type in the case behind; high contrast line, no lettering -->\n\n"
         "More prose.\n"
@@ -31,6 +31,7 @@ def test_a_plate_carries_kind_style_and_art_description():
     assert "composing stick" in fig.description
     assert "\n" not in fig.description  # whitespace-normalized
     assert fig.generatable is True
+    assert fig.directive_form == figures.DIRECTIVE_BLANK_LINE
 
 
 @pytest.mark.layer("unit")
@@ -56,9 +57,9 @@ def test_a_generatable_kind_without_art_is_not_generatable():
 @pytest.mark.layer("unit")
 def test_charts_and_diagrams_route_away_from_the_image_model():
     md = (
-        "![Yields by season](assets/fig/yields.svg){.chart}\n"
+        "![Yields by season](assets/fig/yields.svg){.chart}\n\n"
         "<!-- data: bar chart from tables/yields.csv -->\n\n"
-        "![The press](assets/fig/press.svg){.diagram}\n"
+        "![The press](assets/fig/press.svg){.diagram}\n\n"
         "<!-- source: drawings/press.svg -->\n"
     )
     chart, diagram = figures.parse(md)
@@ -69,7 +70,7 @@ def test_charts_and_diagrams_route_away_from_the_image_model():
 
 @pytest.mark.layer("unit")
 def test_figures_are_returned_in_source_order():
-    md = "![One](a.jpg)\n\ntext\n\n![Two](b.jpg){.plate}\n<!-- art: a scene -->\n"
+    md = "![One](a.jpg)\n\ntext\n\n![Two](b.jpg){.plate}\n\n<!-- art: a scene -->\n"
     one, two = figures.parse(md)
     assert (one.src, one.kind) == ("a.jpg", "figure")
     assert (two.src, two.kind, two.generatable) == ("b.jpg", "plate", True)
@@ -78,7 +79,7 @@ def test_figures_are_returned_in_source_order():
 @pytest.mark.layer("unit")
 def test_as_dict_carries_the_art_direction_for_a_workflow():
     (fig,) = figures.parse(
-        "![A label](assets/fig/x.jpg){.plate style=wood-engraving}\n"
+        "![A label](assets/fig/x.jpg){.plate style=wood-engraving}\n\n"
         "<!-- art: the described scene -->\n"
     )
     d = figures.as_dict(fig)
@@ -88,6 +89,7 @@ def test_as_dict_carries_the_art_direction_for_a_workflow():
         "kind": "plate",
         "style": "wood-engraving",
         "directive": "art",
+        "directive_form": "blank-line",
         "description": "the described scene",
         "generatable": True,
         "identifier": None,
@@ -190,8 +192,57 @@ def test_figure_is_a_frozen_value_object_with_off_by_default_flags():
     )
     assert fig.decorative is False
     assert fig.kind_declared is False
+    assert fig.directive_form == ""
     with pytest.raises(Exception):
         fig.decorative = True  # type: ignore[misc]
+
+
+@pytest.mark.layer("unit")
+@pytest.mark.proof("positive")
+def test_a_directive_after_one_blank_line_is_the_lawful_form():
+    # The form pandoc keeps as a Figure: image, one blank line, the comment.
+    # Trailing spaces on the image line and Windows line ends do not change it.
+    for gap in ("\n\n", "  \n\n", "\r\n\r\n"):
+        (fig,) = figures.parse(f"![C](a.png){{.plate}}{gap}<!-- art: a scene -->\n")
+        assert fig.directive == "art" and fig.description == "a scene"
+        assert fig.directive_form == figures.DIRECTIVE_BLANK_LINE
+        assert figures.validate([fig]) == []
+
+
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
+def test_a_directive_on_the_next_line_is_refused_with_the_fix_named():
+    # pandoc folds a comment on the very next line into the image's paragraph
+    # and sets the image as inline text (#280). The parser still attaches the
+    # directive -- nothing is silently dropped -- but records the form, and
+    # validation refuses it naming the one-line fix. Every directive key is
+    # covered, not only art:.
+    for key in ("art", "data", "source"):
+        (fig,) = figures.parse(f"![C](a.png){{.figure}}\n<!-- {key}: a thing -->\n")
+        assert fig.directive == key and fig.description == "a thing"
+        assert fig.directive_form == figures.DIRECTIVE_NEXT_LINE
+        (problem,) = figures.validate([fig])
+        assert problem.startswith("a.png: ")
+        assert f"<!-- {key}:" in problem
+        assert "inline text" in problem
+        assert "insert one blank line" in problem
+    # The dict hand-off carries the form, so a workflow sees it too.
+    (fig,) = figures.parse("![C](a.png){.plate}\n<!-- art: a scene -->\n")
+    assert figures.as_dict(fig)["directive_form"] == "next-line"
+
+
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
+def test_the_packaged_next_line_fixture_is_rejected_by_the_figures_checker():
+    # The known-bad fixture the celebrimbor gate and press's fixture auditor
+    # both run: it must draw exactly the diagnostic it declares, from this
+    # checker, naming the fixture file.
+    fixture = booklib.DATA / "known-bad" / "figure-comment-next-line.md"
+    found = figures.diagnostics_for(fixture)
+    assert found and all(line.startswith("figure-comment-next-line.md: ") for line in found)
+    assert any("insert one blank line" in line for line in found)
+    # and the known-good fixture draws nothing from it
+    assert figures.diagnostics_for(booklib.DATA / "known-good" / "clean.md") == []
 
 
 @pytest.mark.layer("unit")
@@ -212,9 +263,9 @@ def test_press_figures_prints_declared_figures_as_json(tmp_path, capsys):
         factories.minimal()
         .with_chapter(
             "01-fig.md",
-            "# Fig\n\n![A compositor](assets/fig/compositor.jpg){.plate}\n"
+            "# Fig\n\n![A compositor](assets/fig/compositor.jpg){.plate}\n\n"
             "<!-- art: a compositor's hand on a composing stick -->\n\n"
-            "![Yields](assets/fig/yields.svg){.chart}\n<!-- data: from t.csv -->\n",
+            "![Yields](assets/fig/yields.svg){.chart}\n\n<!-- data: from t.csv -->\n",
         )
         .build(tmp_path)
     )
@@ -229,5 +280,17 @@ def test_press_figures_prints_declared_figures_as_json(tmp_path, capsys):
     assert plate["file"] == "book/chapters/01-fig.md"
     assert plate["description"] == "a compositor's hand on a composing stick"
     assert plate["generatable"] is True
+    assert plate["directive_form"] == "blank-line"
     chart = next(r for r in records if r["kind"] == "chart")
     assert chart["directive"] == "data" and chart["generatable"] is False
+
+
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
+def test_place_float_is_for_a_numbered_figure_only():
+    # #290: place=float opts a numbered figure out of the [H] pin; a plate
+    # keeps its place, so the checker refuses float on one rather than ignore it.
+    ok = figures.validate(figures.parse("![A](a.png){.chart place=float width=half-measure}\n"))
+    assert ok == []
+    plate = figures.validate(figures.parse("![A](a.png){place=float}\n"))
+    assert plate and "numbered figure" in plate[0]

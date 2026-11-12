@@ -11,6 +11,11 @@ toc: true
 toc-depth: 1
 number-sections: true
 top-level-division: chapter
+# Syntax highlighting is not set here. A single-ink profile highlights with
+# the house monochrome theme (press-mono.theme, #273) and an ink: color
+# profile keeps pandoc's default coloured style; build.render_defaults adds
+# the key per profile, because a colour interior was never broken and the
+# contract forbids restyling a valid book inside a major.
 # Interior figures are redirected to their print-safe copies (flattened,
 # resolution-capped) under build/print-assets/, written by press.print_safe
 # before this run. The reading PDF has no such filter and embeds the originals.

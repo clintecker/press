@@ -168,6 +168,19 @@ def make_cover(path: Path) -> None:
     image.save(path, "JPEG", quality=88)
 
 
+def make_plate(path: Path) -> None:
+    """A small portrait PNG with visible ink, enough for a frontispiece or
+    full-bleed figure to typeset as a real graphic on its leaf."""
+
+    width, height = 600, 900
+    image = Image.new("RGB", (width, height), (245, 240, 230))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle([40, 40, width - 40, height - 40], outline=(30, 30, 30), width=12)
+    draw.ellipse([150, 250, width - 150, height - 250], fill=(60, 60, 60))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    image.save(path, "PNG")
+
+
 @dataclass
 class Evidence:
     """The per-runner receipt: what tools built and inspected the

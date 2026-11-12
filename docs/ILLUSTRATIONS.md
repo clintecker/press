@@ -16,14 +16,24 @@ all of its plates in its own single ink.
 A caption is a reader-facing **label**; it is not art direction. So the picture
 is drawn from a separate **`art:` description** you write beside the figure in
 the manuscript — the *kind* on the image, the direction in the comment that
-follows it:
+follows it, **one blank line below** the image:
 
 ```markdown
 ![A compositor at the case](assets/fig/compositor.jpg){.plate style=wood-engraving}
+
 <!-- art: a compositor's left hand holding a brass composing stick, thumb setting
      the measure; type in the case behind; 19th-c workshop, high contrast line,
      no lettering -->
 ```
+
+The blank line matters. pandoc makes a figure only of an image that stands
+alone in its paragraph; a comment on the very next line joins that paragraph,
+and the image is set as inline text — no caption, no number, no entry in the
+lists, no cross-reference target. `press check` refuses the next-line form and
+names the fix (insert one blank line); it never rewrites your manuscript. The
+same rule covers `data:` and `source:` comments, and a wrapped figure
+(`place=wrap-inner` / `wrap-outer`) keeps its runaround with a comment between
+it and the paragraph it wraps.
 
 Then name the figure — the image file's stem — and the press reads that
 description as the prompt and the `style=` as the style:
@@ -99,7 +109,20 @@ As @fig:press shows, the platen does the pressing.
 ```
 
 A mixed book prints both lists; a book with only plates prints only the List of
-Plates, byte-for-byte as before. Plates are **never** numbered.
+Plates, byte-for-byte as before. Plates are **never** numbered. A chapter
+whose heading is `{.unnumbered}` (a preface, a colophon) contributes no chapter
+number: its figures take plain numbers ("Figure 2") from one sequence for the
+whole book, and its plates list by caption alone. Both lists are
+front matter: they follow the Contents on roman folios, so the arabic folios
+begin at the first page of the Preface (or Chapter 1).
+
+A reference may point across chapters. In the chapter-per-page reader site,
+pandoc leaves a manuscript's own `#id` link as written on every page, so a
+`@fig:press` in chapter two naming a figure in chapter one would be a dead
+link on chapter two's page; the press points each such link at the page that
+carries the figure after the pages are written, and the site verifier refuses
+any anchor left dangling (an id no page defines, or one defined on several),
+so a cross-chapter reference either lands on its figure or fails the build.
 
 Every edition is checked for these labels. The HTML and EPUB verifiers count
 the numbered figures the source declares and require at least that many
@@ -114,15 +137,27 @@ is **relative, never absolute**, so one manuscript typesets on any trim:
 | attribute | values | meaning |
 |---|---|---|
 | `width` | `full-measure`, `half-measure`, `third-measure` | width against the line (in-flow figures only) |
-| `place` | `inline`, `wrap-inner`, `wrap-outer`, `plate`, `frontispiece`, `full-bleed`, `margin` | where it sits; wrap runs text around the **parity-aware** side (never left/right) |
+| `place` | `inline`, `wrap-inner`, `wrap-outer`, `plate`, `frontispiece`, `full-bleed`, `margin`, `float` | where it sits; wrap runs text around the **parity-aware** side (never left/right) |
 | `outset` | a length in em (default `1em`) | the runaround gap — the book-trade term, not "standoff" |
 | `fig-alt` | text | the **accessible alt text** — a fourth field, distinct from the visible caption, the `art:` prompt, and any credit line |
 | `decorative` | `true` | an ornament: empty alt, never numbered |
 
+A numbered figure is pinned where you wrote it by default, so a figure that
+does not fit moves whole to the next page and the page before it ends short.
+`place=float` (numbered figures only) lets it float instead: LaTeX may set it
+at the top or bottom of a page, or on a page of its own, and draws the
+following text up to fill the space. It takes a `width` measure like an inline
+figure. The default is unchanged; a plate always keeps its place.
+
+| `place` | on the PDF page |
+|---|---|
+| `inline` (the default, also when `place` is omitted) | pinned where written (`[H]`); the page before ends short if it does not fit |
+| `float` | floats to the top, bottom, or its own page (`[tbp]`); text fills the gap |
+
 `press check` refuses a malformed placement before any render: an absolute
 width where a measure belongs, a `left`/`right` side (use `wrap-inner` /
 `wrap-outer`), an out-of-vocabulary `place`, a non-em `outset`, a measure on a
-plate, or a `decorative` image that still carries `fig-alt`.
+plate, `float` on a plate, or a `decorative` image that still carries `fig-alt`.
 
 ### On a real page
 
@@ -148,9 +183,10 @@ whole to the next page rather than hang off the foot; the guard is sized to the
 figure, so a taller figure reserves more room. A **full-bleed** or
 **frontispiece** takes a *cleared* leaf, not a floating figure that LaTeX would
 defer a page late and leave a blank behind, and its caption sits on the same
-leaf. A **numbered** figure carries its own bold “Figure C.N.” set by the house,
-so no stray label — or the asterisk a bare `\caption*` once leaked — reaches the
-caption.
+leaf, set in its own group so the caption's flush-left, loose setting ends with
+the caption and the pages that follow keep the house indent. A **numbered**
+figure carries its own bold “Figure C.N.” set by the house, so no stray label —
+or the asterisk a bare `\caption*` once leaked — reaches the caption.
 
 Placement is a **print** concern. On the reflowable web — EPUB and the reader —
 a placed figure becomes a clean in-flow figure, and the markdown and plain-text
@@ -243,7 +279,14 @@ line art is trivially separable by a luminance key, and a plate that arrives
 already on transparency keeps its mask. From that one master:
 
 - the **print interior** flattens it onto white at build time (no transparency
-  and no over-resolution reach the vendor's preflight);
+  and no over-resolution reach the vendor's preflight). This applies to every
+  image file under `assets/` — a plate in `assets/woodcuts/`, a numbered
+  figure in `assets/figures/` or `assets/fig/`, the author portrait at
+  `assets/author.jpg` — each copied to the same path under
+  `build/print-assets/` that the print build reads from, so a figure need
+  not live in `woodcuts/` to print, however the manuscript spells its path
+  (a raster is flattened and capped; a PDF, SVG or EPS drawing is copied as
+  is);
 - a **cloth cover** would flatten it onto the field colour, so the ink sits on
   the cloth with no box (this is how the imprint logo already lands);
 - the **reader edition** serves the transparent PNG, so a plate reads cleanly on

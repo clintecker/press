@@ -8,8 +8,7 @@ import re
 import zipfile
 from pathlib import Path
 
-from . import adapters, booklib, figures
-from .verify_table_shape import verify_tables
+from . import adapters, booklib, figures, reader_links, verify_table_shape
 
 
 class VisibleText(html.parser.HTMLParser):
@@ -54,6 +53,47 @@ def sentinel_present(sentinel: str, text: str) -> bool:
     return needle in " ".join(text.split()).translate(STRAIGHTEN)
 
 
+# The one candidate rule both witness pickers share (#261, #281). A witness
+# must survive every edition verbatim, so a line is refused when it is short,
+# carries inline markup, opens with a block marker, or holds a reference that
+# pandoc-crossref or citeproc rewrites.
+_WITNESS_MIN_LENGTH = 40
+_WITNESS_MARKUP_CHARS = "*_`[]()<>\"'&#!|"
+
+# A line opening with a block marker (definition, list item, quote, ordered
+# item) renders without it, so it could never match the page as written.
+BLOCK_MARKER = re.compile(r"(?:[:+>-]|\d+\.)\s")
+
+# Any pandoc citation token (`@fig:x`, `@tbl:x`, but also a colonless `@press`
+# naming a figure id, which the house figure-numbering filter rewrites to
+# "Figure 1.1" the same way) renders as something other than its source form
+# in every non-PDF edition, so the line appears verbatim nowhere. Only a bare
+# `@` opening a word counts: an e-mail address has a word character or a dot
+# before its `@` and stays plain prose. A `[@key]` citation needs no branch
+# here, because `[` is already in the markup character set.
+CROSSREF = re.compile(r"(?<![\w.])@\w")
+
+
+def _witness_candidate(line: str) -> bool:
+    """True when a stripped manuscript line may serve as a witness."""
+
+    if len(line) < _WITNESS_MIN_LENGTH:
+        return False
+    if any(ch in line for ch in _WITNESS_MARKUP_CHARS):
+        return False
+    return not (BLOCK_MARKER.match(line) or CROSSREF.search(line))
+
+
+def _longest_witness(path: Path, best: str = "") -> str:
+    """The longest candidate line of one chapter that beats `best`."""
+
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if len(line) > len(best) and _witness_candidate(line):
+            best = line
+    return best
+
+
 def _manuscript_witness() -> str:
     """One long plain line of the manuscript, markup-free, that every
     format must carry: content survival proven even with an empty
@@ -61,19 +101,8 @@ def _manuscript_witness() -> str:
 
     best = ""
     for path in booklib.chapter_files():
-        for line in path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if len(line) <= len(best) or len(line) < 40:
-                continue
-            if any(ch in line for ch in "*_`[]()<>\"'&#!|"):
-                continue
-            best = line
+        best = _longest_witness(path, best)
     return normalized(best)
-
-
-# A line opening with a block marker (definition, list item, quote, ordered
-# item) renders without it, so it could never match the page as written.
-BLOCK_MARKER = re.compile(r"(?:[:+>-]|\d+\.)\s")
 
 
 def chapter_witnesses() -> dict[str, str]:
@@ -86,14 +115,7 @@ def chapter_witnesses() -> dict[str, str]:
 
     witnesses: dict[str, str] = {}
     for path in booklib.chapter_files():
-        best = ""
-        for line in path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if len(line) <= len(best) or len(line) < 40:
-                continue
-            if any(ch in line for ch in "*_`[]()<>\"'&#!|") or BLOCK_MARKER.match(line):
-                continue
-            best = line
+        best = _longest_witness(path)
         if best:
             witnesses[path.name] = normalized(best)
     return witnesses
@@ -206,7 +228,7 @@ def site_visible_text(path: Path) -> str:
     return " ".join(" ".join(aggregate.parts).split())
 
 
-def docx_file_text(path: Path) -> str:
+def _docx_file_text(path: Path) -> str:
     """The visible w:t text of a DOCX on disk."""
 
     with zipfile.ZipFile(path) as archive:
@@ -265,7 +287,7 @@ def gather_editions(
         ("EPUB", epub, epub_visible_text),
         ("markdown", markdown, plaintext_text),
         ("text", text, plaintext_text),
-        ("docx", docx, docx_file_text),
+        ("docx", docx, _docx_file_text),
     )
     for label, path, extract in file_editions:
         if path is not None and path.is_file():
@@ -334,7 +356,7 @@ def verify_html(path: Path) -> None:
         raise SystemExit("HTML output has no html element")
     require_witnesses(text, "HTML")
     require_figure_labels(text, numbered_figure_count(booklib.root()), "HTML")
-    verify_tables(path.read_text(encoding="utf-8", errors="ignore"), "HTML")
+    verify_table_shape.verify_tables(path.read_text(encoding="utf-8", errors="ignore"), "HTML")
 
 
 def _require_sentinels(text: str, label: str) -> None:
@@ -384,11 +406,6 @@ def _epub_check_metadata(opf: str) -> None:
         raise SystemExit(f"EPUB metadata is missing the registered ISBN {epub_isbn}")
 
 
-# The EPUB's own navigation and cover documents are pandoc's scaffolding, not
-# book content; their markup is not the book's tables.
-_EPUB_SKIP = frozenset({"nav.xhtml", "cover.xhtml"})
-
-
 def verify_epub(path: Path) -> None:
     with zipfile.ZipFile(path) as archive:
         names = archive.namelist()
@@ -401,10 +418,7 @@ def verify_epub(path: Path) -> None:
         _require_sentinels(text, "EPUB")
         require_witnesses(text, "EPUB")
         require_figure_labels(text, numbered_figure_count(booklib.root()), "EPUB")
-        for name in names:
-            if name.endswith((".xhtml", ".html")) and Path(name).name not in _EPUB_SKIP:
-                markup = archive.read(name).decode("utf-8", errors="ignore")
-                verify_tables(markup, f"EPUB {name}", labels=False)
+        verify_table_shape.verify_epub_tables(archive)
 
 
 def epubcheck(path: Path) -> None:
@@ -550,14 +564,37 @@ def _verify_site_plates(path: Path) -> None:
             raise SystemExit(f"site carries {len(woodcuts)} plates; expected {source_plates}")
 
 
+def require_anchors_resolve(pages: list[Path], label: str) -> None:
+    """Every anchor link across the pages lands on an id that exists where
+    the link points: a bare ``#id`` on its own page, a ``<page>#id`` on
+    that page. pandoc's chunked writer leaves a manuscript's cross-chapter
+    reference as a bare fragment (#270); ``reader_links.resolve_anchors``
+    rewrites it, and this refuses whatever that pass could not place."""
+
+    ids = {page.resolve(): reader_links.anchor_ids(page) for page in pages}
+    for page in pages:
+        own = ids[page.resolve()]
+        for fragment in reader_links.local_anchors(page):
+            if fragment not in own:
+                raise SystemExit(
+                    f"{label}: {page.name} carries an unresolved anchor #{fragment}; "
+                    "no element on that page has the id"
+                )
+        for target, fragment in reader_links.sibling_anchors(page):
+            home = (page.parent / target).resolve()
+            if home in ids and fragment not in ids[home]:
+                raise SystemExit(
+                    f"{label}: {page.name} carries an unresolved anchor "
+                    f"{target}#{fragment}; no element on {home.name} has the id"
+                )
+
+
 def verify_site(path: Path) -> None:
     chapter_pages = _verify_site_scaffold(path)
     _verify_site_chapter_identity(chapter_pages)
     _verify_site_plates(path)
-    for page in sorted(chapter_pages):
-        verify_tables(
-            page.read_text(encoding="utf-8", errors="replace"), f"reader site {page.name}"
-        )
+    verify_table_shape.verify_page_tables(chapter_pages, "reader site")
+    require_anchors_resolve(sorted(path.rglob("*.html")), "reader site")
     site_text = site_visible_text(path)
     _require_sentinels(site_text, "reader site")
     require_witnesses(site_text, "reader site")
@@ -594,9 +631,8 @@ def main(argv: list[str] | None = None) -> int:
         verify_site(args.site)
         verified.append(args.site.name + "/")
 
-    # Cross-edition agreement: every chapter's witness in every edition, so a
-    # format that dropped content the others kept is caught, not passed. The
-    # PDF joins the set where pdftotext is present (the toolchain tier).
+    # Cross-edition agreement: every chapter's witness in every edition, so a format
+    # that dropped content the others kept is caught; the PDF joins where pdftotext is.
     witnesses = chapter_witnesses()
     editions = gather_editions(
         html=args.html,

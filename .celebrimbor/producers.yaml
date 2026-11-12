@@ -30,7 +30,7 @@ producers:
     negative_fixture:
       tests/test_verify_pdf_print_profile.py::test_a_missing_gutter_is_rejected
   build:pandoc_build:
-    verifier: verify_pdf:verify_text_block
+    verifier: verify_text_block:verify_text_block
     negative_fixture:
       tests/test_verify_pdf_print_profile.py::test_a_page_overrunning_the_measure_is_rejected
   build:_build_html:
@@ -57,10 +57,18 @@ producers:
     verifier: config_schema:validate_file
     negative_fixture:
       tests/test_config_shapes.py::test_gen_index_self_guards_against_the_terms_wrapper
+  landing:
+    verifier: verify_pages:check_landing_metadata
+    negative_fixture:
+      tests/test_landing_metadata.py::test_verifier_catches_a_stale_title
   package_source:
     verifier: check_source:main
     negative_fixture:
       tests/test_properties_policy.py::test_secret_named_file_is_never_admitted
+  reader_links:
+    verifier: verify_formats:require_anchors_resolve
+    negative_fixture:
+      tests/test_reader_links.py::test_require_anchors_resolve_refuses_a_dangling_anchor
   profile_lifecycle:
     verifier: profile_lifecycle:validate
     negative_fixture:

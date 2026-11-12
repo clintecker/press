@@ -132,6 +132,26 @@ reproduces on the physical copy as it does on screen. The
 [Hearthstone Table](https://github.com/clintecker/press/tree/main/examples/hearthstone-cookbook)
 example is a colour cookbook built this way.
 
+### Code listings print in black on a single-ink profile
+
+A fenced code block tagged with a language (```` ```python ````,
+```` ```yaml ````, ```` ```sh ````) is syntax-highlighted. Under a
+single-ink print profile (every shipped profile except `house-6x9-color`)
+the highlighting is a single ink: the print build sets pandoc's
+`highlight-style` to the press's own monochrome theme
+(`src/press/data/press-mono.theme`), in which every token style is a grey or
+a weight (bold keywords, italic comments), so `press verify-print`'s
+black-ink rule holds for a technical book without retagging its examples
+as plain `text`. Before this the default style put colour on the page and
+`verify-print` refused the interior with `colored ink on pages [...]`
+(#273). A profile that declares `ink: color` keeps pandoc's default
+coloured highlighting: a colour interior was never refused, so it was a
+valid book before the fix, and the contract forbids restyling a valid book
+inside a major. The reading PDF, HTML and EPUB keep the default coloured
+style for the same reason; retinting them is a house-wide design decision,
+not a print fix. Long lines wrap at the measure in every fence, tagged or
+untagged, with a continuation mark on the carried-over part (#279).
+
 ## Binding sets the cover's shape
 
 The binding decides the cover topology, independent of the vendor:
@@ -186,7 +206,13 @@ never hand-copied. To add a provider or correct a citation, follow the
 
 `press verify-print` builds and verifies the interior and cover wrap at the
 selected geometry. The wrap is checked against the *same* geometry the
-generator used, so a size regression cannot ship. As always, a physical
+generator used, so a size regression cannot ship. It also prints a layout
+warning, never a failure, for any page whose only ink is its running head, its
+folio, and one or two lines of text: a page that passes the ink check but reads
+as nearly blank, such as a last Contents entry carried over alone. A page
+with no running head (a dedication, an epigraph) is never warned; a chapter's
+last page holding one or two lines still is, by design, since that is a
+stranded line too. As always, a physical
 golden-copy inspection (see
 [print ordering](https://github.com/clintecker/press/blob/main/docs/PRINT-ORDERING.md))
 is what actually qualifies an edition for sale.

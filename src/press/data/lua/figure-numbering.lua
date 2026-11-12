@@ -161,7 +161,11 @@ local function full_page(image, label, caption_latex, lof2_latex, frontis)
     .. "}}"
   parts[#parts + 1] = "\\end{center}"
   if caption_latex and caption_latex ~= "" then
-    parts[#parts + 1] = "\\captionof{figure}{" .. caption_latex .. "}"
+    -- \captionof sets \noindent and \sloppy for its own paragraph and, being
+    -- no environment, leaves them set: outside a group the house \parindent
+    -- dies and \tolerance sits at 9999 for every page after the plate (#292).
+    -- The braces scope the caption's typesetting to the caption.
+    parts[#parts + 1] = "{\\captionof{figure}{" .. caption_latex .. "}}"
   end
   if lof2_latex and lof2_latex ~= "" then
     parts[#parts + 1] = lof2_latex
@@ -169,6 +173,62 @@ local function full_page(image, label, caption_latex, lof2_latex, frontis)
   parts[#parts + 1] = "\\vfill\\clearpage"
   return pandoc.RawBlock("latex", table.concat(parts, "\n"))
 end
+
+-- Keep a table's head with its first two body rows (#286). pandoc sets a
+-- table as a longtable, which may break after the head and one row and leave
+-- them stranded at a page foot with the rest overleaf. A \Needspace before the
+-- table, sized to the caption, head, rules, and first two rows, moves the whole
+-- opening to the next page when it cannot fit; it is a request for room, so a
+-- table that fits is untouched. A row's height is estimated from its cells: a
+-- cell in a relative-width column wraps at about that share of the measure
+-- (MEASURE_CHARS characters of the house face), a natural-width cell is one
+-- line.
+local MEASURE_CHARS = 70
+
+local function row_lines(row, widths)
+  local lines = 1
+  for i, cell in ipairs(row.cells) do
+    local frac = widths[i]
+    if frac then
+      local per = math.max(8, math.floor(frac * MEASURE_CHARS) - 2)
+      local text = pandoc.utils.stringify(cell.contents)
+      lines = math.max(lines, math.ceil(#text / per))
+    end
+  end
+  return lines
+end
+
+local function table_keep(tbl)
+  local widths = {}
+  for i, spec in ipairs(tbl.colspecs) do
+    widths[i] = type(spec[2]) == "number" and spec[2] or nil
+  end
+  local lines = 2 -- the \LTpre skip and the head's rules
+  local caption = pandoc.utils.stringify(tbl.caption.long or {})
+  if caption ~= "" then
+    lines = lines + math.ceil(#caption / MEASURE_CHARS) + 0.5
+  end
+  for _, row in ipairs(tbl.head.rows) do
+    lines = lines + row_lines(row, widths)
+  end
+  local taken = 0
+  for _, body in ipairs(tbl.bodies) do
+    for _, row in ipairs(body.body) do
+      if taken < 2 then
+        lines = lines + row_lines(row, widths)
+        taken = taken + 1
+      end
+    end
+  end
+  return pandoc.RawBlock(
+    "latex",
+    "\\Needspace{" .. math.ceil(lines) .. "\\baselineskip}"
+  )
+end
+
+-- Room the last two Contents entries need together: two lines and the
+-- space KOMA sets before each chapter entry, about four baselines.
+local TOC_KEEP = 4
 
 -- Dispatch a placement to its LaTeX container, given the figure's pre-built
 -- inner pieces. Returns {wrap=<string>} for a runaround (walk_blocks fuses it
@@ -191,6 +251,10 @@ end
 function Pandoc(doc)
   local latex = FORMAT == "latex" or FORMAT == "beamer"
   local chapter, fign = 0, 0
+  -- An unnumbered chapter (a preface, a colophon) contributes no chapter
+  -- number (#288): its figures take plain numbers from one book-wide `loose`
+  -- sequence, shared with whatever precedes Chapter 1, so they never collide.
+  local unnumbered, loose = false, 0
   local numbers = {}
   local has_numbered = false
 
@@ -201,6 +265,22 @@ function Pandoc(doc)
       end
     end
     return false
+  end
+
+  -- An unnumbered chapter heading becomes \chapter*, which sets no running
+  -- head mark; follow it with the header's \PressUnnumberedChapter{<title>}
+  -- so its pages carry its own title, not the last numbered chapter's (#282).
+  -- A footnote in a heading must not be set a second time in the head.
+  local function unnumbered_mark(h)
+    local title = h.content:walk({
+      Note = function()
+        return {}
+      end,
+    })
+    return pandoc.RawBlock(
+      "latex",
+      "\\PressUnnumberedChapter{" .. inlines_to_latex(title) .. "}"
+    )
   end
 
   -- Build the replacement for one numbered figure.
@@ -237,9 +317,13 @@ function Pandoc(doc)
       end
       local inner =
         fig_inner(image, label, caption_latex, lof2, width_opt(image.attributes.width))
+      -- place=float opts a numbered figure out of the house [H] pin (#290):
+      -- a figure[tbp] may float, so text fills the page before it instead of
+      -- leaving a band of white at the foot. The [H] default is unchanged.
+      local spec = image.attributes.place == "float" and "[tbp]" or "[H]"
       return pandoc.RawBlock(
         "latex",
-        "\\begin{figure}[H]\\centering\n" .. inner .. "\n\\end{figure}"
+        "\\begin{figure}" .. spec .. "\\centering\n" .. inner .. "\n\\end{figure}"
       )
     end
     -- Every other writer: keep the real Figure, prepend the number to the
@@ -304,8 +388,14 @@ function Pandoc(doc)
     local decorative = is_true(image.attributes.decorative)
     local numbered = kind ~= nil and NUMBERED[kind] and not decorative
     if numbered then
-      fign = fign + 1
-      local numstr = (chapter > 0) and (chapter .. "." .. fign) or tostring(fign)
+      local numstr
+      if chapter > 0 and not unnumbered then
+        fign = fign + 1
+        numstr = chapter .. "." .. fign
+      else
+        loose = loose + 1
+        numstr = tostring(loose)
+      end
       has_numbered = true
       if fig.identifier ~= "" then
         numbers[fig.identifier] = numstr
@@ -313,6 +403,41 @@ function Pandoc(doc)
       return numbered_block(fig, image, numstr)
     end
     return plate_block(fig, image, decorative)
+  end
+
+  -- The Contents never strands its last entry alone on a page (#291): the
+  -- second-to-last listed chapter writes a \Needspace into the .toc ahead of
+  -- its own entry, so when the last two entries do not both fit, they carry
+  -- over together. `listed` counts the level-1 headings that make an entry,
+  -- in the same order walk_blocks meets them.
+  local function listed_heading(b)
+    return b.t == "Header" and b.level == 1 and not b.classes:includes("unlisted")
+  end
+  local function count_listed(blocks)
+    local n = 0
+    for _, b in ipairs(blocks) do
+      if listed_heading(b) then
+        n = n + 1
+      elseif b.t == "Div" or b.t == "BlockQuote" then
+        n = n + count_listed(b.content)
+      end
+    end
+    return n
+  end
+  local listed_total = latex and count_listed(doc.blocks) or 0
+  local listed_seen = 0
+  local function toc_keep(b)
+    if not listed_heading(b) then
+      return nil
+    end
+    listed_seen = listed_seen + 1
+    if listed_total >= 2 and listed_seen == listed_total - 1 then
+      return pandoc.RawBlock(
+        "latex",
+        "\\addtocontents{toc}{\\protect\\Needspace{" .. TOC_KEEP .. "\\baselineskip}}"
+      )
+    end
+    return nil
   end
 
   local walk_blocks
@@ -333,9 +458,24 @@ function Pandoc(doc)
     for _, b in ipairs(blocks) do
       if b.t == "Header" and b.level == 1 and not unnumbered_header(b) then
         flush()
+        out[#out + 1] = toc_keep(b)
         chapter = chapter + 1
         fign = 0
         out[#out + 1] = b
+        -- The first numbered chapter after an unnumbered one restores the
+        -- numbered list format the unnumbered chapter emptied.
+        if unnumbered and latex then
+          out[#out + 1] = pandoc.RawBlock("latex", "\\PressNumberedChapter")
+        end
+        unnumbered = false
+      elseif b.t == "Header" and b.level == 1 then
+        flush()
+        out[#out + 1] = toc_keep(b)
+        unnumbered = true
+        out[#out + 1] = b
+        if latex then
+          out[#out + 1] = unnumbered_mark(b)
+        end
       elseif b.t == "Figure" then
         local r = transform(b) or b
         flush()
@@ -344,9 +484,18 @@ function Pandoc(doc)
         else
           out[#out + 1] = r
         end
+      elseif b.t == "Table" and latex then
+        flush()
+        out[#out + 1] = table_keep(b)
+        out[#out + 1] = b
       elseif (b.t == "Para" or b.t == "Plain") and pending then
         table.insert(b.content, 1, pandoc.RawInline("latex", pending .. "%\n"))
         pending = nil
+        out[#out + 1] = b
+      elseif b.t == "RawBlock" and b.format == "html" and pending then
+        -- An <!-- art: … --> directive (or any HTML comment) between a wrap
+        -- and its paragraph is not running text: pass it through and keep
+        -- the wrap pending, so a wrapped figure may carry a directive (#280).
         out[#out + 1] = b
       elseif b.t == "Div" or b.t == "BlockQuote" then
         flush()
@@ -364,9 +513,22 @@ function Pandoc(doc)
   doc.blocks = walk_blocks(doc.blocks)
 
   -- The List of Figures prints only when the book has numbered figures, and
-  -- sits just after the (optional) List of Plates the template emits.
+  -- sits just after the (optional) List of Plates the template emits, in the
+  -- roman front matter. The filter only raises the flag, through the
+  -- template's include-before slot (set ahead of the contents); the header
+  -- prints the list just before \mainmatter. As a body block it came after
+  -- \mainmatter and took arabic folios ahead of the Preface (#289).
   if has_numbered and latex then
-    table.insert(doc.blocks, 1, pandoc.RawBlock("latex", "\\PressListOfFigures"))
+    local before = doc.meta["include-before"]
+    if before == nil then
+      before = pandoc.MetaList({})
+    elseif pandoc.utils.type(before) ~= "List" then
+      before = pandoc.MetaList({ before })
+    end
+    before:insert(
+      pandoc.MetaBlocks({ pandoc.RawBlock("latex", "\\PressListOfFigurestrue") })
+    )
+    doc.meta["include-before"] = before
   end
 
   -- Resolve every @fig:id cross-reference to a linked "Figure C.N".

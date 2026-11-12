@@ -27,7 +27,9 @@ FILTER = (
 pytestmark = lua_coverage.needs_pandoc
 
 
-def _render(markdown: str, to: str = "latex", filtered: bool = True) -> str:
+def _render(
+    markdown: str, to: str = "latex", filtered: bool = True, standalone: bool = False
+) -> str:
     args = [
         "pandoc",
         "-f",
@@ -37,6 +39,8 @@ def _render(markdown: str, to: str = "latex", filtered: bool = True) -> str:
         "--top-level-division=chapter",
         "--number-sections",
     ]
+    if standalone:
+        args += ["-s", "-V", "documentclass=scrbook"]
     if filtered:
         args.append(lua_coverage.filter_arg(FILTER))
     result = subprocess.run(args, input=markdown, capture_output=True, text=True)
@@ -77,11 +81,29 @@ def test_plates_and_bare_images_are_never_numbered():
 
 @pytest.mark.layer("integration")
 def test_list_of_figures_is_emitted_only_when_numbered_figures_exist():
-    assert "\\PressListOfFigures" in _render(_MIXED)
+    assert "\\PressListOfFigurestrue" in _render(_MIXED, standalone=True)
     plates_only = _render(
-        "# One\n\n![A plate](assets/w/x.png)\n\n![Another](assets/w/y.png){.plate}\n"
+        "# One\n\n![A plate](assets/w/x.png)\n\n![Another](assets/w/y.png){.plate}\n",
+        standalone=True,
     )
     assert "\\PressListOfFigures" not in plates_only
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("negative")
+def test_list_of_figures_is_front_matter_not_a_body_block():
+    """#289: the list printed as the first body block landed after \\mainmatter
+    and took arabic folios 1 and 2 ahead of the Preface. The filter now only
+    raises the flag, ahead of the contents; the header prints the list before
+    \\mainmatter, so the body never carries it."""
+    out = _render(_MIXED, standalone=True)
+    flag = out.index("\\PressListOfFigurestrue")
+    assert flag < out.index("\\mainmatter")
+    body = out[out.index("\\mainmatter") :]
+    assert "\\PressListOfFigures" not in body
+    # an author's own include-before survives beside the flag
+    kept = _render("---\ninclude-before: \\AuthorLine\n---\n\n" + _MIXED, standalone=True)
+    assert "\\AuthorLine" in kept and "\\PressListOfFigurestrue" in kept
 
 
 @pytest.mark.layer("integration")
@@ -173,3 +195,93 @@ def test_a_citation_that_is_not_a_figure_is_left_alone(fmt):
     out = _render(_MIXED + "\nSee @smith and @fig:none.\n", to=fmt)
     assert "@smith" in out and "@fig:none" in out
     assert "#fig:none" not in out
+
+
+@pytest.mark.layer("integration")
+def test_unnumbered_chapter_sets_its_own_running_head_mark():
+    """#282: \\chapter* sets no mark, so an unnumbered chapter's pages carried
+    the last numbered chapter's head. The filter follows each unnumbered
+    chapter heading (and only those) with the header's mark macro, the title
+    set without its footnote."""
+    out = _render(
+        "# One\n\nx\n\n# Appendix A: *Extra*[^n] {.unnumbered}\n\ny\n\n"
+        "## A section {.unnumbered}\n\nz\n\n[^n]: A note.\n"
+    )
+    assert "\\PressUnnumberedChapter{Appendix A: \\emph{Extra}}" in out
+    assert out.count("\\PressUnnumberedChapter") == 1  # not after One, not a section
+    assert out.index("\\chapter*") < out.index("\\PressUnnumberedChapter")
+    html = _render("# Preface {.unnumbered}\n\nx\n", to="html")
+    assert "PressUnnumberedChapter" not in html
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("negative")
+def test_unnumbered_chapter_contributes_no_chapter_number():
+    """#288: a colophon after Chapter 2 numbered its figure 2.2, counting on
+    from the last numbered chapter. An unnumbered chapter takes no chapter
+    number: its figures number plainly, on one book-wide sequence shared with
+    any front part (so they never collide), and its plates list with no
+    number (the header's \\PressUnnumberedChapter empties the list format;
+    \\PressNumberedChapter restores it at the next numbered chapter)."""
+    out = _render(
+        "# Preface {.unnumbered}\n\n![Early](a.png){.figure}\n\n"
+        "# One\n\n![First](b.png){.figure}\n\n"
+        "# Two\n\n![Second](c.png){.figure}\n\n"
+        "# Colophon {.unnumbered}\n\n![Late](d.png){.figure}\n\n![A plate](e.png)\n\n"
+        "# Three\n\n![Third](f.png){.figure}\n"
+    )
+    assert "\\textbf{Figure~1.}}\\enspace Early" in out
+    assert "\\textbf{Figure~1.1.}}\\enspace First" in out
+    assert "\\textbf{Figure~2.1.}}\\enspace Second" in out
+    assert "\\textbf{Figure~2.}}\\enspace Late" in out
+    assert "Figure~2.2" not in out
+    assert "\\textbf{Figure~3.1.}}\\enspace Third" in out
+    # the list format is restored once, at the first numbered chapter after
+    # each unnumbered one (One and Three), never after Two
+    assert out.count("\\PressNumberedChapter") == 2
+    one = out.index("\\chapter{One}")
+    assert out.index("\\PressNumberedChapter", one) < out.index("\\chapter{Two}")
+    plain = _render("# One\n\n![First](b.png){.figure}\n\n# Two\n\nx\n")
+    assert "\\PressNumberedChapter" not in plain
+
+
+_WIDE_CELL = "a cell long enough to wrap onto a second line in its column " * 2
+
+
+@pytest.mark.layer("integration")
+def test_table_is_kept_with_its_head_and_first_two_rows():
+    """#286: a longtable head stranded at a page foot with one row. Every
+    table is preceded by a \\Needspace sized to its caption, head, and first
+    two body rows, estimated from the cells: a narrow table asks for little,
+    a table of wrapping rows for more. An ordinary paragraph gets nothing."""
+    narrow = _render("Prose.\n\n| a | b |\n|---|---|\n| 1 | 2 |\n| 3 | 4 |\n| 5 | 6 |\n")
+    # \LTpre 1 + head 1 + rules 1 + two one-line rows
+    assert "\\Needspace{5\\baselineskip}" in narrow
+    assert narrow.index("\\Needspace") < narrow.index("\\begin{longtable}")
+    assert narrow.count("\\Needspace") == 1
+    rows = "\n".join(f"| r{k} | {_WIDE_CELL}|" for k in range(4))
+    wide = _render(
+        f"| key | Meaning |\n|------------------|{'-' * 50}|\n{rows}\n\n"
+        "Table: A caption over the table\n"
+    )
+    # \LTpre 1 + caption 1.5 + head 1 + rules 1 + two rows of 3 lines each
+    assert "\\Needspace{11\\baselineskip}" in wide
+    one_row = _render("| a | b |\n|---|---|\n| 1 | 2 |\n")
+    assert "\\Needspace{4\\baselineskip}" in one_row
+    assert "Needspace" not in _render("| a |\n|---|\n| 1 |\n", to="html")
+
+
+@pytest.mark.layer("integration")
+def test_last_two_contents_entries_carry_over_together():
+    """#291: a one-line Contents overflow set the last entry alone on a page.
+    The second-to-last listed chapter (an unlisted heading makes no entry and
+    is not counted) writes a \\Needspace into the .toc ahead of its entry."""
+    keep = "\\addtocontents{toc}{\\protect\\Needspace{4\\baselineskip}}"
+    out = _render(
+        "# One\n\nx\n\n# Two\n\nx\n\n::: part\n# Three {.unnumbered}\n\nx\n:::\n\n"
+        "# Hidden {.unnumbered .unlisted}\n\nx\n"
+    )
+    assert out.count(keep) == 1
+    assert out.index("{One}") < out.index(keep) < out.index("{Two}")
+    assert keep not in _render("# Only\n\nx\n")
+    assert "Needspace" not in _render("# One\n\nx\n\n# Two\n\nx\n", to="html")

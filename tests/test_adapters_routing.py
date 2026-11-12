@@ -143,6 +143,32 @@ def test_key_for_refuses_when_unset(fake_env):
     assert "GEMINI_API_KEY" in str(excinfo.value)
 
 
+def test_logomark_commission_uses_the_one_openai_pin(fake_env, fake_http):
+    """#277: the logomark path asked gpt-image-1 for a transparent ground and
+    the API rejected the model. Every OpenAI image call now shares the one
+    accepted pin, and none asks for `background: transparent`: gpt-image-2 is
+    not proven to render it, so the logomark's transparency is intake's job
+    (``press art accept --as logomark`` extracts the ink; see test_art)."""
+
+    from press import art_commission
+
+    fake_env(values={"OPENAI_API_KEY": "sk-live"})
+    client = fake_http([{"data": [{"b64_json": "AAA="}]}])
+    openai_spec, _gemini_spec = art_commission.shape_for("logomark", "")
+    art_commission.generate_openai("a mark", openai_spec, 1)
+    sent = client.requests[0].payload
+    assert sent["model"] == art_commission.OPENAI_FLAGSHIP == "gpt-image-2"
+    assert sent["model"] != "gpt-image-1"
+    assert "background" not in sent, "gpt-image-2 is not proven to take a transparent ground"
+    assert sent["size"] == "1024x1024"
+    assert not hasattr(art_commission, "OPENAI_TRANSPARENT")
+    models = {spec[0][0] for spec in art_commission.SHAPES.values()}
+    assert models == {"gpt-image-2"}
+    assert all(len(spec[0]) == 3 for spec in art_commission.SHAPES.values()), (
+        "no OpenAI shape carries a transparency flag any more"
+    )
+
+
 def test_post_json_routes_through_http_client(fake_http):
     from press import art_commission
 
@@ -670,6 +696,25 @@ def test_run_render_routes_pdftoppm_through_runner(scaffolded_book, fake_runner,
     recorded = fake_runner.runs[-1]
     assert recorded.argv[0] == "pdftoppm"
     assert recorded.check is True
+
+
+def test_run_render_clears_stale_pages_before_pdftoppm(scaffolded_book, fake_runner, monkeypatch):
+    """A shorter render after a longer one must not keep the longer one's
+    trailing pages: pdftoppm overwrites only what it writes (#285)."""
+    from press import __main__ as cli
+    from press import build
+
+    monkeypatch.setattr(build, "build_target", lambda name: None)
+    out = scaffolded_book / "build" / "rendered-book"
+    out.mkdir(parents=True)
+    stale = out / "page-385.png"
+    stale.write_bytes(b"phantom")
+
+    assert cli._run_render([]) == 0
+
+    assert not stale.exists()
+    assert out.is_dir()  # pdftoppm needs its output directory to exist
+    assert fake_runner.runs[-1].argv[0] == "pdftoppm"
 
 
 # booklib reads BOOK_ROOT and PRESS_RELEASE through the environment

@@ -10,7 +10,7 @@ import json
 import re
 from types import SimpleNamespace
 
-from press import build
+from press import build, landing
 
 
 def _book(**over):
@@ -139,13 +139,14 @@ def test_sources_companion_is_not_a_second_manuscript_edition():
     duplicate). The exact ``{slug}{suffix}`` match gives each its own label."""
 
     slug = "make-ready"
-    assert build._edition_row(f"{slug}.md", slug, "6 by 9 inches")[0] == "Manuscript edition"
+    assert landing._edition_row(f"{slug}.md", slug, "6 by 9 inches")[0] == "Manuscript edition"
     assert (
-        build._edition_row(f"{slug}-sources.md", slug, "6 by 9 inches")[0] == "Table of authorities"
+        landing._edition_row(f"{slug}-sources.md", slug, "6 by 9 inches")[0]
+        == "Table of authorities"
     )
     # And the neighbouring collisions stay distinct.
-    assert build._edition_row(f"{slug}-source.zip", slug, "x")[0] == "Source edition"
-    assert build._edition_row(f"{slug}-site.zip", slug, "x")[0] == "Chapter edition, boxed"
-    assert build._edition_row(f"{slug}.pdf", slug, "6 by 9 inches")[0] == "Print edition"
+    assert landing._edition_row(f"{slug}-source.zip", slug, "x")[0] == "Source edition"
+    assert landing._edition_row(f"{slug}-site.zip", slug, "x")[0] == "Chapter edition, boxed"
+    assert landing._edition_row(f"{slug}.pdf", slug, "6 by 9 inches")[0] == "Print edition"
     # A name that is not a listed edition gets no row.
-    assert build._edition_row(f"{slug}-interior.pdf", slug, "x") is None
+    assert landing._edition_row(f"{slug}-interior.pdf", slug, "x") is None

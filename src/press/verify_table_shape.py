@@ -11,10 +11,15 @@ appearance on a rendered surface is refused here (INV-table-shape).
 from __future__ import annotations
 
 import re
+import zipfile
+from pathlib import Path
 
 _TABLE_TAG = re.compile(r"<(/?)(div|table|dt)\b([^>]*)>", re.I)
 _CLASS_ATTR = re.compile(r"""\bclass\s*=\s*["']([^"']*)["']""", re.I)
 _TAGS = re.compile(r"<[^>]+>")
+# The EPUB's own navigation and cover documents are pandoc's scaffolding, not
+# book content; their markup is not the book's tables.
+_EPUB_SKIP = frozenset({"nav.xhtml", "cover.xhtml"})
 
 
 def _classes(attrs: str) -> set[str]:
@@ -117,3 +122,21 @@ def verify_tables(markup: str, label: str, *, labels: bool = True) -> None:
     _require_wrapped_tables(markup, label)
     if labels:
         _require_labelled_rows(markup, label)
+
+
+def verify_epub_tables(archive: zipfile.ZipFile) -> None:
+    """verify_tables over every content document of an EPUB, without the
+    ``data-label`` demand (the EPUB stacks no phone cards)."""
+
+    for name in archive.namelist():
+        if name.endswith((".xhtml", ".html")) and Path(name).name not in _EPUB_SKIP:
+            markup = archive.read(name).decode("utf-8", errors="ignore")
+            verify_tables(markup, f"EPUB {name}", labels=False)
+
+
+def verify_page_tables(pages: list[Path], label: str) -> None:
+    """verify_tables over each page of a multi-page surface (the reader
+    site's chapter pages), each keyed to ``label`` and its file name."""
+
+    for page in sorted(pages):
+        verify_tables(page.read_text(encoding="utf-8", errors="replace"), f"{label} {page.name}")

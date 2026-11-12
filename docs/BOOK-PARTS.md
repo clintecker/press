@@ -206,6 +206,10 @@ press add chapter "The Long Winter"     # -> the next NN- chapter
 The title can carry spaces and apostrophes; press makes the filename from
 it and seeds the heading, so you never quote Markdown into a shell.
 
+A part whose heading is marked `{.unnumbered}` (or `{-}`) -- a preface, an
+appendix, a colophon -- takes no chapter number, and in the PDF its pages
+carry its own title in the running head, with no number.
+
 ## Footnotes [authored]{.tag .made}
 
 Footnotes are part of the Markdown you write. Use the standard syntax
@@ -222,6 +226,37 @@ EPUB and web reader collect them as linked notes. There is no separate
 endnote setting — the format decides where a note sits, and the same Markdown
 produces both.
 
+## Code [authored]{.tag .made}
+
+Code blocks are the fenced Markdown you already know, with or without a
+language tag:
+
+````markdown
+```python
+def chapter_count(book):
+    return len(book.chapters)
+```
+
+```
+# a fence with no tag is set the same way, in black ink
+```
+````
+
+The PDF sets every fence in the house monospace face and wraps a line that
+is longer than the measure (about 64 columns on the 6x9 trim), tagged or
+untagged, with a small continuation mark at the head of the carried-over
+part; nothing is cut at the page edge (#279). A block whose lines already
+fit is set exactly as it always was. Prefer breaking long command lines
+yourself with a trailing `\` where the language allows it: the wrap is a
+safety net for the line you forgot, not a layout choice.
+
+A tagged fence is syntax-highlighted in every edition. Under a single-ink
+print profile the highlighting is monochrome by design: the print build
+highlights with the press's single-ink theme, so a tagged fence prints in
+black and passes `press verify-print` (#273). A profile that declares
+`ink: color` keeps the default coloured highlighting, as do the reading PDF,
+HTML and EPUB. An untagged fence is black ink everywhere.
+
 ## The index [generated]{.tag .gen}
 
 A page-accurate subject index, generated on every build. You curate the
@@ -236,7 +271,9 @@ of terms, each with the patterns that count as a mention:
 ```
 
 Press searches the manuscript for those patterns and builds the index from
-what it finds. Delete the file to remove the index.
+what it finds. Delete the file to remove the index. A location is a chapter
+number, an appendix letter, or, for an unnumbered back-matter part not titled
+as an appendix (a colophon), the part's own title.
 
 ::: {.callout}
 **Press will not print a wrong page number.** A term that matches nothing in
@@ -351,8 +388,18 @@ press config set lang "en-GB"
 <span class="part-where">book/appendices/*.md</span>
 </div>
 <div class="part made">
+<span class="part-name">Code blocks</span>
+<p class="part-what">Tagged fences, highlighted; single-ink on a single-ink print profile.</p>
+<span class="part-where">inline Markdown</span>
+</div>
+<div class="part made">
 <span class="part-name">Footnotes</span>
 <p class="part-what">Standard <code>[^1]</code> footnotes, in any chapter.</p>
+<span class="part-where">inline Markdown</span>
+</div>
+<div class="part made">
+<span class="part-name">Code</span>
+<p class="part-what">Fenced blocks, tagged or not; long lines wrap instead of running off the page.</p>
 <span class="part-where">inline Markdown</span>
 </div>
 </div>
