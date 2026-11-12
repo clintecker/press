@@ -222,6 +222,24 @@ EPUB and web reader collect them as linked notes. There is no separate
 endnote setting — the format decides where a note sits, and the same Markdown
 produces both.
 
+## Code blocks [authored]{.tag .made}
+
+Fenced code blocks are ordinary Markdown. Tag the fence with its language
+and the block is syntax-highlighted in every edition:
+
+````markdown
+```python
+def chapter_count(book):
+    return len(book.chapters)
+```
+````
+
+In the print interior the highlighting is monochrome by design: the print
+profile highlights with the press's single-ink theme, so a tagged fence
+prints in black and passes `press verify-print` (#273). The reading PDF, HTML
+and EPUB show the default colours. Keep lines inside a fence under about
+sixty columns; an untagged fence does not yet wrap at the measure (#279).
+
 ## The index [generated]{.tag .gen}
 
 A page-accurate subject index, generated on every build. You curate the
@@ -347,6 +365,11 @@ press config set lang "en-GB"
 <span class="part-name">Glossary</span>
 <p class="part-what">A definition list; authored, not checked.</p>
 <span class="part-where">book/appendices/*.md</span>
+</div>
+<div class="part made">
+<span class="part-name">Code blocks</span>
+<p class="part-what">Tagged fences, highlighted; single-ink in print.</p>
+<span class="part-where">inline Markdown</span>
 </div>
 <div class="part made">
 <span class="part-name">Footnotes</span>

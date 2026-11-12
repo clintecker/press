@@ -9,6 +9,21 @@ audit).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Syntax-highlighted code fences print in black** (#273). A fenced block
+  tagged `yaml`, `python` or `sh` was coloured by skylighting's default
+  pygments style, so `press verify-print` refused the interior with
+  `colored ink on pages [...]` and a book could not override the style. The
+  print profile now sets `highlight-style` to a packaged monochrome theme,
+  `src/press/data/press-mono.theme` (greys, bold keywords, italic comments),
+  resolved as `@press/press-mono.theme`. The reading PDF, HTML and EPUB are
+  untouched: changing their colour is a house-wide design call. The
+  coverwrap integration runner's book now carries tagged fences, so the real
+  print build and `verify_black_ink` prove the fix; unit tests hold the
+  theme to greys and to pandoc's acceptance through a defaults file. The
+  companion defect, untagged fences that do not wrap, is #279.
+
 ## [3.0.2] - 2026-11-11
 
 A security release. The hash-locked runtime dependencies move Pillow from

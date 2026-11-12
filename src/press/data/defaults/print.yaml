@@ -11,6 +11,12 @@ toc: true
 toc-depth: 1
 number-sections: true
 top-level-division: chapter
+# Syntax highlighting in a single ink (#273). skylighting's default pygments
+# style colours a fence tagged yaml/python/sh, and verify_black_ink refuses a
+# coloured interior, so the print profile highlights with the house
+# monochrome theme: greys and weight/slant only. The reading PDF, HTML and
+# EPUB keep the default colours; retinting them is a house-wide design call.
+highlight-style: "@press/press-mono.theme"
 # Interior figures are redirected to their print-safe copies (flattened,
 # resolution-capped) under build/print-assets/, written by press.print_safe
 # before this run. The reading PDF has no such filter and embeds the originals.

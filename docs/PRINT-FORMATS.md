@@ -132,6 +132,22 @@ reproduces on the physical copy as it does on screen. The
 [Hearthstone Table](https://github.com/clintecker/press/tree/main/examples/hearthstone-cookbook)
 example is a colour cookbook built this way.
 
+### Code listings print in black
+
+A fenced code block tagged with a language (```` ```python ````,
+```` ```yaml ````, ```` ```sh ````) is syntax-highlighted. In the print
+interior the highlighting is a single ink: the print profile sets pandoc's
+`highlight-style` to the press's own monochrome theme
+(`src/press/data/press-mono.theme`), in which every token style is a grey or
+a weight (bold keywords, italic comments), so `press verify-print`'s
+black-ink rule holds for a technical book without retagging its examples
+as plain `text`. Before this the default style put colour on the page and
+`verify-print` refused the interior with `colored ink on pages [...]`
+(#273). The reading PDF, HTML and EPUB keep the default coloured style;
+retinting them is a house-wide design decision, not a print fix. Long
+lines in an untagged fence are the companion defect, #279: a tagged fence
+wraps at the measure, a plain one does not yet.
+
 ## Binding sets the cover's shape
 
 The binding decides the cover topology, independent of the vendor:
