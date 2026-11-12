@@ -192,3 +192,42 @@ def test_illustration_lists_sit_in_the_roman_front_matter(tmp_path):
     assert not any(_folio(p).isdigit() for p in pages[:preface])
     assert not any("List of plates" in p for p in pages)
 
+
+
+def _filler(words: str, paragraphs: int) -> str:
+    """Enough plain prose to run a part over several pages."""
+
+    sentence = (
+        f"This paragraph about {words} runs on in plain words so that the part "
+        "fills its page and turns over onto the next one, as a real part would. "
+    )
+    return "\n\n".join(sentence * 4 for _ in range(paragraphs)) + "\n"
+
+
+@requires_pdf_toolchain
+@pytest.mark.layer("integration")
+def test_unnumbered_chapter_sets_its_own_running_head(tmp_path):
+    """#282: an unnumbered chapter (here an appendix after Chapter 1) carries
+    its own title in the running head, not the last numbered chapter's."""
+
+    handle = (
+        factories.BookFactory(slug="int-heads")
+        .with_sentinels("the first witness of the heads book")
+        .with_chapter(
+            "01-one.md",
+            "# The opening chapter\n\nHere the first witness of the heads book stands.\n\n"
+            + _filler("the opening chapter", 12),
+        )
+        .with_appendix(
+            "a-extra.md",
+            "# Appendix A: Extra matter {.unnumbered}\n\n" + _filler("the appendix", 16),
+        )
+        .build(tmp_path)
+    )
+    pages = _pages(_build_pdf(handle))
+    opening = _first_page_with(pages, "about the appendix")
+    assert "Appendix A: Extra matter" in pages[opening]
+    second = _lines(pages[opening + 1])
+    assert "about the appendix" in pages[opening + 1]
+    assert "Appendix A: Extra matter" in second[0], second[0]
+    assert "The opening chapter" not in second[0], second[0]

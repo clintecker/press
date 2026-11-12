@@ -203,6 +203,22 @@ function Pandoc(doc)
     return false
   end
 
+  -- An unnumbered chapter heading becomes \chapter*, which sets no running
+  -- head mark; follow it with the header's \PressUnnumberedChapter{<title>}
+  -- so its pages carry its own title, not the last numbered chapter's (#282).
+  -- A footnote in a heading must not be set a second time in the head.
+  local function unnumbered_mark(h)
+    local title = h.content:walk({
+      Note = function()
+        return {}
+      end,
+    })
+    return pandoc.RawBlock(
+      "latex",
+      "\\PressUnnumberedChapter{" .. inlines_to_latex(title) .. "}"
+    )
+  end
+
   -- Build the replacement for one numbered figure.
   local function numbered_block(fig, image, numstr)
     local cap = inlines_to_latex(caption_inlines(fig))
@@ -336,6 +352,12 @@ function Pandoc(doc)
         chapter = chapter + 1
         fign = 0
         out[#out + 1] = b
+      elseif b.t == "Header" and b.level == 1 then
+        flush()
+        out[#out + 1] = b
+        if latex then
+          out[#out + 1] = unnumbered_mark(b)
+        end
       elseif b.t == "Figure" then
         local r = transform(b) or b
         flush()

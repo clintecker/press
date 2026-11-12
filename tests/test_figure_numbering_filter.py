@@ -195,3 +195,20 @@ def test_a_citation_that_is_not_a_figure_is_left_alone(fmt):
     out = _render(_MIXED + "\nSee @smith and @fig:none.\n", to=fmt)
     assert "@smith" in out and "@fig:none" in out
     assert "#fig:none" not in out
+
+
+@pytest.mark.layer("integration")
+def test_unnumbered_chapter_sets_its_own_running_head_mark():
+    """#282: \\chapter* sets no mark, so an unnumbered chapter's pages carried
+    the last numbered chapter's head. The filter follows each unnumbered
+    chapter heading (and only those) with the header's mark macro, the title
+    set without its footnote."""
+    out = _render(
+        "# One\n\nx\n\n# Appendix A: *Extra*[^n] {.unnumbered}\n\ny\n\n"
+        "## A section {.unnumbered}\n\nz\n\n[^n]: A note.\n"
+    )
+    assert "\\PressUnnumberedChapter{Appendix A: \\emph{Extra}}" in out
+    assert out.count("\\PressUnnumberedChapter") == 1  # not after One, not a section
+    assert out.index("\\chapter*") < out.index("\\PressUnnumberedChapter")
+    html = _render("# Preface {.unnumbered}\n\nx\n", to="html")
+    assert "PressUnnumberedChapter" not in html

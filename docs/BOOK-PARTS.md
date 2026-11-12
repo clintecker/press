@@ -206,6 +206,10 @@ press add chapter "The Long Winter"     # -> the next NN- chapter
 The title can carry spaces and apostrophes; press makes the filename from
 it and seeds the heading, so you never quote Markdown into a shell.
 
+A part whose heading is marked `{.unnumbered}` (or `{-}`) -- a preface, an
+appendix, a colophon -- takes no chapter number, and in the PDF its pages
+carry its own title in the running head, with no number.
+
 ## Footnotes [authored]{.tag .made}
 
 Footnotes are part of the Markdown you write. Use the standard syntax

@@ -23,6 +23,14 @@ A valid book that never hit one of these faults typesets as before.
   the list just before `\mainmatter`, on roman folios after the List of
   Plates. The plates list heading now reads "List of Plates", the case of
   "Contents" and "List of Figures" (it read "List of plates").
+- **An unnumbered chapter sets its own running head (#282).** A preface, an
+  appendix written `{.unnumbered}`, or a colophon comes through as
+  `\chapter*`, which sets no mark, so its pages carried the last numbered
+  chapter's head ("16 Inside the press" across six appendixes). The
+  figure-numbering filter now follows each unnumbered chapter heading with
+  `\PressUnnumberedChapter{<title>}`, which sets the title as the mark with
+  no number (KOMA's `\addchapmark`). The issue filed this as a probable v4
+  item; the owner ruled it a correction of broken output for v3.
 
 ## [3.0.2] - 2026-11-11
 

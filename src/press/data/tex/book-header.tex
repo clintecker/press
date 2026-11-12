@@ -83,6 +83,13 @@
 \cfoot[\footnotesize\thepage]{\footnotesize\thepage}
 \renewcommand*{\chapterpagestyle}{plain.scrheadings}
 \automark[section]{chapter}
+% An unnumbered chapter (a preface, an appendix written {.unnumbered}, a
+% colophon) comes through as \chapter*, which sets no mark, so its pages
+% carried the last numbered chapter's running head (#282). The
+% figure-numbering filter follows each such heading with
+% \PressUnnumberedChapter{<title>}, which sets the title as the mark with no
+% number -- KOMA's own \addchapmark, the mark \addchap sets.
+\newcommand*{\PressUnnumberedChapter}[1]{\addchapmark{#1}}
 
 \addtokomafont{chapter}{\normalfont\bfseries\color{ink}}
 \addtokomafont{section}{\normalfont\bfseries\color{ink}}
