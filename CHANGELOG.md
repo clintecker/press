@@ -9,6 +9,16 @@ audit).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Headed tables stack on a phone under the pinned toolchain's pandoc** (#283).
+  `webmeta.label_table_cells` matched only bare `<tr>` body rows, so the
+  `<tr class="odd">`/`<tr class="even">` rows the toolchain image's pandoc
+  writes got no `data-label` and the reader CSS had nothing to key on: a
+  chapter with a headed table scrolled sideways at 390px. Any `<tr>` opening
+  tag now matches, kept verbatim. Reader CSS and templates are untouched; a
+  book whose pandoc already wrote bare rows renders byte-identically.
+
 ## [3.0.2] - 2026-11-11
 
 A security release. The hash-locked runtime dependencies move Pillow from

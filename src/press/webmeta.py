@@ -248,7 +248,9 @@ def label_table_cells(markup: str) -> str:
         body = _re.search(r"<tbody>.*?</tbody>", table, _re.S)
         if not body:
             return table
-        labelled = _re.sub(r"<tr>.*?</tr>", one_row, body.group(0), flags=_re.S)
+        # pandoc writes body rows as <tr>, <tr class="odd">, or <tr class="even">
+        # depending on its version; match any opening tag and keep it verbatim.
+        labelled = _re.sub(r"<tr\b[^>]*>.*?</tr>", one_row, body.group(0), flags=_re.S)
         return table.replace(body.group(0), labelled)
 
     return _re.sub(r"<table\b.*?</table>", one_table, markup, flags=_re.S)
