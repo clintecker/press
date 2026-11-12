@@ -193,7 +193,6 @@ def test_illustration_lists_sit_in_the_roman_front_matter(tmp_path):
     assert not any("List of plates" in p for p in pages)
 
 
-
 def _filler(words: str, paragraphs: int) -> str:
     """Enough plain prose to run a part over several pages."""
 
@@ -324,3 +323,45 @@ def test_table_head_and_definition_term_keep_with_what_follows(tmp_path):
         if _page_of(pages, f"term{k}word", terms_at) != _page_of(pages, f"code{k}first", terms_at)
     ]
     assert not split, f"definition terms stranded from their definition: {split}"
+
+
+_CODE_PARAS = 54
+
+
+@requires_pdf_toolchain
+@pytest.mark.layer("integration")
+def test_code_spans_never_hyphenate(tmp_path):
+    """#287: constant-width text hyphenated at line ends (`SUP-/PORTED`), and a
+    span holding a real hyphen broke right after it (`--paper-/warm`), so the
+    real character vanished into the break. Fifty-four paragraphs walk three
+    spans across the line end a character at a time; each comes out whole."""
+
+    tokens = ("--paper-warm", "SUPPORTED_CONTRACT_MAJORS", "round(255*(225-v)/180)")
+    paragraphs = []
+    for k in range(_CODE_PARAS):
+        # the lead grows a character at a time, so the spans sweep the line end
+        lead = "Some prose " + "q" * (1 + k % 9) + " " + "word " * (k // 9)
+        paragraphs.append(
+            f"{lead}then `{tokens[0]}` and `{tokens[1]}` and `{tokens[2]}` close the line."
+        )
+    handle = (
+        factories.BookFactory(slug="int-code")
+        .with_sentinels("the witness of the code book")
+        .with_chapter(
+            "01-code.md",
+            "# Code\n\nHere the witness of the code book stands.\n\n" + "\n\n".join(paragraphs),
+        )
+        .build(tmp_path)
+    )
+    text = "".join(_pages(_build_pdf(handle)))
+    # a span may break after "_", "/", or "." with nothing added (the
+    # character stays at the line end); rejoin those, and every token is
+    # whole: no inserted hyphen, no real hyphen lost into a break, no token
+    # pushed into the margin and cut off
+    joined = re.sub(r"([_/.])\n\s*", r"\1", text)
+    for token in tokens:
+        assert joined.count(token) == _CODE_PARAS, (token, joined.count(token))
+    ends = [line.rstrip() for line in text.splitlines()]
+    assert not [e for e in ends if re.search(r"(-|\(225-|--paper-)$", e)], (
+        "a span broke at a hyphen"
+    )

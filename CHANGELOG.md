@@ -49,6 +49,16 @@ A valid book that never hit one of these faults typesets as before.
   cells to its caption, head, and first two body rows, and each `\item` of a
   description list asks for two lines. Both change page breaks only, and only
   where the room was short; ordinary paragraphs are untouched.
+- **Constant-width text no longer hyphenates (#287).** Inline code broke at
+  line ends with a hyphen it does not have (`SUP-/PORTED_CONTRACT_MAJORS`), and
+  a span holding a real hyphen could break right after it (`--paper-/warm`),
+  losing the real character into the break. Inside `\texttt` the span now
+  sets in the no-hyphenation language and each real hyphen is boxed (LuaTeX
+  reads `\exhyphenpenalty` at the paragraph's end, so a penalty scoped to the
+  span cannot forbid the break). So that a long identifier is not pushed into
+  the margin instead, a span may break after a `/`, `_`, or `.` with no glyph
+  added, at a small penalty that prefers spaces. Prose hyphenation is
+  unchanged.
 
 ## [3.0.2] - 2026-11-11
 

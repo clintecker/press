@@ -275,6 +275,37 @@
 \makeatother
 \newcommand*{\PressDescriptionEnv}{description}
 
+% Constant-width text never hyphenates (#287). An identifier or a path broken
+% at a line end gained a hyphen it does not have (SUP-/PORTED), and a span
+% holding a real hyphen could break right after it (--paper-/warm), so the
+% real character vanished into the break. Inside \texttt (pandoc's inline
+% code) the span sets in the no-hyphenation language, and each real hyphen is
+% boxed, so the line breaker finds no discretionary after it. (LuaTeX reads
+% \exhyphenpenalty and \automatichyphenmode at the paragraph's end, so a
+% setting scoped to the span cannot forbid that break; the box can.) So a
+% long identifier is not left with no break at all and pushed into the
+% margin, a span may break after a "/", "_", or "." with no glyph added --
+% the character stays at the line end, so nothing is invented -- at a small
+% penalty that prefers the spaces around it. Spaces inside a span still
+% break, prose hyphenation is unchanged, and code blocks are verbatim and
+% never hyphenated.
+\makeatletter
+\NewCommandCopy{\PressPlainTT}{\texttt}
+\newcommand*{\PressCodeSpan}{\ifdefined\l@nohyphenation\language\l@nohyphenation\fi}
+\newcommand*{\PressCodeBreak}{\penalty100\relax}
+\makeatother
+\ExplSyntaxOn
+\tl_new:N \l__press_code_tl
+\DeclareRobustCommand*{\texttt}[1]{
+  \tl_set:Nn \l__press_code_tl {#1}
+  \tl_replace_all:Nnn \l__press_code_tl { - } { \mbox{-} }
+  \tl_replace_all:Nnn \l__press_code_tl { \_ } { \_ \PressCodeBreak }
+  \tl_replace_all:Nnn \l__press_code_tl { / } { / \PressCodeBreak }
+  \tl_replace_all:Nnn \l__press_code_tl { . } { . \PressCodeBreak }
+  \PressPlainTT { \PressCodeSpan \l__press_code_tl }
+}
+\ExplSyntaxOff
+
 % Better code blocks in narrow trim.
 \usepackage{fvextra}
 \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\}}
