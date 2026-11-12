@@ -149,8 +149,8 @@ coloured highlighting: a colour interior was never refused, so it was a
 valid book before the fix, and the contract forbids restyling a valid book
 inside a major. The reading PDF, HTML and EPUB keep the default coloured
 style for the same reason; retinting them is a house-wide design decision,
-not a print fix. Long lines in an untagged fence are the companion defect,
-#279: a tagged fence wraps at the measure, a plain one does not yet.
+not a print fix. Long lines wrap at the measure in every fence, tagged or
+untagged, with a continuation mark on the carried-over part (#279).
 
 ## Binding sets the cover's shape
 
