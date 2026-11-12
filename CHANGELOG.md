@@ -16,11 +16,14 @@ audit).
   share one candidate rule: the 40-character floor, the inline-markup
   character set, the block-marker exclusion (a definition, list item, or
   quote renders without its marker, which only the per-chapter picker had
-  applied), and a new exclusion for pandoc-crossref references (`@fig:`,
-  `@tbl:`, `@sec:`, `@eq:`) and `[@key]` citations, which render as
-  "Figure 3.3" or a formatted citation in HTML, EPUB, text, DOCX, and the
-  reader site so the source line matched nowhere and `verify-formats`
-  refused a correct build.
+  applied), and a new exclusion for any pandoc citation token: a
+  pandoc-crossref reference (`@fig:`, `@tbl:`, `@sec:`, `@eq:`), a
+  colonless `@id` naming a numbered figure (the house figure-numbering
+  filter rewrites it the same way), or a `[@key]` citation, all of which
+  render as "Figure 3.3" or a formatted citation in HTML, EPUB, text, DOCX,
+  and the reader site so the source line matched nowhere and
+  `verify-formats` refused a correct build. An e-mail address, whose `@`
+  follows a word character, stays an ordinary witness.
 
 ## [3.0.2] - 2026-11-11
 

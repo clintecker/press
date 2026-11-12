@@ -64,10 +64,14 @@ _WITNESS_MARKUP_CHARS = "*_`[]()<>\"'&#!|"
 # item) renders without it, so it could never match the page as written.
 BLOCK_MARKER = re.compile(r"(?:[:+>-]|\d+\.)\s")
 
-# A pandoc-crossref reference (`@fig:x`, `@tbl:x`, `@sec:x`, `@eq:x`) renders
-# as "Figure 3.3" in every non-PDF edition, and a `[@key]` citation renders as
-# its formatted form; the source line then appears verbatim nowhere.
-CROSSREF = re.compile(r"(?<!\w)@[a-z]+:|\[@")
+# Any pandoc citation token (`@fig:x`, `@tbl:x`, but also a colonless `@press`
+# naming a figure id, which the house figure-numbering filter rewrites to
+# "Figure 1.1" the same way) renders as something other than its source form
+# in every non-PDF edition, so the line appears verbatim nowhere. Only a bare
+# `@` opening a word counts: an e-mail address has a word character or a dot
+# before its `@` and stays plain prose. A `[@key]` citation needs no branch
+# here, because `[` is already in the markup character set.
+CROSSREF = re.compile(r"(?<![\w.])@\w")
 
 
 def _witness_candidate(line: str) -> bool:

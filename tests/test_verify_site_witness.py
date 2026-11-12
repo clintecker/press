@@ -122,6 +122,8 @@ def test_manuscript_witness_skips_crossref_lines(tmp_path):
         "the reasoning is laid out at length in @sec:shape and need not repeat",
         "substituting into @eq:spine gives the width in points for the wrap",
         "as the standard committee argued at length [@iso-9001-2015, p. 12]",
+        "as @press shows plainly, the platen does the pressing of the sheet.",
+        "@press shows plainly that the platen does the pressing of the sheet.",
         ": a deliberate reduction in level, stated in decibels and more",
         "a line that is too short to count",
     ],
@@ -135,7 +137,38 @@ def test_witness_candidate_refuses_unrenderable_lines(line):
     [
         "a plain line that is long enough to be a witness here.",
         "write to editor@example.com: the address is plain text, not a reference",
+        "write to first.last@example.com and the dotted address is plain text too",
     ],
 )
 def test_witness_candidate_accepts_plain_prose(line):
     assert vf._witness_candidate(line) is True
+
+
+_COLONLESS_REF_CHAPTER = (
+    "# One\n\n"
+    "![The platen press, its bed and its tympan](art/press.png){#press .figure}\n\n"
+    "As @press shows plainly, the platen does the pressing of the sheet onto the type.\n\n"
+    "A plain line long enough to stand as the witness.\n"
+)
+
+
+def _colonless_ref_book(tmp_path, slug):
+    return (
+        factories.BookFactory(slug=slug)
+        .with_chapter("01-one.md", _COLONLESS_REF_CHAPTER)
+        .build(tmp_path)
+    )
+
+
+def test_chapter_witnesses_skip_colonless_figure_reference(tmp_path):
+    handle = _colonless_ref_book(tmp_path, "chapter-colonless")
+    with handle.use():
+        witness = vf.chapter_witnesses()["01-one.md"]
+    assert witness == "a plain line long enough to stand as the witness."
+
+
+def test_manuscript_witness_skips_colonless_figure_reference(tmp_path):
+    handle = _colonless_ref_book(tmp_path, "manuscript-colonless")
+    with handle.use():
+        witness = vf._manuscript_witness()
+    assert witness == "a plain line long enough to stand as the witness."
