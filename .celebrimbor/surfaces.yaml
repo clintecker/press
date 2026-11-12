@@ -597,9 +597,10 @@ modules:
       ink_bbox: pure
       looks_blank: pure
       parse_args: parser
+      print_margins: parser
       render_pages: verifier
       run_capture: parser
-    pin: "e8835bf9d474"
+    pin: "a4eb25ba1cce"
     role: verifier
     status: ratified
   webmeta:

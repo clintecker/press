@@ -505,7 +505,7 @@ Every rendered page carries ink and keeps it off the edge.
 
 ## INV-pdf-text-block
 
-No body page of a PDF edition inks past its text block; the measure is the median ink right edge of the body pages, per recto and verso in print.
+No body page of a PDF edition inks past its text block, whose right edge is the build's own geometry (the profile's trim less its outer margin in reading; the print header's outer on a recto and inner on a verso in print), with 6 px (0.05in) for protrusion.
 
 - enforced by `verify_pdf:verify_text_block`
 - proven by `tests/test_verify_pdf_print_profile.py::test_a_page_overrunning_the_measure_is_rejected`

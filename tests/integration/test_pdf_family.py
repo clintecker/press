@@ -176,7 +176,7 @@ def test_a_grid_with_a_long_identifier_ends_within_the_body_measure(tmp_path):
 
     # One cell holds an identifier wider than any column it could get; another
     # holds a hyphenated flag that fits, beside prose that must wrap. Pages of
-    # plain prose follow, so the body measure is calibrated on justified text.
+    # plain prose follow, ending on the measure the grid must respect.
     grid = GRID.replace("| pocket | 5 x 8 |", f"| pocket | `{LONG_IDENTIFIER}` |").replace(
         "| 0.78in |", "| `--foil-bright` sets the foil on every cover the house prints |"
     )
@@ -194,12 +194,9 @@ def test_a_grid_with_a_long_identifier_ends_within_the_body_measure(tmp_path):
         out.mkdir()
         subprocess.run(["pdftoppm", "-png", "-r", "120", str(pdf), str(out / "page")], check=True)
         images = sorted(out.glob("page*.png"))
-        start = verify_pdf.first_body_index(pdf)
-        measure = verify_pdf.text_block_right(images, "reading", start)[0]
-        edges = {
-            page: right
-            for page, _cls, right in verify_pdf._block_right_edges(images, "reading", start)
-        }
+        overruns = dict(
+            verify_pdf.text_block_overruns(images, "reading", verify_pdf.first_body_index(pdf))
+        )
 
     lines = [line.strip() for line in pages[index].splitlines()]
     assert any("--foil-bright" in line for line in lines), "a flag that fits was split"
@@ -208,10 +205,10 @@ def test_a_grid_with_a_long_identifier_ends_within_the_body_measure(tmp_path):
     # (-layout interleaves the neighbouring column, so pick the pieces out.)
     pieces = [w for w in pages[index].split() if "-" in w and w in LONG_IDENTIFIER]
     assert "".join(pieces) == LONG_IDENTIFIER, f"the identifier was mangled: {pieces}"
-    # The median is only a measure when prose pages outnumber the grid page.
-    assert len(edges) >= 3, f"too few body pages to calibrate the measure: {sorted(edges)}"
-    assert index + 1 in edges, "the grid page rendered blank or fell in the front matter"
-    overrun = edges[index + 1] - measure
-    assert overrun <= verify_pdf.TEXT_BLOCK_SLACK, (
-        f"grid ink ends at x={edges[index + 1]}, {overrun} px past the body measure {measure}"
+    # The measure is the profile's geometry; the grid page ends within the
+    # protrusion slack of it, as the prose pages after it do.
+    assert index + 1 in overruns, "the grid page rendered blank or fell in the front matter"
+    assert overruns[index + 1] <= verify_pdf.TEXT_BLOCK_SLACK, (
+        f"grid ink runs {overruns[index + 1]} px past the text block"
     )
+    assert max(overruns.values()) <= verify_pdf.TEXT_BLOCK_SLACK, overruns
