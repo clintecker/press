@@ -591,7 +591,7 @@ modules:
       parse_args: parser
       render_pages: verifier
       run_capture: parser
-    pin: "a102dfce54c8"
+    pin: "e58ca642673c"
     role: verifier
     status: ratified
   webmeta:
