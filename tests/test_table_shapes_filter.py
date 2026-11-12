@@ -123,6 +123,33 @@ def test_a_ledger_wrapper_forces_a_list():
 
 
 @pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_forcing_div_around_one_table_is_the_only_wrapper():
+    ledger = _render("# Ch\n\n::: {.ledger}\n" + GRID.split("\n\n", 1)[1] + ":::\n", to="html")
+    grid = _render("# Ch\n\n::: {.grid}\n" + LEDGER.split("\n\n", 1)[1] + ":::\n", to="html")
+    assert ledger.count('<div class="ledger"') == 1 and "<dt>" in ledger
+    assert grid.count('<div class="grid"') == 1 and "<table" in grid
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_an_adopted_wrapper_keeps_the_authors_id_and_classes():
+    one_column = "| Note |\n|---|\n| a single column |\n"
+    out = _render("# Ch\n\n::: {#notes .ledger .wide}\n" + one_column + ":::\n", to="html")
+    # One column cannot be a ledger: it renders as a grid, under the author's id.
+    assert '<div id="notes" class="wide grid">' in out
+    assert 'class="ledger"' not in out and out.count("<div") == 1
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_forcing_div_with_prose_keeps_its_nested_wrapper():
+    body = "Some prose first.\n\n" + GRID.split("\n\n", 1)[1]
+    out = _render("# Ch\n\n::: {.grid}\n" + body + ":::\n", to="html")
+    assert out.count('<div class="grid"') == 2 and "Some prose first." in out
+
+
+@pytest.mark.layer("integration")
 @pytest.mark.proof("negative")
 def test_a_table_with_no_header_row_classifies_without_a_legend():
     out = _render(NO_HEAD, to="html")

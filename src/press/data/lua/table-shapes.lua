@@ -322,6 +322,28 @@ local function shape_of(tbl, ncols)
   return util.table_shape(ncols, column_means(body_rows(tbl), ncols, cell_words))
 end
 
+-- A forcing Div that holds only its table becomes the wrapper itself: the
+-- shaped wrapper's blocks move into it and its shape class replaces the
+-- author's (a forced ledger too narrow to be one renders as a grid), so the
+-- output carries one `div.ledger` or `div.grid`, not one nested in another.
+-- The author's id and any other classes and attributes are kept.
+local function adopt(div)
+  local inner = div.content[1]
+  if not (inner and inner.t == "Div") then
+    return div
+  end
+  local classes = pandoc.List({})
+  for _, class in ipairs(div.classes) do
+    if class ~= "ledger" and class ~= "grid" then
+      classes:insert(class)
+    end
+  end
+  classes:extend(inner.classes)
+  div.classes = classes
+  div.content = inner.content
+  return div
+end
+
 local shaper
 shaper = {
   traverse = "topdown",
@@ -331,10 +353,14 @@ shaper = {
     if not shape then
       return nil -- an ordinary div (an admonition): walk on into it
     end
+    local lone_table = #div.content == 1 and div.content[1].t == "Table"
     local saved = forced
     forced = shape
     div.content = div.content:walk(shaper)
     forced = saved
+    if lone_table then
+      return adopt(div), false
+    end
     return div, false
   end,
   Table = function(tbl)

@@ -51,11 +51,12 @@ def _close(stack: list[dict], tag: str, label: str) -> None:
 
 
 def _count_entry(stack: list[dict]) -> None:
-    """Credit a ``<dt>`` to the innermost open ledger, if any."""
+    """Credit a ``<dt>`` to every open ledger, so an author's ``.ledger`` div
+    nested around the press's own wrapper never closes as empty."""
 
-    ledger = next((frame for frame in reversed(stack) if frame["ledger"]), None)
-    if ledger is not None:
-        ledger["entries"] += 1
+    for frame in stack:
+        if frame["ledger"]:
+            frame["entries"] += 1
 
 
 def _require_wrapped_tables(markup: str, label: str) -> None:
