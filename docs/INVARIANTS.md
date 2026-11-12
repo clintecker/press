@@ -329,6 +329,13 @@ The process fake answers by command name first, then from its queue, and records
 - enforced by `adapters.fakes:FakeProcessRunner.run`
 - proven by `tests/test_adapters.py::test_fake_runner_answers_by_command_and_from_queue`
 
+## INV-figure-directive-blank-line
+
+A directive comment on the line directly after its image is refused with the fix named, because pandoc sets that image as inline text (#280).
+
+- enforced by `figures:validate`
+- proven by `tests/test_figures.py::test_a_directive_on_the_next_line_is_refused_with_the_fix_named`
+
 ## INV-figures-refuse-illegal
 
 Figure validation refuses left/right placement with absolute width and a bad outset.

@@ -125,7 +125,8 @@ def subject_from_figure(fig: figures.Figure | None, name: str) -> str:
         raise SystemExit(
             f"press illustrate: no figure named {name!r} in the manuscript, and no "
             f"--subject given. Declare it (e.g. ![caption](assets/fig/{name}.jpg)"
-            "{.plate}) with an <!-- art: … --> description, or pass --subject."
+            "{.plate}) with an <!-- art: … --> description one blank line below "
+            "it, or pass --subject."
         )
     if fig.kind in figures.DATA_KINDS:
         raise SystemExit(
@@ -135,8 +136,8 @@ def subject_from_figure(fig: figures.Figure | None, name: str) -> str:
     if not fig.generatable or not fig.description:
         raise SystemExit(
             f"press illustrate: figure {name!r} carries no <!-- art: … --> description. "
-            "A caption is a label, not art direction (#225): add an art: comment after "
-            "the image in the manuscript, or pass --subject."
+            "A caption is a label, not art direction (#225): add an art: comment one "
+            "blank line after the image in the manuscript, or pass --subject."
         )
     return fig.description
 

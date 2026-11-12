@@ -352,6 +352,11 @@ function Pandoc(doc)
         table.insert(b.content, 1, pandoc.RawInline("latex", pending .. "%\n"))
         pending = nil
         out[#out + 1] = b
+      elseif b.t == "RawBlock" and b.format == "html" and pending then
+        -- An <!-- art: … --> directive (or any HTML comment) between a wrap
+        -- and its paragraph is not running text: pass it through and keep
+        -- the wrap pending, so a wrapped figure may carry a directive (#280).
+        out[#out + 1] = b
       elseif b.t == "Div" or b.t == "BlockQuote" then
         flush()
         b.content = walk_blocks(b.content)

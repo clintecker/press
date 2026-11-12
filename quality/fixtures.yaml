@@ -218,3 +218,13 @@ fixtures:
     checker: jargon_lint
     expect: jargon
     regenerate: Hand-authored; edit the fixture to change the mutation.
+
+  - file: figure-comment-next-line.md
+    kind: source
+    invariant: INV-figure-directive-blank-line
+    provenance: "A minimal clean chapter with one plate and its art: comment one blank line below it."
+    mutation: "The blank line between the image and the art: comment removed (#280)."
+    expected_result: rejected
+    checker: figures
+    expect: insert one blank line
+    regenerate: Hand-authored; edit the fixture to change the mutation.

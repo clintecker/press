@@ -16,14 +16,24 @@ all of its plates in its own single ink.
 A caption is a reader-facing **label**; it is not art direction. So the picture
 is drawn from a separate **`art:` description** you write beside the figure in
 the manuscript — the *kind* on the image, the direction in the comment that
-follows it:
+follows it, **one blank line below** the image:
 
 ```markdown
 ![A compositor at the case](assets/fig/compositor.jpg){.plate style=wood-engraving}
+
 <!-- art: a compositor's left hand holding a brass composing stick, thumb setting
      the measure; type in the case behind; 19th-c workshop, high contrast line,
      no lettering -->
 ```
+
+The blank line matters. pandoc makes a figure only of an image that stands
+alone in its paragraph; a comment on the very next line joins that paragraph,
+and the image is set as inline text — no caption, no number, no entry in the
+lists, no cross-reference target. `press check` refuses the next-line form and
+names the fix (insert one blank line); it never rewrites your manuscript. The
+same rule covers `data:` and `source:` comments, and a wrapped figure
+(`place=wrap-inner` / `wrap-outer`) keeps its runaround with a comment between
+it and the paragraph it wraps.
 
 Then name the figure — the image file's stem — and the press reads that
 description as the prompt and the `style=` as the style:

@@ -123,6 +123,19 @@ audit).
   print build and `verify_black_ink` prove the fix; unit tests hold the
   theme to greys and to pandoc's acceptance through a defaults file. The
   companion defect, untagged fences that do not wrap, is #279.
+- **An `art:`/`data:`/`source:` comment on the line directly after its image
+  is refused by `press check`** (#280). pandoc makes a figure only of an image
+  that stands alone in its paragraph; the next-line comment joined that
+  paragraph and set the image as inline text (no caption, number, list entry,
+  or cross-reference), while `press figures` reported the directive attached
+  and the docs showed that very form. The parser now records which form a
+  directive took (`directive_form` in `press figures` JSON), the source check
+  names the fix (insert one blank line) and never rewrites the manuscript, a
+  packaged known-bad fixture proves the refusal, and the illustrations guide
+  and `press illustrate` refusals show the blank-line form.
+- `figure-numbering.lua` skips an HTML comment between a `wrap-inner` /
+  `wrap-outer` figure and the paragraph it wraps, so a wrapped figure can
+  carry an `art:` directive without losing its runaround.
 
 ## [3.0.2] - 2026-11-11
 

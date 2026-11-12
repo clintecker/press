@@ -60,3 +60,6 @@ negative-parallelism.md:
 jargon.md:
   checker: jargon_lint
   diagnostic: 'jargon'
+figure-comment-next-line.md:
+  checker: figures
+  diagnostic: 'insert one blank line'
