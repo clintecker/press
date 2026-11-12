@@ -28,8 +28,8 @@ This is the v4 line: a design major. Nothing here is released yet.
   legend kept on the page with the first entry, a three-column ledger's
   middle line set ragged right, and a list nested in an entry at the house
   label gap); grids set small with 0.5 em cell padding and `p{}` columns
-  that wrap. Page breaks and page counts of books with tables move. This amends Round 1B's constraint that v4 leaves the PDF
-  untouched.
+  that wrap. Page breaks and page counts of books with tables move. This
+  amends Round 1B's constraint that v4 leaves the PDF untouched.
 - **Web, EPUB, DOCX.** Reader site and HTML: `.ledger` entries with a
   hairline between them, a constant-width `.ledger-sub`, and keys and
   entries that wrap a long URL rather than widen the page; grids scroll in
@@ -58,8 +58,22 @@ This is the v4 line: a design major. Nothing here is released yet.
   keep (the sized `\Needspace` before every longtable and the house
   `description` hook, which `PressLedger` calls rather than copies) and on
   v3's #287 code spans (robust, unhyphenated `\texttt` with an existing
-  hyphen as a last-resort break), so the v4 header carries no code-span or
-  table-keep machinery of its own.
+  hyphen as a last-resort break), so the v4 header carries no table-keep
+  machinery of its own.
+- **Code spans stay inside the measure in body prose too.** The new
+  text-block verifier refused two pages of *Publishing with Press* whose
+  code spans had nowhere to break (`FileNotFoundError("no manuscript files
+  found under book/")`, a comma-joined list of `\widowpenalty`-style
+  names), so a line ran up to 52 px into the margin; v3.1.0 set the same
+  overruns unrefused. The #287 last-resort break points after `/`, `_`, and
+  `.` (penalty 3000, no glyph added) gain `,` `(` `)` `;` `=` and `:`, and
+  the house sets `\emergencystretch` to 10em (pandoc's template sets 3em),
+  so a paragraph with no feasible breaks loosens its lines instead of
+  setting one overfull: room for a twenty-character identifier to move
+  whole to the next line. Only paragraphs that failed the normal passes, or
+  that hold a code span with one of the new break characters, set
+  differently; on *Publishing with Press* 55 of 387 pages move, with the
+  page count unchanged.
 
 ## [3.1.0] - 2026-11-12
 

@@ -69,6 +69,13 @@
 \setlength{\parindent}{1.1em}
 \setlength{\parskip}{0pt}
 \linespread{1.045}
+% A last-resort pass for a paragraph with no feasible line breaks (a long code
+% span with nowhere to break near the line end): TeX may loosen the lines by
+% up to 10em more before it sets one overfull into the margin, enough room for
+% a twenty-character identifier pushed whole to the next line. It runs only
+% when the normal passes fail. pandoc's template sets 3em, after the header in
+% some versions, so the house value is set at the start of the document.
+\AtBeginDocument{\setlength{\emergencystretch}{10em}}
 % The label separation is stated, at the class's own value captured here, so
 % a list nested inside a ledger entry (whose description sets labelsep=1.6em)
 % does not inherit the ledger's wide hang; every other list is unchanged.
@@ -347,13 +354,16 @@
 % \exhyphenpenalty and \automatichyphenmode at the paragraph's end, so a
 % setting scoped to the span cannot forbid that break; the box can.) So a
 % long identifier is not left with no break at all and pushed into the
-% margin, a span may break after a "/", "_", or "." with no glyph added --
+% margin, a span may break after a "/", "_", ".", ",", "(", ")", ";", "=",
+% or ":" with no glyph added --
 % the character stays at the line end, so nothing is invented -- at a high
 % penalty, so it is a last resort taken only when the line has no better
 % break. A hyphen the span already has is a legal break too, the least bad
 % place when nothing else fits: the boxed hyphen is followed by a break that
-% adds no glyph (\PressCodeHyphenBreak), at a higher penalty than the "/",
-% "_", "." points so TeX takes those first. Without it a run of hyphenated
+% adds no glyph (\PressCodeHyphenBreak), at a higher penalty than the
+% punctuation points so TeX takes those first. (Under \ExplSyntaxOn ":" is a
+% letter, so the colon is matched as \c_colon_str, the catcode-12 colon the
+% span's text carries.) Without it a run of hyphenated
 % identifiers had no break at all and ran off the page. Spaces inside a span
 % still break, prose hyphenation is unchanged, and code blocks are verbatim
 % and never hyphenated.
@@ -371,6 +381,13 @@
   \tl_replace_all:Nnn \l__press_code_tl { \_ } { \_ \PressCodeBreak }
   \tl_replace_all:Nnn \l__press_code_tl { / } { / \PressCodeBreak }
   \tl_replace_all:Nnn \l__press_code_tl { . } { . \PressCodeBreak }
+  \tl_replace_all:Nnn \l__press_code_tl { , } { , \PressCodeBreak }
+  \tl_replace_all:Nnn \l__press_code_tl { ( } { ( \PressCodeBreak }
+  \tl_replace_all:Nnn \l__press_code_tl { ) } { ) \PressCodeBreak }
+  \tl_replace_all:Nnn \l__press_code_tl { ; } { ; \PressCodeBreak }
+  \tl_replace_all:Nnn \l__press_code_tl { = } { = \PressCodeBreak }
+  \exp_args:NNo \tl_replace_all:Nnn \l__press_code_tl { \c_colon_str }
+    { \c_colon_str \PressCodeBreak }
   \PressPlainTT { \PressCodeSpan \l__press_code_tl }
 }
 \ExplSyntaxOff

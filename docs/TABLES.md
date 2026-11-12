@@ -69,10 +69,11 @@ it honest:
   page foot;
 - code in a grid cell follows the house rule for every code span: it is
   never hyphenated, so `--foil-bright` is never split as `--foil-` /
-  `bright`. A hyphen the identifier already has is a break of last resort,
-  taken only when the token is wider than its whole column, because ink
-  past the text block is a fault in print and a split identifier is only
-  ugly.
+  `bright`. When a token is wider than its whole column it may break, as a
+  last resort and with no glyph added, after a `/`, `_`, `.`, `,`, `(`,
+  `)`, `;`, `=`, or `:`, and after that after a hyphen it already has,
+  because ink past the text block is a fault in print and a split
+  identifier is only ugly.
 
 ## Force a shape
 

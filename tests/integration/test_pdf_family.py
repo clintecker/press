@@ -555,6 +555,10 @@ KERNEL_VERBATIM_TEX = r"""
 \renewcommand\verbatim{\@verbatim \frenchspacing\@vobeyspaces \@xverbatim}
 \renewcommand\endverbatim{\if@newlist \leavevmode\fi\endtrivlist}
 \makeatother
+% And the 3em emergency stretch v3 set: under v4's 10em the kernel verbatim
+% line finds a last-resort break at its own hyphen, and the control would no
+% longer show the overrun the rebind exists to prevent.
+\AtBeginDocument{\setlength{\emergencystretch}{3em}}
 """
 FITTING_FENCE = (
     "alpha = 1\n"
@@ -989,6 +993,68 @@ def test_code_spans_never_hyphenate(tmp_path):
     ends = [line.rstrip() for line in text.splitlines()]
     assert not [e for e in ends if re.search(r"(-|\(225-|--paper-)$", e)], (
         "a span broke at a hyphen"
+    )
+
+
+# Spans with no "/", "_", or "." to break at: the first two are the shapes of
+# the two pages of Publishing with Press the text-block verifier refused under
+# v3's rule.
+_PUNCTUATED = (
+    'FileNotFoundError("no such file in the manuscript directory")',
+    "\\widowpenalty,\\clubpenalty,\\displaywidowpenalty,\\brokenpenalty",
+    # wider than the measure, with no space, "/", "_", or "." in it: only the
+    # new break points can keep it inside the text block
+    "\\widowpenalty=10000;\\clubpenalty=10000;\\displaywidowpenalty=10000:(\\brokenpenalty)",
+)
+_PUNCT_PARAS = 27
+
+
+@requires_pdf_toolchain
+@pytest.mark.layer("integration")
+def test_code_spans_break_after_punctuation_and_stay_in_the_measure(tmp_path):
+    """A code span may also break after , ( ) ; = and : at the last-resort
+    penalty, adding no glyph. Twenty-seven paragraphs walk the spans across
+    the line end; no body page inks past the text block, and every span reads
+    whole once its breaks are rejoined: no hyphen invented."""
+    from press import verify_text_block as text_block
+
+    paragraphs = []
+    for k in range(_PUNCT_PARAS):
+        lead = "If neither directory yields a file " + "q" * (1 + k % 9) + " " + "so " * (k // 9)
+        paragraphs.append(
+            f"{lead}the press refuses with `{_PUNCTUATED[0]}`, and the header sets "
+            f"`{_PUNCTUATED[1]}` to ten thousand, written `{_PUNCTUATED[2]}` in full."
+        )
+    handle = (
+        factories.BookFactory(slug="int-punct")
+        .with_sentinels("the witness of the punctuation book")
+        .with_chapter(
+            "01-punct.md",
+            "# Punctuation\n\nHere the witness of the punctuation book stands.\n\n"
+            + "\n\n".join(paragraphs),
+        )
+        .build(tmp_path)
+    )
+    pdf = _build_pdf(handle)
+    text = "".join(_pages(pdf))
+    out = tmp_path / "render"
+    out.mkdir()
+    subprocess.run(["pdftoppm", "-png", "-r", "120", str(pdf), str(out / "page")], check=True)
+    images = sorted(out.glob("page*.png"))
+    with handle.use():
+        overruns = text_block.text_block_overruns(
+            images, "reading", text_block.first_body_index(pdf)
+        )
+    past = [(page, px) for page, px in overruns if px > text_block.TEXT_BLOCK_SLACK]
+    assert past == [], f"code ran past the text block: {past}"
+    # A break after punctuation leaves the character at the line end and adds
+    # nothing; rejoin those and every span is whole. The spans hold no hyphen,
+    # so one invented at a line end ("FileNot-") would fail the count.
+    joined = re.sub(r"([,(=;:/_.)])\s+", r"\1", " ".join(text.split()))
+    for token in _PUNCTUATED:
+        assert joined.count(token) == _PUNCT_PARAS, (token, joined.count(token))
+    assert not re.search(r"(FileNot|Error|penalty|widow|club|broken)\w*-\s", text), (
+        "a span gained a hyphen"
     )
 
 
