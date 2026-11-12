@@ -133,3 +133,26 @@ verifiers run on every `press all`. Both are listed in the
   margin. Front matter and the running-head and folio bands are not judged.
   The raster cannot tell a deliberately outset figure from overflowing text,
   so such a figure is refused as well.
+
+## Measuring a built site
+
+The verifiers prove every table is in a shape; they do not say how well the
+shapes read. For that, maintainers have `scripts/measure_tables.py`, a
+heuristic instrument rather than a gate. Point it at a built reader site:
+
+```sh
+python3 scripts/measure_tables.py BOOK/dist/pages/read
+```
+
+It loads every page in headless Chrome at 1280, 820, and 390 CSS pixels
+(`--widths` changes them) and reports, per width: code spans in a table or a
+ledger split inside a token (an identifier broken mid-word), code wrapped at
+a space, sparse cells (three or more lines averaging under 1.5 words a
+line), cells five or more lines tall, tables wider than the measure, clipped
+cells, and pages that scroll sideways. It also counts the `.ledger` and
+`.grid` elements on each page and in total. Lines are counted from the
+cell's boxes bucketed by line height, so treat the numbers as a comparison
+between two builds of the same book. `--json` prints the raw results, and
+`--fail-on-any` exits 1 when any width has an in-token split, a clipped
+cell, or a page scrolling sideways. With no Chrome installed it prints a
+notice and exits 0; `PRESS_CHROME` points it at a browser.

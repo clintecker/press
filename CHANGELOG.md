@@ -43,6 +43,11 @@ This is the v4 line: a design major. Nothing here is released yet.
   wrappers and entries only; a raw HTML `<table>` in a manuscript is refused.
   `verify_pdf.verify_text_block` (`INV-pdf-text-block`): a body page whose
   ink runs more than 6 px past the profile's text block is refused.
+- **`scripts/measure_tables.py`**, a maintainer's instrument: it loads a
+  built reader site in headless Chrome at 1280, 820, and 390 px and reports
+  code split inside a token, clipped cells, pages scrolling sideways,
+  sparse and tall cells, and the `.ledger` and `.grid` counts. A heuristic
+  for comparing builds, not a gate (`docs/TABLES.md`).
 
 ### Fixed
 
