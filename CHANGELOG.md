@@ -9,6 +9,18 @@ audit).
 
 ## [Unreleased]
 
+## [3.1.1] - 2026-11-12
+
+### Fixed
+
+- The v3.1.0 release contract failed its quality gate because the new
+  `press.landing` module (the Pages landing assembly, split out of
+  `build.py` in 3.1.0) measured 28.6 percent coverage in CI against the
+  50 percent floor for a new module. `tests/test_landing.py` now covers
+  it (the editions table, the download names, the subtitle stack, the
+  optional panels); nothing in the module changed. 3.1.0 remains an
+  immutable tag; `v3` floats to this release.
+
 ## [3.1.0] - 2026-11-12
 
 The v3 correction wave. Its layout corrections are seven issues found
