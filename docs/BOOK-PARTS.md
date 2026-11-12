@@ -222,6 +222,30 @@ EPUB and web reader collect them as linked notes. There is no separate
 endnote setting — the format decides where a note sits, and the same Markdown
 produces both.
 
+## Code [authored]{.tag .made}
+
+Code blocks are the fenced Markdown you already know, with or without a
+language tag:
+
+````markdown
+```sh
+press all
+```
+
+```
+# a fence with no tag is set the same way, in black ink
+```
+````
+
+The PDF sets every fence in the house monospace face and wraps a line that
+is longer than the measure (about 64 columns on the 6x9 trim), tagged or
+untagged, with a small continuation mark at the head of the carried-over
+part; nothing is cut at the page edge. A tagged fence adds syntax colour,
+which the print interior refuses; an untagged fence stays black ink. Prefer
+breaking long command lines yourself with a trailing `\` where the language
+allows it: the wrap is a safety net for the line you forgot, not a layout
+choice.
+
 ## The index [generated]{.tag .gen}
 
 A page-accurate subject index, generated on every build. You curate the
@@ -351,6 +375,11 @@ press config set lang "en-GB"
 <div class="part made">
 <span class="part-name">Footnotes</span>
 <p class="part-what">Standard <code>[^1]</code> footnotes, in any chapter.</p>
+<span class="part-where">inline Markdown</span>
+</div>
+<div class="part made">
+<span class="part-name">Code</span>
+<p class="part-what">Fenced blocks, tagged or not; long lines wrap instead of running off the page.</p>
 <span class="part-where">inline Markdown</span>
 </div>
 </div>

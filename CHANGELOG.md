@@ -9,6 +9,21 @@ audit).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Untagged code fences wrap in the PDF (#279).** pandoc sets a fence with
+  no language tag (or one tagged `text`, on the pandoc versions that treat it
+  as plain) in the `verbatim` environment, which the header had left without
+  fvextra's line breaking, so a line longer than the measure (about 64
+  columns on the 6x9 trim) ran off the page edge and was cut. The header now
+  rebinds `verbatim` to the same fvextra `Verbatim` with the same
+  `breaklines,breakanywhere` options as the `Highlighting` environment, so
+  both kinds of fence wrap identically. A correction, not a design change:
+  only lines that previously overflowed the text block render differently;
+  a code line that already fit is byte-identical. The reading-PDF verifier
+  still refuses only ink at the page edge, not ink in the margin; that
+  margin-ink check is a separate piece of work.
+
 ## [3.0.2] - 2026-11-11
 
 A security release. The hash-locked runtime dependencies move Pillow from

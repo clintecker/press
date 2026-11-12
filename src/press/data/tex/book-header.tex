@@ -238,6 +238,12 @@
 % Better code blocks in narrow trim.
 \usepackage{fvextra}
 \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\}}
+% pandoc uses Highlighting only for a fence with a recognised language tag; an
+% untagged fence (or one tagged `text`) becomes plain verbatim, which does not
+% wrap, so a line past the measure ran off the page edge (#279). Rebind
+% verbatim to the same fvextra environment with the same break options, so
+% both kinds of fence wrap identically; a line that already fit is unchanged.
+\RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere}
 
 % Plain title page driven by document metadata (books that want the
 % treatise front matter include tex/title-page.tex after this file).
