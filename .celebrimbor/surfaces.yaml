@@ -474,6 +474,16 @@ modules:
     pin: "8916446d0630"
     role: pure
     status: ratified
+  reader_links:
+    overrides:
+      AnchorScan.handle_starttag: parser
+      anchor_ids: parser
+      local_anchors: parser
+      page_ids: parser
+      sibling_anchors: parser
+    pin: "fa1d26b068f5"
+    role: producer
+    status: ratified
   reader_meta:
     overrides:
       book_sitemap_locs: pure
