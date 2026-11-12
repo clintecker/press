@@ -110,4 +110,36 @@ function M.tail_web_size(i, n)
   return M.TAIL_WEB_SIZES[idx]
 end
 
+-- The mean word count at which a column counts as prose rather than a key.
+M.LEDGER_PROSE_WORDS = 8
+
+-- Whitespace-separated tokens in a string.
+function M.word_count(text)
+  local n = 0
+  for _ in text:gmatch("%S+") do
+    n = n + 1
+  end
+  return n
+end
+
+-- "ledger" (a reference list: short key columns then one prose column) or
+-- "grid" for a table of ncols columns whose per-column mean word counts are
+-- means, in column order. A ledger has two or three columns, exactly one of
+-- them prose, and that one last.
+function M.table_shape(ncols, means)
+  if ncols ~= 2 and ncols ~= 3 then
+    return "grid"
+  end
+  local prose = 0
+  for i = 1, ncols do
+    if means[i] >= M.LEDGER_PROSE_WORDS then
+      prose = prose + 1
+    end
+  end
+  if prose == 1 and means[ncols] >= M.LEDGER_PROSE_WORDS then
+    return "ledger"
+  end
+  return "grid"
+end
+
 return M
