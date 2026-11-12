@@ -435,6 +435,13 @@ The invariant marker plugin validates every @pytest.mark.invariant citation agai
 - enforced by `invariants:load`
 - proven by `tests/test_collection_plugin.py::test_unknown_invariant_id_fails_collection`
 
+## INV-logomark-ink-extracted
+
+An opaque logomark delivery accepted at intake has its ink extracted onto transparency; it never ships as an opaque box.
+
+- enforced by `art:_logomark_master`
+- proven by `tests/test_art.py::test_opaque_logomark_delivery_has_its_ink_extracted_to_transparency`
+
 ## INV-lulu-timeout-unknown
 
 A submit timeout is an UnknownOutcome that forces a lookup, never a retry or an assumed success.
@@ -471,6 +478,13 @@ The mutation engine enumerates every mutable operator in a pure module exactly o
 
 - enforced by `mutation:survivors`
 - proven by `tests/test_mutation.py::test_apply_mutates_exactly_one_site_and_leaves_the_rest`
+
+## INV-openai-one-model-pin
+
+Every OpenAI image call shares the one gpt-image-2 pin and sends no background parameter.
+
+- enforced by `art_commission:generate_openai`
+- proven by `tests/test_adapters_routing.py::test_logomark_commission_uses_the_one_openai_pin`
 
 ## INV-operator-counsel-touches-nothing
 

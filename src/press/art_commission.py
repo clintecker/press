@@ -23,38 +23,41 @@ from . import booklib
 # Model choices are print-driven, researched 2026-07: a 6 x 9 cover at
 # 300dpi needs ~1800x2700px, so drafts-at-1K models cannot serve finals.
 # gpt-image-2 takes arbitrary sizes (multiples of 16, max edge 3840,
-# max ~8.3MP). Every OpenAI image call -- cover, plates, portrait, and the
-# logomark -- is pinned to it: the logomark once stayed on gpt-image-1 for
-# its proven transparent background, but the API rejected that model in
-# 2026-11 and every logomark commission failed (#277). The logomark still
-# asks for `background: transparent`; when the model returns an opaque
-# ground instead, intake's ink extraction keys it out, so one pin serves
-# all three paths. On Gemini, gemini-3-pro-image (best text rendering)
-# takes the cover; gemini-3.1-flash-image (the workhorse) takes plates
-# and portrait; both accept imageConfig {aspectRatio, imageSize} up to 4K.
+# max ~8.3MP) but dropped transparent backgrounds. Every OpenAI image call
+# -- cover, plates, portrait, and the logomark -- is pinned to it. The
+# logomark once stayed on gpt-image-1 for its transparent background, but
+# the API rejected that model in 2026-11 and every logomark commission
+# failed (#277). No OpenAI call asks for `background: transparent` now: the
+# research says gpt-image-2 does not render it, and nothing has
+# proven otherwise, so the request is not sent. Transparency is intake's
+# job instead: `press art accept --as logomark` extracts the ink of an
+# opaque delivery onto transparency (the same path that cleaned the Gemini
+# workaround's painted checkerboard), so one pin serves every path. On
+# Gemini, gemini-3-pro-image (best text rendering) takes the cover;
+# gemini-3.1-flash-image (the workhorse) takes plates and portrait; both
+# accept imageConfig {aspectRatio, imageSize} up to 4K.
 OPENAI_FLAGSHIP = "gpt-image-2"
-OPENAI_TRANSPARENT = OPENAI_FLAGSHIP
 GEMINI_FLAGSHIP = "gemini-3-pro-image"
 GEMINI_WORKHORSE = "gemini-3.1-flash-image"
 
-# (openai model, size, quality, transparent), (gemini model, aspect, imageSize)
+# (openai model, size, quality), (gemini model, aspect, imageSize)
 SHAPES = {
-    "cover": ((OPENAI_FLAGSHIP, "2304x3456", "high", False), (GEMINI_FLAGSHIP, "2:3", "4K")),
+    "cover": ((OPENAI_FLAGSHIP, "2304x3456", "high"), (GEMINI_FLAGSHIP, "2:3", "4K")),
     "portrait-plate": (
-        (OPENAI_FLAGSHIP, "2304x3456", "high", False),
+        (OPENAI_FLAGSHIP, "2304x3456", "high"),
         (GEMINI_WORKHORSE, "2:3", "2K"),
     ),
     "landscape-plate": (
-        (OPENAI_FLAGSHIP, "3456x2304", "high", False),
+        (OPENAI_FLAGSHIP, "3456x2304", "high"),
         (GEMINI_WORKHORSE, "3:2", "2K"),
     ),
     "square-plate": (
-        (OPENAI_FLAGSHIP, "2048x2048", "high", False),
+        (OPENAI_FLAGSHIP, "2048x2048", "high"),
         (GEMINI_WORKHORSE, "1:1", "2K"),
     ),
-    "logomark": ((OPENAI_TRANSPARENT, "1024x1024", "high", True), (GEMINI_WORKHORSE, "1:1", "1K")),
+    "logomark": ((OPENAI_FLAGSHIP, "1024x1024", "high"), (GEMINI_WORKHORSE, "1:1", "1K")),
     "author-portrait": (
-        (OPENAI_FLAGSHIP, "2304x3456", "high", False),
+        (OPENAI_FLAGSHIP, "2304x3456", "high"),
         (GEMINI_WORKHORSE, "2:3", "2K"),
     ),
 }
@@ -154,12 +157,12 @@ def key_for(model: str) -> str:
 def generate_openai(
     prompt: str, spec: tuple, count: int, references: list[tuple[bytes, str]] | None = None
 ) -> list[bytes]:
-    model, size, quality, transparent = spec
+    model, size, quality = spec
     headers = {"Authorization": f"Bearer {key_for('openai')}"}
     if not references:
+        # No `background` parameter: see the model note above the SHAPES
+        # table. A transparent logomark is made at intake, not requested here.
         payload = {"model": model, "prompt": prompt, "size": size, "quality": quality, "n": count}
-        if transparent:
-            payload["background"] = "transparent"
         body = post_json("https://api.openai.com/v1/images/generations", payload, headers)
         return [base64.b64decode(item["b64_json"]) for item in body.get("data", [])]
 

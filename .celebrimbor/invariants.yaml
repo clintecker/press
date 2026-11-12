@@ -881,6 +881,24 @@ invariants:
     layers:
     - pytest
     risk: A plate would ship as a baked-white master, breaking compositing onto any surface (#226).
+  INV-logomark-ink-extracted:
+    statement: An opaque logomark delivery accepted at intake has its ink extracted onto transparency; it never ships as an opaque box.
+    enforced_by: art:_logomark_master
+    negative_proof: tests/test_art.py::test_opaque_logomark_delivery_has_its_ink_extracted_to_transparency
+    owner: art
+    criticality: standard
+    layers:
+    - pytest
+    risk: Since no OpenAI image call asks for a transparent background (#277), an opaque logomark would ship with a baked ground that shows on every dark cover and reader panel.
+  INV-openai-one-model-pin:
+    statement: Every OpenAI image call shares the one gpt-image-2 pin and sends no background parameter.
+    enforced_by: art_commission:generate_openai
+    negative_proof: tests/test_adapters_routing.py::test_logomark_commission_uses_the_one_openai_pin
+    owner: art_commission
+    criticality: standard
+    layers:
+    - pytest
+    risk: A lagging pin (gpt-image-1) or an unsupported parameter makes a whole commission path fail at the API (#277).
   INV-cover-baked-guard:
     statement: A baked cover style fills every placeholder and carries the exact-text guardrail.
     enforced_by: cover:build_prompt

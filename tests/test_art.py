@@ -115,3 +115,32 @@ def test_colour_plate_keeps_exact_colour_not_luminance_keyed(tmp_path, monkeypat
     master = Image.open(dst).convert("RGBA")
     assert master.getpixel((5, 10)) == (180, 20, 20, 255)  # exact hue, opaque
     assert master.getpixel((0, 0)) == (255, 255, 255, 255)  # white ground kept
+
+
+@pytest.mark.layer("unit")
+def test_opaque_logomark_delivery_has_its_ink_extracted_to_transparency(tmp_path, monkeypatch):
+    """#277: no OpenAI image call asks for a transparent background any more
+    (gpt-image-2 is not proven to render one), so a commissioned logomark
+    arrives as ink on an opaque ground and the house format now depends on
+    intake. The known-bad: an opaque ink-on-white device accepted ``--as
+    logomark`` must ship as ink on transparency, never as an opaque box."""
+
+    from press import booklib
+
+    monkeypatch.setattr(booklib, "root", lambda: tmp_path)
+    src = tmp_path / "delivery.png"
+    _baked_line_art().save(src)
+
+    dst = art.accept(src, "logomark")
+
+    assert dst == tmp_path / "assets" / "press-logo.png"
+    master = Image.open(dst)
+    assert master.mode == "RGBA"
+    alpha = master.getchannel("A")
+    low, high = alpha.getextrema()
+    assert low == 0, "the opaque ground must be keyed out, not shipped"
+    assert high == 255, "the device's ink must stay fully opaque"
+    # The ink lands where the strokes were, and nowhere else.
+    assert alpha.getpixel((20, 20)) == 255
+    assert alpha.getpixel((5, 5)) == 0
+    assert master.getpixel((20, 20))[:3] == art._INK
