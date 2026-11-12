@@ -108,6 +108,21 @@ audit).
   tagged `Highlighting` environment is untouched. The reading-PDF verifier
   still refuses only ink at the page edge, not ink that hangs into the
   margin; that check is tracked as #294.
+- **Syntax-highlighted code fences print in black** (#273). A fenced block
+  tagged `yaml`, `python` or `sh` was coloured by skylighting's default
+  pygments style, so `press verify-print` refused the interior with
+  `colored ink on pages [...]` and a book could not override the style. The
+  print build now sets `highlight-style` to a packaged monochrome theme,
+  `src/press/data/press-mono.theme` (greys, bold keywords, italic comments),
+  resolved as `@press/press-mono.theme`, when the active print profile's ink
+  is `single`. An `ink: color` profile (`house-6x9-color`) keeps the default
+  coloured highlighting: it was never refused, so it was a valid book, and
+  the contract forbids restyling one inside a major. The reading PDF, HTML
+  and EPUB are untouched for the same reason. The
+  coverwrap integration runner's book now carries tagged fences, so the real
+  print build and `verify_black_ink` prove the fix; unit tests hold the
+  theme to greys and to pandoc's acceptance through a defaults file. The
+  companion defect, untagged fences that do not wrap, is #279.
 
 ## [3.0.2] - 2026-11-11
 

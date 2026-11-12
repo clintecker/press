@@ -68,6 +68,17 @@ def _book(root):
             "# More\n\nHere the second witness of the coverwrap runner stands "
             "in another plain sentence long enough to typeset for print.\n",
         )
+        # Tagged fences: skylighting's default style coloured them and
+        # verify_black_ink refused the interior (#273); the print profile now
+        # highlights with the packaged monochrome theme, and this chapter is
+        # the fixture that proves a tagged fence builds and prints black.
+        .with_chapter(
+            "02-listing.md",
+            "# Listing\n\nA short example in each tag the issue named.\n\n"
+            "```python\n# a comment\ndef f(x):\n    return 'string' + str(1)\n```\n\n"
+            "```yaml\nkey: value\nlist:\n  - 1\n```\n\n"
+            "```sh\nexport NAME=value && press all\n```\n",
+        )
         .build(root)
     )
 

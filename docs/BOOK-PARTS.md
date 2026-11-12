@@ -228,8 +228,9 @@ Code blocks are the fenced Markdown you already know, with or without a
 language tag:
 
 ````markdown
-```sh
-press all
+```python
+def chapter_count(book):
+    return len(book.chapters)
 ```
 
 ```
@@ -240,12 +241,17 @@ press all
 The PDF sets every fence in the house monospace face and wraps a line that
 is longer than the measure (about 64 columns on the 6x9 trim), tagged or
 untagged, with a small continuation mark at the head of the carried-over
-part; nothing is cut at the page edge. A block whose lines already fit is
-set exactly as it always was. A tagged fence adds syntax colour,
-which the print interior refuses; an untagged fence stays black ink. Prefer
-breaking long command lines yourself with a trailing `\` where the language
-allows it: the wrap is a safety net for the line you forgot, not a layout
-choice.
+part; nothing is cut at the page edge (#279). A block whose lines already
+fit is set exactly as it always was. Prefer breaking long command lines
+yourself with a trailing `\` where the language allows it: the wrap is a
+safety net for the line you forgot, not a layout choice.
+
+A tagged fence is syntax-highlighted in every edition. Under a single-ink
+print profile the highlighting is monochrome by design: the print build
+highlights with the press's single-ink theme, so a tagged fence prints in
+black and passes `press verify-print` (#273). A profile that declares
+`ink: color` keeps the default coloured highlighting, as do the reading PDF,
+HTML and EPUB. An untagged fence is black ink everywhere.
 
 ## The index [generated]{.tag .gen}
 
@@ -372,6 +378,11 @@ press config set lang "en-GB"
 <span class="part-name">Glossary</span>
 <p class="part-what">A definition list; authored, not checked.</p>
 <span class="part-where">book/appendices/*.md</span>
+</div>
+<div class="part made">
+<span class="part-name">Code blocks</span>
+<p class="part-what">Tagged fences, highlighted; single-ink on a single-ink print profile.</p>
+<span class="part-where">inline Markdown</span>
 </div>
 <div class="part made">
 <span class="part-name">Footnotes</span>
