@@ -11,7 +11,12 @@ print-profile interior, so it is not rebuilt here.
 
 from __future__ import annotations
 
+import re
+import subprocess
+from pathlib import Path
+
 import pytest
+from PIL import Image, ImageDraw
 
 from tests import factories
 from tests.integration._harness import (
@@ -83,3 +88,107 @@ def test_reading_pdf_carries_ink(tmp_path):
         "an unskipped PDF runner recorded a tool as absent"
     )
     assert "verify_pdf.main" in evidence.verifiers
+
+
+# ---- layout corrections (the v3 correction wave) ----------------------------
+#
+# These read the built PDF the way a proofreader does: page by page through
+# Poppler's pdftotext, the running head at the top of a page and the folio at
+# its foot. Each builds the smallest book that reproduces the fault its issue
+# names, and asserts the corrected layout, not merely that a PDF came out.
+
+_ROMAN = re.compile(r"^[ivxlc]+$")
+
+
+def _plate(path: Path, *, size: tuple[int, int] = (600, 400)) -> None:
+    """A small engraving-like plate: ink rules on a light ground, enough
+    variation that no detector reads it as blank."""
+
+    image = Image.new("L", size, 250)
+    draw = ImageDraw.Draw(image)
+    for i in range(0, size[1], 12):
+        draw.line([(0, i), (size[0], i + size[1] // 3)], fill=40, width=3)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    image.save(path, "PNG")
+
+
+def _pages(pdf: Path) -> list[str]:
+    """Each page's text, in reading order (pdftotext -layout, split at the
+    form feed it ends every page with)."""
+
+    out = subprocess.run(
+        ["pdftotext", "-layout", str(pdf), "-"], capture_output=True, text=True, check=True
+    ).stdout
+    pages = out.split("\f")
+    return pages[:-1] if pages and not pages[-1].strip() else pages
+
+
+def _lines(page: str) -> list[str]:
+    return [line.strip() for line in page.splitlines() if line.strip()]
+
+
+def _folio(page: str) -> str:
+    """The folio is the last line of ink on a page (the house sets it centred
+    in the foot on every page style)."""
+
+    lines = _lines(page)
+    return lines[-1] if lines else ""
+
+
+def _first_page_with(pages: list[str], needle: str) -> int:
+    return next(i for i, page in enumerate(pages) if needle in page)
+
+
+def _build_pdf(handle, target: str = "pdf") -> Path:
+    from press import booklib, registry
+
+    with handle.use():
+        registry.build(target)
+        slug = booklib.slug()
+        name = f"{slug}.pdf" if target == "pdf" else f"{slug}-interior.pdf"
+        return booklib.root() / "dist" / name
+
+
+def _lists_book(root):
+    handle = (
+        factories.BookFactory(slug="int-lists")
+        .with_sentinels("the preface witness of the lists book")
+        .with_chapter(
+            "00-preface.md",
+            "# Preface {.unnumbered}\n\nHere the preface witness of the lists book "
+            "opens the book in a plain sentence.\n",
+        )
+        .with_chapter(
+            "01-one.md",
+            "# One\n\nA plain paragraph before the plate.\n\n"
+            "![A woodcut plate](assets/woodcuts/plate.png)\n\n"
+            "A paragraph between the plate and the figure.\n\n"
+            "![A numbered figure](assets/figures/fig.png){#fig:one .figure}\n\n"
+            "A closing paragraph after the figure.\n",
+        )
+        .build(root)
+    )
+    _plate(handle.root / "assets" / "woodcuts" / "plate.png")
+    _plate(handle.root / "assets" / "figures" / "fig.png")
+    return handle
+
+
+@requires_pdf_toolchain
+@pytest.mark.layer("integration")
+def test_illustration_lists_sit_in_the_roman_front_matter(tmp_path):
+    """#289: the List of Plates and the List of Figures are front matter. Both
+    take roman folios, the arabic sequence starts at 1 on the Preface, and
+    both headings share the case of "Contents"."""
+
+    pages = _pages(_build_pdf(_lists_book(tmp_path)))
+    plates = _first_page_with(pages, "List of Plates")
+    figures = _first_page_with(pages, "List of Figures")
+    preface = _first_page_with(pages, "the preface witness")
+    assert _ROMAN.match(_folio(pages[plates])), _folio(pages[plates])
+    assert _ROMAN.match(_folio(pages[figures])), _folio(pages[figures])
+    assert plates < figures < preface
+    assert _folio(pages[preface]) == "1"
+    # every page before the Preface is roman (or unfolioed), none arabic
+    assert not any(_folio(p).isdigit() for p in pages[:preface])
+    assert not any("List of plates" in p for p in pages)
+

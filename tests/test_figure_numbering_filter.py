@@ -27,7 +27,9 @@ FILTER = (
 pytestmark = lua_coverage.needs_pandoc
 
 
-def _render(markdown: str, to: str = "latex", filtered: bool = True) -> str:
+def _render(
+    markdown: str, to: str = "latex", filtered: bool = True, standalone: bool = False
+) -> str:
     args = [
         "pandoc",
         "-f",
@@ -37,6 +39,8 @@ def _render(markdown: str, to: str = "latex", filtered: bool = True) -> str:
         "--top-level-division=chapter",
         "--number-sections",
     ]
+    if standalone:
+        args += ["-s", "-V", "documentclass=scrbook"]
     if filtered:
         args.append(lua_coverage.filter_arg(FILTER))
     result = subprocess.run(args, input=markdown, capture_output=True, text=True)
@@ -77,11 +81,29 @@ def test_plates_and_bare_images_are_never_numbered():
 
 @pytest.mark.layer("integration")
 def test_list_of_figures_is_emitted_only_when_numbered_figures_exist():
-    assert "\\PressListOfFigures" in _render(_MIXED)
+    assert "\\PressListOfFigurestrue" in _render(_MIXED, standalone=True)
     plates_only = _render(
-        "# One\n\n![A plate](assets/w/x.png)\n\n![Another](assets/w/y.png){.plate}\n"
+        "# One\n\n![A plate](assets/w/x.png)\n\n![Another](assets/w/y.png){.plate}\n",
+        standalone=True,
     )
     assert "\\PressListOfFigures" not in plates_only
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("negative")
+def test_list_of_figures_is_front_matter_not_a_body_block():
+    """#289: the list printed as the first body block landed after \\mainmatter
+    and took arabic folios 1 and 2 ahead of the Preface. The filter now only
+    raises the flag, ahead of the contents; the header prints the list before
+    \\mainmatter, so the body never carries it."""
+    out = _render(_MIXED, standalone=True)
+    flag = out.index("\\PressListOfFigurestrue")
+    assert flag < out.index("\\mainmatter")
+    body = out[out.index("\\mainmatter") :]
+    assert "\\PressListOfFigures" not in body
+    # an author's own include-before survives beside the flag
+    kept = _render("---\ninclude-before: \\AuthorLine\n---\n\n" + _MIXED, standalone=True)
+    assert "\\AuthorLine" in kept and "\\PressListOfFigurestrue" in kept
 
 
 @pytest.mark.layer("integration")

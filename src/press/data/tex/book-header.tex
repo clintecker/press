@@ -100,15 +100,22 @@
 % filter (\addcontentsline{lof2}) and printed here by \PressListOfFigures.
 % The book's contents show chapters only (tocdepth 0), which would also
 % suppress the depth-1 illustration lines, so each list raises the depth
-% for itself (the toc-depth/List of Plates scar).
+% for itself (the toc-depth/List of Plates scar). Both list headings take
+% the title case of "Contents" and "List of Figures" (#289).
 \AddToHook{begindocument/end}{%
-  \renewcommand*{\listfigurename}{List of plates}%
+  \renewcommand*{\listfigurename}{List of Plates}%
   \addtocontents{lof}{\protect\setcounter{tocdepth}{1}}%
 }
-% \PressListOfFigures is emitted (as the first body block) only when the
-% manuscript declares numbered figures; a book with none never calls it and
-% is unchanged. It reads the .lof2 the filter wrote, raising tocdepth for
+% \PressListOfFigures prints only when the manuscript declares numbered
+% figures: the filter then sets \PressListOfFigurestrue (through the
+% include-before slot, which the template sets ahead of the contents), and
+% the list prints just before \mainmatter, so it sits in the roman front
+% matter after the List of Plates. Emitted as the first body block it came
+% after \mainmatter and took arabic folios 1 and 2 ahead of the Preface
+% (#289). A book with no numbered figures never sets the flag and is
+% unchanged. It reads the .lof2 the filter wrote, raising tocdepth for
 % itself so the depth-1 lines survive the chapters-only contents.
+\newif\ifPressListOfFigures
 \makeatletter
 \newcommand*{\PressListOfFigures}{%
   \begingroup
@@ -118,6 +125,7 @@
     \@starttoc{lof2}%
   \endgroup
 }
+\pretocmd{\mainmatter}{\ifPressListOfFigures\PressListOfFigures\fi}{}{}
 \makeatother
 
 % Woodcut figures: no "Figure N" labels, quiet small italic captions,

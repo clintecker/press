@@ -100,7 +100,7 @@ def verify_plate_links(pdf: Path) -> None:
         return
 
     reader = PdfReader(str(pdf))
-    _list_links_land_on_images(reader, "List of plates")
+    _list_links_land_on_images(reader, "List of Plates")
     _list_links_land_on_images(reader, "List of Figures")
 
 

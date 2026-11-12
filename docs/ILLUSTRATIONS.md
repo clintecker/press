@@ -99,7 +99,9 @@ As @fig:press shows, the platen does the pressing.
 ```
 
 A mixed book prints both lists; a book with only plates prints only the List of
-Plates, byte-for-byte as before. Plates are **never** numbered.
+Plates, byte-for-byte as before. Plates are **never** numbered. Both lists are
+front matter: they follow the Contents on roman folios, so the arabic folios
+begin at the first page of the Preface (or Chapter 1).
 
 Every edition is checked for these labels. The HTML and EPUB verifiers count
 the numbered figures the source declares and require at least that many

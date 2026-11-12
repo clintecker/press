@@ -364,9 +364,22 @@ function Pandoc(doc)
   doc.blocks = walk_blocks(doc.blocks)
 
   -- The List of Figures prints only when the book has numbered figures, and
-  -- sits just after the (optional) List of Plates the template emits.
+  -- sits just after the (optional) List of Plates the template emits, in the
+  -- roman front matter. The filter only raises the flag, through the
+  -- template's include-before slot (set ahead of the contents); the header
+  -- prints the list just before \mainmatter. As a body block it came after
+  -- \mainmatter and took arabic folios ahead of the Preface (#289).
   if has_numbered and latex then
-    table.insert(doc.blocks, 1, pandoc.RawBlock("latex", "\\PressListOfFigures"))
+    local before = doc.meta["include-before"]
+    if before == nil then
+      before = pandoc.MetaList({})
+    elseif pandoc.utils.type(before) ~= "List" then
+      before = pandoc.MetaList({ before })
+    end
+    before:insert(
+      pandoc.MetaBlocks({ pandoc.RawBlock("latex", "\\PressListOfFigurestrue") })
+    )
+    doc.meta["include-before"] = before
   end
 
   -- Resolve every @fig:id cross-reference to a linked "Figure C.N".

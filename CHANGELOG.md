@@ -9,6 +9,21 @@ audit).
 
 ## [Unreleased]
 
+The v3 layout correction wave: eight faults found producing *Publishing
+with Press*, each a correction of broken output under the design contract
+(approved by the repository owner on 2026-11-12), scoped to the broken case.
+A valid book that never hit one of these faults typesets as before.
+
+### Fixed
+
+- **The List of Figures is front matter (#289).** It was emitted as the first
+  body block, after `\mainmatter`, so it took arabic folios 1 and 2 ahead of
+  the Preface and every chapter folio ran two high. The figure-numbering
+  filter now only raises a flag ahead of the contents, and the header prints
+  the list just before `\mainmatter`, on roman folios after the List of
+  Plates. The plates list heading now reads "List of Plates", the case of
+  "Contents" and "List of Figures" (it read "List of plates").
+
 ## [3.0.2] - 2026-11-11
 
 A security release. The hash-locked runtime dependencies move Pillow from
