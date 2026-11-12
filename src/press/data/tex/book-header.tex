@@ -77,19 +77,29 @@
 % line of its own, the prose at full measure beneath it, hanging a little in.
 % A two-column table squeezed the prose into half the measure; a ledger has no
 % column to squeeze. The style is set inside the environment only, so an
-% author's own definition lists elsewhere keep the LaTeX default. pandoc's
-% \tightlist would zero the space between entries, so it is a no-op here, and
-% every entry asks for three lines before it starts, so a key is never left
-% alone at the foot of a page.
+% author's own definition lists elsewhere keep the LaTeX default. A zero-width
+% label box (the 1.6em hang is all label separation) makes every key wider
+% than its box, so nextline breaks after every key, even a two-letter one.
+% pandoc's \tightlist would zero the space between entries, so it is a no-op
+% here, and every entry asks for three lines before it starts, so a key is
+% never left alone at the foot of a page. The original \item is captured once,
+% on entry: a list nested in an entry runs the before hook again, and a
+% capture there would copy the already-redefined \item into itself and loop.
 \newenvironment{PressLedger}{%
   \let\tightlist\relax
+  \let\PressLedgerItem\item
   \setlist[description]{style=nextline,leftmargin=1.6em,labelindent=0pt,%
+    labelwidth=0pt,labelsep=1.6em,%
     itemsep=0.45\baselineskip,parsep=0pt,topsep=0.5\baselineskip,%
     font=\normalfont,before=\PressLedgerNeedspace}}%
   {}
 \newcommand*{\PressLedgerNeedspace}{%
-  \let\PressLedgerItem\item
   \renewcommand*{\item}{\Needspace{3\baselineskip}\PressLedgerItem}}
+% The ledger's caption sets as every house table caption does (the caption
+% package setup below: small, italic, centred, no label), and the header row
+% survives as a one-line legend in small capitals above the entries.
+\newcommand{\PressLedgerCaption}[1]{\captionof*{table}{#1}}
+\newcommand{\PressLedgerLegend}[1]{\par\noindent{\small\textsc{#1}}\par}
 
 \clearpairofpagestyles
 \makeatletter

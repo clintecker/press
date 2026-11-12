@@ -182,3 +182,29 @@ def test_a_grid_too_wide_for_the_floor_shares_the_measure_equally():
     widths = [float(w) for w in re.findall(r"ColWidth ([0-9.eE+-]+)", out)]
     assert len(widths) == 9
     assert all(abs(w - 1 / 9) < 1e-9 for w in widths), widths
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_ledger_caption_and_legend_reach_latex_through_their_macros():
+    out = _render(LEDGER)
+    assert "\\PressLedgerCaption{Table 15.5. The skills that come with press}" in out
+    assert "\\PressLedgerLegend{Skill \u00b7 Meaning}" in out
+    # The web keeps plain paragraphs in the classed divs, no TeX.
+    assert "PressLedger" not in _render(LEDGER, to="html")
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_column_widens_to_its_longest_code_token():
+    # Mean cell lengths 10.5 / 2 / 59, but the first column holds a
+    # 20-character code token, so its raw length is 20, not its mean.
+    long = "x" * 59
+    token = "t" * 20
+    md = f"# Ch\n\n| A | B | C |\n|---|---|---|\n| a | bb | {long} |\n| `{token}` | bb | {long} |\n"
+    out = _render(md, to="native")
+    widths = [float(w) for w in re.findall(r"ColWidth ([0-9.eE+-]+)", out)]
+    assert len(widths) == 3
+    # B pins at the floor; A and C share the rest as 20 : 59.
+    assert abs(widths[0] - 0.88 * 20 / 79) < 1e-9, widths
+    assert abs(widths[2] - 0.88 * 59 / 79) < 1e-9, widths

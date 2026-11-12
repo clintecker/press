@@ -73,6 +73,35 @@ local function cell_chars(cell)
   return utf8.len(pandoc.utils.stringify(cell.contents) or "") or 0
 end
 
+-- The longest unbreakable code token in a cell: a code span never breaks
+-- inside a token (the TeX header keeps \texttt unhyphenated in a grid), so a
+-- column must be at least that wide or the token overruns it.
+local function cell_code_token(cell)
+  local longest = 0
+  pandoc.Blocks(cell.contents):walk({
+    Code = function(code)
+      for token in code.text:gmatch("%S+") do
+        longest = math.max(longest, utf8.len(token) or #token)
+      end
+    end,
+  })
+  return longest
+end
+
+-- Per-column maxima of measure(cell) over the body rows.
+local function column_maxima(rows, ncols, measure)
+  local out = {}
+  for i = 1, ncols do
+    out[i] = 0
+    for _, row in ipairs(rows) do
+      if row.cells[i] then
+        out[i] = math.max(out[i], measure(row.cells[i]))
+      end
+    end
+  end
+  return out
+end
+
 -- Per-column means of measure(cell) over the body rows.
 local function column_means(rows, ncols, measure)
   local sums = {}
@@ -159,6 +188,18 @@ local function sub_block(row, ncols)
   return classed({ pandoc.Para(inl) }, "ledger-sub")
 end
 
+-- A caption or legend paragraph. The LaTeX writer drops a Div's classes, so
+-- for LaTeX the inlines go inside the header macro that styles them.
+local function styled(inlines, macro)
+  if not latex then
+    return pandoc.Para(inlines)
+  end
+  local out = pandoc.Inlines({ pandoc.RawInline("latex", "\\" .. macro .. "{") })
+  out:extend(inlines)
+  out:insert(pandoc.RawInline("latex", "}"))
+  return pandoc.Plain(out)
+end
+
 local function to_ledger(tbl, ncols)
   local items = {}
   for _, row in ipairs(body_rows(tbl)) do
@@ -186,11 +227,12 @@ local function to_ledger(tbl, ncols)
   local blocks = {}
   local caption = pandoc.utils.blocks_to_inlines(tbl.caption.long or {})
   if #caption > 0 then
-    blocks[#blocks + 1] = classed({ pandoc.Para(caption) }, "ledger-caption")
+    blocks[#blocks + 1] =
+      classed({ styled(caption, "PressLedgerCaption") }, "ledger-caption")
   end
   local leg = legend(tbl)
   if leg then
-    blocks[#blocks + 1] = classed({ pandoc.Para(leg) }, "ledger-legend")
+    blocks[#blocks + 1] = classed({ styled(leg, "PressLedgerLegend") }, "ledger-legend")
   end
   if latex then
     blocks[#blocks + 1] = pandoc.RawBlock("latex", "\\begin{PressLedger}")
@@ -202,14 +244,20 @@ local function to_ledger(tbl, ncols)
   return classed(blocks, "ledger")
 end
 
--- Each column's share of the measure: its mean character length's share, with
--- every column held at MIN_SHARE or more in the final widths. A column whose
--- share would fall below the floor is pinned at it, and the rest of the measure
--- is shared among the others in proportion to their lengths, repeating until no
--- column drops below; when the floors alone overfill the measure, the columns
--- share it equally. The shares sum to 1.
+-- Each column's share of the measure: its raw length's share, with every
+-- column held at MIN_SHARE or more in the final widths. A column's raw length
+-- is its mean character length, or its longest code token when that is
+-- longer, so a column too narrow for an identifier widens and the prose gives
+-- way. A column whose share would fall below the floor is pinned at it, and
+-- the rest of the measure is shared among the others in proportion to their
+-- lengths, repeating until no column drops below; when the floors alone
+-- overfill the measure, the columns share it equally. The shares sum to 1.
 local function shares(rows, ncols)
-  local means = column_means(rows, ncols, cell_chars)
+  local lengths = column_means(rows, ncols, cell_chars)
+  local tokens = column_maxima(rows, ncols, cell_code_token)
+  for i = 1, ncols do
+    lengths[i] = math.max(lengths[i], tokens[i])
+  end
   if ncols * MIN_SHARE > 1 then
     local out = {}
     for i = 1, ncols do
@@ -224,7 +272,7 @@ local function shares(rows, ncols)
       if pinned[i] then
         npinned = npinned + 1
       else
-        free_len = free_len + means[i]
+        free_len = free_len + lengths[i]
         nfree = nfree + 1
       end
     end
@@ -234,7 +282,7 @@ local function shares(rows, ncols)
       if pinned[i] then
         out[i] = MIN_SHARE
       else
-        out[i] = (free_len > 0) and (room * means[i] / free_len) or (room / nfree)
+        out[i] = (free_len > 0) and (room * lengths[i] / free_len) or (room / nfree)
         if out[i] < MIN_SHARE then
           pinned[i] = true
           grew = true

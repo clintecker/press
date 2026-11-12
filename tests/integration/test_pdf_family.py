@@ -12,6 +12,7 @@ print-profile interior, so it is not rebuilt here.
 from __future__ import annotations
 
 import subprocess
+import sys
 
 import pytest
 
@@ -88,6 +89,23 @@ def test_reading_pdf_carries_ink(tmp_path):
     assert "verify_pdf.main" in evidence.verifiers
 
 
+# A two-column grid table (cells may hold blocks): a two-letter key, and an
+# entry whose prose carries a definition list of its own.
+NESTED_LEDGER = """\
++-----------+------------------------------------------------+
+| Key       | Meaning                                        |
++===========+================================================+
+| `id`      | The identifier of the row, which names it once |
+|           | and for all across every edition of the book.  |
++-----------+------------------------------------------------+
+| `opts`    | The options this entry accepts, set out as a   |
+|           | list of their own beneath it.                  |
+|           |                                                |
+|           | inner                                          |
+|           | :   the nested definition of one option        |
++-----------+------------------------------------------------+
+"""
+
 LONG_IDENTIFIER = "a-very-long-identifier-that-cannot-break-at-all-anywhere-in-sixty-chars"
 
 
@@ -112,23 +130,34 @@ def _book_with(root, chapter: str):
 @pytest.mark.layer("integration")
 @pytest.mark.proof("positive")
 def test_a_ledger_table_sets_in_the_pdf_without_a_longtable(tmp_path):
-    from press import booklib, build, registry
+    from press import booklib, build
 
-    handle = _book_with(tmp_path, LEDGER)
+    # LEDGER, then a grid-table ledger whose two-letter key must still take a
+    # line of its own and whose second entry holds a definition list of its
+    # own (a nested list once sent LuaLaTeX into an endless \item loop).
+    handle = _book_with(tmp_path, LEDGER + "\n" + NESTED_LEDGER)
     with handle.use():
-        dist = booklib.root() / "dist"
-        registry.build("pdf")
+        root = booklib.root()
+        # A subprocess with a deadline, so a TeX loop fails the test, not hangs it.
+        subprocess.run([sys.executable, "-m", "press", "pdf"], cwd=root, check=True, timeout=600)
         # The .tex pandoc hands LuaLaTeX, written through the same defaults.
         build.pandoc_build("pdf", "build/ledger-check.tex")
-        tex = (booklib.root() / "build" / "ledger-check.tex").read_text(encoding="utf-8")
-        pdf = dist / f"{booklib.slug()}.pdf"
+        tex = (root / "build" / "ledger-check.tex").read_text(encoding="utf-8")
+        pdf = root / "dist" / f"{booklib.slug()}.pdf"
         text = subprocess.run(
             ["pdftotext", "-layout", str(pdf), "-"], capture_output=True, text=True, check=True
         ).stdout
 
     assert "\\begin{PressLedger}" in tex and "\\end{PressLedger}" in tex
     assert "longtable" not in tex, "a ledger table still reached LaTeX as a longtable"
-    assert "hemingway" in text and "humanizer" in text
+    assert "\\PressLedgerCaption{Table 15.5. The skills that come with press}" in tex
+    assert "\\PressLedgerLegend{Skill" in tex and "\\PressLedgerLegend{Key" in tex
+    lines = [line.strip() for line in text.splitlines()]
+    assert "hemingway" in lines and "humanizer" in lines
+    # The manpage form for every key: even `id` stands alone on its line.
+    assert "id" in lines, "a short key ran into its prose"
+    assert any(line.startswith("The identifier of the row") for line in lines)
+    assert "inner" in lines and any("nested definition" in line for line in lines)
 
 
 @requires_pdf_toolchain
