@@ -14,6 +14,16 @@ with Press*, each a correction of broken output under the design contract
 (approved by the repository owner on 2026-11-12), scoped to the broken case.
 A valid book that never hit one of these faults typesets as before.
 
+### Added
+
+- **`place=float` lets a numbered figure float (#290).** Every numbered figure
+  is pinned `[H]`, so one that does not fit moves whole to the next page and
+  the page before it ends short, a band of white at its foot (15 pages of one
+  379-page book). `place=float` is the opt-in: the figure is set as a
+  `figure[tbp]` float and the following text fills the page. It takes a width
+  measure; `press check` refuses it on a plate. The `[H]` default is
+  unchanged: the issue's v4 house-default change is not made here.
+
 ### Fixed
 
 - **The List of Figures is front matter (#289).** It was emitted as the first

@@ -54,7 +54,8 @@ DEFAULT_KIND = "figure"
 # ``wrap-outer`` run text around it on the parity-aware side (never
 # left/right); ``plate`` is the unnumbered woodcut float; ``frontispiece``
 # faces a chapter; ``full-bleed`` fills the page; ``margin`` sits in the
-# outer margin.
+# outer margin. ``float`` (#290) opts a numbered figure out of the house
+# [H] pin into a figure[tbp] float, so text may fill the page before it.
 PLACES = (
     "inline",
     "wrap-inner",
@@ -63,10 +64,11 @@ PLACES = (
     "frontispiece",
     "full-bleed",
     "margin",
+    "float",
 )
 # The places that run in the text flow and may therefore carry a width
 # measure; a plate/frontispiece/full-bleed owns its own geometry and may not.
-INFLOW_PLACES = ("inline", "wrap-inner", "wrap-outer", "margin")
+INFLOW_PLACES = ("inline", "wrap-inner", "wrap-outer", "margin", "float")
 # The relative widths an in-flow figure may take, measured against the line.
 MEASURES = ("full-measure", "half-measure", "third-measure")
 # The fraction of the measure each names, for the graphics width the writer
@@ -280,6 +282,11 @@ def _validate_figure(fig: Figure) -> list[str]:
         problems.append(
             f"{where}: outset={fig.outset} is not a relative gap; the "
             "runaround gap is a length in em (e.g. 1em)"
+        )
+    if fig.place == "float" and not fig.numbered:
+        problems.append(
+            f"{where}: place=float floats a numbered figure (.figure, .chart, "
+            ".map, .photo, .diagram); a plate keeps its place"
         )
     if fig.decorative and fig.alt:
         problems.append(

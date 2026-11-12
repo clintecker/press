@@ -313,9 +313,13 @@ function Pandoc(doc)
       end
       local inner =
         fig_inner(image, label, caption_latex, lof2, width_opt(image.attributes.width))
+      -- place=float opts a numbered figure out of the house [H] pin (#290):
+      -- a figure[tbp] may float, so text fills the page before it instead of
+      -- leaving a band of white at the foot. The [H] default is unchanged.
+      local spec = image.attributes.place == "float" and "[tbp]" or "[H]"
       return pandoc.RawBlock(
         "latex",
-        "\\begin{figure}[H]\\centering\n" .. inner .. "\n\\end{figure}"
+        "\\begin{figure}" .. spec .. "\\centering\n" .. inner .. "\n\\end{figure}"
       )
     end
     -- Every other writer: keep the real Figure, prepend the number to the

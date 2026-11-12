@@ -169,3 +169,22 @@ def test_a_wrap_with_no_following_paragraph_is_flushed_standalone():
     # not. Either way nothing may sit between the wrap and the heading.
     assert re.search(r"\\end\{wrapfigure\}\n\n(?:\\hypertarget\{d\}\{%\n)?\\section\{D\}", out)
     assert "\\end{wrapfigure}%" not in out
+
+
+@_needs_pandoc
+@pytest.mark.layer("integration")
+def test_place_float_lets_a_numbered_figure_float():
+    """#290: an [H] figure cannot float, so a figure that does not fit moves
+    whole to the next page and leaves a band of white at the foot of the one
+    before. place=float is the opt-in: the numbered figure is set as a
+    figure[tbp] float, so text may fill the page. The [H] default is
+    unchanged."""
+    floated = _render("# C\n\nBefore.\n\n![Yields.](y.png){.chart place=float width=half-measure}\n")
+    assert "\\begin{figure}[tbp]\\centering" in floated
+    assert "width=0.5\\linewidth" in floated
+    assert "\\textbf{Figure~1.1.}" in floated
+    default = _render("# C\n\nBefore.\n\n![Yields.](y.png){.chart}\n")
+    assert "\\begin{figure}[H]\\centering" in default
+    assert "[tbp]" not in default
+    html = _render("# C\n\n![Yields.](y.png){.chart place=float}\n", to="html")
+    assert "data-place" not in html and "float" not in html.split("<figure")[1].split(">")[0]

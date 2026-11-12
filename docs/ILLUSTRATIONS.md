@@ -119,15 +119,27 @@ is **relative, never absolute**, so one manuscript typesets on any trim:
 | attribute | values | meaning |
 |---|---|---|
 | `width` | `full-measure`, `half-measure`, `third-measure` | width against the line (in-flow figures only) |
-| `place` | `inline`, `wrap-inner`, `wrap-outer`, `plate`, `frontispiece`, `full-bleed`, `margin` | where it sits; wrap runs text around the **parity-aware** side (never left/right) |
+| `place` | `inline`, `wrap-inner`, `wrap-outer`, `plate`, `frontispiece`, `full-bleed`, `margin`, `float` | where it sits; wrap runs text around the **parity-aware** side (never left/right) |
 | `outset` | a length in em (default `1em`) | the runaround gap — the book-trade term, not "standoff" |
 | `fig-alt` | text | the **accessible alt text** — a fourth field, distinct from the visible caption, the `art:` prompt, and any credit line |
 | `decorative` | `true` | an ornament: empty alt, never numbered |
 
+A numbered figure is pinned where you wrote it by default, so a figure that
+does not fit moves whole to the next page and the page before it ends short.
+`place=float` (numbered figures only) lets it float instead: LaTeX may set it
+at the top or bottom of a page, or on a page of its own, and draws the
+following text up to fill the space. It takes a `width` measure like an inline
+figure. The default is unchanged; a plate always keeps its place.
+
+| `place` | on the PDF page |
+|---|---|
+| (none) | pinned where written (`[H]`); the page before ends short if it does not fit |
+| `float` | floats to the top, bottom, or its own page (`[tbp]`); text fills the gap |
+
 `press check` refuses a malformed placement before any render: an absolute
 width where a measure belongs, a `left`/`right` side (use `wrap-inner` /
 `wrap-outer`), an out-of-vocabulary `place`, a non-em `outset`, a measure on a
-plate, or a `decorative` image that still carries `fig-alt`.
+plate, `float` on a plate, or a `decorative` image that still carries `fig-alt`.
 
 ### On a real page
 
