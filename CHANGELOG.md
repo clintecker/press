@@ -9,6 +9,16 @@ audit).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`press render` clears `build/rendered-book/` before rasterizing.**
+  pdftoppm only overwrites the pages it writes, so a rebuild with fewer
+  pages than the previous one left the earlier render's trailing
+  `page-NNN.png` files in place (a 385-page render followed by a 384-page
+  one kept a phantom `page-385.png`), and a page review could read a page
+  the PDF no longer had. The directory is now rebuilt from scratch on
+  every render, matching the print-assets pattern (#285).
+
 ## [3.0.2] - 2026-11-11
 
 A security release. The hash-locked runtime dependencies move Pillow from

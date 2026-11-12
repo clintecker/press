@@ -515,8 +515,13 @@ def _run_render(args: list[str]) -> int:
     from . import build
 
     build.build_target("pdf")
+    # Rebuilt from scratch each call, like print_safe.prepare: pdftoppm only
+    # overwrites the pages it writes, so a shorter render after a longer one
+    # would otherwise leave phantom page-NNN.png files past the PDF's end.
     out = booklib.root() / "build" / "rendered-book"
-    out.mkdir(parents=True, exist_ok=True)
+    if out.exists():
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
     adapters.process_runner.run(
         [
             "pdftoppm",
