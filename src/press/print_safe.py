@@ -35,9 +35,39 @@ _WHITE = (255, 255, 255)
 _LOGO_MAX_EDGE = 1000
 _FIGURE_MAX_EDGE = 1900
 
+# What sanitize can open and flatten. A drawing in any other image format
+# (a PDF, SVG or EPS) carries no alpha channel or pixel density to fix, so
+# prepare copies it verbatim: the Lua rewrite still points at it.
+_RASTER_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".gif", ".tif", ".tiff", ".webp", ".bmp"})
+_VECTOR_SUFFIXES = frozenset({".pdf", ".svg", ".eps"})
+_IMAGE_SUFFIXES = _RASTER_SUFFIXES | _VECTOR_SUFFIXES
+
+
+def _asset_images(root: Path) -> list[Path]:
+    """Every image file under ``assets/``, sorted, whatever directory it
+    lives in (``assets/figures/``, ``assets/fig/``, a path with a space).
+    print-safe-images.lua rewrites *every* ``assets/...`` src pandoc parses
+    to ``build/print-assets/assets/...`` -- with a link title, angle brackets,
+    a percent-escape, a reference-style image, a nested-bracket caption, or
+    no extension at all -- so the copy set is not rebuilt from a second parse
+    of the markdown that would have to agree with pandoc's in every spelling
+    (#272). It is the files themselves: whatever the rewrite resolves to is
+    then written, and an unreferenced image costs one flatten."""
+
+    assets = root / "assets"
+    if not assets.is_dir():
+        return []
+    return sorted(
+        p for p in assets.rglob("*") if p.is_file() and p.suffix.lower() in _IMAGE_SUFFIXES
+    )
+
 
 def _targets(root: Path) -> list[tuple[Path, int]]:
-    """Every interior raster paired with its long-edge pixel cap."""
+    """Every interior raster paired with its long-edge pixel cap: the
+    logomark, the top-level ``assets/*.jpg`` (author portrait, cover), every
+    plate under ``assets/woodcuts/``, and then every other image file under
+    ``assets/`` -- so a numbered figure at ``assets/figures/x.png`` reaches
+    the print interior the way the Lua rewrite promises (#272)."""
 
     jobs: list[tuple[Path, int]] = []
     logo = root / "assets" / "press-logo.png"
@@ -49,6 +79,11 @@ def _targets(root: Path) -> list[tuple[Path, int]]:
     if woodcuts.is_dir():
         for plate in booklib.plate_files(woodcuts):
             jobs.append((plate, _FIGURE_MAX_EDGE))
+    seen = {src for src, _cap in jobs}
+    for image in _asset_images(root):
+        if image not in seen:
+            jobs.append((image, _FIGURE_MAX_EDGE))
+            seen.add(image)
     return jobs
 
 
@@ -108,7 +143,12 @@ def prepare(root: Path) -> Path | None:
     if not jobs:
         return None
     for src, cap in jobs:
-        sanitize(src, out / src.relative_to(root), cap)
+        dst = out / src.relative_to(root)
+        if src.suffix.lower() in _RASTER_SUFFIXES:
+            sanitize(src, dst, cap)
+        else:
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src, dst)
     return out
 
 

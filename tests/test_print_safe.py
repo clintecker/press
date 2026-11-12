@@ -111,6 +111,94 @@ def test_prepare_mirrors_layout_with_per_image_caps(tmp_path):
 
 
 @pytest.mark.layer("unit")
+def test_targets_include_every_image_under_assets(tmp_path):
+    # #272: print-safe-images.lua rewrites every assets/ src pandoc parses to
+    # build/print-assets/assets/..., so the copy set must reach an image
+    # wherever it lives under assets/ -- not only woodcuts/ and the top-level
+    # JPEGs -- and in any spelling the markdown used for it (a path with a
+    # space, no extension in the src). The sweep is of the files, so no
+    # second parse of the markdown has to agree with pandoc's.
+    root = tmp_path
+    _save(root / "assets" / "figures" / "pipeline.png", (100, 80), "RGB", (1, 2, 3))
+    _save(root / "assets" / "fig" / "press.jpg", (100, 80), "RGB", (1, 2, 3))
+    _save(root / "assets" / "maps" / "with space.png", (100, 80), "RGB", (1, 2, 3))
+    _save(root / "build" / "scratch.png", (50, 50), "RGB", (0, 0, 0))
+    (root / "assets" / "web").mkdir()
+    (root / "assets" / "web" / "extra.css").write_text("body{}", encoding="utf-8")
+    (root / "assets" / "figures" / "notes.md").write_text("not an image", encoding="utf-8")
+
+    jobs = print_safe._targets(root)
+
+    assert [src.relative_to(root).as_posix() for src, _cap in jobs] == [
+        "assets/fig/press.jpg",
+        "assets/figures/pipeline.png",
+        "assets/maps/with space.png",
+    ]
+    assert {cap for _src, cap in jobs} == {print_safe._FIGURE_MAX_EDGE}
+
+
+@pytest.mark.layer("unit")
+def test_targets_dedupe_the_sweep_against_the_walk(tmp_path):
+    # The logomark, the top-level JPEGs and the woodcuts walk come first with
+    # their own caps; the sweep adds only what they did not already find, so
+    # nothing is copied twice and the logomark keeps its tighter cap.
+    root = tmp_path
+    _save(root / "assets" / "press-logo.png", (50, 50), "RGBA", (0, 0, 0, 0))
+    _save(root / "assets" / "author.jpg", (50, 50), "RGB", (0, 0, 0))
+    _save(root / "assets" / "woodcuts" / "shop.png", (50, 50), "L", 128)
+    _save(root / "assets" / "figures" / "a.png", (50, 50), "RGB", (0, 0, 0))
+
+    jobs = print_safe._targets(root)
+
+    assert [(src.relative_to(root).as_posix(), cap) for src, cap in jobs] == [
+        ("assets/press-logo.png", print_safe._LOGO_MAX_EDGE),
+        ("assets/author.jpg", print_safe._FIGURE_MAX_EDGE),
+        ("assets/woodcuts/shop.png", print_safe._FIGURE_MAX_EDGE),
+        ("assets/figures/a.png", print_safe._FIGURE_MAX_EDGE),
+    ]
+
+
+@pytest.mark.layer("unit")
+def test_targets_without_assets_are_empty(tmp_path):
+    # A bare tree with no assets/ directory is not an error, just no targets
+    # (prepare then returns None and the print profile adds no graphicspath).
+    assert print_safe._targets(tmp_path) == []
+
+
+@pytest.mark.layer("unit")
+def test_prepare_copies_a_figure_outside_woodcuts_where_the_filter_points(tmp_path):
+    # The known-bad for #272: a numbered figure at assets/figures/ built a
+    # reading PDF and then failed `press print` with "File
+    # build/print-assets/assets/figures/pipeline.png not found", because
+    # prepare never wrote it. After prepare, the file the Lua rewrite names
+    # must exist, flattened and under the figure cap like any plate.
+    root = tmp_path
+    _save(root / "assets" / "figures" / "pipeline.png", (2400, 1200), "RGBA", (0, 0, 0, 0))
+
+    out = print_safe.prepare(root)
+
+    assert out == root / "build" / "print-assets"
+    copied = out / "assets" / "figures" / "pipeline.png"
+    assert copied.is_file(), "the path print-safe-images.lua rewrites to was not written"
+    image = Image.open(copied)
+    assert image.mode == "RGB" and max(image.size) <= print_safe._FIGURE_MAX_EDGE
+
+
+@pytest.mark.layer("unit")
+def test_prepare_copies_a_vector_drawing_verbatim(tmp_path):
+    # A PDF or SVG drawing has no alpha or pixel density to fix, but the
+    # filter rewrites its path all the same, so prepare must still place it.
+    root = tmp_path
+    drawing = root / "assets" / "figures" / "flow.pdf"
+    drawing.parent.mkdir(parents=True)
+    drawing.write_bytes(b"%PDF-1.4 stub")
+
+    out = print_safe.prepare(root)
+
+    assert (out / "assets" / "figures" / "flow.pdf").read_bytes() == b"%PDF-1.4 stub"
+
+
+@pytest.mark.layer("unit")
 def test_prepare_rebuilds_from_scratch(tmp_path):
     root = tmp_path
     _save(root / "assets" / "cover.jpg", (100, 100), "RGB", (0, 0, 0))
