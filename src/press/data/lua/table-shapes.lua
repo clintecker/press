@@ -33,6 +33,10 @@ local latex = FORMAT:match("latex") ~= nil
 -- collapses to a sliver beside a long one.
 local MIN_SHARE = 0.12
 
+-- The lines a ledger asks for before its caption (LaTeX): the caption, the
+-- legend, and the first key with a line or two of its entry.
+local LEDGER_KEEP = 6
+
 -- The separator between header cells in a ledger's legend (a middle dot).
 local LEGEND_SEP = " \u{00B7} "
 
@@ -224,15 +228,29 @@ local function to_ledger(tbl, ncols)
       items[#items + 1] = { cell_inlines(row.cells[1]), { defn } }
     end
   end
+  -- In LaTeX the caption, legend, and first entry keep together: room for
+  -- them is asked once before the first of them, and no page may break after
+  -- the caption or the legend, so neither strands at a page foot with the
+  -- entries overleaf.
   local blocks = {}
+  if latex then
+    blocks[#blocks + 1] =
+      pandoc.RawBlock("latex", "\\Needspace{" .. LEDGER_KEEP .. "\\baselineskip}")
+  end
   local caption = pandoc.utils.blocks_to_inlines(tbl.caption.long or {})
   if #caption > 0 then
     blocks[#blocks + 1] =
       classed({ styled(caption, "PressLedgerCaption") }, "ledger-caption")
+    if latex then
+      blocks[#blocks + 1] = pandoc.RawBlock("latex", "\\nopagebreak")
+    end
   end
   local leg = legend(tbl)
   if leg then
     blocks[#blocks + 1] = classed({ styled(leg, "PressLedgerLegend") }, "ledger-legend")
+    if latex then
+      blocks[#blocks + 1] = pandoc.RawBlock("latex", "\\nopagebreak")
+    end
   end
   if latex then
     blocks[#blocks + 1] = pandoc.RawBlock("latex", "\\begin{PressLedger}")

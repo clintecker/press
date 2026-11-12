@@ -235,3 +235,25 @@ def test_a_column_widens_to_its_longest_code_token():
     # B pins at the floor; A and C share the rest as 20 : 59.
     assert abs(widths[0] - 0.88 * 20 / 79) < 1e-9, widths
     assert abs(widths[2] - 0.88 * 59 / 79) < 1e-9, widths
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_ledger_keeps_its_caption_and_legend_with_its_first_entry():
+    # The caption and legend once stranded at a page foot with the entries
+    # overleaf (Table 16.1 of a real book): room is asked once before the
+    # caption, and no page may break after the caption or the legend.
+    out = _render(LEDGER)
+    keep = out.index("\\Needspace{6\\baselineskip}")
+    caption = out.index("\\PressLedgerCaption{")
+    legend = out.index("\\PressLedgerLegend{")
+    ledger = out.index("\\begin{PressLedger}")
+    assert keep < caption < legend < ledger
+    assert out.count("\\nopagebreak") == 2
+    assert out.index("\\nopagebreak") < legend < out.rindex("\\nopagebreak") < ledger
+    # With no caption and no header the keep still precedes the list.
+    bare = _render(NO_HEAD)
+    assert bare.index("\\Needspace{6\\baselineskip}") < bare.index("\\begin{PressLedger}")
+    assert "\\nopagebreak" not in bare
+    # The web carries none of it.
+    assert "Needspace" not in _render(LEDGER, to="html")

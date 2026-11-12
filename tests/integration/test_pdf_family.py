@@ -832,7 +832,10 @@ def test_table_head_and_definition_term_keep_with_what_follows(tmp_path):
     and a definition term stranded with its definition overleaf. Forty-five
     tables and as many terms, each after a lead-in of varying length, walk
     the page foot through every offset; every table head shares its page
-    with its first two rows, and every term with the first line under it."""
+    with its first two rows, and every term with the first line under it.
+    Under v4 a key-plus-prose table is a ledger: the even tables are forced
+    to grids (longtables, the head kept with two rows), the odd ones stay
+    ledgers (the caption and legend kept with the first entry)."""
 
     tables = []
     for k in range(_KEEPS):
@@ -841,10 +844,13 @@ def test_table_head_and_definition_term_keep_with_what_follows(tmp_path):
         # or three lines, the shape of a real reference table
         cell = "a cell long enough to wrap onto a second line in its column " * 2
         rows = "\n".join(f"| row{k}x{r} | {cell}|" for r in range(5))
-        tables.append(
-            f"{lead}\n\n| head{k}col | Meaning |\n|------------------|{'-' * 50}|\n"
+        table = (
+            f"| head{k}col | Meaning |\n|------------------|{'-' * 50}|\n"
             f"{rows}\n\nTable: Table {k}. A caption over the table\n"
         )
+        if k % 2 == 0:
+            table = f"::: {{.grid}}\n{table}:::\n"
+        tables.append(f"{lead}\n\n{table}")
     terms = []
     for k in range(_KEEPS):
         lead = "A lead-in line of plain prose before the term. " * (1 + k % 4)
@@ -878,9 +884,16 @@ def test_table_head_and_definition_term_keep_with_what_follows(tmp_path):
     stranded = [
         k
         for k in range(_KEEPS)
-        if _page_of(pages, f"head{k}col", body) != _page_of(pages, f"row{k}x1", body)
+        if len(
+            {
+                _page_of(pages, f"Table {k}. A caption", body),
+                _page_of(pages, f"head{k}col", body),
+                _page_of(pages, f"row{k}x{1 if k % 2 == 0 else 0}", body),
+            }
+        )
+        != 1
     ]
-    assert not stranded, f"table heads stranded from their first two rows: {stranded}"
+    assert not stranded, f"table heads stranded from their first rows: {stranded}"
     terms_at = _page_of(pages, "Terms follow.", body)
     split = [
         k
