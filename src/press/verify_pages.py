@@ -545,7 +545,7 @@ def main() -> int:
     import html as html_mod
 
     from . import commerce
-    from .build import download_names
+    from .landing import download_names
 
     root = booklib.root()
     pages = root / "dist" / "pages"

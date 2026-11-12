@@ -197,12 +197,12 @@ def test_unknown_policy_key_is_refused():
 def test_build_writes_generated_policy_pages_only_where_no_url(scaffolded_book, tmp_path):
     from types import SimpleNamespace
 
-    from press import build
+    from press import landing
 
     out = tmp_path / "pages"
     out.mkdir()
     meta = _meta(**{"support-url": "", "privacy-url": ""})  # refund keeps its url
-    build._write_policy_pages(out, meta, SimpleNamespace(title="My Book", publisher="My Press"))
+    landing._write_policy_pages(out, meta, SimpleNamespace(title="My Book", publisher="My Press"))
     assert (out / "support.html").is_file()
     assert (out / "privacy.html").is_file()
     assert not (out / "refunds.html").exists()

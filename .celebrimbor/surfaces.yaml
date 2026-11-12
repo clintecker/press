@@ -136,10 +136,8 @@ modules:
     overrides:
       build_target: orchestrator
       cover_fragment_html: pure
-      download_names: pure
       run: adapter
-      subtitle_stack_html: pure
-    pin: "a81106139217"
+    pin: "d52c9ae0096e"
     role: producer
     status: ratified
   catalog:
@@ -336,6 +334,13 @@ modules:
       line_and_column: pure
     pin: "e1292b8a37d9"
     role: verifier
+    status: ratified
+  landing:
+    overrides:
+      download_names: pure
+      subtitle_stack_html: pure
+    pin: "605c416ee9f5"
+    role: producer
     status: ratified
   migrate:
     overrides:

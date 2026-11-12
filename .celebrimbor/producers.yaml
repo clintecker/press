@@ -49,6 +49,10 @@ producers:
     verifier: config_schema:validate_file
     negative_fixture:
       tests/test_config_shapes.py::test_gen_index_self_guards_against_the_terms_wrapper
+  landing:
+    verifier: verify_pages:check_landing_metadata
+    negative_fixture:
+      tests/test_landing_metadata.py::test_verifier_catches_a_stale_title
   package_source:
     verifier: check_source:main
     negative_fixture:

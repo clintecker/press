@@ -451,6 +451,13 @@ The invariant marker plugin validates every @pytest.mark.invariant citation agai
 - enforced by `invariants:load`
 - proven by `tests/test_collection_plugin.py::test_unknown_invariant_id_fails_collection`
 
+## INV-landing-editions-exact
+
+The Pages landing labels a download by its exact `{slug}{suffix}` name, never by suffix alone, so the sources companion is never listed as a second manuscript edition and a file that is not a listed edition gets no row.
+
+- enforced by `landing:pages_build`
+- proven by `tests/test_landing_metadata.py::test_sources_companion_is_not_a_second_manuscript_edition`
+
 ## INV-logomark-ink-extracted
 
 An opaque logomark delivery accepted at intake has its ink extracted onto transparency; it never ships as an opaque box.

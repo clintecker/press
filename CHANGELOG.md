@@ -137,6 +137,15 @@ audit).
   `wrap-outer` figure and the paragraph it wraps, so a wrapped figure can
   carry an `art:` directive without losing its runaround.
 
+### Changed
+
+- The GitHub Pages assembly (the landing page, its downloads table, the
+  generated policy pages, and `pages_build`) moved out of `build.py` into
+  its own module, `press.landing`, after this wave's fixes grew `build.py`
+  past the structure gate's 660-line ceiling. `press pages` and its output
+  are unchanged; `build.py` keeps running pandoc over the manuscript, and
+  `verify_pages` now reads the download list from `press.landing`.
+
 ## [3.0.2] - 2026-11-11
 
 A security release. The hash-locked runtime dependencies move Pillow from
