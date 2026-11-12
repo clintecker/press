@@ -93,7 +93,7 @@ modules:
       normalize_reference: normalizer
       parse_commissions: parser
       shape_for: pure
-    pin: "994df98240ae"
+    pin: "c96b179020ed"
     role: adapter
     status: ratified
   art_enhance:

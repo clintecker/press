@@ -49,7 +49,7 @@ _GUARDRAIL = (
 )
 
 # An interior plate: a versatile square at high quality, opaque on paper.
-_SPEC = ("gpt-image-2", "1024x1024", "high", False)
+_SPEC = (art_commission.OPENAI_FLAGSHIP, "1024x1024", "high")
 
 
 def load_styles(book_dir: Path | None = None) -> dict[str, dict]:

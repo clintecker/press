@@ -40,6 +40,19 @@ audit).
   and the reader site so the source line matched nowhere and
   `verify-formats` refused a correct build. An e-mail address, whose `@`
   follows a word character, stays an ordinary witness.
+||||||| fee8e42
+- **`press art commission` of a logomark through OpenAI no longer asks for a
+  rejected model** (#277). The logomark path was pinned to `gpt-image-1`,
+  which the API now rejects, while the cover and plate paths were already on
+  `gpt-image-2`. All OpenAI image calls -- cover, plates, portrait, logomark,
+  `press cover`, and `press illustrate` -- now share the one `gpt-image-2` pin.
+  The logomark keeps its 1024x1024 size but no longer asks for `background:
+  transparent`: gpt-image-2 dropped transparent backgrounds and no live call
+  has proven otherwise, so the request is not sent. Transparency is made at
+  intake instead: `press art accept --as logomark` extracts the ink of an
+  opaque delivery onto transparency, the path that already cleaned the
+  issue's Gemini workaround. The model pin is proven against a fake client
+  only; the first live logomark commission is the proof the API accepts it.
 
 ## [3.0.2] - 2026-11-11
 

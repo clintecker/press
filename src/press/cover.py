@@ -104,7 +104,7 @@ def context(meta: dict, aes: dict, subject: str = "") -> dict[str, str]:
 
 
 # The image spec a cover is drawn at: a 2:3 portrait, high quality, opaque.
-_SPEC = ("gpt-image-2", "1024x1536", "high", False)
+_SPEC = (art_commission.OPENAI_FLAGSHIP, "1024x1536", "high")
 
 
 def _has_key() -> bool:
