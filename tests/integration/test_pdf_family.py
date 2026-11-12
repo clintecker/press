@@ -11,6 +11,8 @@ print-profile interior, so it is not rebuilt here.
 
 from __future__ import annotations
 
+import subprocess
+
 import pytest
 
 from tests import factories
@@ -23,6 +25,7 @@ from tests.integration._harness import (
     source_manifest_digest,
     tool_versions,
 )
+from tests.test_table_shapes_filter import GRID, LEDGER
 
 REQUIRED = PDF_TOOLCHAIN
 requires_pdf_toolchain = pytest.mark.skipif(
@@ -83,3 +86,102 @@ def test_reading_pdf_carries_ink(tmp_path):
         "an unskipped PDF runner recorded a tool as absent"
     )
     assert "verify_pdf.main" in evidence.verifiers
+
+
+LONG_IDENTIFIER = "a-very-long-identifier-that-cannot-break-at-all-anywhere-in-sixty-chars"
+
+
+def _book_with(root, chapter: str):
+    return (
+        factories.BookFactory(slug="int-pdf-tables")
+        .with_sentinels("witness of the table runner")
+        .with_chapter(
+            "00-tables.md",
+            chapter.replace(
+                "# Ch\n\n",
+                "# Tables\n\nHere the witness of the table runner stands in a plain "
+                "sentence long enough to survive typesetting.\n\n",
+                1,
+            ),
+        )
+        .build(root)
+    )
+
+
+@requires_pdf_toolchain
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_ledger_table_sets_in_the_pdf_without_a_longtable(tmp_path):
+    from press import booklib, build, registry
+
+    handle = _book_with(tmp_path, LEDGER)
+    with handle.use():
+        dist = booklib.root() / "dist"
+        registry.build("pdf")
+        # The .tex pandoc hands LuaLaTeX, written through the same defaults.
+        build.pandoc_build("pdf", "build/ledger-check.tex")
+        tex = (booklib.root() / "build" / "ledger-check.tex").read_text(encoding="utf-8")
+        pdf = dist / f"{booklib.slug()}.pdf"
+        text = subprocess.run(
+            ["pdftotext", "-layout", str(pdf), "-"], capture_output=True, text=True, check=True
+        ).stdout
+
+    assert "\\begin{PressLedger}" in tex and "\\end{PressLedger}" in tex
+    assert "longtable" not in tex, "a ledger table still reached LaTeX as a longtable"
+    assert "hemingway" in text and "humanizer" in text
+
+
+@requires_pdf_toolchain
+@pytest.mark.layer("integration")
+@pytest.mark.proof("negative")
+def test_a_grid_with_a_long_identifier_stays_inside_the_measure(tmp_path):
+    from PIL import Image
+
+    from press import booklib, registry, verify_pdf
+
+    # One cell holds an identifier wider than any column it could get; another
+    # holds a hyphenated flag that fits, beside prose that must wrap.
+    grid = GRID.replace("| pocket | 5 x 8 |", f"| pocket | `{LONG_IDENTIFIER}` |").replace(
+        "| 0.78in |", "| `--foil-bright` sets the foil on every cover the house prints |"
+    )
+    handle = _book_with(tmp_path, grid)
+    with handle.use():
+        pdf = booklib.root() / "dist" / f"{booklib.slug()}.pdf"
+        registry.build("pdf")
+        # -layout keeps a line-end hyphen; plain pdftotext would drop it.
+        text = subprocess.run(
+            ["pdftotext", "-layout", str(pdf), "-"], capture_output=True, text=True, check=True
+        ).stdout
+        pages = text.split("\f")
+        index = next(i for i, page in enumerate(pages) if "pocket" in page)
+        out = tmp_path / "grid-page"
+        subprocess.run(
+            [
+                "pdftoppm",
+                "-png",
+                "-r",
+                "120",
+                "-f",
+                str(index + 1),
+                "-l",
+                str(index + 1),
+                str(pdf),
+                str(out),
+            ],
+            check=True,
+        )
+        with Image.open(next(tmp_path.glob("grid-page*.png"))) as page:
+            width, height = page.size
+            band = int(height * 0.08)
+            # Drop the running head and folio bands; judge the text block only.
+            box = verify_pdf.ink_bbox(page.crop((0, band, width, height - band)))
+
+    lines = [line.strip() for line in pages[index].splitlines()]
+    assert any("--foil-bright" in line for line in lines), "a flag that fits was split"
+    # The too-wide identifier may break only after a hyphen it already has:
+    # its pieces, rejoined across line ends, read exactly, no hyphen invented.
+    # (-layout interleaves the neighbouring column, so pick the pieces out.)
+    pieces = [w for w in pages[index].split() if "-" in w and w in LONG_IDENTIFIER]
+    assert "".join(pieces) == LONG_IDENTIFIER, f"the identifier was mangled: {pieces}"
+    assert box is not None, "the grid page rendered blank"
+    assert box[2] <= 0.90 * width, f"grid ink reaches x={box[2]} of {width}px, past the text block"

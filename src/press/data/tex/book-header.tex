@@ -72,6 +72,25 @@
 \setlist[itemize]{leftmargin=1.25em,itemsep=0.18em,topsep=0.35em}
 \setlist[enumerate]{leftmargin=1.35em,itemsep=0.18em,topsep=0.35em}
 
+% A key-plus-prose table arrives from the table-shapes filter as a ledger: a
+% description list inside PressLedger, set in the manpage form -- the key on a
+% line of its own, the prose at full measure beneath it, hanging a little in.
+% A two-column table squeezed the prose into half the measure; a ledger has no
+% column to squeeze. The style is set inside the environment only, so an
+% author's own definition lists elsewhere keep the LaTeX default. pandoc's
+% \tightlist would zero the space between entries, so it is a no-op here, and
+% every entry asks for three lines before it starts, so a key is never left
+% alone at the foot of a page.
+\newenvironment{PressLedger}{%
+  \let\tightlist\relax
+  \setlist[description]{style=nextline,leftmargin=1.6em,labelindent=0pt,%
+    itemsep=0.45\baselineskip,parsep=0pt,topsep=0.5\baselineskip,%
+    font=\normalfont,before=\PressLedgerNeedspace}}%
+  {}
+\newcommand*{\PressLedgerNeedspace}{%
+  \let\PressLedgerItem\item
+  \renewcommand*{\item}{\Needspace{3\baselineskip}\PressLedgerItem}}
+
 \clearpairofpagestyles
 \makeatletter
 \ihead{\footnotesize\color{muted}\itshape\@title}
@@ -230,6 +249,28 @@
       skipbelow=0.8em
     ]\small\itshape}
   {\end{mdframed}}
+
+% Any other table is a grid. pandoc gives a short-source table `ll` columns,
+% which never wrap and run past the text block; the table-shapes filter gives
+% every column a relative width instead, so pandoc writes p{} columns that
+% wrap, and brackets the table with these two macros: a size smaller, tighter
+% gutters, and room for the head and a few rows before it starts.
+% Code in a grid cell (`--foil-bright`) is never hyphenated: \texttt sets its
+% argument in the no-hyphenation language, which LuaTeX attaches to the glyphs
+% themselves, so the grid's prose still hyphenates. A hyphen the identifier
+% already has is a break of last resort (\exhyphenpenalty just short of
+% forbidden): taken only when the token is wider than its column, because ink
+% past the text block is a fault in print and a split identifier is only ugly.
+\makeatletter
+\newcommand*{\PressNoHyphenTT}{%
+  \let\PressGridTT\texttt
+  \renewcommand*{\texttt}[1]{\PressGridTT{\language\l@nohyphenation ##1}}%
+  \exhyphenpenalty=9999\relax}
+\makeatother
+\newcommand*{\PressGridBegin}{%
+  \begingroup\small\setlength{\tabcolsep}{0.5em}%
+  \Needspace{4\baselineskip}\PressNoHyphenTT}
+\newcommand*{\PressGridEnd}{\endgroup}
 
 % Keep headings from being stranded at page bottoms.
 \pretocmd{\section}{\Needspace{5\baselineskip}}{}{}
