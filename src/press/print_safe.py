@@ -21,11 +21,10 @@ the common case, and the print verifier is the backstop.
 
 from __future__ import annotations
 
-import re
 import shutil
 from pathlib import Path
 
-from . import booklib, figures
+from . import booklib
 
 # Interiors print on white paper, so a flattened alpha composites to white.
 _WHITE = (255, 255, 255)
@@ -36,47 +35,39 @@ _WHITE = (255, 255, 255)
 _LOGO_MAX_EDGE = 1000
 _FIGURE_MAX_EDGE = 1900
 
-# What sanitize can open and flatten. A declared figure in any other format
-# (a PDF or SVG drawing) carries no alpha channel or pixel density to fix, so
+# What sanitize can open and flatten. A drawing in any other image format
+# (a PDF, SVG or EPS) carries no alpha channel or pixel density to fix, so
 # prepare copies it verbatim: the Lua rewrite still points at it.
 _RASTER_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".gif", ".tif", ".tiff", ".webp", ".bmp"})
+_VECTOR_SUFFIXES = frozenset({".pdf", ".svg", ".eps"})
+_IMAGE_SUFFIXES = _RASTER_SUFFIXES | _VECTOR_SUFFIXES
 
 
-# The same prefix print-safe-images.lua strips before it rewrites a figure
-# src to build/print-assets/assets/...: ``assets/``, ``./assets/`` or
-# ``/assets/``. The copy set below must cover exactly the paths that rewrite
-# resolves to, or the print build asks lualatex for a file nobody wrote (#272).
-_ASSET_SRC = re.compile(r"^\.?/?assets/")
+def _asset_images(root: Path) -> list[Path]:
+    """Every image file under ``assets/``, sorted, whatever directory it
+    lives in (``assets/figures/``, ``assets/fig/``, a path with a space).
+    print-safe-images.lua rewrites *every* ``assets/...`` src pandoc parses
+    to ``build/print-assets/assets/...`` -- with a link title, angle brackets,
+    a percent-escape, a reference-style image, a nested-bracket caption, or
+    no extension at all -- so the copy set is not rebuilt from a second parse
+    of the markdown that would have to agree with pandoc's in every spelling
+    (#272). It is the files themselves: whatever the rewrite resolves to is
+    then written, and an unreferenced image costs one flatten."""
 
-
-def _declared_figures(root: Path) -> list[Path]:
-    """Every image the manuscript references under ``assets/``, whatever
-    directory it lives in (``assets/figures/``, ``assets/fig/``, ...), in
-    source order, each once. A declared src that does not exist on disk is
-    left to the reading build to report; it is not this module's error."""
-
-    found: list[Path] = []
-    try:
-        chapters = booklib.chapter_files(root)
-    except FileNotFoundError:
-        return found
-    for path in chapters:
-        for fig in figures.parse(path.read_text(encoding="utf-8")):
-            if not _ASSET_SRC.match(fig.src):
-                continue
-            candidate = root / _ASSET_SRC.sub("assets/", fig.src)
-            if candidate.is_file() and candidate not in found:
-                found.append(candidate)
-    return found
+    assets = root / "assets"
+    if not assets.is_dir():
+        return []
+    return sorted(
+        p for p in assets.rglob("*") if p.is_file() and p.suffix.lower() in _IMAGE_SUFFIXES
+    )
 
 
 def _targets(root: Path) -> list[tuple[Path, int]]:
     """Every interior raster paired with its long-edge pixel cap: the
     logomark, the top-level ``assets/*.jpg`` (author portrait, cover), every
-    plate under ``assets/woodcuts/``, and then every figure the manuscript
-    declares under ``assets/`` that the walk above did not already find --
-    so a numbered figure at ``assets/figures/x.png`` reaches the print
-    interior the way the Lua rewrite promises (#272)."""
+    plate under ``assets/woodcuts/``, and then every other image file under
+    ``assets/`` -- so a numbered figure at ``assets/figures/x.png`` reaches
+    the print interior the way the Lua rewrite promises (#272)."""
 
     jobs: list[tuple[Path, int]] = []
     logo = root / "assets" / "press-logo.png"
@@ -89,10 +80,10 @@ def _targets(root: Path) -> list[tuple[Path, int]]:
         for plate in booklib.plate_files(woodcuts):
             jobs.append((plate, _FIGURE_MAX_EDGE))
     seen = {src for src, _cap in jobs}
-    for declared in _declared_figures(root):
-        if declared not in seen:
-            jobs.append((declared, _FIGURE_MAX_EDGE))
-            seen.add(declared)
+    for image in _asset_images(root):
+        if image not in seen:
+            jobs.append((image, _FIGURE_MAX_EDGE))
+            seen.add(image)
     return jobs
 
 

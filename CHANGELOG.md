@@ -11,17 +11,22 @@ audit).
 
 ### Fixed
 
-- The print-safe pass now prepares every image the manuscript declares
-  under `assets/`, whatever directory it lives in. `print-safe-images.lua`
-  rewrites every `assets/...` figure path to `build/print-assets/assets/...`,
+- The print-safe pass now prepares every image under `assets/`, whatever
+  directory it lives in. `print-safe-images.lua` rewrites every
+  `assets/...` figure path pandoc parses to `build/print-assets/assets/...`,
   but `print_safe.prepare` copied only the logomark, the top-level
   `assets/*.jpg`, and `assets/woodcuts/`, so a numbered figure at
   `assets/figures/pipeline.png` built a reading PDF and then failed
   `press print` with `File 'build/print-assets/assets/figures/pipeline.png'
-  not found`. `_targets` now walks the declared figures (the same parse
-  `press figures` reads), flattens and caps each raster it has not already
-  found, and copies a vector drawing verbatim, so the filter's rewrite set
-  and the copy set agree. No change to any reading edition. (#272)
+  not found`. `_targets` now sweeps the image files under `assets/` rather
+  than re-parsing the manuscript (a second parse would have to agree with
+  pandoc's on a link title, angle brackets, a percent-escape, a
+  reference-style image, a nested-bracket caption and an extensionless
+  src, and the first attempt did not), flattens and caps each raster it has
+  not already found, and copies a PDF, SVG or EPS drawing verbatim, so the
+  filter's rewrite set is a subset of the copy set in every spelling. The
+  filter test now reads the rewritten srcs from pandoc's own AST. No change
+  to any reading edition. (#272)
 
 ## [3.0.2] - 2026-11-11
 

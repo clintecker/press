@@ -104,8 +104,8 @@ logomark is stored as ink on a transparent background) and *images over 600
 PPI* (that 1024px logo at 1.7in was ~602 PPI). The `print` build now runs a
 **print-safe pass** (`press.print_safe`) that flattens every image onto white
 and caps resolution — the logomark, the top-level `assets/*.jpg`, the plates
-under `assets/woodcuts/`, and every figure the manuscript declares anywhere
-else under `assets/` — so a current `press verify-print` interior triggers
+under `assets/woodcuts/`, and every other image file anywhere under
+`assets/` — so a current `press verify-print` interior triggers
 **neither** warning — nothing to do.
 
 ::: {.callout .tip}

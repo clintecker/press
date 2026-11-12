@@ -244,12 +244,13 @@ already on transparency keeps its mask. From that one master:
 
 - the **print interior** flattens it onto white at build time (no transparency
   and no over-resolution reach the vendor's preflight). This applies to every
-  image the manuscript references under `assets/` — a plate in
-  `assets/woodcuts/`, a numbered figure in `assets/figures/` or `assets/fig/`,
-  the author portrait at `assets/author.jpg` — each copied to the same path
-  under `build/print-assets/` that the print build reads from, so a figure
-  need not live in `woodcuts/` to print (a raster is flattened and capped; a
-  PDF or SVG drawing is copied as is);
+  image file under `assets/` — a plate in `assets/woodcuts/`, a numbered
+  figure in `assets/figures/` or `assets/fig/`, the author portrait at
+  `assets/author.jpg` — each copied to the same path under
+  `build/print-assets/` that the print build reads from, so a figure need
+  not live in `woodcuts/` to print, however the manuscript spells its path
+  (a raster is flattened and capped; a PDF, SVG or EPS drawing is copied as
+  is);
 - a **cloth cover** would flatten it onto the field colour, so the ink sits on
   the cloth with no box (this is how the imprint logo already lands);
 - the **reader edition** serves the transparent PNG, so a plate reads cleanly on
