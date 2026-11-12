@@ -18,7 +18,6 @@ audit).
   chapter with a headed table scrolled sideways at 390px. Any `<tr>` opening
   tag now matches, kept verbatim. Reader CSS and templates are untouched; a
   book whose pandoc already wrote bare rows renders byte-identically.
-||||||| fee8e42
 - **`press render` clears `build/rendered-book/` before rasterizing.**
   pdftoppm only overwrites the pages it writes, so a rebuild with fewer
   pages than the previous one left the earlier render's trailing
@@ -26,7 +25,6 @@ audit).
   one kept a phantom `page-385.png`), and a page review could read a page
   the PDF no longer had. The directory is now rebuilt from scratch on
   every render, matching the print-assets pattern (#285).
-||||||| fee8e42
 - **The witness pickers no longer choose a line the editions cannot render
   verbatim (#261, #281).** `_manuscript_witness` and `chapter_witnesses` now
   share one candidate rule: the 40-character floor, the inline-markup
@@ -40,7 +38,6 @@ audit).
   and the reader site so the source line matched nowhere and
   `verify-formats` refused a correct build. An e-mail address, whose `@`
   follows a word character, stays an ordinary witness.
-||||||| fee8e42
 - **`press art commission` of a logomark through OpenAI no longer asks for a
   rejected model** (#277). The logomark path was pinned to `gpt-image-1`,
   which the API now rejects, while the cover and plate paths were already on
@@ -53,7 +50,6 @@ audit).
   opaque delivery onto transparency, the path that already cleaned the
   issue's Gemini workaround. The model pin is proven against a fake client
   only; the first live logomark commission is the proof the API accepts it.
-||||||| fee8e42
 - The print-safe pass now prepares every image under `assets/`, whatever
   directory it lives in. `print-safe-images.lua` rewrites every
   `assets/...` figure path pandoc parses to `build/print-assets/assets/...`,
