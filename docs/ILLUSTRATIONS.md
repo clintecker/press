@@ -148,9 +148,10 @@ whole to the next page rather than hang off the foot; the guard is sized to the
 figure, so a taller figure reserves more room. A **full-bleed** or
 **frontispiece** takes a *cleared* leaf, not a floating figure that LaTeX would
 defer a page late and leave a blank behind, and its caption sits on the same
-leaf. A **numbered** figure carries its own bold “Figure C.N.” set by the house,
-so no stray label — or the asterisk a bare `\caption*` once leaked — reaches the
-caption.
+leaf, set in its own group so the caption's flush-left, loose setting ends with
+the caption and the pages that follow keep the house indent. A **numbered**
+figure carries its own bold “Figure C.N.” set by the house, so no stray label —
+or the asterisk a bare `\caption*` once leaked — reaches the caption.
 
 Placement is a **print** concern. On the reflowable web — EPUB and the reader —
 a placed figure becomes a clean in-flow figure, and the markdown and plain-text

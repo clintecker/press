@@ -161,7 +161,11 @@ local function full_page(image, label, caption_latex, lof2_latex, frontis)
     .. "}}"
   parts[#parts + 1] = "\\end{center}"
   if caption_latex and caption_latex ~= "" then
-    parts[#parts + 1] = "\\captionof{figure}{" .. caption_latex .. "}"
+    -- \captionof sets \noindent and \sloppy for its own paragraph and, being
+    -- no environment, leaves them set: outside a group the house \parindent
+    -- dies and \tolerance sits at 9999 for every page after the plate (#292).
+    -- The braces scope the caption's typesetting to the caption.
+    parts[#parts + 1] = "{\\captionof{figure}{" .. caption_latex .. "}}"
   end
   if lof2_latex and lof2_latex ~= "" then
     parts[#parts + 1] = lof2_latex

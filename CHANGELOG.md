@@ -9,6 +9,21 @@ audit).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A `place=frontispiece` or `place=full-bleed` figure no longer kills the
+  paragraph indent for the rest of the book.** `figure-numbering.lua` set the
+  full-page caption with a bare `\captionof`, which runs `\noindent` and
+  `\sloppy` for the caption's paragraph and, being a command rather than an
+  environment, leaves them set: from the plate on, every paragraph began flush
+  left (the house 1.1em `\parindent` was dead) and `\tolerance` sat at 9999,
+  loosening interword spacing on every following page. The caption now sits
+  inside its own group. This is a correction of broken output within the
+  design contract: a valid book's paragraphs were never meant to lose their
+  indent, and a book with no full-page figure renders byte-identically. A
+  filter test holds the caption inside braces and a PDF-family test measures
+  the indent of the first paragraph on the page after a frontispiece (#292).
+
 ## [3.0.2] - 2026-11-11
 
 A security release. The hash-locked runtime dependencies move Pillow from
