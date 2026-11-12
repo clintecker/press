@@ -57,8 +57,11 @@ A valid book that never hit one of these faults typesets as before.
   could sit at a page foot with its definition overleaf. The figure-numbering
   filter now sets a `\Needspace` before each table, sized from the table's own
   cells to its caption, head, and first two body rows, and each `\item` of a
-  description list asks for two lines. Both change page breaks only, and only
-  where the room was short; ordinary paragraphs are untouched.
+  description list asks for two lines (the plain `\item` is copied once in
+  the preamble, so a definition list nested in a definition cannot make
+  `\item` call itself). Both change page breaks, mostly where the room was
+  short, though a `\Needspace` also carries a small break bonus near the page
+  foot; ordinary paragraphs are untouched.
 - **Constant-width text no longer hyphenates (#287).** Inline code broke at
   line ends with a hyphen it does not have (`SUP-/PORTED_CONTRACT_MAJORS`), and
   a span holding a real hyphen could break right after it (`--paper-/warm`),

@@ -264,10 +264,13 @@
 % itself asks (\@currenvir is the innermost environment, so a list nested in
 % a definition is untouched), and only a description list carries the rule.
 % (A table head is kept with its first rows by the figure-numbering filter,
-% which sizes a \Needspace from the table's own cells.)
+% which sizes a \Needspace from the table's own cells.) The plain \item is
+% copied ONCE, here in the preamble: copied inside the hook, a description
+% nested in a definition would copy the wrapper itself, and \item would call
+% itself forever -- a silent hang at full CPU.
+\NewCommandCopy{\PressPlainItem}{\item}
 \makeatletter
 \AddToHook{env/description/begin}{%
-  \let\PressPlainItem\item
   \def\item{%
     \ifx\@currenvir\PressDescriptionEnv\Needspace{2\baselineskip}\fi
     \PressPlainItem}%

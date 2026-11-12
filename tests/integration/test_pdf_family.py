@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -270,6 +271,13 @@ def _page_of(pages: list[str], needle: str, start: int = 0) -> int:
 
 _KEEPS = 45
 
+# A definition list nested inside a definition: pandoc emits a description
+# environment inside a description environment.
+_NESTED_DEFINITIONS = (
+    "\nouterterm\n:   The outer definition holds a list of its own.\n\n"
+    "    innerterm\n    :   The inner definition of the nested list.\n"
+)
+
 
 @requires_pdf_toolchain
 @pytest.mark.layer("integration")
@@ -305,10 +313,21 @@ def test_table_head_and_definition_term_keep_with_what_follows(tmp_path):
             "01-tables.md",
             "# Tables\n\nHere the witness of the keeps book stands.\n\n" + "\n".join(tables),
         )
-        .with_chapter("02-terms.md", "# Terms\n\nTerms follow.\n\n" + "\n".join(terms))
+        .with_chapter(
+            "02-terms.md",
+            "# Terms\n\nTerms follow.\n\n" + "\n".join(terms) + _NESTED_DEFINITIONS,
+        )
         .build(tmp_path)
     )
-    pages = _pages(_build_pdf(handle))
+    with handle.use():
+        from press import booklib
+
+        root = booklib.root()
+        # A subprocess with a deadline, so a TeX loop (a nested description
+        # list once made \item call itself forever) fails the test, not hangs it.
+        subprocess.run([sys.executable, "-m", "press", "pdf"], cwd=root, check=True, timeout=600)
+        pages = _pages(root / "dist" / f"{booklib.slug()}.pdf")
+    assert "inner definition of the nested list" in "".join(pages)
     body = _page_of(pages, "Here the witness")
     stranded = [
         k
