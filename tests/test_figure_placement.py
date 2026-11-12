@@ -73,6 +73,28 @@ def test_full_page_placements_take_their_own_leaf():
 
 @_needs_pandoc
 @pytest.mark.layer("integration")
+@pytest.mark.parametrize("place", ["frontispiece", "full-bleed"])
+def test_a_full_page_caption_is_set_inside_its_own_group(place):
+    # \captionof is a command, not an environment: it sets \noindent and
+    # \sloppy for the caption's paragraph and leaves them set. Emitted bare,
+    # one frontispiece killed the house \parindent and left \tolerance at
+    # 9999 for every page after it (#292). The caption must sit inside braces
+    # so its typesetting ends with the caption.
+    out = _render(f'# C\n\n![Cap.](x.png){{.figure place={place} fig-alt="a"}}\n')
+    (line,) = [ln for ln in out.splitlines() if "\\captionof{figure}" in ln]
+    assert line.startswith("{\\captionof{figure}{"), line
+    assert line.endswith("Cap.}}"), line
+    # the opening brace closes at the line's end, not somewhere inside the
+    # caption: the group is the caption's own
+    depth = 0
+    for i, ch in enumerate(line):
+        depth += {"{": 1, "}": -1}.get(ch, 0)
+        assert depth > 0 or i == len(line) - 1, line
+    assert depth == 0, line
+
+
+@_needs_pandoc
+@pytest.mark.layer("integration")
 def test_web_keeps_a_clean_in_flow_figure():
     # Placement is a print concern; on the reflowable web a placed figure is a
     # clean in-flow <figure> -- no wrapfigure/float machinery, and no house-only
