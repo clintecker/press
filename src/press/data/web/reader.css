@@ -260,6 +260,8 @@ p.author, p.date { font-variant: small-caps; letter-spacing: .16em;
 .ledger dt { font-weight: 600; margin-top: .55em; padding-top: .45em; border-top: 1px solid var(--hairline); }
 .ledger dt:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
 .ledger dd { margin: .15em 0 0 1.6rem; }
+/* A long URL or path in a key or an entry wraps rather than widening the page. */
+.ledger dt, .ledger dd { overflow-wrap: anywhere; }
 .ledger-sub { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: .85em; margin: 0 0 .2em; }
 .ledger-sub p { margin: 0; }
 .grid { overflow-x: auto; margin: 1.4em 0; }

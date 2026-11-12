@@ -71,6 +71,14 @@ def test_book_and_epub_stylesheets_carry_the_same_classes():
         assert ".ledger" in css and ".grid" in css
 
 
+def test_ledger_entries_wrap_a_long_token_in_every_stylesheet():
+    """A ledger entry holding a long URL scrolled a 390 px page sideways; the
+    key and the entry break anywhere rather than widen the page."""
+    for path in (READER_CSS, DATA / "tex" / "book.css", DATA / "tex" / "epub.css"):
+        css = re.sub(r"/\*.*?\*/", "", path.read_text(), flags=re.S)
+        assert ".ledger dt, .ledger dd { overflow-wrap: anywhere; }" in css, path.name
+
+
 def test_grid_code_wraps_inside_phone_cards_in_reader_and_book():
     """nowrap holds at reading width; the phone block overrides it so a long
     token wraps inside its card instead of running past the border."""
