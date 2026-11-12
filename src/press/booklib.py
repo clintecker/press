@@ -178,11 +178,15 @@ def require_release_witnesses() -> None:
         )
 
 
-def chapter_files() -> list[Path]:
-    """Return the ordered manuscript files: chapters, then appendices."""
+def chapter_files(book_root: Path | None = None) -> list[Path]:
+    """Return the ordered manuscript files: chapters, then appendices. The
+    book is ``root()`` unless a caller already holding the root passes it
+    (a build step given the root as a parameter must not re-resolve it from
+    the environment, or a test's temporary book is not the one read)."""
 
-    chapters = sorted((root() / "book" / "chapters").glob("[0-9]*.md"))
-    appendices = sorted((root() / "book" / "appendices").glob("[a-z]-*.md"))
+    base = root() if book_root is None else book_root
+    chapters = sorted((base / "book" / "chapters").glob("[0-9]*.md"))
+    appendices = sorted((base / "book" / "appendices").glob("[a-z]-*.md"))
     files = chapters + appendices
     if not files:
         raise FileNotFoundError("no manuscript files found under book/")

@@ -121,7 +121,7 @@ modules:
       plate_files: pure
       require_release_witnesses: verifier
       validate_slug: pure
-    pin: "5276176bb854"
+    pin: "a18ce9c380e7"
     role: parser
     status: ratified
   bookmodel:

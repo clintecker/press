@@ -71,3 +71,33 @@ def test_an_already_redirected_path_is_not_doubled():
     # again, so re-running the print defaults cannot nest the prefix.
     already = "build/print-assets/assets/plate.png"
     assert _rewrite(already) == already
+
+
+@_needs_pandoc
+@pytest.mark.layer("integration")
+def test_the_rewrite_lands_on_the_file_prepare_writes(tmp_path):
+    # #272: the filter rewrites every assets/ src, so print_safe.prepare must
+    # write every one of them -- a figure in assets/figures/ as much as a
+    # plate in woodcuts/. Run both over the same manuscript and the rewritten
+    # path must exist under build/print-assets, whatever directory it names.
+    from PIL import Image
+
+    from press import print_safe
+
+    for rel in ("assets/figures/pipeline.png", "assets/fig/press.jpg", "assets/woodcuts/w.png"):
+        target = tmp_path / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        Image.new("RGB", (20, 20), (0, 0, 0)).save(target)
+    chapter = tmp_path / "book" / "chapters" / "01-one.md"
+    chapter.parent.mkdir(parents=True)
+    chapter.write_text(
+        "![P](assets/figures/pipeline.png){.figure}\n\n![H](./assets/fig/press.jpg)\n\n"
+        "![W](assets/woodcuts/w.png){.plate}\n",
+        encoding="utf-8",
+    )
+
+    print_safe.prepare(tmp_path)
+
+    for src in ("assets/figures/pipeline.png", "./assets/fig/press.jpg", "assets/woodcuts/w.png"):
+        rewritten = _rewrite(src)
+        assert (tmp_path / rewritten).is_file(), f"{src} rewrites to {rewritten}, never written"

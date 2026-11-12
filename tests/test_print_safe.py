@@ -110,6 +110,105 @@ def test_prepare_mirrors_layout_with_per_image_caps(tmp_path):
     assert max(Image.open(out / "assets" / "woodcuts" / "w.jpg").size) <= 1900
 
 
+def _declare(root, body, name="01-one.md"):
+    chapter = root / "book" / "chapters" / name
+    chapter.parent.mkdir(parents=True, exist_ok=True)
+    chapter.write_text(body, encoding="utf-8")
+
+
+@pytest.mark.layer("unit")
+def test_targets_include_every_declared_figure_under_assets(tmp_path):
+    # #272: the Lua filter rewrites every assets/ src to build/print-assets/,
+    # so the copy set must reach a figure wherever the manuscript put it --
+    # not only woodcuts/ and the top-level JPEGs. Each spelling the filter
+    # accepts (assets/, ./assets/, /assets/) resolves to the same file.
+    root = tmp_path
+    _save(root / "assets" / "figures" / "pipeline.png", (100, 80), "RGB", (1, 2, 3))
+    _save(root / "assets" / "fig" / "press.jpg", (100, 80), "RGB", (1, 2, 3))
+    _save(root / "assets" / "maps" / "route.png", (100, 80), "RGB", (1, 2, 3))
+    _declare(
+        root,
+        "# One\n\n![The pipeline](assets/figures/pipeline.png){#fig:p .figure}\n\n"
+        "![The press](./assets/fig/press.jpg)\n\n![A route](/assets/maps/route.png){.map}\n",
+    )
+
+    jobs = print_safe._targets(root)
+
+    assert [src.relative_to(root).as_posix() for src, _cap in jobs] == [
+        "assets/figures/pipeline.png",
+        "assets/fig/press.jpg",
+        "assets/maps/route.png",
+    ]
+    assert {cap for _src, cap in jobs} == {print_safe._FIGURE_MAX_EDGE}
+
+
+@pytest.mark.layer("unit")
+def test_targets_dedupe_declared_figures_against_the_walk(tmp_path):
+    # A plate declared in the manuscript is already found by the woodcuts
+    # walk; the top-level portrait by the JPEG glob. Neither is copied twice,
+    # and a figure declared twice is one job. An image under assets/ nobody
+    # references (or outside assets/ entirely) is not a print target.
+    root = tmp_path
+    _save(root / "assets" / "author.jpg", (50, 50), "RGB", (0, 0, 0))
+    _save(root / "assets" / "woodcuts" / "shop.png", (50, 50), "L", 128)
+    _save(root / "assets" / "figures" / "a.png", (50, 50), "RGB", (0, 0, 0))
+    _save(root / "assets" / "figures" / "orphan.png", (50, 50), "RGB", (0, 0, 0))
+    _save(root / "build" / "scratch.png", (50, 50), "RGB", (0, 0, 0))
+    _declare(
+        root,
+        "![Shop](assets/woodcuts/shop.png){.plate}\n\n![Me](assets/author.jpg)\n\n"
+        "![A](assets/figures/a.png){.figure}\n\n![A again](assets/figures/a.png)\n\n"
+        "![Scratch](build/scratch.png)\n\n![Gone](assets/figures/missing.png)\n",
+    )
+
+    srcs = [src.relative_to(root).as_posix() for src, _cap in print_safe._targets(root)]
+
+    assert srcs == ["assets/author.jpg", "assets/woodcuts/shop.png", "assets/figures/a.png"]
+
+
+@pytest.mark.layer("unit")
+def test_targets_without_a_manuscript_are_the_walk_alone(tmp_path):
+    # print_safe is also run over a bare asset tree (the cover-wrap tests do
+    # this); no book/ directory is not an error, just no declared figures.
+    _save(tmp_path / "assets" / "cover.jpg", (50, 50), "RGB", (0, 0, 0))
+    assert [s.name for s, _c in print_safe._targets(tmp_path)] == ["cover.jpg"]
+
+
+@pytest.mark.layer("unit")
+def test_prepare_copies_a_figure_outside_woodcuts_where_the_filter_points(tmp_path):
+    # The known-bad for #272: a numbered figure at assets/figures/ built a
+    # reading PDF and then failed `press print` with "File
+    # build/print-assets/assets/figures/pipeline.png not found", because
+    # prepare never wrote it. After prepare, the file the Lua rewrite names
+    # must exist, flattened and under the figure cap like any plate.
+    root = tmp_path
+    _save(root / "assets" / "figures" / "pipeline.png", (2400, 1200), "RGBA", (0, 0, 0, 0))
+    _declare(root, "![The pipeline](assets/figures/pipeline.png){#fig:p .figure}\n")
+
+    out = print_safe.prepare(root)
+
+    assert out == root / "build" / "print-assets"
+    copied = out / "assets" / "figures" / "pipeline.png"
+    assert copied.is_file(), "the path print-safe-images.lua rewrites to was not written"
+    image = Image.open(copied)
+    assert image.mode == "RGB" and max(image.size) <= print_safe._FIGURE_MAX_EDGE
+
+
+@pytest.mark.layer("unit")
+def test_prepare_copies_a_declared_vector_figure_verbatim(tmp_path):
+    # A PDF or SVG drawing has no alpha or pixel density to fix, but the
+    # filter rewrites its path all the same, so prepare must still place it.
+    root = tmp_path
+    drawing = root / "assets" / "figures" / "flow.pdf"
+    drawing.parent.mkdir(parents=True)
+    drawing.write_bytes(b"%PDF-1.4 stub")
+    _declare(root, "![Flow](assets/figures/flow.pdf){.diagram}\n")
+
+    out = print_safe.prepare(root)
+
+    assert (out / "assets" / "figures" / "flow.pdf").read_bytes() == b"%PDF-1.4 stub"
+
+
 @pytest.mark.layer("unit")
 def test_prepare_rebuilds_from_scratch(tmp_path):
     root = tmp_path

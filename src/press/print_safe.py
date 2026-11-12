@@ -21,10 +21,11 @@ the common case, and the print verifier is the backstop.
 
 from __future__ import annotations
 
+import re
 import shutil
 from pathlib import Path
 
-from . import booklib
+from . import booklib, figures
 
 # Interiors print on white paper, so a flattened alpha composites to white.
 _WHITE = (255, 255, 255)
@@ -35,9 +36,47 @@ _WHITE = (255, 255, 255)
 _LOGO_MAX_EDGE = 1000
 _FIGURE_MAX_EDGE = 1900
 
+# What sanitize can open and flatten. A declared figure in any other format
+# (a PDF or SVG drawing) carries no alpha channel or pixel density to fix, so
+# prepare copies it verbatim: the Lua rewrite still points at it.
+_RASTER_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".gif", ".tif", ".tiff", ".webp", ".bmp"})
+
+
+# The same prefix print-safe-images.lua strips before it rewrites a figure
+# src to build/print-assets/assets/...: ``assets/``, ``./assets/`` or
+# ``/assets/``. The copy set below must cover exactly the paths that rewrite
+# resolves to, or the print build asks lualatex for a file nobody wrote (#272).
+_ASSET_SRC = re.compile(r"^\.?/?assets/")
+
+
+def _declared_figures(root: Path) -> list[Path]:
+    """Every image the manuscript references under ``assets/``, whatever
+    directory it lives in (``assets/figures/``, ``assets/fig/``, ...), in
+    source order, each once. A declared src that does not exist on disk is
+    left to the reading build to report; it is not this module's error."""
+
+    found: list[Path] = []
+    try:
+        chapters = booklib.chapter_files(root)
+    except FileNotFoundError:
+        return found
+    for path in chapters:
+        for fig in figures.parse(path.read_text(encoding="utf-8")):
+            if not _ASSET_SRC.match(fig.src):
+                continue
+            candidate = root / _ASSET_SRC.sub("assets/", fig.src)
+            if candidate.is_file() and candidate not in found:
+                found.append(candidate)
+    return found
+
 
 def _targets(root: Path) -> list[tuple[Path, int]]:
-    """Every interior raster paired with its long-edge pixel cap."""
+    """Every interior raster paired with its long-edge pixel cap: the
+    logomark, the top-level ``assets/*.jpg`` (author portrait, cover), every
+    plate under ``assets/woodcuts/``, and then every figure the manuscript
+    declares under ``assets/`` that the walk above did not already find --
+    so a numbered figure at ``assets/figures/x.png`` reaches the print
+    interior the way the Lua rewrite promises (#272)."""
 
     jobs: list[tuple[Path, int]] = []
     logo = root / "assets" / "press-logo.png"
@@ -49,6 +88,11 @@ def _targets(root: Path) -> list[tuple[Path, int]]:
     if woodcuts.is_dir():
         for plate in booklib.plate_files(woodcuts):
             jobs.append((plate, _FIGURE_MAX_EDGE))
+    seen = {src for src, _cap in jobs}
+    for declared in _declared_figures(root):
+        if declared not in seen:
+            jobs.append((declared, _FIGURE_MAX_EDGE))
+            seen.add(declared)
     return jobs
 
 
@@ -108,7 +152,12 @@ def prepare(root: Path) -> Path | None:
     if not jobs:
         return None
     for src, cap in jobs:
-        sanitize(src, out / src.relative_to(root), cap)
+        dst = out / src.relative_to(root)
+        if src.suffix.lower() in _RASTER_SUFFIXES:
+            sanitize(src, dst, cap)
+        else:
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src, dst)
     return out
 
 
