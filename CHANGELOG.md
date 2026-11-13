@@ -9,7 +9,7 @@ audit).
 
 ## [Unreleased]
 
-This is the v4 line: a design major. Nothing here is released yet.
+## [4.0.0] - 2026-11-12
 
 ### Changed (v4, design)
 

@@ -1,6 +1,6 @@
 # Migrating between press majors
 
-A book pins the press to a major — `@v1`, `@v2`, and now `@v3` — and that pin is a
+A book pins the press to a major — `@v1`, `@v2`, `@v3`, and now `@v4` — and that pin is a
 contract: it resolves the same pipeline, action, and toolchain bytes for as
 long as you leave it. Moving to a new major is opting into a new contract,
 and this page is how you do it safely, prove what changed, and reverse it if
