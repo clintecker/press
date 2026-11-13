@@ -394,6 +394,19 @@
 
 % Better code blocks in narrow trim.
 \usepackage{fvextra}
+% A one-line lead-in ("Press prints:", "Run:", a definition term with its
+% one line of definition) never ends a page with its listing overleaf: the
+% line exists only to introduce the block. When the paragraph before a
+% listing was a single line (\prevgraf, still set in the vertical mode the
+% listing opens in), the break before the block is forbidden and the rule
+% keeps two lines of code, as under a caption. Every listing resets
+% \prevgraf at its end (below), so a listing that follows another is never
+% tied to the prose before the first. A longer paragraph leaves the break
+% before the block free, as it always was.
+\makeatletter
+\newcommand*{\PressListingLeadIn}{%
+  \ifnum\prevgraf=\@ne\@beginparpenalty\@M\clubpenalty\@M\fi}
+\makeatother
 % pandoc uses Highlighting only for a fence with a recognised language tag; an
 % untagged fence (and, under the pinned image's pandoc 3.1, one tagged
 % `text`) becomes plain verbatim, which does not
@@ -426,6 +439,8 @@
 %       fancyvrb would otherwise insert the house's 10000 after a block's
 %       first line and before its last, and the inside of a block keeps the
 %       page breaks it had.
+%       \PressListingLeadIn (below) then keeps a one-line lead-in with the
+%       block.
 % The remaining options make the inside of a block set exactly as the
 % kernel verbatim #279 replaced would at the same size (the pitch and breaks
 % that fix promised, now proven at \small inside the frame), and give a
@@ -444,11 +459,11 @@
 % The options are written out per environment because fancyvrb reads them
 % as key-value text, not as a macro it would expand.
 \ifcsname KV@FV@backgroundcolorboxoverlap\endcsname
-\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\},backgroundcolorboxoverlap=0pt,tabsize=1,fontsize=\small,frame=lines,framerule=0.4pt,framesep=4pt,vspace=9pt plus 2pt,listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 }}
-\RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere,backgroundcolorboxoverlap=0pt,tabsize=1,fontsize=\small,frame=lines,framerule=0.4pt,framesep=4pt,vspace=9pt plus 2pt,listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 }}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\},backgroundcolorboxoverlap=0pt,tabsize=1,fontsize=\small,frame=lines,framerule=0.4pt,framesep=4pt,vspace=9pt plus 2pt,listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 \PressListingLeadIn}}
+\RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere,backgroundcolorboxoverlap=0pt,tabsize=1,fontsize=\small,frame=lines,framerule=0.4pt,framesep=4pt,vspace=9pt plus 2pt,listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 \PressListingLeadIn}}
 \else
-\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\},tabsize=1,fontsize=\small,frame=lines,framerule=0.4pt,framesep=4pt,vspace=9pt plus 2pt,listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 }}
-\RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere,tabsize=1,fontsize=\small,frame=lines,framerule=0.4pt,framesep=4pt,vspace=9pt plus 2pt,listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 }}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\},tabsize=1,fontsize=\small,frame=lines,framerule=0.4pt,framesep=4pt,vspace=9pt plus 2pt,listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 \PressListingLeadIn}}
+\RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere,tabsize=1,fontsize=\small,frame=lines,framerule=0.4pt,framesep=4pt,vspace=9pt plus 2pt,listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 \PressListingLeadIn}}
 \fi
 % fvextra (every release, 1.6.1 through 1.14) replaces fancyvrb's top rule
 % with an older form that backs up half a \baselineskip after the rule, so
@@ -457,16 +472,48 @@
 % bottom one. fancyvrb 4.5 fixed its own copy (\nointerlineskip, then the
 % kern); this restores that form, the mirror of the bottom rule fancyvrb and
 % fvextra both still use, so the top and bottom air are the same 4pt.
+%
+% The rules themselves must not be spaced as if they were lines of text.
+% Left to TeX, the top rule took a full \baselineskip of interline glue from
+% the prose line above it on top of the 9pt, and since prose ink sits mostly
+% above its baseline, the air over a listing (about 18pt, descender to
+% rule) dwarfed the air under it (about 13pt, rule to ascender). So the top
+% rule takes no interline glue: it stands one strut depth below the bottom of
+% the line above it (\kern to two strut depths below that line's baseline,
+% whatever its own descenders), which mirrors the bottom rule, whose next
+% line stands one strut depth plus its ascender height below it. Both gaps
+% are then the 9pt plus a strut depth. After a caption \prevdepth is already
+% -1000pt (\nointerlineskip) and the caption's own 3pt stands alone.
 \makeatletter
 \def\FV@BeginListFrame@Lines{%
   \begingroup
   \lineskip\z@skip
+  \ifdim\prevdepth>-1000\p@
+    \kern\dimexpr2\dp\strutbox-\prevdepth\relax
+  \fi
+  \nointerlineskip
   \FV@SingleFrameLine{\z@}%
   \nointerlineskip
   \baselineskip\z@skip
   \kern\FV@FrameSep\relax
   \penalty\@M
   \endgroup}
+% The bottom rule's matching half, stated rather than left to chance: the
+% rule box has no depth, and \prevdepth is set to zero so the next line takes
+% plain \baselineskip glue from the rule itself and never from whatever
+% fancyvrb's last box left behind. \prevgraf is cleared for the lead-in keep
+% above: the lines of a listing are boxes, not a paragraph, so without the
+% reset a block would still read the line count of the prose before it.
+\def\FV@EndListFrame@Lines{%
+  \begingroup
+  \baselineskip\z@skip
+  \kern\FV@FrameSep\relax
+  \nointerlineskip
+  \penalty\@M
+  \FV@SingleFrameLine{\@ne}%
+  \endgroup
+  \prevdepth\z@
+  \prevgraf\z@}
 % An example caption (the listings filter writes it before its block): bold
 % "Example C.N." and the title in italic, flush left, at the block's \small.
 % It asks for room for itself, the rule, and two lines of code, so a caption
@@ -476,13 +523,21 @@
 % so the 3pt here is the whole gap between the caption and the top rule.
 % \nointerlineskip makes that literal: the strut ends the caption at a fixed
 % depth, and the rule follows 3pt below it with no baseline glue in between.
+% Directly after a heading (\if@nobreak) the \Needspace is skipped: its own
+% \penalty-100 would be a legal break between the heading and the caption,
+% stranding the heading at the foot, and the heading's own keep already
+% asks for room. The optional argument is an anchor id, set after the keep
+% so a link lands on the caption on the page the caption is set on.
 \newsavebox{\PressExampleCaptionBox}
-\newcommand{\PressExampleCaption}[2]{%
+\newcommand{\PressExampleCaption}[3][]{%
   \par\addvspace{9pt plus 2pt}%
-  \sbox{\PressExampleCaptionBox}{\parbox{\linewidth}{\PressExampleCaptionText{#1}{#2}}}%
-  \Needspace{\dimexpr\ht\PressExampleCaptionBox+\dp\PressExampleCaptionBox
-    +3pt+0.4pt+4pt+2\baselineskip\relax}%
-  \PressExampleCaptionText{#1}{#2}%
+  \if@nobreak\else
+    \sbox{\PressExampleCaptionBox}{\parbox{\linewidth}{\PressExampleCaptionText{#2}{#3}}}%
+    \Needspace{\dimexpr\ht\PressExampleCaptionBox+\dp\PressExampleCaptionBox
+      +3pt+0.4pt+4pt+2\baselineskip\relax}%
+  \fi
+  \ifx\relax#1\relax\else\phantomsection\label{#1}\fi
+  \PressExampleCaptionText{#2}{#3}%
   \nopagebreak\vskip3pt\relax\nointerlineskip\@nobreaktrue}
 \newcommand{\PressExampleCaptionText}[2]{%
   {\noindent\raggedright\small

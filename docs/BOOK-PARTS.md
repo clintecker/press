@@ -249,7 +249,8 @@ than the measure (about 70 columns on the 6x9 trim at that size), tagged or
 untagged, with a small continuation mark at the head of the carried-over
 part; nothing is cut at the page edge (#279). A listing longer than the
 page breaks where it must; the rules mark only its true top and bottom, so
-a rule never reads as the end of a block that continues overleaf. Prefer
+a rule never reads as the end of a block that continues overleaf. A
+one-line lead-in ("Press prints:") never ends a page above its listing. Prefer
 breaking long command lines yourself with a trailing `\` where the language
 allows it: the wrap is a safety net for the line you forgot, not a layout
 choice. HTML and EPUB keep their own code panel.
@@ -271,7 +272,8 @@ $ brew install pandoc poppler
 ````
 
 Or the caption on the fence itself, with an optional `id` a link can
-target (`[Example 2.4](#ex-toolchain)`):
+target (`[Example 2.4](#ex-toolchain)`; an `id` on the fence under a bold
+caption works the same way, and the link lands on the caption):
 
 ````markdown
 ```{.text #ex-toolchain caption="Example 2.4. Installing the toolchain on macOS"}
@@ -292,8 +294,13 @@ as a small caption paragraph (class `example-caption`) directly above the
 code; a DOCX takes it in the `Caption` style, and plain text keeps it as the
 paragraph it was.
 
+If a fence carries `caption=` and a bold caption paragraph sits directly
+above it too, the attribute wins and the bold paragraph is dropped, so the
+caption is never set twice.
+
 The bold form is recognised only when the paragraph holds nothing but the
-bold caption and the next block is a fence. A bold paragraph before prose,
+bold caption and the next block is a fence (a line break your editor put
+inside the bold text is fine). A bold paragraph before prose,
 a list, or a table (`**Example.** Press lowercases the name...`) stays an
 ordinary paragraph, and so does a number in another form
 (`**Example 6-1. ...**`); rewrite it as `Example 6.1.` to make it a caption.

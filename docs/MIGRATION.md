@@ -113,11 +113,14 @@ v3.
 - **Every code block is a listing** ([the parts of a book](book-parts.html)).
   In the PDF every fence, tagged or not, is set a size smaller (`\small`)
   between two hairline rules the full width of the measure, with 9pt (plus
-  2pt of stretch) above and below and 4pt between each rule and the code.
-  The code inside sets as before at the new size: the same face, the same
-  wrapping. Because every block is shorter per line and gains its rules,
-  page breaks move in any book with code. A listing longer than a page
-  breaks as before; its rules mark only its true top and bottom.
+  2pt of stretch) above and below and 4pt between each rule and the code;
+  the air from the prose to the top rule and from the bottom rule to the
+  prose is the same (about 13pt, ink to rule). The code inside sets as
+  before at the new size: the same face, the same wrapping. A one-line
+  lead-in ("Press prints:") is kept with its listing. Page breaks move in
+  any book with code: on *Publishing with Press* 387 to 405 pages (+18,
+  about 5 percent). A listing longer than a page breaks as before; its rules
+  mark only its true top and bottom.
 - **An example caption is attached to its listing.** A paragraph that is
   nothing but `**Example C.N. Title**` (or `Example N.`, or `Example A.N.`
   in an appendix) directly before a fence becomes the listing's caption:
@@ -127,7 +130,8 @@ v3.
   `{.text caption="Example 2.4. Title"}`. The web, HTML, and EPUB editions
   set it as `.example-caption` above the code; DOCX in the `Caption` style;
   plain text keeps the paragraph. A bold paragraph before anything else, or
-  with a number in another form (`Example 6-1.`), is untouched.
+  with a number in another form (`Example 6-1.`), is untouched; a bold
+  caption above a fence that also has `caption=` is dropped.
 
 Beyond that line breaking and the listings, a book with no tables and no
 code differs from v3 only by new stylesheet rules, and the text-block

@@ -754,6 +754,15 @@ def test_listing_frame_is_new_and_the_inside_of_the_block_is_unchanged(tmp_path)
         below = [r for r in rules_on(house, last[0]) if last[4] < r < last[4] + 8]
         assert above, f"no hairline above the block opening {first[1]!r}"
         assert below, f"no hairline below the block closing {last[1]!r}"
+        # The air inside the frame: fvextra's own top rule backed up half a
+        # baselineskip and left the first line under 2pt from the rule; the
+        # header's override restores framesep. If the override ever dies the
+        # rules are still there, so the gap itself is the witness.
+        top_gap, bottom_gap = first[3] - max(above), min(below) - last[4]
+        assert top_gap >= 3.5 or abs(top_gap - bottom_gap) <= 1, (
+            f"the code under the top rule of {first[1]!r} sits {top_gap:.2f}pt from it and "
+            f"{bottom_gap:.2f}pt above the bottom rule: the top-rule override is not in force"
+        )
         for prev, nxt in zip(block, block[1:]):
             if prev[0] != nxt[0]:
                 stray = [r for r in rules_on(house, prev[0]) if prev[4] < r < prev[4] + 8]
@@ -784,13 +793,34 @@ def test_listing_frame_is_new_and_the_inside_of_the_block_is_unchanged(tmp_path)
 # \PressExampleCaption, which asks for room for itself, the rule, and two
 # lines of code. The book below walks a captioned listing down the page one
 # line at a time (each section adds a line of prose before it), so some
-# caption lands at every height, including the last lines of a page. The
-# control replaces the macro with a bare bold paragraph, the v3 rendering,
-# and must strand at least once, or the book proves nothing.
+# caption lands at every height, including the last lines of a page; then it
+# walks a heading followed directly by a captioned example the same way, so
+# some heading lands at every height too. Two controls keep the book honest.
+# The bare control replaces the macro with a bold paragraph and switches off
+# the one-line lead-in keep (which on its own holds a one-line caption to its
+# block): that is the v3 rendering, and it must strand a caption. The
+# unguarded control is the house macro without its \if@nobreak guard: after a
+# heading, the \Needspace's own breaks (its \penalty-100, and the forced
+# \vfil\penalty-10000 when room runs short) are breaks the heading's
+# \@nobreak cannot stop, and it must strand a heading. Otherwise the book
+# proves nothing.
 BARE_CAPTION_TEX = r"""
-\def\PressExampleCaption#1#2{\par\noindent\textbf{#1} \emph{#2}\par}
+\renewcommand{\PressExampleCaption}[3][]{\par\noindent\textbf{#2} \emph{#3}\par}
+\renewcommand*{\PressListingLeadIn}{}
+"""
+UNGUARDED_CAPTION_TEX = r"""
+\makeatletter
+\renewcommand{\PressExampleCaption}[3][]{%
+  \par\addvspace{9pt plus 2pt}%
+  \sbox{\PressExampleCaptionBox}{\parbox{\linewidth}{\PressExampleCaptionText{#2}{#3}}}%
+  \Needspace{\dimexpr\ht\PressExampleCaptionBox+\dp\PressExampleCaptionBox
+    +3pt+0.4pt+4pt+2\baselineskip\relax}%
+  \PressExampleCaptionText{#2}{#3}%
+  \nopagebreak\vskip3pt\relax\nointerlineskip\@nobreaktrue}
+\makeatother
 """
 CAPTION_FILLER = "This sentence is filler that walks the listing down the page by one line. "
+HEADING_FILLER = "This sentence is filler that walks the heading down the page by one line. "
 
 
 def _caption_book(root, title_tex: str):
@@ -802,6 +832,13 @@ def _caption_book(root, title_tex: str):
     # One long captioned listing, longer than a page, so a break falls inside.
     long_code = "".join(f"listing 99 code line {i}\n" for i in range(1, 71))
     parts.append(f"**Example 1.99. A listing longer than a page**\n\n```\n{long_code}```\n")
+    # A heading with a captioned example directly under it, walked down the page.
+    for n in range(1, 41):
+        code = "".join(f"listing h{n:02d} code line {i}\n" for i in range(1, 5))
+        parts.append(
+            f"{HEADING_FILLER * (n % 11 + 1)}\n\n## Section {n}\n\n"
+            f"**Example 1.{100 + n}. Under heading {n}**\n\n```\n{code}```\n"
+        )
     parts.append("The book ends here.\n")
     return (
         factories.BookFactory(slug="int-caption")
@@ -812,19 +849,25 @@ def _caption_book(root, title_tex: str):
     )
 
 
-def _stranded_captions(pages: list[str]) -> list[str]:
-    """Captions that end a page while their listing begins on the next."""
+def _stranded(pages: list[str]) -> tuple[list[str], list[str]]:
+    """Captions and headings that end a page while what they head begins on
+    the next: (stranded captions, stranded headings)."""
 
-    stranded = []
+    captions, headings = [], []
     for number, (page, nxt) in enumerate(zip(pages, pages[1:]), start=1):
         body = [ln.strip() for ln in page.splitlines() if ln.strip()]
         if body and re.fullmatch(r"\d+|[ivxlc]+", body[-1]):
             body = body[:-1]  # the folio
-        if body and body[-1].startswith("Example 1."):
-            following = [ln.strip() for ln in nxt.splitlines() if ln.strip()]
-            if any(ln.startswith("listing ") for ln in following[:3]):
-                stranded.append(f"page {number}: {body[-1]}")
-    return stranded
+        if not body:
+            continue
+        following = [ln.strip() for ln in nxt.splitlines() if ln.strip()]
+        if body[-1].startswith("Example 1.") and any(
+            ln.startswith("listing ") for ln in following[:3]
+        ):
+            captions.append(f"page {number}: {body[-1]}")
+        if re.fullmatch(r"1\.\d+ Section \d+", body[-1]):
+            headings.append(f"page {number}: {body[-1]}")
+    return captions, headings
 
 
 @requires_pdf_toolchain
@@ -835,7 +878,12 @@ def test_example_caption_stays_with_its_listing(tmp_path):
     from press import booklib, registry, verify_pdf
 
     results = {}
-    for name, tex in (("house", "% house header, unmodified\n"), ("bare", BARE_CAPTION_TEX)):
+    controls = (
+        ("house", "% house header, unmodified\n"),
+        ("bare", BARE_CAPTION_TEX),
+        ("unguarded", UNGUARDED_CAPTION_TEX),
+    )
+    for name, tex in controls:
         handle = _caption_book(tmp_path / name, tex)
         with handle.use():
             registry.build("pdf")
@@ -849,12 +897,19 @@ def test_example_caption_stays_with_its_listing(tmp_path):
     # and the long listing really crossed a page
     for n in range(1, 31):
         assert f"Example 1.{n}. The listing numbered {n}" in text
+    for n in range(1, 41):
+        assert f"Example 1.{100 + n}. Under heading {n}" in text
     assert all(f"listing 99 code line {i}" in text for i in range(1, 71))
     spans = [i for i, p in enumerate(house_pages) if "listing 99 code line" in p]
     assert len(spans) >= 2, "the long listing never crossed a page break"
-    assert _stranded_captions(house_pages) == [], "a caption stranded at a page foot"
-    assert _stranded_captions(results["bare"][1]), (
+    captions, headings = _stranded(house_pages)
+    assert captions == [], f"a caption stranded at a page foot: {captions}"
+    assert headings == [], f"a heading stranded above a captioned example: {headings}"
+    assert _stranded(results["bare"][1])[0], (
         "the bare-caption control never stranded a caption: the book does not reach the page foot"
+    )
+    assert _stranded(results["unguarded"][1])[1], (
+        "the unguarded-keep control never stranded a heading: the heading walk proves nothing"
     )
 
 

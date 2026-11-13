@@ -38,11 +38,12 @@ _ENV = r"^\\{command}\{{{name}\}}\{{Verbatim\}}\{{(.*)\}}$"
 #                                   a block's first and last line, which
 #                                   the kernel's one-line paragraphs lack.
 #   listparameters={...}            also zeroes \partopsep, so the space
-#                                   above a block is the listing's 9pt.
+#                                   above a block is the listing's 9pt, and
+#                                   keeps a one-line lead-in with the block.
 IDENTITY_OPTIONS = {
     "backgroundcolorboxoverlap=0pt",
     "tabsize=1",
-    r"listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 }",
+    r"listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 \PressListingLeadIn}",
 }
 BREAK_OPTIONS = {"breaklines", "breakanywhere"}
 # The house listing (#293): \small between two 0.4pt hairlines, 4pt of air
