@@ -9,6 +9,25 @@ audit).
 
 ## [Unreleased]
 
+### Fixed
+
+- The cover wrap showed a visible box behind the imprint logo in
+  colour-managed viewers (Preview and the like): the back-panel and spine
+  field was a vector `\fill` at RGB (201, 191, 191) while the logo was a
+  JPEG flattened onto the same RGB, and the viewer took the vector fill and
+  the image through different colour paths, so the field rendered near
+  (192, 184, 183) around a logo ground of (201, 191, 191). The field is now
+  painted from a flat raster, `build/coverwrap-assets/field.png`, written by
+  `print_safe.prepare_cover` from the same field value the logo is
+  flattened onto, and the flattened logo is an opaque, lossless, untagged
+  PNG (no JPEG quantization shifting its ground by a level, no ICC profile
+  giving it a path of its own). Both are DeviceRGB rasters at one value, so
+  every viewer shows one colour. The wrap's colour, geometry, and layout are
+  unchanged; a linen case still paints no field. Poppler rendered the old
+  wrap correctly, so no local render reproduced the box; the new integration
+  test samples the field and the logo ground from the built wrap and
+  asserts they are equal.
+
 ## [3.1.1] - 2026-11-12
 
 ### Fixed

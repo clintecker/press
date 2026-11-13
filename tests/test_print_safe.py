@@ -51,12 +51,45 @@ def test_prepare_cover_makes_opaque_capped_assets(tmp_path):
         tmp_path, logo_background=(201, 191, 191), cover_max_edge=3000, logo_max_edge=640
     )
     logo, cover = Image.open(made["logo"]), Image.open(made["cover"])
-    # Logo: opaque, on the field colour, capped to its small cover placement.
-    # (Saved as JPEG, so the flat field decodes within a unit or two.)
+    # Logo: opaque, on the field colour exactly (a lossless PNG, so the flat
+    # ground is not shifted by JPEG quantization), capped to its placement.
+    assert made["logo"].suffix == ".png" and logo.format == "PNG"
     assert logo.mode == "RGB" and max(logo.size) <= 640
-    assert all(abs(got - want) <= 3 for got, want in zip(logo.getpixel((0, 0)), (201, 191, 191)))
+    assert logo.getpixel((0, 0)) == (201, 191, 191)
+    assert "icc_profile" not in logo.info
     # Cover: opaque, downsampled under the wrap cap.
     assert cover.mode == "RGB" and max(cover.size) <= 3000
+
+
+@pytest.mark.layer("unit")
+def test_prepare_cover_writes_the_field_raster_on_request(tmp_path):
+    # The cloth field is a flat raster of the very value the logo is
+    # flattened onto, so the two take one colour path in every viewer.
+    (tmp_path / "assets").mkdir()
+    Image.new("RGBA", (200, 200), (0, 0, 0, 0)).save(tmp_path / "assets" / "press-logo.png")
+    made = print_safe.prepare_cover(tmp_path, (201, 191, 191), 3000, 640, with_field=True)
+    field = Image.open(made["field"])
+    assert made["field"].name == "field.png" and field.format == "PNG"
+    assert field.mode == "RGB" and field.size == (64, 64)
+    assert field.getcolors() == [(64 * 64, (201, 191, 191))]
+    assert Image.open(made["logo"]).getpixel((0, 0)) == field.getpixel((0, 0))
+    # Off by default (a linen case prints no field).
+    assert "field" not in print_safe.prepare_cover(tmp_path, (255, 255, 255), 3000, 640)
+
+
+@pytest.mark.layer("unit")
+def test_prepare_cover_untags_an_icc_profiled_logo(tmp_path):
+    # An opaque, ICC-tagged logo is not flattened, so only the untagged save
+    # keeps its profile (and a second colour path) out of the wrap.
+    (tmp_path / "assets").mkdir()
+    from PIL import ImageCms
+
+    icc = ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
+    Image.new("RGB", (50, 50), (201, 191, 191)).save(
+        tmp_path / "assets" / "press-logo.png", icc_profile=icc
+    )
+    made = print_safe.prepare_cover(tmp_path, (201, 191, 191), 3000, 640)
+    assert "icc_profile" not in Image.open(made["logo"]).info
 
 
 @pytest.mark.layer("unit")

@@ -83,6 +83,23 @@ def _book(root):
     )
 
 
+# The imprint logo's ink: pure blue, a colour nothing else on the wrap
+# carries, so the render can find the logo by it.
+_LOGO_INK = (0, 0, 255)
+
+
+def _make_logo(path: Path) -> None:
+    """An imprint logo the way the art desk keeps one: ink on transparency.
+    A blue square sits in the middle fifth; the rest is transparent ground."""
+
+    from PIL import Image, ImageDraw
+
+    image = Image.new("RGBA", (100, 100), (0, 0, 0, 0))
+    ImageDraw.Draw(image).rectangle([40, 40, 59, 59], fill=(*_LOGO_INK, 255))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    image.save(path)
+
+
 @dataclass
 class PrintPack:
     root: Path
@@ -98,6 +115,7 @@ def print_pack(tmp_path_factory):
     root = tmp_path_factory.mktemp("coverwrap")
     handle = _book(root)
     make_cover(handle.root / "assets" / "cover.jpg")
+    _make_logo(handle.root / "assets" / "press-logo.png")
     evidence = Evidence(
         family="coverwrap",
         required_tools=REQUIRED,
@@ -151,3 +169,43 @@ def test_coverwrap_geometry_and_barcode(print_pack):
     assert rc == 0, "verify_coverwrap refused the freshly built wrap"
     assert f"{print_pack.slug}-coverwrap.pdf" in print_pack.evidence.outputs
     assert all(print_pack.evidence.tool_versions[tool] != "absent" for tool in REQUIRED)
+
+
+@requires_pdf_toolchain
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_logo_ground_is_the_field_colour(print_pack, tmp_path):
+    # The logo is flattened onto the cloth field colour so its ground
+    # vanishes; the field is painted from a raster of that same value so a
+    # colour-managed viewer cannot render the two through different paths
+    # and box the logo. Sample both from the real render: one colour.
+    import subprocess
+
+    from PIL import Image
+
+    from press import gen_coverwrap
+
+    wrap = print_pack.dist / f"{print_pack.slug}-coverwrap.pdf"
+    dpi = 100
+    subprocess.run(
+        ["pdftoppm", "-png", "-r", str(dpi), str(wrap), str(tmp_path / "wrap")], check=True
+    )
+    image = Image.open(next(tmp_path.glob("wrap*.png"))).convert("RGB")
+    ink = [
+        (x, y)
+        for y in range(image.height)
+        for x in range(image.width // 2)  # the back panel holds the logo
+        if (lambda p: p[2] > 200 and p[0] < 60 and p[1] < 60)(image.getpixel((x, y)))
+    ]
+    assert ink, "the imprint logo's ink did not reach the wrap"
+    left = min(x for x, _ in ink)
+    right = max(x for x, _ in ink)
+    mid_y = (min(y for _, y in ink) + max(y for _, y in ink)) // 2
+    # One ink-width left of the ink is still inside the logo (the ink is its
+    # middle fifth): the flattened ground.
+    ground = image.getpixel((left - (right - left + 1), mid_y))
+    # A corner of the back panel inside the bleed: only the field is there.
+    field = image.getpixel((int(0.3 * dpi), int(0.3 * dpi)))
+
+    assert field == gen_coverwrap._CLOTH_FIELD_RGB
+    assert ground == field, f"logo ground {ground} differs from the field {field}"

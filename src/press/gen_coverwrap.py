@@ -69,8 +69,11 @@ class WrapLayout:
 
 
 # The back-panel cloth field colour, as RGB. It is the single source of truth:
-# the TeX \fill paints it and the imprint logo is flattened onto the same
-# value, so the opaque logo is invisible against the field. (RGB(201,191,191)
+# the field is painted from a flat raster of it and the imprint logo is
+# flattened onto the same value, so the opaque logo is invisible against the
+# field. Both are rasters on purpose: a vector \fill and an image take
+# different colour paths in a colour-managed viewer, and a vector field once
+# rendered a shade off the logo's ground and boxed the logo. (RGB(201,191,191)
 # is xcolor black!85!red!25!white, the field this wrap has always used.)
 _CLOTH_FIELD_RGB = (201, 191, 191)
 
@@ -260,8 +263,11 @@ def _require_metadata(meta: dict) -> None:
         )
 
 
-def _resolve_cover_assets(root: Path, lay: WrapLayout, wrap_h: float) -> tuple[Path, Path]:
-    """Print-safe cover art and imprint logo, TeX-safe paths both.
+def _resolve_cover_assets(
+    root: Path, lay: WrapLayout, wrap_h: float
+) -> tuple[Path, Path, Path | None]:
+    """Print-safe cover art, imprint logo, and cloth field raster (``None``
+    on a linen case, which prints no field), TeX-safe paths all.
 
     Opaque, resolution-capped copies so the wrap trips neither the provider's
     transparency nor its PPI preflight. The front art prints at the full panel
@@ -274,14 +280,19 @@ def _resolve_cover_assets(root: Path, lay: WrapLayout, wrap_h: float) -> tuple[P
     field_bg = _CLOTH_FIELD_RGB if lay.cloth_field else (255, 255, 255)
     cover_cap = int(590 * wrap_h)
     logo_cap = int(590 * _LOGO_WIDTH_IN)  # keep the small cover logo under 600 PPI
-    safe = print_safe.prepare_cover(root, field_bg, cover_cap, logo_cap)
+    safe = print_safe.prepare_cover(root, field_bg, cover_cap, logo_cap, with_field=lay.cloth_field)
 
     raw_cover = root / "assets" / "cover.jpg"
     if "cover" not in safe or not raw_cover.is_file():
         raise SystemExit("coverwrap needs assets/cover.jpg (the front board art)")
     cover = tex_safe_path(safe["cover"])
     logo = tex_safe_path(safe.get("logo", root / "assets" / "press-logo.png"))
-    return cover, logo
+    field = None
+    if lay.cloth_field:
+        if "field" not in safe:
+            raise SystemExit("coverwrap could not write its cloth field raster")
+        field = tex_safe_path(safe["field"])
+    return cover, logo, field
 
 
 def _compile_wrap(build: Path) -> None:
@@ -331,7 +342,7 @@ def generate(interior: Path, output: Path) -> Path:
     spine = lay.spine
     wrap_w, wrap_h = lay.wrap_w, lay.wrap_h
 
-    cover, logo = _resolve_cover_assets(root, lay, wrap_h)
+    cover, logo, field = _resolve_cover_assets(root, lay, wrap_h)
     authors = list(booklib.book().authors)
 
     def esc(value: str) -> str:
@@ -353,8 +364,9 @@ def generate(interior: Path, output: Path) -> Path:
         else "% spine too thin (or absent) for text"
     )
     cloth_line = (
-        f"\\fill[black!85!red!25!white] (0,0) rectangle ({wrap_w:.4f}in,{wrap_h:.4f}in);"
-        if lay.cloth_field
+        "\\node[anchor=south west,inner sep=0] at (0in,0in)\n"
+        f'  {{\\includegraphics[width={wrap_w:.4f}in,height={wrap_h:.4f}in]{{"{field}"}}}};'
+        if field is not None
         else "% linen case: the material is the finish; no printed field"
     )
     spine_cx = lay.back_x + lay.panel_w + spine / 2

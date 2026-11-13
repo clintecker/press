@@ -334,7 +334,10 @@ def coverwrap_book(tmp_path, monkeypatch):
         "layout",
         lambda pages: cw.wrap_geometry(6.0, 9.0, 0.115, True, 0.125, 0.0, 0.0, 0.0, "paperback"),
     )
-    monkeypatch.setattr(print_safe, "prepare_cover", lambda *a, **k: {"cover": cover})
+    field = handle.root / "build" / "coverwrap-assets" / "field.png"
+    monkeypatch.setattr(
+        print_safe, "prepare_cover", lambda *a, **k: {"cover": cover, "field": field}
+    )
     return handle
 
 

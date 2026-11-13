@@ -167,7 +167,13 @@ available at a provider that offers it (see below).
 
 ## Material chooses the treatment
 
-- **`paperback`** / **`casewrap`** — a printed cover.
+- **`paperback`** / **`casewrap`** — a printed cover. The back panel and
+  spine carry a cloth-coloured field, RGB (201, 191, 191), painted from a
+  flat raster (`build/coverwrap-assets/field.png`) rather than a vector
+  fill. The imprint logo is flattened onto the same value as an opaque,
+  lossless PNG, so the two are one kind of object at one colour: a
+  colour-managed viewer renders a vector fill and an image through different
+  paths, and a vector field once showed a visible box behind the logo.
 - **`linen`** — a cloth case where the **printed field is suppressed**: the
   linen is the finish, and only the dust jacket is printed. (Press never bakes
   a simulated cloth texture into a real linen cover.)

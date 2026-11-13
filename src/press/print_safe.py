@@ -92,14 +92,20 @@ def _has_alpha(image) -> bool:
 
 
 def sanitize(
-    src: Path, dst: Path, max_edge: int, background: tuple[int, int, int] = _WHITE
+    src: Path,
+    dst: Path,
+    max_edge: int,
+    background: tuple[int, int, int] = _WHITE,
+    untagged: bool = False,
 ) -> None:
     """Write ``src`` to ``dst`` with no transparency and its long edge at
     most ``max_edge`` pixels, preserving grayscale so a single-ink plate
     does not balloon into RGB. Transparency is composited onto ``background``:
     white for an interior image on paper, but the printed field colour for a
     logo that sits on a coloured cover, so the flattened result is invisible
-    against what it lies on."""
+    against what it lies on. ``untagged`` drops any embedded ICC profile, so
+    the copy embeds as plain DeviceRGB, the same colour path as a cover field
+    painted from a flat raster."""
 
     from PIL import Image
 
@@ -126,6 +132,11 @@ def sanitize(
         dst.parent.mkdir(parents=True, exist_ok=True)
         if dst.suffix.lower() in (".jpg", ".jpeg"):
             image.save(dst, format="JPEG", quality=88)
+        elif untagged:
+            # Pillow carries a source's ICC profile into a PNG unless told
+            # otherwise; an ICC-tagged logo would take a different colour
+            # path from the untagged field it must disappear into.
+            image.save(dst, format="PNG", icc_profile=None)
         else:
             image.save(dst, format="PNG")
 
@@ -157,18 +168,23 @@ def prepare_cover(
     logo_background: tuple[int, int, int],
     cover_max_edge: int,
     logo_max_edge: int,
+    with_field: bool = False,
 ) -> dict[str, Path]:
     """Print-safe cover-wrap assets: an opaque, resolution-capped copy of the
     front art and of the imprint logo, written into ``build/coverwrap-assets``.
     The cover art carries no transparency and no over-resolution, and the logo
     is flattened onto ``logo_background`` (the printed field colour, or white
     on a linen case with no field), so the assembled wrap trips neither the
-    provider's transparency nor its PPI preflight. Returns the paths that
-    exist, keyed ``cover`` and ``logo``; a book with neither is an empty map.
+    provider's transparency nor its PPI preflight. With ``with_field``, the
+    cloth field itself is written too, as a flat raster of the same
+    ``logo_background``. Returns the paths that exist, keyed ``cover``,
+    ``logo`` and ``field``; a book with no art and no field is an empty map.
 
     The cover art is capped from the wrap geometry, not the interior figure
     cap, because it prints at the full panel size; a much higher cap would let
     a large source exceed 600 PPI on the cover the way it cannot on a figure."""
+
+    from PIL import Image
 
     out = root / "build" / "coverwrap-assets"
     if out.exists():
@@ -180,10 +196,27 @@ def prepare_cover(
         made["cover"] = out / "cover.jpg"
     logo = root / "assets" / "press-logo.png"
     if logo.is_file():
-        # Flatten onto the field colour and emit an opaque JPEG, so no soft
-        # mask survives into the wrap PDF. The logo prints small on the cover
-        # (a 1000px logo at 1.1in is 909 PPI, over the limit), so its cap comes
-        # from the wrap placement, not the interior's roomier 1.7in.
-        sanitize(logo, out / "press-logo.jpg", logo_max_edge, background=logo_background)
-        made["logo"] = out / "press-logo.jpg"
+        # Flatten onto the field colour and emit an opaque, lossless PNG, so
+        # no soft mask survives into the wrap PDF and the flat ground lands on
+        # the field value exactly (a JPEG's quantization and chroma
+        # subsampling shift it by a level or two). The logo prints small on
+        # the cover (a 1000px logo at 1.1in is 909 PPI, over the limit), so
+        # its cap comes from the wrap placement, not the interior's 1.7in.
+        sanitize(
+            logo,
+            out / "press-logo.png",
+            logo_max_edge,
+            background=logo_background,
+            untagged=True,
+        )
+        made["logo"] = out / "press-logo.png"
+    if with_field:
+        # The cloth field as a flat raster, not a vector fill: a colour-managed
+        # viewer transforms a vector fill and an image through different paths,
+        # so a vector field rendered a shade off the logo's flattened ground
+        # and boxed the logo. Two untagged DeviceRGB rasters at one value take
+        # one path everywhere. 64px stretched over the wrap is a few PPI.
+        out.mkdir(parents=True, exist_ok=True)
+        Image.new("RGB", (64, 64), logo_background).save(out / "field.png", format="PNG")
+        made["field"] = out / "field.png"
     return made

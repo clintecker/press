@@ -220,3 +220,63 @@ def test_check_print_safe_rejects_a_transparent_image(tmp_path):
 
     with pytest.raises(SystemExit, match="transparency"):
         verify_coverwrap.check_print_safe(wrap)
+
+
+def _wrap_tex(tmp_path, monkeypatch, material: str):
+    """Generate a wrap's TeX for ``material`` with the compile stubbed out,
+    and return the book root and the TeX: the print-safe assets are real,
+    only latexmk is faked."""
+
+    from tests.factories import BookFactory
+
+    from press import adapters
+    from press.adapters import fakes
+    from press.adapters.protocols import ProcessResult
+    from PIL import Image
+
+    handle = (
+        BookFactory(slug="cw-field")
+        .with_metadata(publisher="Field Press", **{"publisher-place": "Nowhere"})
+        .build(tmp_path)
+    )
+    assets = handle.root / "assets"
+    assets.mkdir(parents=True, exist_ok=True)
+    Image.new("RGB", (600, 900), (10, 20, 30)).save(assets / "cover.jpg")
+    Image.new("RGBA", (100, 100), (0, 0, 0, 0)).save(assets / "press-logo.png")
+    monkeypatch.setattr(cw, "interior_page_count", lambda interior: 100)
+    monkeypatch.setattr(
+        cw,
+        "layout",
+        lambda pages: cw.wrap_geometry(6.0, 9.0, 0.115, True, 0.125, 0.0, 0.0, 0.0, material),
+    )
+    fake = fakes.FakeProcessRunner(results=[ProcessResult(1, stdout=b"stopped")])
+    monkeypatch.setattr(adapters, "process_runner", fake)
+    with handle.use():
+        with pytest.raises(SystemExit):
+            cw.generate(handle.root / "interior.pdf", handle.root / "dist" / "wrap.pdf")
+    tex = (handle.root / "build" / "coverwrap" / "coverwrap.tex").read_text(encoding="utf-8")
+    return handle.root, tex
+
+
+@pytest.mark.layer("unit")
+def test_cloth_field_is_painted_from_the_field_raster(tmp_path, monkeypatch):
+    # A vector \fill and the logo's raster ground took different colour paths
+    # in a colour-managed viewer and boxed the logo; the field is a raster now.
+    root, tex = _wrap_tex(tmp_path, monkeypatch, "paperback")
+    field = root / "build" / "coverwrap-assets" / "field.png"
+    lay = cw.wrap_geometry(6.0, 9.0, 0.115, True, 0.125, 0.0, 0.0, 0.0, "paperback")
+    assert field.is_file()
+    assert f'width={lay.wrap_w:.4f}in,height={lay.wrap_h:.4f}in]{{"{field}"}}' in tex
+    assert "black!85!red!25!white" not in tex
+    assert "\\fill[" not in tex.split("% front cover art")[0]
+    assert "press-logo.png" in tex
+
+
+@pytest.mark.layer("unit")
+def test_linen_case_paints_no_field(tmp_path, monkeypatch):
+    root, tex = _wrap_tex(tmp_path, monkeypatch, "linen")
+    assert "field.png" not in tex
+    assert "black!85!red!25!white" not in tex
+    assert "% linen case: the material is the finish; no printed field" in tex
+    assert (root / "build" / "coverwrap-assets" / "press-logo.png").is_file()
+    assert not (root / "build" / "coverwrap-assets" / "field.png").exists()

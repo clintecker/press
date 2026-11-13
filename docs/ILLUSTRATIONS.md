@@ -288,7 +288,9 @@ already on transparency keeps its mask. From that one master:
   (a raster is flattened and capped; a PDF, SVG or EPS drawing is copied as
   is);
 - a **cloth cover** would flatten it onto the field colour, so the ink sits on
-  the cloth with no box (this is how the imprint logo already lands);
+  the cloth with no box (this is how the imprint logo already lands: an
+  opaque PNG on the field value, and the field itself is a raster of that
+  value, so no viewer renders the two a shade apart);
 - the **reader edition** serves the transparent PNG, so a plate reads cleanly on
   a white or a dark page.
 
