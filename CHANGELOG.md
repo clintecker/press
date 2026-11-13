@@ -9,6 +9,8 @@ audit).
 
 ## [Unreleased]
 
+## [4.0.1] - 2026-11-13
+
 ### Changed
 
 - **The listing skips are 6pt plus 2pt** (`book-header.tex`). From 4.0.1
