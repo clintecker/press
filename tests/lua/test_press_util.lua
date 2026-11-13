@@ -62,6 +62,19 @@ eq(size, "\\small", "tail_ramp quarter size")
 eq(util.tail_web_size(1, 9), "1em", "tail_web_size head")
 eq(util.tail_web_size(9, 9), "0.68em", "tail_web_size tip")
 
+-- word_count and table_shape: the classifier that tells a reference list
+-- (a key column plus one prose column) from a grid.
+eq(util.word_count("press all"), 2, "word_count two")
+eq(util.word_count("  one   "), 1, "word_count trims")
+eq(util.word_count(""), 0, "word_count empty")
+eq(util.table_shape(2, {1.5, 12.0}), "ledger", "shape 2-col key+prose")
+eq(util.table_shape(3, {1.0, 2.5, 9.0}), "ledger", "shape 3-col key+sub+prose")
+eq(util.table_shape(3, {1.0, 9.0, 2.0}), "grid", "shape prose not last")
+eq(util.table_shape(2, {1.0, 7.9}), "grid", "shape below threshold")
+eq(util.table_shape(4, {1.0, 1.0, 1.0, 20.0}), "grid", "shape four columns")
+eq(util.table_shape(3, {9.0, 1.0, 9.0}), "grid", "shape two prose columns")
+eq(util.table_shape(1, {30.0}), "grid", "shape one column")
+
 if failed > 0 then
   io.stderr:write(failed .. " assertion(s) failed\n")
   os.exit(1)

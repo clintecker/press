@@ -21,6 +21,7 @@ import pytest
 from PIL import Image, ImageDraw
 
 from press import verify_pdf
+from press import verify_text_block as text_block
 
 # The mirrored-margin check ignores the first 20% of pages (front matter), so
 # ten body pages leave a comfortable spread of recto/verso witnesses.
@@ -123,3 +124,173 @@ def test_a_colored_region_passes_under_a_color_profile(tmp_path):
     tinted = tmp_path / "page-02.png"
     colored.save(tinted)
     assert verify_pdf.verify_black_ink([clean, tinted], "color") is None
+
+
+# --- verify_text_block -------------------------------------------------------
+
+# Twelve pages at the render geometry of a 6 x 9 trim at 120 dpi; the first
+# 20 percent are front matter and are not judged. The geometries are the house
+# profile's: reading right margin 0.68in (measure x=638); print recto 0.58in
+# (x=650), verso 0.88in (x=614).
+_TB_W, _TB_H = 720, 1080
+_TB_PAGES = 12
+_READING = (6.0, {0: 0.68})
+_PRINT = (6.0, {1: 0.58, 0: 0.88})
+
+
+def _measure_page(
+    tmp_path: Path, index: int, right: int, *, folio_right: int | None = None
+) -> Path:
+    """A body page whose lines run from x=90 to bbox edge x=right (PIL bbox
+    edges are exclusive, so the last inked column is right - 1); a folio may
+    sit in the bottom band at folio_right."""
+
+    img = Image.new("RGB", (_TB_W, _TB_H), (255, 255, 255))
+    draw = ImageDraw.Draw(img)
+    for top in range(120, _TB_H - 120, 24):
+        draw.rectangle([90, top, right - 1, top + 10], fill=(10, 10, 10))
+    if folio_right is not None:
+        draw.rectangle([folio_right - 20, _TB_H - 50, folio_right, _TB_H - 40], fill=(10, 10, 10))
+    dest = tmp_path / f"tb-{index:02d}.png"
+    img.save(dest)
+    return dest
+
+
+def _print_page(tmp_path: Path, index: int, overrun: int = 0) -> Path:
+    return _measure_page(tmp_path, index, (650 if index % 2 else 614) + overrun)
+
+
+@pytest.mark.invariant("INV-pdf-text-block")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
+def test_a_page_overrunning_the_measure_is_rejected(tmp_path):
+    # Every page ends its lines at its side's measure; page 9 sets a code line
+    # that runs 30 px past it, the overflow a too-wide table cell produces.
+    pages = [_print_page(tmp_path, i, 30 if i == 9 else 0) for i in range(1, _TB_PAGES + 1)]
+    with pytest.raises(SystemExit, match=r"print profile: page 9 runs 30 px past the text block"):
+        text_block.verify_text_block(pages, "print", geometry=_PRINT)
+
+
+@pytest.mark.invariant("INV-pdf-text-block")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("positive")
+def test_pages_within_the_measure_pass(tmp_path):
+    # Every page ends at the measure, page 4 protrudes by the 6 px slack; a
+    # folio in the bottom band sits further right (outside the text block)
+    # and must not count against the page.
+    pages = [
+        _measure_page(tmp_path, i, 644 if i == 4 else 638, folio_right=700 if i == 7 else None)
+        for i in range(1, _TB_PAGES + 1)
+    ]
+    assert text_block.verify_text_block(pages, "reading", geometry=_READING) is None
+
+
+@pytest.mark.invariant("INV-pdf-text-block")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("positive")
+def test_ragged_pages_pass_against_the_geometry(tmp_path):
+    # A verse book: most pages are ragged poems ending far short of the
+    # measure, one justified page ends exactly at it. A sampled median would
+    # settle on the poems and refuse the prose page; the geometry does not.
+    pages = [
+        _measure_page(tmp_path, i, 638 if i == 9 else 400 + 7 * i) for i in range(1, _TB_PAGES + 1)
+    ]
+    assert text_block.verify_text_block(pages, "reading", geometry=_READING) is None
+    assert (
+        max(o for _p, o in text_block.text_block_overruns(pages, "reading", geometry=_READING)) == 0
+    )
+
+
+@pytest.mark.invariant("INV-pdf-text-block")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
+def test_the_measure_is_judged_per_parity_in_print(tmp_path):
+    # The gutter shifts a recto's block right of a verso's: a recto ending at
+    # 650 is on its measure, a verso ending there is 36 px into its margin.
+    pages = [_print_page(tmp_path, i) for i in range(1, _TB_PAGES + 1)]
+    assert text_block.text_block_right(pages, "print", _PRINT) == {1: 650, 0: 614}
+    assert text_block.verify_text_block(pages, "print", geometry=_PRINT) is None
+    pages[7] = _measure_page(tmp_path, 8, 650)
+    with pytest.raises(SystemExit, match=r"print profile: page 8 runs 36 px past"):
+        text_block.verify_text_block(pages, "print", geometry=_PRINT)
+
+
+@pytest.mark.invariant("INV-pdf-text-block")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
+def test_the_reading_profile_judges_one_measure(tmp_path):
+    # The reading PDF is one-sided, so one right margin serves every page; a
+    # recto running past it is caught even though it is odd.
+    pages = [_measure_page(tmp_path, i, 653 if i == 5 else 638) for i in range(1, _TB_PAGES + 1)]
+    assert text_block.text_block_right(pages, "reading", _READING) == {0: 638}
+    with pytest.raises(SystemExit, match=r"reading profile: page 5 runs 15 px past the text block"):
+        text_block.verify_text_block(pages, "reading", geometry=_READING)
+
+
+@pytest.mark.invariant("INV-pdf-text-block")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
+def test_a_short_book_is_judged_without_a_sample(tmp_path):
+    # Three pages: cover, title, one body page. There is no median to take
+    # and none is needed; the one body page is still judged and refused.
+    pages = [_measure_page(tmp_path, i, 660 if i == 3 else 638) for i in range(1, 4)]
+    assert text_block.text_block_overruns(pages, "reading", geometry=_READING) == [(3, 22)]
+    with pytest.raises(SystemExit, match=r"page 3 runs 22 px past"):
+        text_block.verify_text_block(pages, "reading", geometry=_READING)
+
+
+@pytest.mark.invariant("INV-pdf-text-block")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("positive")
+def test_the_geometry_comes_from_the_profile_and_print_header():
+    # The house profile's outer margin for the reading PDF; the print
+    # header's inner/outer, swapped by parity, for the print interior.
+    house = text_block.profiles.load("house-6x9")
+    assert text_block.text_block_geometry("reading", house) == (6.0, {0: 0.68})
+    assert text_block.text_block_geometry("print", house) == (6.0, {1: 0.58, 0: 0.88})
+    novella = text_block.profiles.load("novella-5x8")
+    assert text_block.text_block_geometry("reading", novella) == (5.0, {0: 0.55})
+
+
+@pytest.mark.invariant("INV-pdf-text-block")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
+def test_a_short_books_contents_is_skipped_by_its_page_labels(tmp_path):
+    # A short book's Contents can sit past the 20 percent guess (Alice's is
+    # page 5 of 23) with right-aligned folios inking past the measure. main
+    # hands the first arabic-labelled page as the start, so the Contents is
+    # front matter; without it the page is refused.
+    from pypdf import PdfWriter
+
+    pages = [_measure_page(tmp_path, i, 718 if i == 5 else 638) for i in range(1, _TB_PAGES + 1)]
+    with pytest.raises(SystemExit, match=r"page 5 runs 80 px past"):
+        text_block.verify_text_block(pages, "reading", geometry=_READING)
+    writer = PdfWriter()
+    for _ in range(_TB_PAGES):
+        writer.add_blank_page(width=432, height=648)
+    writer.set_page_label(0, 5, style="/r")
+    writer.set_page_label(6, _TB_PAGES - 1, style="/D")
+    pdf = tmp_path / "labelled.pdf"
+    writer.write(pdf)
+    assert text_block.first_body_index(pdf) == 6
+    start = text_block.first_body_index(pdf)
+    assert text_block.verify_text_block(pages, "reading", start, _READING) is None
+    unlabelled = tmp_path / "plain.pdf"
+    bare = PdfWriter()
+    bare.add_blank_page(width=432, height=648)
+    bare.write(unlabelled)
+    assert text_block.first_body_index(unlabelled) is None
+
+
+@pytest.mark.invariant("INV-pdf-text-block")
+@pytest.mark.layer("unit")
+@pytest.mark.proof("negative")
+def test_a_profile_whose_margin_eats_the_page_is_refused():
+    # A margin as wide as the trim leaves no text block to judge against;
+    # the check refuses the geometry rather than measuring against nonsense.
+    house = text_block.profiles.load("house-6x9")
+    data = {**house.data, "interior": {**house.data["interior"]}}
+    data["interior"]["margins"] = {**house.margins, "outer": 6.0}
+    broken = text_block.profiles.Profile("broken", data)
+    with pytest.raises(SystemExit, match="leave no text block"):
+        text_block.text_block_geometry("reading", broken)

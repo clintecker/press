@@ -185,3 +185,15 @@ def test_v1_to_v2_plan_still_states_geometry_parity(tmp_path):
 def test_unknown_major_gets_the_neutral_note():
     note = migrate.design_note(3, 9)
     assert "byte-for-byte" not in note and "MIGRATION.md" in note and "v9" in note
+
+
+REQ_V3 = "press @ git+https://github.com/clintecker/press@v3\n"
+WF_V3 = "    uses: clintecker/press/.github/workflows/build.yml@v3\n"
+
+
+@pytest.mark.layer("unit")
+def test_the_v4_design_note_names_tables(tmp_path):
+    assert "tables" in migrate.DESIGN_NOTES[4].lower()
+    plan = migrate.plan(_book(tmp_path, REQ_V3, WF_V3), 4)
+    joined = " ".join(plan.notes)
+    assert "TABLES.md" in joined and "byte-for-byte" not in joined

@@ -1,0 +1,433 @@
+-- Shape-aware tables, at the document-tree layer.
+--
+-- A Markdown table is two different things wearing one syntax. A reference
+-- list (a short key column, perhaps a short sub column, then one column of
+-- prose) reads badly as a grid: the prose column is squeezed into a narrow
+-- cell and wraps a word to a line. A true grid (every column short, read
+-- across and down) reads badly as anything else. So the house reads the
+-- table's shape from its cells and sets each by what it is:
+--
+--   ledger  a native DefinitionList inside Div.ledger: the key as the term,
+--           a middle column (if any) as Div.ledger-sub, the prose as the
+--           definition; the caption and the header legend ride above it in
+--           Div.ledger-caption and Div.ledger-legend; LaTeX gets
+--           \begin{PressLedger} ... \end{PressLedger} around the list.
+--   grid    the Table kept, inside Div.grid, with every column given an
+--           explicit relative width; LaTeX gets \PressGridBegin and
+--           \PressGridEnd around it.
+--
+-- An author who disagrees wraps the table in a `::: ledger` or `::: grid`
+-- fenced div, which forces the shape of every table inside it. A document with
+-- no tables renders byte-for-byte as before.
+
+-- The pure classifier (word_count, table_shape) lives in press-util.lua beside
+-- this filter; load it by its own directory so `require` resolves whatever
+-- working directory pandoc runs from. docs/LUA-QUALITY-PLAN.md section 4.
+local here = (PANDOC_SCRIPT_FILE or ""):match("^(.*[/\\])") or "./"
+package.path = here .. "?.lua;" .. package.path
+local util = require("press-util")
+
+local latex = FORMAT:match("latex") ~= nil
+
+-- The narrowest share a grid column may take, so a short column never
+-- collapses to a sliver beside a long one.
+local MIN_SHARE = 0.12
+
+-- The lines a ledger asks for before its caption (LaTeX): the caption, the
+-- legend, and the first key with a line or two of its entry.
+local LEDGER_KEEP = 6
+
+-- The separator between header cells in a ledger's legend (a middle dot).
+local LEGEND_SEP = " \u{00B7} "
+
+-- The shape forced by the nearest enclosing `.ledger`/`.grid` div, or nil.
+local forced = nil
+
+-- The header rows (empty for a header-less table).
+local function head_rows(tbl)
+  return tbl.head.rows
+end
+
+-- The data rows: each body's intermediate head rows, then its body rows.
+local function body_rows(tbl)
+  local rows = {}
+  for _, body in ipairs(tbl.bodies) do
+    for _, row in ipairs(body.head) do
+      rows[#rows + 1] = row
+    end
+    for _, row in ipairs(body.body) do
+      rows[#rows + 1] = row
+    end
+  end
+  return rows
+end
+
+-- A cell's words: each Code inline counts as one word however many tokens its
+-- text holds, so a `press all` key is as short as a `hemingway` one.
+local function cell_words(cell)
+  local blocks = pandoc.Blocks(cell.contents):walk({
+    Code = function()
+      return pandoc.Str("X")
+    end,
+  })
+  return util.word_count(pandoc.utils.stringify(blocks) or "")
+end
+
+local function cell_chars(cell)
+  return utf8.len(pandoc.utils.stringify(cell.contents) or "") or 0
+end
+
+-- The longest unbreakable code token in a cell: a code span never breaks
+-- inside a token (the TeX header keeps \texttt unhyphenated in a grid), so a
+-- column must be at least that wide or the token overruns it.
+local function cell_code_token(cell)
+  local longest = 0
+  pandoc.Blocks(cell.contents):walk({
+    Code = function(code)
+      for token in code.text:gmatch("%S+") do
+        longest = math.max(longest, utf8.len(token) or #token)
+      end
+    end,
+  })
+  return longest
+end
+
+-- Each row's cells keyed by the column they start in, leaving out a cell
+-- that spans columns (a grid table's colspan): its length belongs to no one
+-- column, and crediting it to the first would widen that column for nothing.
+-- A cell spanning rows holds its column in the rows below, so their cells
+-- shift right past it, as pandoc lays them out.
+local function placed(rows)
+  local out, held = {}, {}
+  for r, row in ipairs(rows) do
+    local slots, col = {}, 1
+    for _, cell in ipairs(row.cells) do
+      while (held[col] or 0) >= r do
+        col = col + 1
+      end
+      local span = cell.col_span or 1
+      if span == 1 then
+        slots[col] = cell
+      end
+      for k = col, col + span - 1 do
+        if (cell.row_span or 1) > 1 then
+          held[k] = r + cell.row_span - 1
+        end
+      end
+      col = col + span
+    end
+    out[r] = slots
+  end
+  return out
+end
+
+-- Per-column maxima of measure(cell) over the body rows.
+local function column_maxima(rows, ncols, measure)
+  local slots = placed(rows)
+  local out = {}
+  for i = 1, ncols do
+    out[i] = 0
+    for _, row in ipairs(slots) do
+      if row[i] then
+        out[i] = math.max(out[i], measure(row[i]))
+      end
+    end
+  end
+  return out
+end
+
+-- Per-column means of measure(cell) over the cells each column holds.
+local function column_means(rows, ncols, measure)
+  local slots = placed(rows)
+  local sums, counts = {}, {}
+  for i = 1, ncols do
+    sums[i], counts[i] = 0, 0
+  end
+  for _, row in ipairs(slots) do
+    for i = 1, ncols do
+      local cell = row[i]
+      if cell then
+        sums[i] = sums[i] + measure(cell)
+        counts[i] = counts[i] + 1
+      end
+    end
+  end
+  local means = {}
+  for i = 1, ncols do
+    means[i] = (counts[i] > 0) and (sums[i] / counts[i]) or 0
+  end
+  return means
+end
+
+local function cell_inlines(cell)
+  return pandoc.utils.blocks_to_inlines(cell and cell.contents or {})
+end
+
+local function is_blank(cell)
+  return cell == nil or pandoc.utils.stringify(cell.contents) == ""
+end
+
+-- The legend: the last header row's cells joined by a middle dot, or nil when
+-- the table has no header row or the header is blank.
+local function legend(tbl)
+  local rows = head_rows(tbl)
+  local row = rows[#rows]
+  if not row then
+    return nil
+  end
+  local out = pandoc.Inlines({})
+  local any = false
+  for _, cell in ipairs(row.cells) do
+    if not is_blank(cell) then
+      if any then
+        out:insert(pandoc.Str(LEGEND_SEP))
+      end
+      out:extend(cell_inlines(cell))
+      any = true
+    end
+  end
+  return any and out or nil
+end
+
+local function classed(blocks, class)
+  return pandoc.Div(blocks, pandoc.Attr("", { class }))
+end
+
+-- A Plain promoted to a Para, so merged continuation blocks stay paragraphs.
+local function as_paras(blocks)
+  local out = pandoc.Blocks({})
+  for _, b in ipairs(blocks) do
+    if b.t == "Plain" then
+      out:insert(pandoc.Para(b.content))
+    else
+      out:insert(b)
+    end
+  end
+  return out
+end
+
+-- A caption, legend, or sub paragraph. The LaTeX writer drops a Div's
+-- classes, so for LaTeX the inlines go inside the header macro that styles
+-- them.
+local function styled(inlines, macro)
+  if not latex then
+    return pandoc.Para(inlines)
+  end
+  local out = pandoc.Inlines({ pandoc.RawInline("latex", "\\" .. macro .. "{") })
+  out:extend(inlines)
+  out:insert(pandoc.RawInline("latex", "}"))
+  return pandoc.Plain(out)
+end
+
+-- The middle cells (between key and prose) as one Div.ledger-sub, or nil.
+local function sub_block(row, ncols)
+  local inl = pandoc.Inlines({})
+  for i = 2, ncols - 1 do
+    local cell = row.cells[i]
+    if not is_blank(cell) then
+      if #inl > 0 then
+        inl:insert(pandoc.Str(LEGEND_SEP))
+      end
+      inl:extend(cell_inlines(cell))
+    end
+  end
+  if #inl == 0 then
+    return nil
+  end
+  return classed({ styled(inl, "PressLedgerSub") }, "ledger-sub")
+end
+
+local function to_ledger(tbl, ncols)
+  local items = {}
+  for _, row in ipairs(body_rows(tbl)) do
+    local defn = pandoc.Blocks({})
+    local sub = sub_block(row, ncols)
+    if sub then
+      defn:insert(sub)
+    end
+    local prose = row.cells[ncols]
+    if prose then
+      -- Beside a sub block the prose is a paragraph of its own, not bare text.
+      defn:extend(sub and as_paras(prose.contents) or prose.contents)
+    end
+    local last = items[#items]
+    if is_blank(row.cells[1]) and last then
+      -- An empty key continues the previous entry: its blocks join the same
+      -- definition as further paragraphs.
+      local merged = as_paras(last[2][1])
+      merged:extend(as_paras(defn))
+      last[2][1] = merged
+    else
+      items[#items + 1] = { cell_inlines(row.cells[1]), { defn } }
+    end
+  end
+  -- In LaTeX the caption, legend, and first entry keep together: room for
+  -- them is asked once before the first of them, and no page may break after
+  -- the caption or the legend, so neither strands at a page foot with the
+  -- entries overleaf.
+  local blocks = {}
+  if latex then
+    blocks[#blocks + 1] =
+      pandoc.RawBlock("latex", "\\Needspace{" .. LEDGER_KEEP .. "\\baselineskip}")
+  end
+  local caption = pandoc.utils.blocks_to_inlines(tbl.caption.long or {})
+  if #caption > 0 then
+    blocks[#blocks + 1] =
+      classed({ styled(caption, "PressLedgerCaption") }, "ledger-caption")
+    if latex then
+      blocks[#blocks + 1] = pandoc.RawBlock("latex", "\\nopagebreak")
+    end
+  end
+  local leg = legend(tbl)
+  if leg then
+    blocks[#blocks + 1] = classed({ styled(leg, "PressLedgerLegend") }, "ledger-legend")
+    if latex then
+      blocks[#blocks + 1] = pandoc.RawBlock("latex", "\\nopagebreak")
+    end
+  end
+  if latex then
+    blocks[#blocks + 1] = pandoc.RawBlock("latex", "\\begin{PressLedger}")
+  end
+  blocks[#blocks + 1] = pandoc.DefinitionList(items)
+  if latex then
+    blocks[#blocks + 1] = pandoc.RawBlock("latex", "\\end{PressLedger}")
+  end
+  return classed(blocks, "ledger")
+end
+
+-- Each column's share of the measure: its raw length's share, with every
+-- column held at MIN_SHARE or more in the final widths. A column's raw length
+-- is its mean character length, or its longest code token when that is
+-- longer, so a column too narrow for an identifier widens and the prose gives
+-- way. A column whose share would fall below the floor is pinned at it, and
+-- the rest of the measure is shared among the others in proportion to their
+-- lengths, repeating until no column drops below; when the floors alone
+-- overfill the measure, the columns share it equally. The shares sum to 1.
+local function shares(rows, ncols)
+  local lengths = column_means(rows, ncols, cell_chars)
+  local tokens = column_maxima(rows, ncols, cell_code_token)
+  for i = 1, ncols do
+    lengths[i] = math.max(lengths[i], tokens[i])
+  end
+  if ncols * MIN_SHARE > 1 then
+    local out = {}
+    for i = 1, ncols do
+      out[i] = 1 / ncols
+    end
+    return out
+  end
+  local pinned, out = {}, {}
+  while true do
+    local npinned, free_len, nfree = 0, 0, 0
+    for i = 1, ncols do
+      if pinned[i] then
+        npinned = npinned + 1
+      else
+        free_len = free_len + lengths[i]
+        nfree = nfree + 1
+      end
+    end
+    local room = 1 - npinned * MIN_SHARE
+    local grew = false
+    for i = 1, ncols do
+      if pinned[i] then
+        out[i] = MIN_SHARE
+      else
+        out[i] = (free_len > 0) and (room * lengths[i] / free_len) or (room / nfree)
+        if out[i] < MIN_SHARE then
+          pinned[i] = true
+          grew = true
+        end
+      end
+    end
+    if not grew then
+      return out
+    end
+  end
+end
+
+local function to_grid(tbl, ncols)
+  local w = shares(body_rows(tbl), ncols)
+  local specs = {}
+  for i, spec in ipairs(tbl.colspecs) do
+    specs[i] = { spec[1], w[i] }
+  end
+  tbl.colspecs = specs
+  local blocks = {}
+  if latex then
+    blocks[#blocks + 1] = pandoc.RawBlock("latex", "\\PressGridBegin")
+  end
+  blocks[#blocks + 1] = tbl
+  if latex then
+    blocks[#blocks + 1] = pandoc.RawBlock("latex", "\\PressGridEnd")
+  end
+  return classed(blocks, "grid")
+end
+
+local function shape_of(tbl, ncols)
+  -- A forced ledger needs two columns and at least one body row: a table
+  -- that is all header has no entry to list, and an empty list would be
+  -- refused by the verifier, so it stays a grid.
+  if forced == "ledger" and ncols >= 2 and #body_rows(tbl) > 0 then
+    return "ledger"
+  elseif forced then
+    return "grid"
+  end
+  return util.table_shape(ncols, column_means(body_rows(tbl), ncols, cell_words))
+end
+
+-- A forcing Div that holds only its table becomes the wrapper itself: the
+-- shaped wrapper's blocks move into it and its shape class replaces the
+-- author's (a forced ledger too narrow to be one renders as a grid), so the
+-- output carries one `div.ledger` or `div.grid`, not one nested in another.
+-- The author's id and any other classes and attributes are kept.
+local function adopt(div)
+  local inner = div.content[1]
+  if not (inner and inner.t == "Div") then
+    return div
+  end
+  local classes = pandoc.List({})
+  for _, class in ipairs(div.classes) do
+    if class ~= "ledger" and class ~= "grid" then
+      classes:insert(class)
+    end
+  end
+  classes:extend(inner.classes)
+  div.classes = classes
+  div.content = inner.content
+  return div
+end
+
+local shaper
+shaper = {
+  traverse = "topdown",
+  Div = function(div)
+    local shape = (div.classes:includes("ledger") and "ledger")
+      or (div.classes:includes("grid") and "grid")
+    if not shape then
+      return nil -- an ordinary div (an admonition): walk on into it
+    end
+    local lone_table = #div.content == 1 and div.content[1].t == "Table"
+    local saved = forced
+    forced = shape
+    div.content = div.content:walk(shaper)
+    forced = saved
+    if lone_table then
+      return adopt(div), false
+    end
+    return div, false
+  end,
+  Table = function(tbl)
+    local ncols = #tbl.colspecs
+    if shape_of(tbl, ncols) == "ledger" then
+      return to_ledger(tbl, ncols), false
+    end
+    -- The wrapper is not walked again, or its own `.grid` class would read
+    -- as a forcing div.
+    return to_grid(tbl, ncols), false
+  end,
+}
+
+function Pandoc(doc)
+  return doc:walk(shaper)
+end

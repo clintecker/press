@@ -8,7 +8,7 @@ import re
 import zipfile
 from pathlib import Path
 
-from . import adapters, booklib, figures, reader_links
+from . import adapters, booklib, figures, reader_links, verify_table_shape
 
 
 class VisibleText(html.parser.HTMLParser):
@@ -356,6 +356,7 @@ def verify_html(path: Path) -> None:
         raise SystemExit("HTML output has no html element")
     require_witnesses(text, "HTML")
     require_figure_labels(text, numbered_figure_count(booklib.root()), "HTML")
+    verify_table_shape.verify_tables(path.read_text(encoding="utf-8", errors="ignore"), "HTML")
 
 
 def _require_sentinels(text: str, label: str) -> None:
@@ -417,6 +418,7 @@ def verify_epub(path: Path) -> None:
         _require_sentinels(text, "EPUB")
         require_witnesses(text, "EPUB")
         require_figure_labels(text, numbered_figure_count(booklib.root()), "EPUB")
+        verify_table_shape.verify_epub_tables(archive)
 
 
 def epubcheck(path: Path) -> None:
@@ -591,6 +593,7 @@ def verify_site(path: Path) -> None:
     chapter_pages = _verify_site_scaffold(path)
     _verify_site_chapter_identity(chapter_pages)
     _verify_site_plates(path)
+    verify_table_shape.verify_page_tables(chapter_pages, "reader site")
     require_anchors_resolve(sorted(path.rglob("*.html")), "reader site")
     site_text = site_visible_text(path)
     _require_sentinels(site_text, "reader site")
@@ -628,9 +631,8 @@ def main(argv: list[str] | None = None) -> int:
         verify_site(args.site)
         verified.append(args.site.name + "/")
 
-    # Cross-edition agreement: every chapter's witness in every edition, so a
-    # format that dropped content the others kept is caught, not passed. The
-    # PDF joins the set where pdftotext is present (the toolchain tier).
+    # Cross-edition agreement: every chapter's witness in every edition, so a format
+    # that dropped content the others kept is caught; the PDF joins where pdftotext is.
     witnesses = chapter_witnesses()
     editions = gather_editions(
         html=args.html,

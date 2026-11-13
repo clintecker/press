@@ -29,6 +29,14 @@ producers:
     verifier: verify_pdf:verify_mirrored_margins
     negative_fixture:
       tests/test_verify_pdf_print_profile.py::test_a_missing_gutter_is_rejected
+  build:pandoc_build:
+    verifier: verify_text_block:verify_text_block
+    negative_fixture:
+      tests/test_verify_pdf_print_profile.py::test_a_page_overrunning_the_measure_is_rejected
+  build:_build_html:
+    verifier: verify_table_shape:verify_tables
+    negative_fixture:
+      tests/test_verify_table_shape.py::test_an_unwrapped_table_is_refused
   commerce:
     verifier: verify_pages:check_commerce
     negative_fixture:

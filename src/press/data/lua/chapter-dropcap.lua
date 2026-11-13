@@ -304,8 +304,19 @@ function Pandoc(doc)
       and not (b.classes:includes("unnumbered") or b.classes:includes("unlisted"))
     if is_chapter then
       local j = i + 1
-      while j <= #blocks and SKIP[blocks[j].t] do
-        j = j + 1
+      -- A table the table-shapes filter already rewrote is a Div.ledger (the
+      -- table set as a definition list) or a Div.grid (the table in its
+      -- wrapper). It is a table still, so the opener lies past it; an
+      -- ordinary div is not skipped.
+      local opener = false
+      while not opener and j <= #blocks do
+        local nb = blocks[j]
+        local cls = nb.t == "Div" and nb.classes or pandoc.List({})
+        if SKIP[nb.t] or cls:includes("ledger") or cls:includes("grid") then
+          j = j + 1
+        else
+          opener = true
+        end
       end
       if j <= #blocks and blocks[j].t == "Para" then
         blocks[j] = transform(blocks[j])

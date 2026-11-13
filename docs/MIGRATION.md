@@ -77,6 +77,48 @@ The full list of what shipped in 3.0.0, with the within-major fixes that
 rode along, is in the
 [changelog](https://github.com/clintecker/press/blob/main/CHANGELOG.md).
 
+## What v3 -> v4 actually changes
+
+v4 is a design major, and it reaches the PDF as well as the web editions,
+so a book with tables does not render byte-for-byte as it did under v3.
+
+- **Tables are set by shape** ([tables](tables.html)). A reference list (two
+  or three columns whose last column, and only that one, is prose) becomes a
+  ledger: each key on a line of its own, its description beneath it at the
+  full measure, the header row kept as a one-line legend and the caption
+  kept. Every other table becomes a grid: in the PDF it is set a size
+  smaller, its columns get widths that wrap instead of running past the text
+  block, and code in its cells never hyphenates; on the Web it scrolls in its
+  own box and stacks into labelled cards on a phone. In the PDF, ledgers
+  replace key-plus-prose tables outright, and grids are smaller and wrap, so
+  page breaks and the page count move a little. A book that wants a table
+  kept as a table wraps it in `::: {.grid}`; `::: {.ledger}` forces the other
+  way.
+- **Two new verifiers.** Every table on an HTML surface must be a wrapped
+  grid or a ledger, so a raw HTML `<table>` in the manuscript is now refused,
+  and so is a table nested inside a grid-table cell (the press shapes the
+  outer table and leaves the inner one bare; lift it out of the cell);
+  and no PDF page may ink past its text block. A v3 book that built green can
+  turn red on either, and each failure names the PDF page, or the edition
+  and page file that holds the table.
+- **Line breaking changes in every book, with or without tables.**
+  `\emergencystretch` is 10em (pandoc's 3em under v3), and a code span may
+  break as a last resort after an existing hyphen or after `/ _ . , ( ) ; = :`
+  with no glyph added. Paragraphs that held unbreakable code re-break, so page
+  breaks move (55 of 387 pages on *Publishing with Press*), and a code line
+  that overran the margin under v3 now either breaks or fails the text-block
+  verifier.
+
+Beyond that line breaking, a book with no tables differs from v3 only by
+new stylesheet rules, and the text-block verifier judges every book.
+After `press migrate apply`, rebuild and look at every page that carries a
+table or inline code; `press migrate rollback` restores the exact v3 pin.
+
+| Site | Before | After |
+| --- | --- | --- |
+| `requirements.txt` | `clintecker/press@v3` | `clintecker/press@v4` |
+| `.github/workflows/<ci>.yml` | `.../build.yml@v3` | `.../build.yml@v4` |
+
 ## The four moves
 
 ```bash

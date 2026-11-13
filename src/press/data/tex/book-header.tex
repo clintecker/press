@@ -69,8 +69,58 @@
 \setlength{\parindent}{1.1em}
 \setlength{\parskip}{0pt}
 \linespread{1.045}
-\setlist[itemize]{leftmargin=1.25em,itemsep=0.18em,topsep=0.35em}
-\setlist[enumerate]{leftmargin=1.35em,itemsep=0.18em,topsep=0.35em}
+% A last-resort pass for a paragraph with no feasible line breaks (a long code
+% span with nowhere to break near the line end): TeX may loosen the lines by
+% up to 10em more before it sets one overfull into the margin, enough room for
+% a twenty-character identifier pushed whole to the next line. It runs only
+% when the normal passes fail. pandoc's template sets 3em, after the header in
+% some versions, so the house value is set at the start of the document.
+\AtBeginDocument{\setlength{\emergencystretch}{10em}}
+% The label separation is stated, at the class's own value captured here, so
+% a list nested inside a ledger entry (whose description sets labelsep=1.6em)
+% does not inherit the ledger's wide hang; every other list is unchanged.
+\newlength{\PressLabelSep}
+\setlength{\PressLabelSep}{\labelsep}
+\setlist[itemize]{leftmargin=1.25em,itemsep=0.18em,topsep=0.35em,labelsep=\PressLabelSep}
+\setlist[enumerate]{leftmargin=1.35em,itemsep=0.18em,topsep=0.35em,labelsep=\PressLabelSep}
+
+% A key-plus-prose table arrives from the table-shapes filter as a ledger: a
+% description list inside PressLedger, set in the manpage form -- the key on a
+% line of its own, the prose at full measure beneath it, hanging a little in.
+% A two-column table squeezed the prose into half the measure; a ledger has no
+% column to squeeze. The style is set inside the environment only, so an
+% author's own definition lists elsewhere keep the LaTeX default. A zero-width
+% label box (the 1.6em hang is all label separation) makes every key wider
+% than its box, so nextline breaks after every key, even a two-letter one.
+% pandoc's \tightlist would zero the space between entries, so it is a no-op
+% here, and every entry asks for three lines before it starts, so a key is
+% never left alone at the foot of a page. The entry's \item calls the plain
+% \item the house copied ONCE in the preamble (\PressPlainItem, below, #286):
+% a list nested in an entry runs the before hook again, and a copy taken there
+% would copy the already-redefined \item into itself and loop.
+\newenvironment{PressLedger}{%
+  \let\tightlist\relax
+  \setlist[description]{style=nextline,leftmargin=1.6em,labelindent=0pt,%
+    labelwidth=0pt,labelsep=1.6em,%
+    itemsep=0.45\baselineskip,parsep=0pt,topsep=0.5\baselineskip,%
+    font=\normalfont,before=\PressLedgerNeedspace}}%
+  {}
+\newcommand*{\PressLedgerNeedspace}{%
+  \renewcommand*{\item}{\Needspace{3\baselineskip}\PressPlainItem}}
+% The ledger's caption sets as every house table caption does (the caption
+% package setup below: small, italic, centred, no label), and the header row
+% survives as a one-line legend in small capitals above the entries.
+% \captionof runs \noindent and \sloppy for its paragraph and, being a
+% command rather than an environment, leaves them set: bare, one ledger
+% caption killed the house paragraph indent and loosened the spacing of every
+% page after it (the #292 fault). Each macro is its own group, and the
+% legend's \par sits inside the group so \small sets its baselines.
+\newcommand{\PressLedgerCaption}[1]{{\captionof*{table}{#1}}}
+\newcommand{\PressLedgerLegend}[1]{\par{\noindent\small\textsc{#1}\par}}
+% A three-column ledger's middle cell (a line of filenames, say) sets ragged
+% right on its own line under the key: justified, a short run of code spans
+% stretched its spaces across the measure.
+\newcommand{\PressLedgerSub}[1]{{\raggedright #1\par}}
 
 \clearpairofpagestyles
 \makeatletter
@@ -259,6 +309,19 @@
     ]\small\itshape}
   {\end{mdframed}}
 
+% Any other table is a grid. pandoc gives a short-source table `ll` columns,
+% which never wrap and run past the text block; the table-shapes filter gives
+% every column a relative width instead, so pandoc writes p{} columns that
+% wrap, and brackets the table with these two macros: a size smaller and
+% tighter gutters.
+% Code in a grid cell keeps the house code-span rule (#287, below): never
+% hyphenated, an existing hyphen a last-resort break. The table head's keep is
+% the figure-numbering filter's sized \Needspace before every longtable (#286),
+% so the grid brackets add only the size and the gutters.
+\newcommand*{\PressGridBegin}{%
+  \begingroup\small\setlength{\tabcolsep}{0.5em}}
+\newcommand*{\PressGridEnd}{\endgroup}
+
 % Keep headings from being stranded at page bottoms.
 \pretocmd{\section}{\Needspace{5\baselineskip}}{}{}
 \pretocmd{\subsection}{\Needspace{4\baselineskip}}{}{}
@@ -291,13 +354,16 @@
 % \exhyphenpenalty and \automatichyphenmode at the paragraph's end, so a
 % setting scoped to the span cannot forbid that break; the box can.) So a
 % long identifier is not left with no break at all and pushed into the
-% margin, a span may break after a "/", "_", or "." with no glyph added --
+% margin, a span may break after a "/", "_", ".", ",", "(", ")", ";", "=",
+% or ":" with no glyph added --
 % the character stays at the line end, so nothing is invented -- at a high
 % penalty, so it is a last resort taken only when the line has no better
 % break. A hyphen the span already has is a legal break too, the least bad
 % place when nothing else fits: the boxed hyphen is followed by a break that
-% adds no glyph (\PressCodeHyphenBreak), at a higher penalty than the "/",
-% "_", "." points so TeX takes those first. Without it a run of hyphenated
+% adds no glyph (\PressCodeHyphenBreak), at a higher penalty than the
+% punctuation points so TeX takes those first. (Under \ExplSyntaxOn ":" is a
+% letter, so the colon is matched as \c_colon_str, the catcode-12 colon the
+% span's text carries.) Without it a run of hyphenated
 % identifiers had no break at all and ran off the page. Spaces inside a span
 % still break, prose hyphenation is unchanged, and code blocks are verbatim
 % and never hyphenated.
@@ -315,6 +381,13 @@
   \tl_replace_all:Nnn \l__press_code_tl { \_ } { \_ \PressCodeBreak }
   \tl_replace_all:Nnn \l__press_code_tl { / } { / \PressCodeBreak }
   \tl_replace_all:Nnn \l__press_code_tl { . } { . \PressCodeBreak }
+  \tl_replace_all:Nnn \l__press_code_tl { , } { , \PressCodeBreak }
+  \tl_replace_all:Nnn \l__press_code_tl { ( } { ( \PressCodeBreak }
+  \tl_replace_all:Nnn \l__press_code_tl { ) } { ) \PressCodeBreak }
+  \tl_replace_all:Nnn \l__press_code_tl { ; } { ; \PressCodeBreak }
+  \tl_replace_all:Nnn \l__press_code_tl { = } { = \PressCodeBreak }
+  \exp_args:NNo \tl_replace_all:Nnn \l__press_code_tl { \c_colon_str }
+    { \c_colon_str \PressCodeBreak }
   \PressPlainTT { \PressCodeSpan \l__press_code_tl }
 }
 \ExplSyntaxOff

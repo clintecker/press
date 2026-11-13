@@ -17,6 +17,7 @@ from typing import cast
 from PIL import Image, ImageDraw, ImageStat
 
 from . import adapters, booklib, profiles
+from .verify_text_block import body_start, first_body_index, ink_bbox, verify_text_block
 
 RENDER_SCRIPT = Path("/home/oai/skills/pdfs/scripts/render_pdf.py")
 
@@ -175,18 +176,11 @@ def edge_has_ink(image: Image.Image, border: int = 2) -> bool:
     return any(cast("tuple[int, int]", strip.getextrema())[0] < 245 for strip in strips)
 
 
-def ink_bbox(image: Image.Image) -> tuple[int, int, int, int] | None:
-    """Bounding box of dark pixels; None for an effectively empty page."""
-
-    mask = image.convert("L").point(lambda v: 255 if v < 160 else 0)
-    return mask.getbbox()
-
-
 def verify_mirrored_margins(images: list[Path]) -> None:
     """Print interiors bind: the inner margin must exceed the outer, and
     the excess must swap sides between recto and verso."""
 
-    start = max(2, int(len(images) * 0.2))
+    start = body_start(images)
     left_edges: dict[int, list[int]] = {0: [], 1: []}
     for index in range(start, len(images)):
         with Image.open(images[index]) as image:
@@ -485,6 +479,7 @@ def main(argv: list[str] | None = None) -> int:
 
     images = render_pages(pdf, args.render_dir.resolve(), expected_pages)
     verify_page_ink(images, args.profile)
+    verify_text_block(images, args.profile, first_body_index(pdf))
     warn_stranded_pages(images)
 
     profile_note = ""

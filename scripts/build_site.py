@@ -77,6 +77,7 @@ NAV_GROUPS = [
             ("docs/GALLERY.md", "gallery.html", "gallery"),
             ("docs/COVER-STYLES.md", "cover-styles.html", "cover styles"),
             ("docs/ILLUSTRATIONS.md", "illustrations.html", "illustrations"),
+            ("docs/TABLES.md", "tables.html", "tables"),
         ],
     ),
     (
@@ -167,6 +168,8 @@ NOT_PUBLISHED = {
     "and cutting v3.0.0; lives in the repo and issues, not the docs site",
     "docs/ROUND-1A-LUA-COVERAGE-PLAN.md": "internal round plan for v3.0.1 and the Lua "
     "coverage ratchet; lives in the repo and issues, not the docs site",
+    "docs/ROUND-1B-EDITION-PARITY-V4-PLAN.md": "internal round plan for v4.0.0 edition "
+    "parity; lives in the repo and issues, not the docs site",
 }
 
 

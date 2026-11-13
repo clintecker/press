@@ -103,6 +103,39 @@ def test_epigraph_first_block_is_skipped_to_the_real_opening():
 
 
 @pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+@pytest.mark.parametrize(
+    "table",
+    [
+        # a ledger (key plus prose) and a grid (every column short)
+        "| Key | Meaning |\n|---|---|\n"
+        "| `a` | one two three four five six seven eight nine ten eleven |\n",
+        "| Profile | Trim |\n|---|---|\n| house | 6 x 9 |\n",
+    ],
+    ids=["ledger", "grid"],
+)
+def test_a_chapter_opening_on_a_shaped_table_still_gets_its_drop_cap(table):
+    # The defaults run table-shapes.lua before chapter-dropcap.lua, so the
+    # opener scan meets the Div.ledger / Div.grid the table became, not a Table.
+    shapes = FILTER.with_name("table-shapes.lua")
+    md = "# Five\n\n" + table + "\nThe machinery supplies everything else.\n"
+    args = [
+        "pandoc",
+        "-f",
+        "markdown",
+        "-t",
+        "latex",
+        lua_coverage.filter_arg(shapes),
+        lua_coverage.filter_arg(FILTER),
+        "-M",
+        "chapter-opening-style=drop-cap",
+    ]
+    result = subprocess.run(args, input=md, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert "\\PressDropCap{}{T}{he}" in result.stdout
+
+
+@pytest.mark.layer("integration")
 @pytest.mark.invariant("INV-dropcap-opening")
 @pytest.mark.proof("negative")
 def test_disabled_style_is_a_no_op():

@@ -14,7 +14,9 @@ floors:
   print-safe-images.lua: 100.0
   scene-break.lua: 83.3
   set-pieces.lua: 93.0
+  table-shapes.lua: 80.0
   typographic-spacing.lua: 87.9
 reasons:
 - 'floors set from CI run 42968750375 (PR #263 quality job, ubuntu-24.04); CI and the macOS measurement agreed to the decimal'
 - '§6 backfill: floors raised from CI run 42971980816 (PR #263 quality job)'
+- 'table-shapes.lua: provisional floor for the new filter; raise from the first CI report with update --from-report'

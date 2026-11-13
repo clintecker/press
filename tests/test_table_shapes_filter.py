@@ -1,0 +1,321 @@
+"""The table-shapes Lua filter on the pandoc AST: a key column plus one prose
+column becomes a ledger (a native DefinitionList inside Div.ledger, with its
+caption and header legend kept), anything else stays a Table wrapped in
+Div.grid with explicit relative column widths. A `.ledger` or `.grid` fenced
+div forces the shape of every table inside it, and a document with no tables
+renders byte-for-byte as before. These run pandoc directly (no LaTeX).
+"""
+
+from __future__ import annotations
+
+import re
+import subprocess
+from pathlib import Path
+
+import pytest
+
+from tests import lua_coverage
+
+FILTER = (
+    Path(__file__).resolve().parent.parent / "src" / "press" / "data" / "lua" / "table-shapes.lua"
+)
+
+pytestmark = lua_coverage.needs_pandoc
+
+
+def _render(markdown: str, to: str = "latex", filtered: bool = True) -> str:
+    args = [
+        "pandoc",
+        "-f",
+        "markdown+smart",
+        "-t",
+        to,
+        "--top-level-division=chapter",
+        "--number-sections",
+    ]
+    if filtered:
+        args.append(lua_coverage.filter_arg(FILTER))
+    result = subprocess.run(args, input=markdown, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    return result.stdout
+
+
+LEDGER = (
+    "# Ch\n\n| Skill | Meaning |\n|---|---|\n"
+    "| `hemingway` | It asks for concrete detail, compression, omission, and restraint"
+    " without imitation. |\n"
+    "| `humanizer` | It drafts, revises, and audits prose so that it reads as one"
+    " writer's deliberate choices. |\n\n"
+    "Table: Table 15.5. The skills that come with press\n"
+)
+LEDGER3 = (
+    LEDGER.replace("| Skill | Meaning |\n|---|---|", "| Area | Modules | Meaning |\n|---|---|---|")
+    .replace("| `hemingway` |", "| Build | `build.py`, `figures.py` |")
+    .replace("| `humanizer` |", "| Verifiers | `verify_pdf.py` |")
+)
+GRID = (
+    "# Ch\n\n| Profile | Trim | Margin |\n|---|---|---|\n"
+    "| house | 6 x 9 | 0.78in |\n| pocket | 5 x 8 | 0.6in |\n"
+)
+# A pipe table cannot omit its header row (pandoc reads a header-less pipe
+# table as a paragraph), so the header-less case is a simple table, which can.
+NO_HEAD = (
+    "# Ch\n\n-----  ----------\n"
+    "`a`    one two three four five six seven eight nine ten\n"
+    "-----  ----------\n"
+)
+CONTINUATION = LEDGER.replace("| `humanizer` |", "| |")
+NESTED = "# Ch\n\n::: {.tip}\n" + LEDGER.split("\n\n", 1)[1] + ":::\n"
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_key_plus_prose_table_becomes_a_ledger_in_latex():
+    out = _render(LEDGER)
+    assert "\\begin{PressLedger}" in out and "\\begin{description}" in out
+    assert "\\item[\\texttt{hemingway}]" in out and "longtable" not in out
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_ledger_keeps_its_caption_and_legend():
+    out = _render(LEDGER, to="html")
+    assert '<div class="ledger">' in out and 'class="ledger-caption"' in out
+    assert "Skill \u00b7 Meaning" in out and "<dl>" in out and "<dt>" in out
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_three_column_ledger_sets_the_middle_cell_as_sub():
+    out = _render(LEDGER3, to="html")
+    sub = re.search(r'<div class="ledger-sub">(.*?)</div>', out, re.S)
+    assert sub is not None
+    assert "<code>build.py</code>, <code>figures.py</code>" in sub.group(1)
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_grid_stays_a_table_with_relative_widths():
+    out = _render(GRID)
+    assert "\\PressGridBegin" in out and "longtable" in out
+    assert "\\real{" in out and "\\PressGridEnd" in out
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_grid_is_wrapped_on_the_web():
+    out = _render(GRID, to="html")
+    assert '<div class="grid">' in out and "<table" in out
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("negative")
+def test_a_grid_wrapper_forces_a_table():
+    out = _render("# Ch\n\n::: {.grid}\n" + LEDGER.split("\n\n", 1)[1] + ":::\n", to="html")
+    assert "<table" in out and 'class="ledger"' not in out
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_ledger_wrapper_forces_a_list():
+    out = _render("# Ch\n\n::: {.ledger}\n" + GRID.split("\n\n", 1)[1] + ":::\n", to="html")
+    assert "<dl>" in out and "<table" not in out
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_forcing_div_around_one_table_is_the_only_wrapper():
+    ledger = _render("# Ch\n\n::: {.ledger}\n" + GRID.split("\n\n", 1)[1] + ":::\n", to="html")
+    grid = _render("# Ch\n\n::: {.grid}\n" + LEDGER.split("\n\n", 1)[1] + ":::\n", to="html")
+    assert ledger.count('<div class="ledger"') == 1 and "<dt>" in ledger
+    assert grid.count('<div class="grid"') == 1 and "<table" in grid
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_an_adopted_wrapper_keeps_the_authors_id_and_classes():
+    one_column = "| Note |\n|---|\n| a single column |\n"
+    out = _render("# Ch\n\n::: {#notes .ledger .wide}\n" + one_column + ":::\n", to="html")
+    # One column cannot be a ledger: it renders as a grid, under the author's id.
+    assert '<div id="notes" class="wide grid">' in out
+    assert 'class="ledger"' not in out and out.count("<div") == 1
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_forcing_div_with_prose_keeps_its_nested_wrapper():
+    body = "Some prose first.\n\n" + GRID.split("\n\n", 1)[1]
+    out = _render("# Ch\n\n::: {.grid}\n" + body + ":::\n", to="html")
+    assert out.count('<div class="grid"') == 2 and "Some prose first." in out
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("negative")
+def test_a_table_with_no_header_row_classifies_without_a_legend():
+    out = _render(NO_HEAD, to="html")
+    assert "<dl>" in out and "ledger-legend" not in out
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_an_empty_key_cell_continues_the_previous_entry():
+    out = _render(CONTINUATION, to="html")
+    assert out.count("<dt>") == 1 and out.count("<dd>") == 1
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_table_inside_an_admonition_is_still_rewritten():
+    assert '<div class="ledger">' in _render(NESTED, to="html")
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("negative")
+def test_a_document_with_no_tables_is_byte_identical():
+    doc = "# Ch\n\nProse only.\n\n- a list\n"
+    for fmt in ("latex", "html", "plain"):
+        assert _render(doc, to=fmt, filtered=False) == _render(doc, to=fmt)
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_docx_gets_a_definition_list():
+    out = _render(LEDGER, to="native")
+    assert "DefinitionList" in out
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_every_grid_column_keeps_its_floor_after_normalising():
+    # Mean cell lengths 1 / 2 / 59: a plain max-then-normalise leaves the two
+    # short columns near 0.10. Every final width must hold the 0.12 floor.
+    long = "x" * 59
+    md = f"# Ch\n\n| A | B | C |\n|---|---|---|\n| a | bb | {long} |\n"
+    out = _render(md, to="native")
+    widths = [float(w) for w in re.findall(r"ColWidth ([0-9.eE+-]+)", out)]
+    assert len(widths) == 3
+    assert abs(sum(widths) - 1.0) < 1e-6
+    assert all(w >= 0.12 - 1e-9 for w in widths), widths
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_grid_too_wide_for_the_floor_shares_the_measure_equally():
+    # Nine columns at 0.12 overfill the measure, so every column takes 1/9.
+    head = "|" + "|".join(f" c{i} " for i in range(9)) + "|\n"
+    rule = "|" + "|".join("---" for _ in range(9)) + "|\n"
+    row = "|" + "|".join(" " + "x" * (i + 1) + " " for i in range(9)) + "|\n"
+    out = _render("# Ch\n\n" + head + rule + row, to="native")
+    widths = [float(w) for w in re.findall(r"ColWidth ([0-9.eE+-]+)", out)]
+    assert len(widths) == 9
+    assert all(abs(w - 1 / 9) < 1e-9 for w in widths), widths
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_ledger_caption_and_legend_reach_latex_through_their_macros():
+    out = _render(LEDGER)
+    assert "\\PressLedgerCaption{Table 15.5. The skills that come with press}" in out
+    assert "\\PressLedgerLegend{Skill \u00b7 Meaning}" in out
+    # The web keeps plain paragraphs in the classed divs, no TeX.
+    assert "PressLedger" not in _render(LEDGER, to="html")
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_column_widens_to_its_longest_code_token():
+    # Mean cell lengths 10.5 / 2 / 59, but the first column holds a
+    # 20-character code token, so its raw length is 20, not its mean.
+    long = "x" * 59
+    token = "t" * 20
+    md = f"# Ch\n\n| A | B | C |\n|---|---|---|\n| a | bb | {long} |\n| `{token}` | bb | {long} |\n"
+    out = _render(md, to="native")
+    widths = [float(w) for w in re.findall(r"ColWidth ([0-9.eE+-]+)", out)]
+    assert len(widths) == 3
+    # B pins at the floor; A and C share the rest as 20 : 59.
+    assert abs(widths[0] - 0.88 * 20 / 79) < 1e-9, widths
+    assert abs(widths[2] - 0.88 * 59 / 79) < 1e-9, widths
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_ledger_keeps_its_caption_and_legend_with_its_first_entry():
+    # The caption and legend once stranded at a page foot with the entries
+    # overleaf (Table 16.1 of a real book): room is asked once before the
+    # caption, and no page may break after the caption or the legend.
+    out = _render(LEDGER)
+    keep = out.index("\\Needspace{6\\baselineskip}")
+    caption = out.index("\\PressLedgerCaption{")
+    legend = out.index("\\PressLedgerLegend{")
+    ledger = out.index("\\begin{PressLedger}")
+    assert keep < caption < legend < ledger
+    assert out.count("\\nopagebreak") == 2
+    assert out.index("\\nopagebreak") < legend < out.rindex("\\nopagebreak") < ledger
+    # With no caption and no header the keep still precedes the list.
+    bare = _render(NO_HEAD)
+    assert bare.index("\\Needspace{6\\baselineskip}") < bare.index("\\begin{PressLedger}")
+    assert "\\nopagebreak" not in bare
+    # The web carries none of it.
+    assert "Needspace" not in _render(LEDGER, to="html")
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("negative")
+def test_a_forced_ledger_over_a_header_only_table_falls_back_to_a_grid():
+    # An all-header table has no entry to list: forced to a ledger it once
+    # rendered an empty <dl>, which the verifier refuses. It stays a grid.
+    out = _render("# Ch\n\n::: {.ledger}\n| A | B |\n|---|---|\n:::\n", to="html")
+    assert '<div class="grid">' in out and "<table" in out
+    assert "<dl" not in out and 'class="ledger"' not in out
+
+
+def _grid_table(rows: list[str]) -> str:
+    rule = "+" + "+".join("-" * 22 for _ in range(3)) + "+\n"
+    head = "| A" + " " * 20 + "| B" + " " * 20 + "| C" + " " * 20 + "|\n"
+    return "# Ch\n\n" + rule + head + rule.replace("-", "=") + "".join(r + rule for r in rows)
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("negative")
+def test_a_cell_spanning_columns_is_not_credited_to_the_first():
+    # A 60-character cell spanning all three columns belongs to none of them:
+    # credited to column 1 it once took 0.76 of the measure. The three
+    # one-letter columns share it equally.
+    plain = "| a" + " " * 20 + "| b" + " " * 20 + "| c" + " " * 20 + "|\n"
+    span = "| " + "x" * 60 + " " * 7 + "|\n"
+    out = _render(_grid_table([plain, span]), to="native")
+    assert "ColSpan 3" in out, "the fixture lost its column span"
+    widths = [float(w) for w in re.findall(r"ColWidth ([0-9.eE+-]+)", out)]
+    assert len(widths) == 3
+    assert all(abs(w - 1 / 3) < 1e-9 for w in widths), widths
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("negative")
+def test_a_cell_below_a_row_span_is_credited_to_its_own_column():
+    # Column A's cell spans two rows, so the second row's only cell sits in
+    # column B; measured by its index it would have widened column A.
+    md = (
+        "# Ch\n\n"
+        "+------+----------------------+------+\n"
+        "| A    | B                    | C    |\n"
+        "+======+======================+======+\n"
+        "| a    | b                    | c    |\n"
+        "|      +----------------------+------+\n"
+        "|      | yyyyyyyyyyyyyyyyyyyy | c    |\n"
+        "+------+----------------------+------+\n"
+    )
+    out = _render(md, to="native")
+    assert "RowSpan 2" in out, "the fixture lost its row span"
+    widths = [float(w) for w in re.findall(r"ColWidth ([0-9.eE+-]+)", out)]
+    assert widths[1] > widths[0] and widths[1] > widths[2], widths
+
+
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_three_column_ledger_sets_its_sub_line_ragged_in_latex():
+    # The middle cell, a short run of code spans, once set as a justified
+    # paragraph that stretched its spaces; LaTeX gets \PressLedgerSub.
+    out = _render(LEDGER3)
+    assert "\\PressLedgerSub{\\texttt{build.py}, \\texttt{figures.py}}" in out
+    assert "PressLedgerSub" not in _render(LEDGER3, to="html")

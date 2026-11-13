@@ -170,6 +170,15 @@ DESIGN_NOTES: dict[int, str] = {
         "book), so after apply, rebuild and look at the pages; "
         "docs/MIGRATION.md 'What v2 → v3 actually changes' lists what moved."
     ),
+    4: (
+        "design changes: v4 is a design major, and it reaches the PDF as well "
+        "as the web editions. Tables are set by shape: a key-plus-prose table "
+        "becomes a ledger (key on its own line, prose at full measure) and "
+        "every other table a smaller grid whose columns wrap, so page counts "
+        "move a little; a `::: {{.grid}}` div keeps a table a table. After "
+        "apply, rebuild and look at the pages; docs/TABLES.md and "
+        "docs/MIGRATION.md 'What v3 -> v4 actually changes' list what moved."
+    ),
 }
 
 

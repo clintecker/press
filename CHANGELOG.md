@@ -9,6 +9,72 @@ audit).
 
 ## [Unreleased]
 
+This is the v4 line: a design major. Nothing here is released yet.
+
+### Changed (v4, design)
+
+- **Tables are set by shape, in every edition** (`table-shapes.lua`,
+  `docs/TABLES.md`). A reference list (two or three columns, exactly one
+  prose column averaging eight words or more, and that column last) renders
+  as a ledger: a definition list with each key on its own line, the
+  description at full measure, the header cells kept as a legend line, and
+  the caption kept. Every other table is a grid, with relative column widths
+  from mean cell length and the longest code token (a 0.12 floor; equal
+  shares at nine or more columns). `::: {.ledger}` and `::: {.grid}` force
+  a shape; a forcing div around one table becomes its wrapper, id and
+  classes kept. A one-column table is always a grid.
+- **The PDF changes.** Ledgers set as hanging entries (`PressLedger`: 1.6 em
+  hang, `\Needspace` before each key, a grouped caption and a small-capitals
+  legend kept on the page with the first entry, a three-column ledger's
+  middle line set ragged right, and a list nested in an entry at the house
+  label gap); grids set small with 0.5 em cell padding and `p{}` columns
+  that wrap. Page breaks and page counts of books with tables move. This
+  amends Round 1B's constraint that v4 leaves the PDF untouched.
+- **Web, EPUB, DOCX.** Reader site and HTML: `.ledger` entries with a
+  hairline between them, a constant-width `.ledger-sub`, and keys and
+  entries that wrap a long URL rather than widen the page; grids scroll in
+  their own box at reading width and stack into cards on a phone, where grid
+  code may wrap. EPUB: the same forms, without colour. DOCX: a native
+  definition list in pandoc's `DefinitionTerm`/`Definition` styles (house
+  styles arrive with Round 1B's reference document), and grids with the same
+  column widths.
+- **Two new verifiers.** `verify_table_shape.verify_tables`
+  (`INV-table-shape`): every table in the HTML and reader site is a wrapped
+  grid with labelled cells or a ledger with entries; the EPUB is checked for
+  wrappers and entries only; a raw HTML `<table>` in a manuscript is refused.
+  `verify_text_block.verify_text_block` (`INV-pdf-text-block`, run by
+  `verify_pdf`): a body page whose ink runs more than 6 px past the
+  profile's text block is refused. The text-block measure and the ink
+  primitives it shares with `verify_pdf` (`ink_bbox`, `body_start`) live in
+  the new `press.verify_text_block`, and the EPUB and reader-site table
+  sweeps in `press.verify_table_shape`, so neither verifier module outgrows
+  the structure gate once v3.1.0's own additions land beside them.
+- **`scripts/measure_tables.py`**, a maintainer's instrument: it loads a
+  built reader site in headless Chrome at 1280, 820, and 390 px and reports
+  code split inside a token, clipped cells, pages scrolling sideways,
+  sparse and tall cells, and the `.ledger` and `.grid` counts. A heuristic
+  for comparing builds, not a gate (`docs/TABLES.md`).
+- **Built on v3.1.0's corrections.** Ledgers and grids lean on v3's #286
+  keep (the sized `\Needspace` before every longtable and the house
+  `description` hook, which `PressLedger` calls rather than copies) and on
+  v3's #287 code spans (robust, unhyphenated `\texttt` with an existing
+  hyphen as a last-resort break), so the v4 header carries no table-keep
+  machinery of its own.
+- **Code spans stay inside the measure in body prose too.** The new
+  text-block verifier refused two pages of *Publishing with Press* whose
+  code spans had nowhere to break (`FileNotFoundError("no manuscript files
+  found under book/")`, a comma-joined list of `\widowpenalty`-style
+  names), so a line ran up to 52 px into the margin; v3.1.0 set the same
+  overruns unrefused. The #287 last-resort break points after `/`, `_`, and
+  `.` (penalty 3000, no glyph added) gain `,` `(` `)` `;` `=` and `:`, and
+  the house sets `\emergencystretch` to 10em (pandoc's template sets 3em),
+  so a paragraph with no feasible breaks loosens its lines instead of
+  setting one overfull: room for a twenty-character identifier to move
+  whole to the next line. Only paragraphs that failed the normal passes, or
+  that hold a code span with one of the new break characters, set
+  differently; on *Publishing with Press* 55 of 387 pages move, with the
+  page count unchanged.
+
 ## [3.1.2] - 2026-11-12
 
 ### Fixed

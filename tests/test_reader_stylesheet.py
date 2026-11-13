@@ -47,3 +47,43 @@ def test_plate_images_stay_within_the_column():
     assert "max-width" in body and "100%" in body, (
         "figure img must cap at max-width:100% so a wide plate cannot overflow"
     )
+
+
+DATA = READER_CSS.parent.parent
+
+
+def test_the_reader_stylesheet_styles_ledgers_and_grids():
+    css = READER_CSS.read_text()
+    for rule in (
+        ".ledger dt",
+        ".ledger dd",
+        ".ledger-sub",
+        ".grid { overflow-x: auto",
+        "td code, .grid th code { white-space: nowrap",
+    ):
+        assert rule in css
+    assert css.count("/* 12.") == 1
+
+
+def test_book_and_epub_stylesheets_carry_the_same_classes():
+    for name in ("tex/book.css", "tex/epub.css"):
+        css = (DATA / name).read_text()
+        assert ".ledger" in css and ".grid" in css
+
+
+def test_ledger_entries_wrap_a_long_token_in_every_stylesheet():
+    """A ledger entry holding a long URL scrolled a 390 px page sideways; the
+    key and the entry break anywhere rather than widen the page."""
+    for path in (READER_CSS, DATA / "tex" / "book.css", DATA / "tex" / "epub.css"):
+        css = re.sub(r"/\*.*?\*/", "", path.read_text(), flags=re.S)
+        assert ".ledger dt, .ledger dd { overflow-wrap: anywhere; }" in css, path.name
+
+
+def test_grid_code_wraps_inside_phone_cards_in_reader_and_book():
+    """nowrap holds at reading width; the phone block overrides it so a long
+    token wraps inside its card instead of running past the border."""
+    for path in (READER_CSS, DATA / "tex" / "book.css"):
+        css = re.sub(r"/\*.*?\*/", "", path.read_text(), flags=re.S)
+        assert ".grid td code, .grid th code { white-space: nowrap; }" in css
+        phone = css[css.index("@media (max-width: 34rem)") :]
+        assert ".grid td code, .grid th code { white-space: normal; overflow-wrap: anywhere; }" in phone

@@ -540,6 +540,17 @@ Every rendered page carries ink and keeps it off the edge.
 - proven by `tests/test_sabotage.py::test_sabotage_removed_graph_edge_reddens_state_model`
 - does not cover: Tolerates one structural blank verso in the print profile.
 
+## INV-pdf-text-block
+
+No body page of a PDF edition inks past its text block, whose right edge is the build's own geometry (the profile's trim less its outer margin in reading; the print header's outer on a recto and inner on a verso in print), with 6 px (0.05in) for protrusion.
+
+- enforced by `verify_text_block:verify_text_block`
+- proven by `tests/test_verify_pdf_print_profile.py::test_a_page_overrunning_the_measure_is_rejected`
+- does not cover: Front matter is not judged; it ends at the first arabic page label, or after the first 20 percent of pages when the PDF carries no labels.
+- does not cover: The raster cannot tell a deliberately outset or full-bleed figure from overflowing text; such a figure is refused too (the house caps figures at the line width).
+- does not cover: Only the right edge is judged (the left, top, and bottom edges are not), and the top and bottom 8 percent of each page (running head, folio) are not.
+- does not cover: The slack is 6 px at the 120 dpi render, about 3.6 pt, wider than the 2 pt the design spec named; microtype's protruded punctuation and antialiasing reach 4 px on the example books' justified prose, past the 3.3 px that 2 pt would allow.
+
 ## INV-plate-alpha-preserved
 
 Enhancing a plate master preserves its alpha (ink on transparency); it is never baked onto white.
@@ -688,6 +699,13 @@ The subprocess runner strips ambient GIT_* repo-binding vars for git commands so
 
 - enforced by `adapters.production:SubprocessRunner.run`
 - proven by `tests/test_git_isolation.py::test_ambient_git_index_does_not_hide_a_nested_repos_files`
+
+## INV-table-shape
+
+Every table in an HTML surface is a wrapped grid with labelled cells or a ledger with entries; a bare table is refused.
+
+- enforced by `verify_table_shape:verify_tables`
+- proven by `tests/test_verify_table_shape.py::test_an_unwrapped_table_is_refused`
 
 ## INV-transport-empty-body-and-signals
 

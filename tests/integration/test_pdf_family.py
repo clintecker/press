@@ -30,6 +30,7 @@ from tests.integration._harness import (
     source_manifest_digest,
     tool_versions,
 )
+from tests.test_table_shapes_filter import GRID, LEDGER
 
 REQUIRED = PDF_TOOLCHAIN
 requires_pdf_toolchain = pytest.mark.skipif(
@@ -90,6 +91,132 @@ def test_reading_pdf_carries_ink(tmp_path):
         "an unskipped PDF runner recorded a tool as absent"
     )
     assert "verify_pdf.main" in evidence.verifiers
+
+
+# A two-column grid table (cells may hold blocks): a two-letter key, and an
+# entry whose prose carries a definition list of its own.
+NESTED_LEDGER = """\
++-----------+------------------------------------------------+
+| Key       | Meaning                                        |
++===========+================================================+
+| `id`      | The identifier of the row, which names it once |
+|           | and for all across every edition of the book.  |
++-----------+------------------------------------------------+
+| `opts`    | The options this entry accepts, set out as a   |
+|           | list of their own beneath it.                  |
+|           |                                                |
+|           | inner                                          |
+|           | :   the nested definition of one option        |
++-----------+------------------------------------------------+
+"""
+
+LONG_IDENTIFIER = "a-very-long-identifier-that-cannot-break-at-all-anywhere-in-sixty-chars"
+
+
+def _book_with(root, chapter: str):
+    return (
+        factories.BookFactory(slug="int-pdf-tables")
+        .with_sentinels("witness of the table runner")
+        .with_chapter(
+            "00-tables.md",
+            chapter.replace(
+                "# Ch\n\n",
+                "# Tables\n\nHere the witness of the table runner stands in a plain "
+                "sentence long enough to survive typesetting.\n\n",
+                1,
+            ),
+        )
+        .build(root)
+    )
+
+
+# Plain justified prose, enough for several full pages after a table.
+_PROSE = "\n\n".join(
+    "The house sets a plain paragraph here so that the measure of the page is "
+    "calibrated on justified text rather than on the table it follows. " * 6
+    for _ in range(24)
+)
+
+
+@requires_pdf_toolchain
+@pytest.mark.layer("integration")
+@pytest.mark.proof("positive")
+def test_a_ledger_table_sets_in_the_pdf_without_a_longtable(tmp_path):
+    from press import booklib, build
+
+    # LEDGER, then a grid-table ledger whose two-letter key must still take a
+    # line of its own and whose second entry holds a definition list of its
+    # own (a nested list once sent LuaLaTeX into an endless \item loop).
+    handle = _book_with(tmp_path, LEDGER + "\n" + NESTED_LEDGER)
+    with handle.use():
+        root = booklib.root()
+        # A subprocess with a deadline, so a TeX loop fails the test, not hangs it.
+        subprocess.run([sys.executable, "-m", "press", "pdf"], cwd=root, check=True, timeout=600)
+        # The .tex pandoc hands LuaLaTeX, written through the same defaults.
+        build.pandoc_build("pdf", "build/ledger-check.tex")
+        tex = (root / "build" / "ledger-check.tex").read_text(encoding="utf-8")
+        pdf = root / "dist" / f"{booklib.slug()}.pdf"
+        text = subprocess.run(
+            ["pdftotext", "-layout", str(pdf), "-"], capture_output=True, text=True, check=True
+        ).stdout
+
+    assert "\\begin{PressLedger}" in tex and "\\end{PressLedger}" in tex
+    assert "\\begin{longtable}" not in tex, "a ledger table still reached LaTeX as a longtable"
+    assert "\\PressLedgerCaption{Table 15.5. The skills that come with press}" in tex
+    assert "\\PressLedgerLegend{Skill" in tex and "\\PressLedgerLegend{Key" in tex
+    lines = [line.strip() for line in text.splitlines()]
+    assert "hemingway" in lines and "humanizer" in lines
+    # The manpage form for every key: even `id` stands alone on its line.
+    assert "id" in lines, "a short key ran into its prose"
+    assert any(line.startswith("The identifier of the row") for line in lines)
+    assert "inner" in lines and any("nested definition" in line for line in lines)
+
+
+@requires_pdf_toolchain
+@pytest.mark.layer("integration")
+@pytest.mark.proof("negative")
+def test_a_grid_with_a_long_identifier_ends_within_the_body_measure(tmp_path):
+    from press import booklib, registry
+    from press import verify_text_block as text_block
+
+    # One cell holds an identifier wider than any column it could get; another
+    # holds a hyphenated flag that fits, beside prose that must wrap. Pages of
+    # plain prose follow, ending on the measure the grid must respect.
+    grid = GRID.replace("| pocket | 5 x 8 |", f"| pocket | `{LONG_IDENTIFIER}` |").replace(
+        "| 0.78in |", "| `--foil-bright` sets the foil on every cover the house prints |"
+    )
+    handle = _book_with(tmp_path, grid + "\n" + _PROSE)
+    with handle.use():
+        pdf = booklib.root() / "dist" / f"{booklib.slug()}.pdf"
+        registry.build("pdf")
+        # -layout keeps a line-end hyphen; plain pdftotext would drop it.
+        text = subprocess.run(
+            ["pdftotext", "-layout", str(pdf), "-"], capture_output=True, text=True, check=True
+        ).stdout
+        pages = text.split("\f")
+        index = next(i for i, page in enumerate(pages) if "pocket" in page)
+        out = tmp_path / "render"
+        out.mkdir()
+        subprocess.run(["pdftoppm", "-png", "-r", "120", str(pdf), str(out / "page")], check=True)
+        images = sorted(out.glob("page*.png"))
+        overruns = dict(
+            text_block.text_block_overruns(images, "reading", text_block.first_body_index(pdf))
+        )
+
+    lines = [line.strip() for line in pages[index].splitlines()]
+    assert any("--foil-bright" in line for line in lines), "a flag that fits was split"
+    # The too-wide identifier may break only after a hyphen it already has:
+    # its pieces, rejoined across line ends, read exactly, no hyphen invented.
+    # (-layout interleaves the neighbouring column, so pick the pieces out.)
+    pieces = [w for w in pages[index].split() if "-" in w and w in LONG_IDENTIFIER]
+    assert "".join(pieces) == LONG_IDENTIFIER, f"the identifier was mangled: {pieces}"
+    # The measure is the profile's geometry; the grid page ends within the
+    # protrusion slack of it, as the prose pages after it do.
+    assert index + 1 in overruns, "the grid page rendered blank or fell in the front matter"
+    assert overruns[index + 1] <= text_block.TEXT_BLOCK_SLACK, (
+        f"grid ink runs {overruns[index + 1]} px past the text block"
+    )
+    assert max(overruns.values()) <= text_block.TEXT_BLOCK_SLACK, overruns
 
 
 # One ordinary paragraph long enough to wrap, led by a word that appears
@@ -160,6 +287,123 @@ def test_the_paragraph_after_a_frontispiece_keeps_its_indent(tmp_path):
         f"the paragraph after the frontispiece lost its indent: first line at "
         f"x={first}, second at x={second}"
     )
+
+
+# A grid-table ledger whose entry holds a bullet list of its own.
+_LEDGER_WITH_BULLETS = """\
++-----------+------------------------------------------------+
+| Key       | Meaning                                        |
++===========+================================================+
+| `opts`    | The options this entry accepts, set out as a   |
+|           | list of their own beneath it, one per line.    |
+|           |                                                |
+|           | - Bulletword names the first option            |
++-----------+------------------------------------------------+
+"""
+
+
+@requires_pdf_toolchain
+@pytest.mark.layer("integration")
+def test_a_list_nested_in_a_ledger_entry_keeps_the_house_label_gap(tmp_path):
+    # The ledger's description sets labelsep=1.6em for its hang, and a list
+    # nested in an entry inherited it: a bullet sat 1.6em from its text. The
+    # house itemize and enumerate state the class's own label gap (about
+    # 0.5em), so the nested bullet sits as close as any other.
+    from press import booklib, registry
+
+    handle = _book_with(tmp_path, _LEDGER_WITH_BULLETS)
+    with handle.use():
+        registry.build("pdf")
+        pdf = booklib.root() / "dist" / f"{booklib.slug()}.pdf"
+        xml = subprocess.run(
+            ["pdftotext", "-bbox-layout", str(pdf), "-"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+    # (x0, y0, x1, word) for every word; Poppler may split a wide gap into
+    # two lines, so the bullet is found by its baseline, not its line.
+    words = [
+        (float(x0), float(y0), float(x1), word)
+        for x0, y0, x1, word in re.findall(
+            r'<word xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)"[^>]*>([^<]*)</word>', xml
+        )
+    ]
+    text = next(w for w in words if w[3] == "Bulletword")
+    bullet = next(w for w in words if w[3] == "\u2022" and abs(w[1] - text[1]) < 3)
+    gap = text[0] - bullet[2]
+    # 1.6em at 10pt is 16pt; the house gap is 5pt.
+    assert gap < 8, f"the nested bullet sits {gap:.1f}pt from its text"
+
+
+def _wrapped(lead: str) -> str:
+    """A paragraph led by *lead* (a word found nowhere else) long enough to
+    wrap, so its first and second lines can be told apart."""
+
+    return (
+        f"{lead} the paragraph runs on long enough to break across several lines "
+        "of the measure, so that its first line and its second line can be told "
+        "apart by where each begins on the page, and the house indent, if the "
+        "ledger caption above left it alive, shows as the difference.\n"
+    )
+
+
+def _line_starts(pdf, lead: str) -> tuple[float, float]:
+    """The x of the line whose first word is *lead* and of the line after it,
+    in Poppler's reading order across blocks (an indent-less paragraph merges
+    into the block before it, which _first_two_line_starts would miss)."""
+
+    xml = subprocess.run(
+        ["pdftotext", "-bbox-layout", str(pdf), "-"], capture_output=True, text=True, check=True
+    ).stdout
+    starts = [
+        (float(m.group(1)), m.group(2))
+        for line in re.findall(r"<line[^>]*>(.*?)</line>", xml, re.S)
+        if (m := re.search(r'<word xMin="([\d.]+)"[^>]*>([^<]*)</word>', line))
+    ]
+    for (x, word), (after, _next) in zip(starts, starts[1:]):
+        if word == lead:
+            return x, after
+    raise AssertionError(f"no wrapped paragraph begins with {lead!r}")
+
+
+@requires_pdf_toolchain
+@pytest.mark.layer("integration")
+def test_the_paragraphs_after_a_captioned_ledger_keep_their_indent(tmp_path):
+    # \PressLedgerCaption ran \captionof* bare, which leaves \noindent and
+    # \sloppy in force: every paragraph after the first captioned ledger lost
+    # the 1.1em house indent for the rest of the book (the #292 class, found
+    # on the v4 build of a real book). The caption is grouped now, so the
+    # second paragraph after the ledger, and one pages later, each begin a
+    # house indent (well over 6pt) right of their own second lines.
+    from press import booklib, registry
+
+    chapter = (
+        LEDGER
+        + "\n"
+        + _wrapped("Firstafter")
+        + "\n"
+        + _wrapped("Afterledger")
+        + "\n"
+        + _PROSE
+        + "\n\n"
+        + _wrapped("Laterpage")
+    )
+    handle = _book_with(tmp_path, chapter)
+    with handle.use():
+        registry.build("pdf")
+        pdf = booklib.root() / "dist" / f"{booklib.slug()}.pdf"
+        pages = _pages(pdf)
+        near = _line_starts(pdf, "Afterledger")
+        later = _line_starts(pdf, "Laterpage")
+
+    ledger_page = _first_page_with(pages, "humanizer")
+    assert _first_page_with(pages, "Laterpage") > ledger_page, "the later paragraph is not later"
+    for name, (first, second) in (("Afterledger", near), ("Laterpage", later)):
+        assert first - second > 6, (
+            f"{name}: the paragraph after a captioned ledger lost its indent: first "
+            f"line at x={first}, second at x={second}"
+        )
 
 
 # Two 76-column lines, one in an untagged fence and one tagged ``text``:
@@ -311,6 +555,10 @@ KERNEL_VERBATIM_TEX = r"""
 \renewcommand\verbatim{\@verbatim \frenchspacing\@vobeyspaces \@xverbatim}
 \renewcommand\endverbatim{\if@newlist \leavevmode\fi\endtrivlist}
 \makeatother
+% And the 3em emergency stretch v3 set: under v4's 10em the kernel verbatim
+% line finds a last-resort break at its own hyphen, and the control would no
+% longer show the overrun the rebind exists to prevent.
+\AtBeginDocument{\setlength{\emergencystretch}{3em}}
 """
 FITTING_FENCE = (
     "alpha = 1\n"
@@ -635,7 +883,10 @@ def test_table_head_and_definition_term_keep_with_what_follows(tmp_path):
     and a definition term stranded with its definition overleaf. Forty-five
     tables and as many terms, each after a lead-in of varying length, walk
     the page foot through every offset; every table head shares its page
-    with its first two rows, and every term with the first line under it."""
+    with its first two rows, and every term with the first line under it.
+    Under v4 a key-plus-prose table is a ledger: the even tables are forced
+    to grids (longtables, the head kept with two rows), the odd ones stay
+    ledgers (the caption and legend kept with the first entry)."""
 
     tables = []
     for k in range(_KEEPS):
@@ -644,10 +895,13 @@ def test_table_head_and_definition_term_keep_with_what_follows(tmp_path):
         # or three lines, the shape of a real reference table
         cell = "a cell long enough to wrap onto a second line in its column " * 2
         rows = "\n".join(f"| row{k}x{r} | {cell}|" for r in range(5))
-        tables.append(
-            f"{lead}\n\n| head{k}col | Meaning |\n|------------------|{'-' * 50}|\n"
+        table = (
+            f"| head{k}col | Meaning |\n|------------------|{'-' * 50}|\n"
             f"{rows}\n\nTable: Table {k}. A caption over the table\n"
         )
+        if k % 2 == 0:
+            table = f"::: {{.grid}}\n{table}:::\n"
+        tables.append(f"{lead}\n\n{table}")
     terms = []
     for k in range(_KEEPS):
         lead = "A lead-in line of plain prose before the term. " * (1 + k % 4)
@@ -681,9 +935,16 @@ def test_table_head_and_definition_term_keep_with_what_follows(tmp_path):
     stranded = [
         k
         for k in range(_KEEPS)
-        if _page_of(pages, f"head{k}col", body) != _page_of(pages, f"row{k}x1", body)
+        if len(
+            {
+                _page_of(pages, f"Table {k}. A caption", body),
+                _page_of(pages, f"head{k}col", body),
+                _page_of(pages, f"row{k}x{1 if k % 2 == 0 else 0}", body),
+            }
+        )
+        != 1
     ]
-    assert not stranded, f"table heads stranded from their first two rows: {stranded}"
+    assert not stranded, f"table heads stranded from their first rows: {stranded}"
     terms_at = _page_of(pages, "Terms follow.", body)
     split = [
         k
@@ -732,6 +993,68 @@ def test_code_spans_never_hyphenate(tmp_path):
     ends = [line.rstrip() for line in text.splitlines()]
     assert not [e for e in ends if re.search(r"(-|\(225-|--paper-)$", e)], (
         "a span broke at a hyphen"
+    )
+
+
+# Spans with no "/", "_", or "." to break at: the first two are the shapes of
+# the two pages of Publishing with Press the text-block verifier refused under
+# v3's rule.
+_PUNCTUATED = (
+    'FileNotFoundError("no such file in the manuscript directory")',
+    "\\widowpenalty,\\clubpenalty,\\displaywidowpenalty,\\brokenpenalty",
+    # wider than the measure, with no space, "/", "_", or "." in it: only the
+    # new break points can keep it inside the text block
+    "\\widowpenalty=10000;\\clubpenalty=10000;\\displaywidowpenalty=10000:(\\brokenpenalty)",
+)
+_PUNCT_PARAS = 27
+
+
+@requires_pdf_toolchain
+@pytest.mark.layer("integration")
+def test_code_spans_break_after_punctuation_and_stay_in_the_measure(tmp_path):
+    """A code span may also break after , ( ) ; = and : at the last-resort
+    penalty, adding no glyph. Twenty-seven paragraphs walk the spans across
+    the line end; no body page inks past the text block, and every span reads
+    whole once its breaks are rejoined: no hyphen invented."""
+    from press import verify_text_block as text_block
+
+    paragraphs = []
+    for k in range(_PUNCT_PARAS):
+        lead = "If neither directory yields a file " + "q" * (1 + k % 9) + " " + "so " * (k // 9)
+        paragraphs.append(
+            f"{lead}the press refuses with `{_PUNCTUATED[0]}`, and the header sets "
+            f"`{_PUNCTUATED[1]}` to ten thousand, written `{_PUNCTUATED[2]}` in full."
+        )
+    handle = (
+        factories.BookFactory(slug="int-punct")
+        .with_sentinels("the witness of the punctuation book")
+        .with_chapter(
+            "01-punct.md",
+            "# Punctuation\n\nHere the witness of the punctuation book stands.\n\n"
+            + "\n\n".join(paragraphs),
+        )
+        .build(tmp_path)
+    )
+    pdf = _build_pdf(handle)
+    text = "".join(_pages(pdf))
+    out = tmp_path / "render"
+    out.mkdir()
+    subprocess.run(["pdftoppm", "-png", "-r", "120", str(pdf), str(out / "page")], check=True)
+    images = sorted(out.glob("page*.png"))
+    with handle.use():
+        overruns = text_block.text_block_overruns(
+            images, "reading", text_block.first_body_index(pdf)
+        )
+    past = [(page, px) for page, px in overruns if px > text_block.TEXT_BLOCK_SLACK]
+    assert past == [], f"code ran past the text block: {past}"
+    # A break after punctuation leaves the character at the line end and adds
+    # nothing; rejoin those and every span is whole. The spans hold no hyphen,
+    # so one invented at a line end ("FileNot-") would fail the count.
+    joined = re.sub(r"([,(=;:/_.)])\s+", r"\1", " ".join(text.split()))
+    for token in _PUNCTUATED:
+        assert joined.count(token) == _PUNCT_PARAS, (token, joined.count(token))
+    assert not re.search(r"(FileNot|Error|penalty|widow|club|broken)\w*-\s", text), (
+        "a span gained a hyphen"
     )
 
 
