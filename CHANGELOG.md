@@ -74,6 +74,42 @@ This is the v4 line: a design major. Nothing here is released yet.
   that hold a code span with one of the new break characters, set
   differently; on *Publishing with Press* 55 of 387 pages move, with the
   page count unchanged.
+- **Every code block is a listing, and an example caption stays with it**
+  (#293; `listings.lua`, `docs/BOOK-PARTS.md` "Examples and listings").
+  The PDF sets every fence, tagged or not, at `\small` between two 0.4pt
+  hairlines the width of the measure (fvextra's `frame=lines`), 9pt plus
+  2pt above and below, 4pt between each rule and the code; a block that
+  breaks across pages keeps rules only at its true top and bottom. fvextra's
+  top rule backed up half a baselineskip, so the header restores fancyvrb
+  4.5's own form and the air above the code equals the air below it. The
+  rules take no interline glue as if they were lines of text: the top rule
+  stands a strut depth below the line above it, mirroring the bottom rule,
+  so prose-to-rule and rule-to-prose measure the same (13.6pt and 12.8pt,
+  ink to rule; it was 17.8pt above). A one-line lead-in paragraph
+  (`\prevgraf` of 1) is kept with its listing and two of its lines; a
+  listing resets `\prevgraf`, so the next one is not tied to it. A
+  tagged fence now gets `backgroundcolorboxoverlap=0pt` like an untagged one
+  (where fvextra has the key), so both pitch identically. The inside of a
+  block is otherwise unchanged: the #279 pixel-identity test is re-based to
+  prove the code lines sit where a bare `\small` kernel verbatim puts them
+  while the frame is new. A new filter recognises an example caption, the
+  implicit `**Example C.N. Title**` paragraph directly before a fence (also
+  `Example N.` and `Example A.N.`) or the explicit fence attribute
+  `caption="Example C.N. Title"` with an optional `id`, and emits
+  `\PressExampleCaption{Example C.N.}{Title}` for LaTeX (bold label, italic
+  title, flush left, `\Needspace` for the caption, the rule, and two lines
+  of code, skipped directly after a heading, whose own keep applies and
+  whose `\@nobreak` the `\Needspace` break would defeat, `\nopagebreak`
+  after, 3pt to the rule, an optional `[id]` anchored after the keep), a
+  `Div.example-caption`
+  for HTML, the reader site, and EPUB (styled in `reader.css`, `book.css`,
+  `epub.css`), a `Caption`-styled Div for DOCX, and the paragraph as written
+  for plain text. A bold paragraph before anything other than a fence is
+  left alone, and a book with no captioned listing filters byte-for-byte as
+  before. A fence id under a bold caption moves to the caption, a bold
+  caption above a `caption=` fence is dropped, and a caption wrapped in the
+  source is recognised. Page breaks move in every book with code: on
+  *Publishing with Press* 387 to 405 pages (+18, about 5 percent).
 
 ## [3.1.2] - 2026-11-12
 

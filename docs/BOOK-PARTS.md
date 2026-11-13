@@ -242,13 +242,68 @@ def chapter_count(book):
 ```
 ````
 
-The PDF sets every fence in the house monospace face and wraps a line that
-is longer than the measure (about 64 columns on the 6x9 trim), tagged or
+The PDF sets every fence as a house listing: the monospace face a size
+below the prose (`\small`), between two hairline rules the full width of the
+measure, with a little air above and below. It wraps a line that is longer
+than the measure (about 70 columns on the 6x9 trim at that size), tagged or
 untagged, with a small continuation mark at the head of the carried-over
-part; nothing is cut at the page edge (#279). A block whose lines already
-fit is set exactly as it always was. Prefer breaking long command lines
-yourself with a trailing `\` where the language allows it: the wrap is a
-safety net for the line you forgot, not a layout choice.
+part; nothing is cut at the page edge (#279). A listing longer than the
+page breaks where it must; the rules mark only its true top and bottom, so
+a rule never reads as the end of a block that continues overleaf. A
+one-line lead-in ("Press prints:") never ends a page above its listing. Prefer
+breaking long command lines yourself with a trailing `\` where the language
+allows it: the wrap is a safety net for the line you forgot, not a layout
+choice. HTML and EPUB keep their own code panel.
+
+### Examples and listings
+
+A numbered example is a caption over its listing: **Example 2.4.**
+*Installing the toolchain on macOS*. Write it either way; both give the
+same result.
+
+The bold paragraph you may already write, directly before the fence:
+
+````markdown
+**Example 2.4. Installing the toolchain on macOS**
+
+```text
+$ brew install pandoc poppler
+```
+````
+
+Or the caption on the fence itself, with an optional `id` a link can
+target (`[Example 2.4](#ex-toolchain)`; an `id` on the fence under a bold
+caption works the same way, and the link lands on the caption):
+
+````markdown
+```{.text #ex-toolchain caption="Example 2.4. Installing the toolchain on macOS"}
+$ brew install pandoc poppler
+```
+````
+
+The number is yours: write `Example 2.4.` (chapter and number),
+`Example 4.` (a book that numbers straight through), or `Example A.1.` (an
+appendix), the way you number tables. Press does not count examples. A
+`caption=` with no number is set as the title alone.
+
+In the PDF the caption sits just above the listing's top rule, the number
+in bold and the title in italic, and it never strands: when the caption,
+the rule, and two lines of code do not fit at the foot of a page, all of
+them move to the next. The web reader, the HTML edition, and the EPUB set it
+as a small caption paragraph (class `example-caption`) directly above the
+code; a DOCX takes it in the `Caption` style, and plain text keeps it as the
+paragraph it was.
+
+If a fence carries `caption=` and a bold caption paragraph sits directly
+above it too, the attribute wins and the bold paragraph is dropped, so the
+caption is never set twice.
+
+The bold form is recognised only when the paragraph holds nothing but the
+bold caption and the next block is a fence (a line break your editor put
+inside the bold text is fine). A bold paragraph before prose,
+a list, or a table (`**Example.** Press lowercases the name...`) stays an
+ordinary paragraph, and so does a number in another form
+(`**Example 6-1. ...**`); rewrite it as `Example 6.1.` to make it a caption.
 
 A tagged fence is syntax-highlighted in every edition. Under a single-ink
 print profile the highlighting is monochrome by design: the print build
@@ -399,7 +454,7 @@ press config set lang "en-GB"
 </div>
 <div class="part made">
 <span class="part-name">Code</span>
-<p class="part-what">Fenced blocks, tagged or not; long lines wrap instead of running off the page.</p>
+<p class="part-what">Fenced blocks, tagged or not, set between hairlines; long lines wrap instead of running off the page; an <code>Example C.N.</code> caption stays with its listing.</p>
 <span class="part-where">inline Markdown</span>
 </div>
 </div>

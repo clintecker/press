@@ -537,22 +537,27 @@ def test_untagged_code_fence_wraps_inside_the_measure(tmp_path):
     assert "SourceCodePro" in fonts, "the untagged fence was not set in Source Code Pro"
 
 
-# --- A fence that already fit renders exactly as it did ----------------------
+# --- The house listing: a new frame around an unchanged inside --------------
 #
-# The v3 contract: a fix may correct broken output but must not move a valid
-# book's typography or layout. The rebind of plain verbatim to fvextra's
-# Verbatim (#279) is proven against that contract by rendering one book
-# twice: once with the house header, once with the kernel verbatim restored
-# through the book's own tex/title-page.tex (the last include, so it wins).
-# Every page before the overlong fence must be pixel-identical; the final
-# page, which carries the overlong line, must differ, which proves the
-# restore took effect and the fix bites.
+# v4 gives every code block the house listing design (#293): \small between
+# two hairline rules. That is a design change, so the #279 pixel-identity
+# proof against the kernel verbatim cannot hold any longer; what #279
+# promised was that rebinding verbatim to fvextra moved nothing inside a
+# block, and that promise is kept and proven here. One book renders twice:
+# under the house header, and with the kernel verbatim restored at the same
+# \small through the book's own tex/title-page.tex (the last include, so it
+# wins). The code lines must sit at the same positions relative to the
+# block's first line in both (the pitch, the indentation, the blank line),
+# while the frame is new: a rule just above each block's first line and just
+# below its last, and none at a page break inside a block. The control is
+# live: on the last page it still lets the overlong line overrun.
 KERNEL_VERBATIM_TEX = r"""
-% Restore LaTeX's own verbatim, as the header left it before #279. These are
-% the kernel's definitions verbatim (latex.ltx), so the control render is
-% what a book pinned to v3 saw before the rebind.
+% Restore LaTeX's own verbatim, as the header left it before #279, at the
+% listing's \small. These are the kernel's definitions (latex.ltx) with the
+% size switch in front, so the control is what a bare verbatim of the same
+% size would set: no frame, no fvextra.
 \makeatletter
-\renewcommand\verbatim{\@verbatim \frenchspacing\@vobeyspaces \@xverbatim}
+\renewcommand\verbatim{\small\@verbatim \frenchspacing\@vobeyspaces \@xverbatim}
 \renewcommand\endverbatim{\if@newlist \leavevmode\fi\endtrivlist}
 \makeatother
 % And the 3em emergency stretch v3 set: under v4's 10em the kernel verbatim
@@ -622,33 +627,84 @@ def _render_pages(root, title_tex: str):
     return sorted(out.glob("p*.png")), digest
 
 
-def _differing_pages(house, kernel) -> list[int]:
-    from PIL import Image, ImageChops
+def _code_lines(pdf: Path) -> list[tuple[int, str, float, float, float]]:
+    """Every code line of the identity book, in reading order, as
+    (page, text, xMin, yMin, yMax) in PDF points from pdftotext's layout."""
 
-    differing = []
-    for number, (a, b) in enumerate(zip(house, kernel, strict=True), start=1):
-        with Image.open(a) as left, Image.open(b) as right:
-            if left.size != right.size:
-                differing.append(number)
-                continue
-            box = ImageChops.difference(left.convert("L"), right.convert("L")).getbbox()
-        if box is not None:
-            differing.append(number)
-    return differing
+    import xml.etree.ElementTree as ET
+
+    out = subprocess.run(
+        ["pdftotext", "-bbox-layout", str(pdf), "-"], capture_output=True, text=True, check=True
+    ).stdout
+    root = ET.fromstring(out)
+    lines = []
+    for number, page in enumerate(root.iter("{http://www.w3.org/1999/xhtml}page"), start=1):
+        for line in page.iter("{http://www.w3.org/1999/xhtml}line"):
+            words = [w.text or "" for w in line.iter("{http://www.w3.org/1999/xhtml}word")]
+            text = " ".join(words)
+            if re.match(r"(alpha =|beta =|gamma\(beta\)|delta =|line \d\d of a block)", text):
+                lines.append(
+                    (
+                        number,
+                        text,
+                        float(line.get("xMin")),
+                        float(line.get("yMin")),
+                        float(line.get("yMax")),
+                    )
+                )
+    return lines
+
+
+def _blocks(lines):
+    """The code lines split into their blocks (each starts at alpha or line 00)."""
+
+    blocks: list[list] = []
+    for entry in lines:
+        if entry[1].startswith(("alpha =", "line 00 ")):
+            blocks.append([])
+        blocks[-1].append(entry)
+    return blocks
+
+
+def _rules_px(png: Path, dpi: int) -> list[float]:
+    """The vertical centres (in points) of every hairline across the text
+    block on a rendered page: a run of rows inked across nearly the whole
+    measure, which no line of type ever is."""
+
+    left = round(INNER_IN * dpi)
+    right = round((TRIM_WIDTH_IN - OUTER_IN) * dpi)
+    need = 0.97 * (right - left)
+    with Image.open(png) as image:
+        grey = image.convert("L")
+        width, height = grey.size
+        pixels = grey.load()
+        rows = [
+            y
+            for y in range(height)
+            if sum(1 for x in range(left, right) if pixels[x, y] < 160) >= need
+        ]
+    rules: list[list[int]] = []
+    for y in rows:
+        if rules and y - rules[-1][-1] <= 1:
+            rules[-1].append(y)
+        else:
+            rules.append([y])
+    return [(sum(r) / len(r) + 0.5) * 72 / dpi for r in rules]
 
 
 @requires_pdf_toolchain
 @pytest.mark.layer("integration")
 @pytest.mark.invariant("INV-design-layout-stable")
 @pytest.mark.proof("positive")
-def test_fitting_code_fence_is_pixel_identical_to_kernel_verbatim(tmp_path):
-    """Every page of a book whose fences fit renders pixel-identical under
-    the rebound verbatim and under the kernel verbatim it replaced; only the
-    page carrying an overlong line differs, and there the rebind keeps the
-    ink inside the measure where the kernel let it reach the page edge."""
+def test_listing_frame_is_new_and_the_inside_of_the_block_is_unchanged(tmp_path):
+    """The house listing frames every block with a hairline above and below
+    while the code inside sets exactly as a bare \\small verbatim would: the
+    same line positions relative to the block's first line. A page break
+    inside a block draws no rule, and the overlong line still wraps where the
+    kernel control lets it overrun."""
 
     evidence = Evidence(
-        family="pdf-fence-identity",
+        family="pdf-listing-frame",
         required_tools=REQUIRED,
         tool_versions=tool_versions(REQUIRED),
     )
@@ -657,24 +713,67 @@ def test_fitting_code_fence_is_pixel_identical_to_kernel_verbatim(tmp_path):
     evidence.outputs = {"house": house_digest, "kernel": kernel_digest}
     evidence.record_invariant("INV-design-layout-stable")
     evidence.record_invariant("INV-pdf-ink")
+    house_pdf = next((tmp_path / "house").rglob("dist/int-fence.pdf"))
+    kernel_pdf = next((tmp_path / "kernel").rglob("dist/int-fence.pdf"))
+    house_lines, kernel_lines = _code_lines(house_pdf), _code_lines(kernel_pdf)
 
-    assert len(house) == len(kernel) > 3, (
-        f"page counts differ ({len(house)} vs {len(kernel)}): the rebind moved a page break"
+    # The inside: the same code lines in the same order, and within every
+    # block fragment that sits on one page in both renders, the same offsets
+    # from the fragment's first line, across and down.
+    assert [t for _, t, *_ in house_lines] == [t for _, t, *_ in kernel_lines], (
+        "the house and the control set different code lines: a block was rebroken"
     )
-    last = len(house)
-    differing = _differing_pages(house, kernel)
-    evidence.notes["differing_pages"] = ",".join(map(str, differing))
+    assert len(house_lines) == 2 * 4 + 60
+    compared = 0
+    for h_block, k_block in zip(_blocks(house_lines), _blocks(kernel_lines), strict=True):
+        for i in range(1, len(h_block)):
+            (hp0, _, _, hy0, _), (hp, text, hx, hy, _) = h_block[i - 1], h_block[i]
+            (kp0, _, _, ky0, _), (kp, _, kx, ky, _) = k_block[i - 1], k_block[i]
+            if hp0 != hp or kp0 != kp:
+                continue  # a page break between these two lines in one render
+            assert abs((hy - hy0) - (ky - ky0)) < 0.05, (
+                f"{text!r} sits {hy - hy0:.2f}pt below the line above it in the house listing "
+                f"and {ky - ky0:.2f}pt in the bare \\small verbatim: the frame moved the inside"
+            )
+            assert abs((hx - h_block[0][2]) - (kx - k_block[0][2])) < 0.05, (
+                f"{text!r} moved across inside its block"
+            )
+            compared += 1
+    evidence.notes["line_pairs_compared"] = str(compared)
+    assert compared >= 60, f"only {compared} line pairs shared a page in both renders"
+
+    # The frame: a rule within 8pt above each block's first line and below
+    # its last, on the page each sits on; none below a fragment that a page
+    # break ends, and none in the control around the bare verbatim.
+    def rules_on(pngs, page):
+        return _rules_px(pngs[page - 1], IDENTITY_DPI)
+
+    for block in _blocks(house_lines):
+        first, last = block[0], block[-1]
+        above = [r for r in rules_on(house, first[0]) if first[3] - 8 < r < first[3]]
+        below = [r for r in rules_on(house, last[0]) if last[4] < r < last[4] + 8]
+        assert above, f"no hairline above the block opening {first[1]!r}"
+        assert below, f"no hairline below the block closing {last[1]!r}"
+        # The air inside the frame: fvextra's own top rule backed up half a
+        # baselineskip and left the first line under 2pt from the rule; the
+        # header's override restores framesep. If the override ever dies the
+        # rules are still there, so the gap itself is the witness.
+        top_gap, bottom_gap = first[3] - max(above), min(below) - last[4]
+        assert top_gap >= 3.5 or abs(top_gap - bottom_gap) <= 1, (
+            f"the code under the top rule of {first[1]!r} sits {top_gap:.2f}pt from it and "
+            f"{bottom_gap:.2f}pt above the bottom rule: the top-rule override is not in force"
+        )
+        for prev, nxt in zip(block, block[1:]):
+            if prev[0] != nxt[0]:
+                stray = [r for r in rules_on(house, prev[0]) if prev[4] < r < prev[4] + 8]
+                assert not stray, f"a rule closes the page under {prev[1]!r} mid-block"
+    spanning = _blocks(kernel_lines)[-1]
+    bare = [r for r in rules_on(kernel, spanning[0][0]) if spanning[0][3] - 8 < r < spanning[0][3]]
+    assert not bare, "the control drew a rule: the kernel restore is dead"
     evidence.write(tmp_path)
 
-    assert differing == [last], (
-        f"pages {differing} differ between the rebound verbatim and the kernel verbatim at "
-        f"{IDENTITY_DPI} dpi; only page {last}, which carries the overlong line, may differ. "
-        "A fence that already fit must not move: that is a design change within v3."
-    )
     # The control is live and the fix bites: on the last page the kernel
     # verbatim ran the overlong line to the page edge, the rebind wraps it.
-    from PIL import Image
-
     from press import verify_pdf
 
     with Image.open(kernel[-1]) as image:
@@ -685,6 +784,132 @@ def test_fitting_code_fence_is_pixel_identical_to_kernel_verbatim(tmp_path):
     assert kernel_right > limit, "the kernel verbatim control did not overrun: the restore is dead"
     assert house_right <= limit, (
         f"the rebound verbatim still overruns ({house_right}px > {limit}px)"
+    )
+
+
+# --- An example caption never strands at a page foot (#293) ---------------
+#
+# The listings filter turns **Example C.N. Title** before a fence into
+# \PressExampleCaption, which asks for room for itself, the rule, and two
+# lines of code. The book below walks a captioned listing down the page one
+# line at a time (each section adds a line of prose before it), so some
+# caption lands at every height, including the last lines of a page; then it
+# walks a heading followed directly by a captioned example the same way, so
+# some heading lands at every height too. Two controls keep the book honest.
+# The bare control replaces the macro with a bold paragraph and switches off
+# the one-line lead-in keep (which on its own holds a one-line caption to its
+# block): that is the v3 rendering, and it must strand a caption. The
+# unguarded control is the house macro without its \if@nobreak guard: after a
+# heading, the \Needspace's own breaks (its \penalty-100, and the forced
+# \vfil\penalty-10000 when room runs short) are breaks the heading's
+# \@nobreak cannot stop, and it must strand a heading. Otherwise the book
+# proves nothing.
+BARE_CAPTION_TEX = r"""
+\renewcommand{\PressExampleCaption}[3][]{\par\noindent\textbf{#2} \emph{#3}\par}
+\renewcommand*{\PressListingLeadIn}{}
+"""
+UNGUARDED_CAPTION_TEX = r"""
+\makeatletter
+\renewcommand{\PressExampleCaption}[3][]{%
+  \par\addvspace{9pt plus 2pt}%
+  \sbox{\PressExampleCaptionBox}{\parbox{\linewidth}{\PressExampleCaptionText{#2}{#3}}}%
+  \Needspace{\dimexpr\ht\PressExampleCaptionBox+\dp\PressExampleCaptionBox
+    +3pt+0.4pt+4pt+2\baselineskip\relax}%
+  \PressExampleCaptionText{#2}{#3}%
+  \nopagebreak\vskip3pt\relax\nointerlineskip\@nobreaktrue}
+\makeatother
+"""
+CAPTION_FILLER = "This sentence is filler that walks the listing down the page by one line. "
+HEADING_FILLER = "This sentence is filler that walks the heading down the page by one line. "
+
+
+def _caption_book(root, title_tex: str):
+    parts = ["# Examples\n\nHere the witness of the caption runner stands in a plain sentence.\n"]
+    for n in range(1, 31):
+        prose = CAPTION_FILLER * (n % 9 + 1)
+        code = "".join(f"listing {n:02d} code line {i}\n" for i in range(1, 5))
+        parts.append(f"{prose}\n\n**Example 1.{n}. The listing numbered {n}**\n\n```\n{code}```\n")
+    # One long captioned listing, longer than a page, so a break falls inside.
+    long_code = "".join(f"listing 99 code line {i}\n" for i in range(1, 71))
+    parts.append(f"**Example 1.99. A listing longer than a page**\n\n```\n{long_code}```\n")
+    # A heading with a captioned example directly under it, walked down the page.
+    for n in range(1, 41):
+        code = "".join(f"listing h{n:02d} code line {i}\n" for i in range(1, 5))
+        parts.append(
+            f"{HEADING_FILLER * (n % 11 + 1)}\n\n## Section {n}\n\n"
+            f"**Example 1.{100 + n}. Under heading {n}**\n\n```\n{code}```\n"
+        )
+    parts.append("The book ends here.\n")
+    return (
+        factories.BookFactory(slug="int-caption")
+        .with_sentinels("witness of the caption runner")
+        .with_chapter("00-examples.md", "\n".join(parts))
+        .with_title_tex(title_tex)
+        .build(root)
+    )
+
+
+def _stranded(pages: list[str]) -> tuple[list[str], list[str]]:
+    """Captions and headings that end a page while what they head begins on
+    the next: (stranded captions, stranded headings)."""
+
+    captions, headings = [], []
+    for number, (page, nxt) in enumerate(zip(pages, pages[1:]), start=1):
+        body = [ln.strip() for ln in page.splitlines() if ln.strip()]
+        if body and re.fullmatch(r"\d+|[ivxlc]+", body[-1]):
+            body = body[:-1]  # the folio
+        if not body:
+            continue
+        following = [ln.strip() for ln in nxt.splitlines() if ln.strip()]
+        if body[-1].startswith("Example 1.") and any(
+            ln.startswith("listing ") for ln in following[:3]
+        ):
+            captions.append(f"page {number}: {body[-1]}")
+        if re.fullmatch(r"1\.\d+ Section \d+", body[-1]):
+            headings.append(f"page {number}: {body[-1]}")
+    return captions, headings
+
+
+@requires_pdf_toolchain
+@pytest.mark.layer("integration")
+@pytest.mark.invariant("INV-pdf-ink")
+@pytest.mark.proof("positive")
+def test_example_caption_stays_with_its_listing(tmp_path):
+    from press import booklib, registry, verify_pdf
+
+    results = {}
+    controls = (
+        ("house", "% house header, unmodified\n"),
+        ("bare", BARE_CAPTION_TEX),
+        ("unguarded", UNGUARDED_CAPTION_TEX),
+    )
+    for name, tex in controls:
+        handle = _caption_book(tmp_path / name, tex)
+        with handle.use():
+            registry.build("pdf")
+            pdf = booklib.root() / "dist" / f"{booklib.slug()}.pdf"
+            rc = verify_pdf.main([str(pdf)]) if name == "house" else 0
+            results[name] = (rc, _pages(pdf))
+    rc, house_pages = results["house"]
+    assert rc == 0, "verify_pdf refused the captioned-listing PDF"
+    text = "\n".join(house_pages)
+    # every caption and every code line made it, the long listing included,
+    # and the long listing really crossed a page
+    for n in range(1, 31):
+        assert f"Example 1.{n}. The listing numbered {n}" in text
+    for n in range(1, 41):
+        assert f"Example 1.{100 + n}. Under heading {n}" in text
+    assert all(f"listing 99 code line {i}" in text for i in range(1, 71))
+    spans = [i for i, p in enumerate(house_pages) if "listing 99 code line" in p]
+    assert len(spans) >= 2, "the long listing never crossed a page break"
+    captions, headings = _stranded(house_pages)
+    assert captions == [], f"a caption stranded at a page foot: {captions}"
+    assert headings == [], f"a heading stranded above a captioned example: {headings}"
+    assert _stranded(results["bare"][1])[0], (
+        "the bare-caption control never stranded a caption: the book does not reach the page foot"
+    )
+    assert _stranded(results["unguarded"][1])[1], (
+        "the unguarded-keep control never stranded a heading: the heading walk proves nothing"
     )
 
 
