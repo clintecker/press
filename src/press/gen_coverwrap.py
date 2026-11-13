@@ -71,9 +71,11 @@ class WrapLayout:
 # The back-panel cloth field colour, as RGB. It is the single source of truth:
 # the field is painted from a flat raster of it and the imprint logo is
 # flattened onto the same value, so the opaque logo is invisible against the
-# field. Both are rasters on purpose: a vector \fill and an image take
-# different colour paths in a colour-managed viewer, and a vector field once
-# rendered a shade off the logo's ground and boxed the logo. (RGB(201,191,191)
+# field. Both are rasters on purpose, and the field is written at print
+# resolution: a colour-managed viewer renders a vector \fill and a raster logo
+# differently, and a small raster scaled far up differently from one drawn
+# near 1:1, and each once rendered the field a shade off the logo's ground and
+# boxed the logo (see print_safe.prepare_cover). (RGB(201,191,191)
 # is xcolor black!85!red!25!white, the field this wrap has always used.)
 _CLOTH_FIELD_RGB = (201, 191, 191)
 
@@ -280,7 +282,8 @@ def _resolve_cover_assets(
     field_bg = _CLOTH_FIELD_RGB if lay.cloth_field else (255, 255, 255)
     cover_cap = int(590 * wrap_h)
     logo_cap = int(590 * _LOGO_WIDTH_IN)  # keep the small cover logo under 600 PPI
-    safe = print_safe.prepare_cover(root, field_bg, cover_cap, logo_cap, with_field=lay.cloth_field)
+    field_in = (lay.wrap_w, wrap_h) if lay.cloth_field else None
+    safe = print_safe.prepare_cover(root, field_bg, cover_cap, logo_cap, field_in=field_in)
 
     raw_cover = root / "assets" / "cover.jpg"
     if "cover" not in safe or not raw_cover.is_file():

@@ -19,11 +19,15 @@ audit).
   (192, 184, 183) around a logo ground of (201, 191, 191). The field is now
   painted from a flat raster, `build/coverwrap-assets/field.png`, written by
   `print_safe.prepare_cover` from the same field value the logo is
-  flattened onto, and the flattened logo is an opaque, lossless, untagged
+  flattened onto, at the wrap's own size at 300 PPI (a small raster scaled
+  far up took yet another path in the same viewer and boxed the logo
+  again; one drawn near 1:1 does not), and the flattened logo is an opaque, lossless, untagged
   PNG (no JPEG quantization shifting its ground by a level, no ICC profile
   giving it a path of its own). Both are DeviceRGB rasters at one value, so
   every viewer shows one colour. The wrap's colour, geometry, and layout are
-  unchanged; a linen case still paints no field. Poppler rendered the old
+  unchanged; a linen case still paints no field. A logo whose transparency
+  is a PNG colour key (an RGB or grey PNG with a tRNS chunk) is now
+  flattened too, rather than reaching the wrap with a soft mask. Poppler rendered the old
   wrap correctly, so no local render reproduced the box; the new integration
   test samples the field and the logo ground from the built wrap and
   asserts they are equal.

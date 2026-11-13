@@ -222,7 +222,7 @@ def test_check_print_safe_rejects_a_transparent_image(tmp_path):
         verify_coverwrap.check_print_safe(wrap)
 
 
-def _wrap_tex(tmp_path, monkeypatch, material: str):
+def _wrap_tex(tmp_path, monkeypatch, material: str, drop_field: bool = False):
     """Generate a wrap's TeX for ``material`` with the compile stubbed out,
     and return the book root and the TeX: the print-safe assets are real,
     only latexmk is faked."""
@@ -249,9 +249,25 @@ def _wrap_tex(tmp_path, monkeypatch, material: str):
         "layout",
         lambda pages: cw.wrap_geometry(6.0, 9.0, 0.115, True, 0.125, 0.0, 0.0, 0.0, material),
     )
+    if drop_field:
+        from press import print_safe
+
+        real = print_safe.prepare_cover
+
+        def without_field(*args, **kwargs):
+            made = real(*args, **kwargs)
+            made.pop("field", None)
+            return made
+
+        monkeypatch.setattr(print_safe, "prepare_cover", without_field)
     fake = fakes.FakeProcessRunner(results=[ProcessResult(1, stdout=b"stopped")])
     monkeypatch.setattr(adapters, "process_runner", fake)
     with handle.use():
+        if drop_field:
+            with pytest.raises(SystemExit, match="cloth field raster"):
+                cw.generate(handle.root / "interior.pdf", handle.root / "dist" / "wrap.pdf")
+            assert fake.runs == []
+            return handle.root, ""
         with pytest.raises(SystemExit):
             cw.generate(handle.root / "interior.pdf", handle.root / "dist" / "wrap.pdf")
     tex = (handle.root / "build" / "coverwrap" / "coverwrap.tex").read_text(encoding="utf-8")
@@ -280,3 +296,12 @@ def test_linen_case_paints_no_field(tmp_path, monkeypatch):
     assert "% linen case: the material is the finish; no printed field" in tex
     assert (root / "build" / "coverwrap-assets" / "press-logo.png").is_file()
     assert not (root / "build" / "coverwrap-assets" / "field.png").exists()
+
+
+@pytest.mark.layer("unit")
+def test_cloth_wrap_without_its_field_raster_is_refused(tmp_path, monkeypatch):
+    # No silent fallback to a vector fill: a cloth wrap whose field raster is
+    # missing stops before TeX runs.
+    root, tex = _wrap_tex(tmp_path, monkeypatch, "paperback", drop_field=True)
+    assert tex == ""
+    assert not (root / "build" / "coverwrap" / "coverwrap.tex").exists()

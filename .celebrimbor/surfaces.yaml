@@ -382,7 +382,7 @@ modules:
     role: pure
     status: ratified
   print_safe:
-    pin: "979bcb6fe2e1"
+    pin: "ad54b81a7914"
     role: producer
     status: ratified
   process_control:

@@ -181,26 +181,33 @@ def test_logo_ground_is_the_field_colour(print_pack, tmp_path):
     # and box the logo. Sample both from the real render: one colour.
     import subprocess
 
-    from PIL import Image
+    from PIL import Image, ImageChops
 
     from press import gen_coverwrap
 
     wrap = print_pack.dist / f"{print_pack.slug}-coverwrap.pdf"
-    dpi = 100
+    # 150 dpi draws the 300 PPI field at an even 2:1. (Poppler's box filter
+    # loses a level on a flat raster at 3:1, so 100 dpi would read the field
+    # one unit low: a renderer artifact, not the wrap.)
+    dpi = 150
     subprocess.run(
         ["pdftoppm", "-png", "-r", str(dpi), str(wrap), str(tmp_path / "wrap")], check=True
     )
     image = Image.open(next(tmp_path.glob("wrap*.png"))).convert("RGB")
-    ink = [
-        (x, y)
-        for y in range(image.height)
-        for x in range(image.width // 2)  # the back panel holds the logo
-        if (lambda p: p[2] > 200 and p[0] < 60 and p[1] < 60)(image.getpixel((x, y)))
-    ]
-    assert ink, "the imprint logo's ink did not reach the wrap"
-    left = min(x for x, _ in ink)
-    right = max(x for x, _ in ink)
-    mid_y = (min(y for _, y in ink) + max(y for _, y in ink)) // 2
+    back = image.crop((0, 0, image.width // 2, image.height))  # the logo's panel
+    red, green, blue = back.split()
+    # The blue ink alone: blue high, red and green low, as one mask.
+    ink_mask = ImageChops.multiply(
+        ImageChops.multiply(
+            red.point(lambda v: 255 if v < 60 else 0),
+            green.point(lambda v: 255 if v < 60 else 0),
+        ),
+        blue.point(lambda v: 255 if v > 200 else 0),
+    )
+    box = ink_mask.getbbox()
+    assert box is not None, "the imprint logo's ink did not reach the wrap"
+    left, top, right, bottom = box[0], box[1], box[2] - 1, box[3] - 1
+    mid_y = (top + bottom) // 2
     # One ink-width left of the ink is still inside the logo (the ink is its
     # middle fifth): the flattened ground.
     ground = image.getpixel((left - (right - left + 1), mid_y))

@@ -67,11 +67,13 @@ def test_prepare_cover_writes_the_field_raster_on_request(tmp_path):
     # flattened onto, so the two take one colour path in every viewer.
     (tmp_path / "assets").mkdir()
     Image.new("RGBA", (200, 200), (0, 0, 0, 0)).save(tmp_path / "assets" / "press-logo.png")
-    made = print_safe.prepare_cover(tmp_path, (201, 191, 191), 3000, 640, with_field=True)
+    made = print_safe.prepare_cover(tmp_path, (201, 191, 191), 3000, 640, field_in=(13.2045, 9.25))
     field = Image.open(made["field"])
     assert made["field"].name == "field.png" and field.format == "PNG"
-    assert field.mode == "RGB" and field.size == (64, 64)
-    assert field.getcolors() == [(64 * 64, (201, 191, 191))]
+    # The wrap's size at 300 PPI, rounded up, so a viewer draws it near 1:1.
+    assert field.mode == "RGB" and field.size == (3962, 2775)
+    assert field.getcolors() == [(3962 * 2775, (201, 191, 191))]
+    assert made["field"].stat().st_size < 200_000  # flat, so it compresses
     assert Image.open(made["logo"]).getpixel((0, 0)) == field.getpixel((0, 0))
     # Off by default (a linen case prints no field).
     assert "field" not in print_safe.prepare_cover(tmp_path, (255, 255, 255), 3000, 640)
@@ -88,8 +90,39 @@ def test_prepare_cover_untags_an_icc_profiled_logo(tmp_path):
     Image.new("RGB", (50, 50), (201, 191, 191)).save(
         tmp_path / "assets" / "press-logo.png", icc_profile=icc
     )
+    Image.new("RGB", (60, 90), (10, 20, 30)).save(
+        tmp_path / "assets" / "cover.jpg", icc_profile=icc
+    )
     made = print_safe.prepare_cover(tmp_path, (201, 191, 191), 3000, 640)
     assert "icc_profile" not in Image.open(made["logo"]).info
+    # The cover JPEG is untagged too, by Pillow's JPEG save dropping the
+    # profile; pin it so a Pillow change cannot quietly tag the cover art.
+    assert "icc_profile" not in Image.open(made["cover"]).info
+
+
+@pytest.mark.layer("unit")
+@pytest.mark.parametrize("mode, key", [("RGB", (255, 255, 255)), ("L", 255)])
+def test_prepare_cover_flattens_a_colour_keyed_logo(tmp_path, mode, key):
+    # A colour key (tRNS) on an RGB or L PNG is transparency too: it must be
+    # flattened onto the field, or the logo embeds with a soft mask.
+    (tmp_path / "assets").mkdir()
+    logo = Image.new(mode, (40, 40), key)
+    logo.paste(0, (10, 10, 30, 30))
+    logo.save(tmp_path / "assets" / "press-logo.png", transparency=key)
+    assert "transparency" in Image.open(tmp_path / "assets" / "press-logo.png").info
+    made = print_safe.prepare_cover(tmp_path, (201, 191, 191), 3000, 640)
+    out = Image.open(made["logo"])
+    assert "transparency" not in out.info and out.mode == "RGB"
+    assert out.getpixel((0, 0)) == (201, 191, 191)
+    assert out.getpixel((20, 20)) == (0, 0, 0)
+
+
+@pytest.mark.layer("unit")
+def test_prepare_cover_writes_an_opaque_grey_logo_as_rgb(tmp_path):
+    (tmp_path / "assets").mkdir()
+    Image.new("L", (40, 40), 128).save(tmp_path / "assets" / "press-logo.png")
+    made = print_safe.prepare_cover(tmp_path, (201, 191, 191), 3000, 640)
+    assert Image.open(made["logo"]).mode == "RGB"
 
 
 @pytest.mark.layer("unit")
