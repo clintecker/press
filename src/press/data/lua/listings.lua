@@ -39,8 +39,15 @@ local function is_number(s)
   return false
 end
 
+-- A space between words: an ordinary one, a tie, or the line end of a
+-- caption the author wrapped in the source.
 local function is_gap(el)
-  return el ~= nil and (el.t == "Space" or (el.t == "Str" and el.text == "\u{00A0}"))
+  return el ~= nil
+    and (
+      el.t == "Space"
+      or el.t == "SoftBreak"
+      or (el.t == "Str" and el.text == "\u{00A0}")
+    )
 end
 
 -- Split caption inlines into the label ("Example 2.4.") and the title
@@ -90,14 +97,17 @@ end
 -- link to the example lands on its caption, not under it.
 local function caption_block(label, title, id)
   if latex then
+    -- The anchor rides in the macro's optional argument, so the header sets
+    -- it after the caption's keep, on the page the caption lands on.
     local anchor = ""
     if id ~= "" then
-      anchor = "\\phantomsection\\label{" .. id .. "}"
+      anchor = "[" .. id .. "]"
     end
     return pandoc.RawBlock(
       "latex",
-      anchor
-        .. "\\PressExampleCaption{"
+      "\\PressExampleCaption"
+        .. anchor
+        .. "{"
         .. label
         .. "}{"
         .. inlines_to_latex(title)
@@ -140,10 +150,18 @@ local function captioned(blocks)
   while i <= n do
     local block, nxt = blocks[i], blocks[i + 1]
     local label, title = implicit_caption(block)
-    if label and nxt and nxt.t == "CodeBlock" and nxt.attributes.caption == nil then
+    if label and nxt and nxt.t == "CodeBlock" and nxt.attributes.caption ~= nil then
+      -- Both spellings on one block: the attribute is the caption, and the
+      -- bold paragraph, which would only repeat or contradict it, is dropped.
+      changed = true
+      i = i + 1
+    elseif label and nxt and nxt.t == "CodeBlock" then
       changed = true
       if latex or web or docx then
-        out:insert(caption_block(label, title, ""))
+        -- The fence's id moves to the caption, as the explicit form's does,
+        -- so a link to the example lands on its caption.
+        out:insert(caption_block(label, title, nxt.identifier))
+        nxt.identifier = ""
       else
         out:insert(block) -- plain text: the paragraph already reads as one
       end

@@ -125,10 +125,12 @@ def test_a_book_with_no_fences_is_byte_identical(to):
 @pytest.mark.layer("integration")
 def test_explicit_caption_in_latex_keeps_its_markup_and_anchor():
     out = _render(EXPLICIT)
+    # the anchor rides in the macro's optional argument, so the header sets it
+    # after the caption's keep, not before the space and the page break
     assert (
-        "\\phantomsection\\label{ex-first-run}"
-        "\\PressExampleCaption{Example 6.1.}{A first \\emph{run} of \\texttt{press}}"
+        "\\PressExampleCaption[ex-first-run]{Example 6.1.}{A first \\emph{run} of \\texttt{press}}"
     ) in out
+    assert "\\phantomsection" not in out
     assert "caption=" not in out
 
 
@@ -152,12 +154,34 @@ def test_explicit_caption_without_a_number_is_the_title_alone():
 @pytest.mark.layer("integration")
 def test_an_explicit_caption_wins_over_a_bold_paragraph_before_it():
     # Both spellings on one block: the attribute is the caption, and the bold
-    # paragraph stays an ordinary paragraph rather than captioning twice.
+    # paragraph, which would only repeat or contradict it, is dropped.
     md = '**Example 1.1. Bold**\n\n```{caption="Example 1.2. Attribute"}\ncode\n```\n'
     out = _render(md)
     assert out.count("\\PressExampleCaption") == 1
     assert "\\PressExampleCaption{Example 1.2.}{Attribute}" in out
-    assert "\\textbf{Example 1.1. Bold}" in out
+    assert "Example 1.1" not in out
+    html = _render(md, to="html")
+    assert "Example 1.1" not in html and html.count("example-caption") == 1
+
+
+@pytest.mark.layer("integration")
+def test_an_implicit_caption_takes_the_fences_id():
+    md = "**Example 2.4. Title**\n\n```{#ex-toolchain}\ncode\n```\n"
+    assert "\\PressExampleCaption[ex-toolchain]{Example 2.4.}{Title}" in _render(md)
+    html = _render(md, to="html")
+    assert '<div id="ex-toolchain" class="example-caption">' in html
+    assert html.count('id="ex-toolchain"') == 1
+
+
+@pytest.mark.layer("integration")
+def test_a_caption_wrapped_in_the_source_is_recognised():
+    # An author's editor may wrap the bold line anywhere, including between
+    # the number and the title: pandoc reads that line end as a SoftBreak.
+    for md in (
+        "**Example 2.4.\nInstalling the toolchain**\n\n```\ncode\n```\n",
+        "**Example\n2.4. Installing the toolchain**\n\n```\ncode\n```\n",
+    ):
+        assert "\\PressExampleCaption{Example 2.4.}{Installing the toolchain}" in _render(md)
 
 
 @pytest.mark.layer("integration")
