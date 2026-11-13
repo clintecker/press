@@ -9,6 +9,23 @@ audit).
 
 ## [Unreleased]
 
+### Changed
+
+- **The listing skips are 6pt plus 2pt** (`book-header.tex`). From 4.0.1
+  the space fancyvrb sets above and below every code block, and the
+  `\addvspace` above an example caption, is 6pt plus 2pt; 4.0.0 shipped
+  9pt plus 2pt. This is the owner's design call, not a bug fix: within the
+  first day of v4, with one consuming book, the owner reviewed the 4.0.0
+  listings on *Publishing with Press* and chose to take back about half of
+  the growth they caused. Everything else in the listing design stays: the
+  hairlines, 4pt from each rule to the code, 3pt from a caption to its
+  rule, the caption and lead-in keeps. Ink to rule is now about 10.6pt
+  above and 9.8pt below (13.6pt and 12.8pt in 4.0.0); an uncaptioned
+  five-line block with its surrounding air is 6pt shorter (91.97pt to
+  85.99pt, prose to prose), a captioned one likewise (102.97pt to 96.99pt).
+  Page breaks in a listing-heavy book move again: *Publishing with Press*
+  builds natively at 397 pages, from 402 under 4.0.0 (387 under v3).
+
 ## [4.0.0] - 2026-11-12
 
 ### Changed (v4, design)

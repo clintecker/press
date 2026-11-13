@@ -417,7 +417,7 @@
 % The house listing (v4, #293): a reader must see where code starts and
 % stops, and a page of prose with three bare blocks in it reads as one grey
 % field. So every code block, tagged or not, is set at \small between two
-% hairline rules the full width of the measure, with 9pt plus 2pt above the
+% hairline rules the full width of the measure, with 6pt plus 2pt above the
 % top rule and below the bottom one, and 4pt between each rule and the code.
 % The frame is fvextra's own (frame=lines), so a block that breaks across
 % pages is fancyvrb's problem, not ours: with frame=lines the rules are drawn
@@ -431,7 +431,7 @@
 %   vspace  the skip fancyvrb adds above and below the block, in place of
 %       \topsep. partopsep is zeroed (listparameters): LaTeX adds it to a
 %       list that opens after a finished paragraph, which a pandoc block
-%       always does, so the 9pt would otherwise be 11pt.
+%       always does, so the 6pt would otherwise be 8pt.
 %   framerule=0.4pt, framesep=4pt  the hairline, and its air.
 %   No rulecolor: the rules print in the text ink, so a single-ink print
 %       interior gets a solid line rather than a screened grey one.
@@ -459,11 +459,11 @@
 % The options are written out per environment because fancyvrb reads them
 % as key-value text, not as a macro it would expand.
 \ifcsname KV@FV@backgroundcolorboxoverlap\endcsname
-\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\},backgroundcolorboxoverlap=0pt,tabsize=1,fontsize=\small,frame=lines,framerule=0.4pt,framesep=4pt,vspace=9pt plus 2pt,listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 \PressListingLeadIn}}
-\RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere,backgroundcolorboxoverlap=0pt,tabsize=1,fontsize=\small,frame=lines,framerule=0.4pt,framesep=4pt,vspace=9pt plus 2pt,listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 \PressListingLeadIn}}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\},backgroundcolorboxoverlap=0pt,tabsize=1,fontsize=\small,frame=lines,framerule=0.4pt,framesep=4pt,vspace=6pt plus 2pt,listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 \PressListingLeadIn}}
+\RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere,backgroundcolorboxoverlap=0pt,tabsize=1,fontsize=\small,frame=lines,framerule=0.4pt,framesep=4pt,vspace=6pt plus 2pt,listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 \PressListingLeadIn}}
 \else
-\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\},tabsize=1,fontsize=\small,frame=lines,framerule=0.4pt,framesep=4pt,vspace=9pt plus 2pt,listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 \PressListingLeadIn}}
-\RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere,tabsize=1,fontsize=\small,frame=lines,framerule=0.4pt,framesep=4pt,vspace=9pt plus 2pt,listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 \PressListingLeadIn}}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\},tabsize=1,fontsize=\small,frame=lines,framerule=0.4pt,framesep=4pt,vspace=6pt plus 2pt,listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 \PressListingLeadIn}}
+\RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere,tabsize=1,fontsize=\small,frame=lines,framerule=0.4pt,framesep=4pt,vspace=6pt plus 2pt,listparameters={\partopsep=0pt \clubpenalty=0 \widowpenalty=0 \PressListingLeadIn}}
 \fi
 % fvextra (every release, 1.6.1 through 1.14) replaces fancyvrb's top rule
 % with an older form that backs up half a \baselineskip after the rule, so
@@ -475,14 +475,14 @@
 %
 % The rules themselves must not be spaced as if they were lines of text.
 % Left to TeX, the top rule took a full \baselineskip of interline glue from
-% the prose line above it on top of the 9pt, and since prose ink sits mostly
-% above its baseline, the air over a listing (about 18pt, descender to
-% rule) dwarfed the air under it (about 13pt, rule to ascender). So the top
+% the prose line above it on top of the 6pt, and since prose ink sits mostly
+% above its baseline, the air over a listing (about 15pt, descender to
+% rule) dwarfed the air under it (about 10pt, rule to ascender). So the top
 % rule takes no interline glue: it stands one strut depth below the bottom of
 % the line above it (\kern to two strut depths below that line's baseline,
 % whatever its own descenders), which mirrors the bottom rule, whose next
 % line stands one strut depth plus its ascender height below it. Both gaps
-% are then the 9pt plus a strut depth. After a caption \prevdepth is already
+% are then the 6pt plus a strut depth. After a caption \prevdepth is already
 % -1000pt (\nointerlineskip) and the caption's own 3pt stands alone.
 \makeatletter
 \def\FV@BeginListFrame@Lines{%
@@ -530,7 +530,7 @@
 % so a link lands on the caption on the page the caption is set on.
 \newsavebox{\PressExampleCaptionBox}
 \newcommand{\PressExampleCaption}[3][]{%
-  \par\addvspace{9pt plus 2pt}%
+  \par\addvspace{6pt plus 2pt}%
   \if@nobreak\else
     \sbox{\PressExampleCaptionBox}{\parbox{\linewidth}{\PressExampleCaptionText{#2}{#3}}}%
     \Needspace{\dimexpr\ht\PressExampleCaptionBox+\dp\PressExampleCaptionBox

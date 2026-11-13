@@ -112,14 +112,15 @@ v3.
 
 - **Every code block is a listing** ([the parts of a book](book-parts.html)).
   In the PDF every fence, tagged or not, is set a size smaller (`\small`)
-  between two hairline rules the full width of the measure, with 9pt (plus
+  between two hairline rules the full width of the measure, with 6pt (plus
   2pt of stretch) above and below and 4pt between each rule and the code;
   the air from the prose to the top rule and from the bottom rule to the
-  prose is the same (about 13pt, ink to rule). The code inside sets as
+  prose is the same (about 10pt, ink to rule). The code inside sets as
   before at the new size: the same face, the same wrapping. A one-line
   lead-in ("Press prints:") is kept with its listing. Page breaks move in
-  any book with code: on *Publishing with Press* 387 to 405 pages (+18,
-  about 5 percent). A listing longer than a page breaks as before; its rules
+  any book with code. v4.0.0 set the skips at 9pt and took *Publishing with
+  Press* from 387 to 405 pages (402 in a native build); v4.0.1 sets them
+  at 6pt, and the same native build is 397 pages. A listing longer than a page breaks as before; its rules
   mark only its true top and bottom.
 - **An example caption is attached to its listing.** A paragraph that is
   nothing but `**Example C.N. Title**` (or `Example N.`, or `Example A.N.`

@@ -811,7 +811,7 @@ BARE_CAPTION_TEX = r"""
 UNGUARDED_CAPTION_TEX = r"""
 \makeatletter
 \renewcommand{\PressExampleCaption}[3][]{%
-  \par\addvspace{9pt plus 2pt}%
+  \par\addvspace{6pt plus 2pt}%
   \sbox{\PressExampleCaptionBox}{\parbox{\linewidth}{\PressExampleCaptionText{#2}{#3}}}%
   \Needspace{\dimexpr\ht\PressExampleCaptionBox+\dp\PressExampleCaptionBox
     +3pt+0.4pt+4pt+2\baselineskip\relax}%
@@ -826,7 +826,11 @@ HEADING_FILLER = "This sentence is filler that walks the heading down the page b
 def _caption_book(root, title_tex: str):
     parts = ["# Examples\n\nHere the witness of the caption runner stands in a plain sentence.\n"]
     for n in range(1, 31):
-        prose = CAPTION_FILLER * (n % 9 + 1)
+        # A 13-step cycle, not 9: whether some caption lands on a page's last
+        # line is a matter of phase, and with the 6pt listing skips (4.0.1) a
+        # 9-step walk put none there, so the bare control stranded nothing.
+        # 13 strands three in the bare control.
+        prose = CAPTION_FILLER * (n % 13 + 1)
         code = "".join(f"listing {n:02d} code line {i}\n" for i in range(1, 5))
         parts.append(f"{prose}\n\n**Example 1.{n}. The listing numbered {n}**\n\n```\n{code}```\n")
     # One long captioned listing, longer than a page, so a break falls inside.

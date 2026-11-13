@@ -38,7 +38,7 @@ _ENV = r"^\\{command}\{{{name}\}}\{{Verbatim\}}\{{(.*)\}}$"
 #                                   a block's first and last line, which
 #                                   the kernel's one-line paragraphs lack.
 #   listparameters={...}            also zeroes \partopsep, so the space
-#                                   above a block is the listing's 9pt, and
+#                                   above a block is the listing's 6pt, and
 #                                   keeps a one-line lead-in with the block.
 IDENTITY_OPTIONS = {
     "backgroundcolorboxoverlap=0pt",
@@ -47,13 +47,13 @@ IDENTITY_OPTIONS = {
 }
 BREAK_OPTIONS = {"breaklines", "breakanywhere"}
 # The house listing (#293): \small between two 0.4pt hairlines, 4pt of air
-# inside each, 9pt plus 2pt outside.
+# inside each, 6pt plus 2pt outside.
 LISTING_OPTIONS = {
     r"fontsize=\small",
     "frame=lines",
     "framerule=0.4pt",
     "framesep=4pt",
-    "vspace=9pt plus 2pt",
+    "vspace=6pt plus 2pt",
 }
 
 
