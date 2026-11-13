@@ -9,6 +9,8 @@ audit).
 
 ## [Unreleased]
 
+## [3.1.2] - 2026-11-12
+
 ### Fixed
 
 - The cover wrap showed a visible box behind the imprint logo in
